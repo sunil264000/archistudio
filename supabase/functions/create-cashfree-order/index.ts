@@ -22,7 +22,9 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      // Use service role so we can write payment/enrollment records reliably
+      // (we still validate the end-user via the JWT below)
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
     // Verify user is authenticated
@@ -40,6 +42,18 @@ serve(async (req) => {
     }
 
     const { courseId, amount, customerName, customerEmail, customerPhone }: OrderRequest = await req.json();
+
+    // Resolve course UUID from slug (frontend uses slugs)
+    const { data: courseRow, error: courseError } = await supabaseClient
+      .from("courses")
+      .select("id")
+      .eq("slug", courseId)
+      .single();
+
+    if (courseError || !courseRow?.id) {
+      console.error("Course lookup error:", courseError);
+      throw new Error("Invalid course");
+    }
 
     const appId = Deno.env.get("CASHFREE_APP_ID");
     const secretKey = Deno.env.get("CASHFREE_SECRET_KEY");
@@ -86,22 +100,22 @@ serve(async (req) => {
     }
 
     // Store payment record in pending state
-    // Note: course_id is stored as metadata since frontend uses slugs, not DB UUIDs
     const { error: paymentError } = await supabaseClient
       .from("payments")
       .insert({
         user_id: user.id,
+        course_id: courseRow.id,
         amount: amount,
         currency: "INR",
         status: "pending",
         payment_gateway: "cashfree",
         gateway_order_id: orderId,
-        metadata: { 
+        metadata: {
           course_slug: courseId,
           customer_name: customerName,
           customer_email: customerEmail,
-          customer_phone: customerPhone
-        }
+          customer_phone: customerPhone,
+        },
       });
 
     if (paymentError) {
