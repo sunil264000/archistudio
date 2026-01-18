@@ -1,18 +1,22 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, BookOpen, CheckCircle } from 'lucide-react';
+import { Background3D } from '@/components/3d/Background3D';
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden">
-      {/* Grid pattern background */}
-      <div className="absolute inset-0 grid-pattern opacity-50" />
+    <section className="relative overflow-hidden min-h-[90vh] flex items-center">
+      {/* 3D Background */}
+      <Background3D intensity="medium" />
       
-      <div className="relative section-padding">
+      {/* Grid pattern background */}
+      <div className="absolute inset-0 grid-pattern opacity-30" />
+      
+      <div className="relative section-padding w-full">
         <div className="container-wide">
           <div className="max-w-4xl mx-auto text-center space-y-8">
             {/* Badge */}
-            <div className="inline-block px-4 py-1.5 rounded-full bg-secondary text-secondary-foreground text-sm font-medium border border-border">
+            <div className="inline-block px-4 py-1.5 rounded-full bg-secondary/80 backdrop-blur-sm text-secondary-foreground text-sm font-medium border border-border">
               For Students & Fresh Architects
             </div>
             
@@ -42,7 +46,7 @@ export function HeroSection() {
                 </Button>
               </Link>
               <a href="#courses">
-                <Button variant="outline" size="lg" className="gap-2 text-base px-8 h-12">
+                <Button variant="outline" size="lg" className="gap-2 text-base px-8 h-12 backdrop-blur-sm">
                   <BookOpen className="h-5 w-5" />
                   See Course Curriculum
                 </Button>

@@ -12,11 +12,12 @@ import { Label } from '@/components/ui/label';
 import { CourseEditDialog } from '@/components/admin/CourseEditDialog';
 import { LessonManagement } from '@/components/admin/LessonManagement';
 import { CouponManagement } from '@/components/admin/CouponManagement';
+import { CertificateTemplateSettings } from '@/components/admin/CertificateTemplateSettings';
 import { toast } from 'sonner';
 import { 
   Users, BookOpen, DollarSign, Settings, 
   ArrowLeft, TrendingUp, CreditCard, MessageSquare, Pencil, 
-  BarChart3, Copy, Eye, EyeOff, Instagram, Save, Loader2, Video, Trash2
+  BarChart3, Copy, Eye, EyeOff, Instagram, Save, Loader2, Video, Trash2, Award
 } from 'lucide-react';
 
 export default function Admin() {
@@ -130,12 +131,13 @@ export default function Admin() {
 
           {/* Management Tabs */}
           <Tabs defaultValue="courses" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-8">
+            <TabsList className="grid w-full grid-cols-9">
               <TabsTrigger value="courses">Courses</TabsTrigger>
               <TabsTrigger value="lessons">Lessons</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="payments">Payments</TabsTrigger>
               <TabsTrigger value="coupons">Coupons</TabsTrigger>
+              <TabsTrigger value="certificates">Certificates</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="support">Support</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -212,6 +214,21 @@ export default function Admin() {
                 </CardHeader>
                 <CardContent>
                   <CouponManagement />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="certificates">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Award className="h-5 w-5" />
+                    Certificate Template
+                  </CardTitle>
+                  <CardDescription>Design and customize certificate templates</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <CertificateTemplateSettings />
                 </CardContent>
               </Card>
             </TabsContent>
