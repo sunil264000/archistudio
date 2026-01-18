@@ -156,6 +156,57 @@ export type Database = {
           },
         ]
       }
+      certificate_settings: {
+        Row: {
+          accent_color: string | null
+          background_color: string | null
+          border_style: string | null
+          font_family: string | null
+          id: string
+          institution_name: string | null
+          institution_tagline: string | null
+          logo_url: string | null
+          primary_color: string | null
+          show_border: boolean | null
+          signature_name: string | null
+          signature_title: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          background_color?: string | null
+          border_style?: string | null
+          font_family?: string | null
+          id?: string
+          institution_name?: string | null
+          institution_tagline?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          show_border?: boolean | null
+          signature_name?: string | null
+          signature_title?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          background_color?: string | null
+          border_style?: string | null
+          font_family?: string | null
+          id?: string
+          institution_name?: string | null
+          institution_tagline?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          show_border?: boolean | null
+          signature_name?: string | null
+          signature_title?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       certificates: {
         Row: {
           certificate_number: string
