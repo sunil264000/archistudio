@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Clock, BookOpen, Star, CheckCircle, Play, ArrowLeft, CreditCard, Loader2, Users, Award, FileText } from 'lucide-react';
+import { Clock, BookOpen, Star, CheckCircle, Play, ArrowLeft, CreditCard, Loader2, Users, Award, FileText, Lock, Eye } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
+import { useCourseModules } from '@/hooks/useCourseModules';
 import { useToast } from '@/hooks/use-toast';
 
 export default function CourseDetail() {
@@ -17,6 +18,9 @@ export default function CourseDetail() {
   const { user, profile } = useAuth();
   const { initiatePayment, isLoading } = useCashfreePayment();
   const { toast } = useToast();
+  
+  // Fetch real modules from database
+  const { modules: dbModules, loading: modulesLoading, totalLessons: dbTotalLessons, totalDuration } = useCourseModules(slug);
 
   const course = courses.find(c => c.slug === slug);
 
@@ -69,15 +73,18 @@ export default function CourseDetail() {
     advanced: 'bg-destructive/10 text-destructive border-destructive/30',
   };
 
-  // Generate sample curriculum based on course
-  const curriculum = [
-    { title: 'Introduction & Setup', lessons: 3, duration: '45 min' },
-    { title: 'Core Concepts', lessons: 5, duration: '1.5 hrs' },
-    { title: 'Practical Application', lessons: 6, duration: '2 hrs' },
-    { title: 'Advanced Techniques', lessons: 4, duration: '1.5 hrs' },
-    { title: 'Real-World Projects', lessons: 5, duration: '2 hrs' },
-    { title: 'Final Project & Certificate', lessons: 2, duration: '1 hr' },
-  ];
+  // Use database modules if available, otherwise show placeholder
+  const hasRealContent = dbModules.length > 0;
+  const displayTotalLessons = hasRealContent ? dbTotalLessons : course.totalLessons;
+  const displayTotalHours = hasRealContent ? Math.round(totalDuration / 60) : course.durationHours;
+  
+  // Format duration for display
+  const formatDuration = (minutes: number) => {
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -259,31 +266,57 @@ export default function CourseDetail() {
                     Course Curriculum
                   </CardTitle>
                   <CardDescription>
-                    {course.totalLessons} lessons • {course.durationHours} hours total
+                    {displayTotalLessons} lessons • {displayTotalHours} hours total
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {curriculum.map((module, i) => (
-                    <div 
-                      key={i}
-                      className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                          {i + 1}
-                        </div>
-                        <div>
-                          <p className="font-medium">{module.title}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {module.lessons} lessons • {module.duration}
-                          </p>
-                        </div>
-                      </div>
-                      {i === 0 && (
-                        <Badge variant="outline" className="text-xs">Free Preview</Badge>
-                      )}
+                  {modulesLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
-                  ))}
+                  ) : hasRealContent ? (
+                    // Real modules from database
+                    dbModules.map((module, i) => {
+                      const moduleDuration = module.lessons.reduce((sum, l) => sum + (l.duration_minutes || 0), 0);
+                      const hasFreePreview = module.lessons.some(l => l.is_free_preview);
+                      
+                      return (
+                        <div 
+                          key={module.id}
+                          className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
+                              {i + 1}
+                            </div>
+                            <div>
+                              <p className="font-medium">{module.title}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {module.lessons.length} lessons • {formatDuration(moduleDuration)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {hasFreePreview && (
+                              <Badge variant="outline" className="text-xs gap-1">
+                                <Eye className="h-3 w-3" /> Free Preview
+                              </Badge>
+                            )}
+                            {!hasFreePreview && (
+                              <Lock className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    // Placeholder when no content imported yet
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Course content is being prepared.</p>
+                      <p className="text-sm mt-2">Check back soon!</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

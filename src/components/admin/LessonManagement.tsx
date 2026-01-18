@@ -360,11 +360,30 @@ export function LessonManagement() {
                               <p className="font-medium text-sm">{lesson.title}</p>
                               <p className="text-xs text-muted-foreground">
                                 {lesson.duration_minutes} min
-                                {lesson.is_free_preview && ' • Free Preview'}
                               </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
+                            {/* Free Preview Toggle */}
+                            <div 
+                              className="flex items-center gap-1.5 cursor-pointer"
+                              onClick={async () => {
+                                await supabase
+                                  .from('lessons')
+                                  .update({ is_free_preview: !lesson.is_free_preview })
+                                  .eq('id', lesson.id);
+                                toast.success(lesson.is_free_preview ? 'Removed free preview' : 'Marked as free preview');
+                                if (selectedCourse) fetchModules(selectedCourse);
+                              }}
+                            >
+                              <Switch
+                                checked={lesson.is_free_preview}
+                                className="scale-75"
+                              />
+                              <span className={`text-xs ${lesson.is_free_preview ? 'text-green-500' : 'text-muted-foreground'}`}>
+                                Free
+                              </span>
+                            </div>
                             <label className="cursor-pointer">
                               <input
                                 type="file"
