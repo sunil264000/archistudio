@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
 import { useCourseModules } from '@/hooks/useCourseModules';
 import { useToast } from '@/hooks/use-toast';
+import { CourseReviews } from '@/components/course/CourseReviews';
 
 // Expandable Module Component
 interface ExpandableModuleProps {
