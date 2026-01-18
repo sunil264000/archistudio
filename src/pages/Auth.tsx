@@ -40,8 +40,10 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background relative">
-      {/* 3D Background */}
-      <Background3D intensity="light" />
+      {/* 3D Background - positioned behind all content */}
+      <div className="fixed inset-0 -z-10">
+        <Background3D intensity="light" />
+      </div>
       {/* Header */}
       <header className="border-b border-border">
         <div className="container-wide py-4 flex items-center justify-between">
