@@ -15,6 +15,9 @@ interface CertificateSettings {
   background_color: string;
   primary_color: string;
   accent_color: string;
+  title_color: string;
+  body_text_color: string;
+  tagline_color: string;
   font_family: string;
   institution_name: string;
   institution_tagline: string;
@@ -30,6 +33,9 @@ const defaultSettings: CertificateSettings = {
   background_color: '#ffffff',
   primary_color: '#1a1a1a',
   accent_color: '#c45a32',
+  title_color: '#1a1a1a',
+  body_text_color: '#4a4a4a',
+  tagline_color: '#6b7280',
   font_family: 'Playfair Display',
   institution_name: 'Concrete Logic',
   institution_tagline: 'Architecture Learning Platform',
@@ -84,6 +90,9 @@ export function CertificateTemplateSettings() {
           background_color: data.background_color || '#ffffff',
           primary_color: data.primary_color || '#1a1a1a',
           accent_color: data.accent_color || '#c45a32',
+          title_color: (data as any).title_color || '#1a1a1a',
+          body_text_color: (data as any).body_text_color || '#4a4a4a',
+          tagline_color: (data as any).tagline_color || '#6b7280',
           font_family: data.font_family || 'Playfair Display',
           institution_name: data.institution_name || 'Concrete Logic',
           institution_tagline: data.institution_tagline || 'Architecture Learning Platform',
@@ -140,6 +149,9 @@ export function CertificateTemplateSettings() {
           background_color: settings.background_color,
           primary_color: settings.primary_color,
           accent_color: settings.accent_color,
+          title_color: settings.title_color,
+          body_text_color: settings.body_text_color,
+          tagline_color: settings.tagline_color,
           font_family: settings.font_family,
           institution_name: settings.institution_name,
           institution_tagline: settings.institution_tagline,
@@ -148,7 +160,7 @@ export function CertificateTemplateSettings() {
           show_border: settings.show_border,
           border_style: settings.border_style,
           updated_at: new Date().toISOString(),
-        })
+        } as any)
         .eq('id', settings.id);
 
       if (error) throw error;
@@ -320,6 +332,62 @@ export function CertificateTemplateSettings() {
                 </div>
               </div>
             </div>
+
+            <div className="grid grid-cols-3 gap-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="title_color">Title Text</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    id="title_color"
+                    value={settings.title_color}
+                    onChange={(e) => setSettings(prev => ({ ...prev, title_color: e.target.value }))}
+                    className="w-10 h-10 rounded border cursor-pointer"
+                  />
+                  <Input
+                    value={settings.title_color}
+                    onChange={(e) => setSettings(prev => ({ ...prev, title_color: e.target.value }))}
+                    className="flex-1 font-mono text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="body_text_color">Body Text</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    id="body_text_color"
+                    value={settings.body_text_color}
+                    onChange={(e) => setSettings(prev => ({ ...prev, body_text_color: e.target.value }))}
+                    className="w-10 h-10 rounded border cursor-pointer"
+                  />
+                  <Input
+                    value={settings.body_text_color}
+                    onChange={(e) => setSettings(prev => ({ ...prev, body_text_color: e.target.value }))}
+                    className="flex-1 font-mono text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tagline_color">Tagline</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    id="tagline_color"
+                    value={settings.tagline_color}
+                    onChange={(e) => setSettings(prev => ({ ...prev, tagline_color: e.target.value }))}
+                    className="w-10 h-10 rounded border cursor-pointer"
+                  />
+                  <Input
+                    value={settings.tagline_color}
+                    onChange={(e) => setSettings(prev => ({ ...prev, tagline_color: e.target.value }))}
+                    className="flex-1 font-mono text-xs"
+                  />
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -427,30 +495,43 @@ export function CertificateTemplateSettings() {
               
               <h3 
                 className="text-xl font-bold tracking-widest"
-                style={{ color: settings.primary_color }}
+                style={{ color: settings.title_color }}
               >
                 {settings.institution_name.toUpperCase()}
               </h3>
-              <p className="text-xs text-gray-500 tracking-wide mb-4">
+              <p 
+                className="text-xs tracking-wide mb-4"
+                style={{ color: settings.tagline_color }}
+              >
                 {settings.institution_tagline}
               </p>
               
               <h2 
                 className="text-2xl md:text-3xl my-4"
-                style={{ color: settings.primary_color }}
+                style={{ color: settings.title_color }}
               >
                 Certificate of Completion
               </h2>
               
-              <p className="text-sm text-gray-600 mb-2">This is to certify that</p>
+              <p 
+                className="text-sm mb-2"
+                style={{ color: settings.body_text_color }}
+              >
+                This is to certify that
+              </p>
               <p 
                 className="text-xl md:text-2xl font-bold mb-4"
-                style={{ color: settings.primary_color }}
+                style={{ color: settings.title_color }}
               >
                 Student Name
               </p>
               
-              <p className="text-sm text-gray-600">has successfully completed</p>
+              <p 
+                className="text-sm"
+                style={{ color: settings.body_text_color }}
+              >
+                has successfully completed
+              </p>
               <p 
                 className="text-lg font-semibold"
                 style={{ color: settings.accent_color }}
@@ -459,8 +540,18 @@ export function CertificateTemplateSettings() {
               </p>
               
               <div className="absolute bottom-8 left-8 text-left">
-                <p className="text-xs text-gray-500">Date</p>
-                <p className="text-sm font-medium">January 18, 2026</p>
+                <p 
+                  className="text-xs"
+                  style={{ color: settings.tagline_color }}
+                >
+                  Date
+                </p>
+                <p 
+                  className="text-sm font-medium"
+                  style={{ color: settings.body_text_color }}
+                >
+                  January 18, 2026
+                </p>
               </div>
               
               <div className="absolute bottom-8 right-8 text-right">
@@ -468,8 +559,18 @@ export function CertificateTemplateSettings() {
                   className="w-24 border-b mb-1"
                   style={{ borderColor: settings.primary_color }}
                 />
-                <p className="text-sm font-medium">{settings.signature_name}</p>
-                <p className="text-xs text-gray-500">{settings.signature_title}</p>
+                <p 
+                  className="text-sm font-medium"
+                  style={{ color: settings.body_text_color }}
+                >
+                  {settings.signature_name}
+                </p>
+                <p 
+                  className="text-xs"
+                  style={{ color: settings.tagline_color }}
+                >
+                  {settings.signature_title}
+                </p>
               </div>
             </div>
           </div>
