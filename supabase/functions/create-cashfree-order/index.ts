@@ -128,7 +128,8 @@ serve(async (req) => {
           customer_phone: customerPhone,
         },
         order_meta: {
-          return_url: `${(req.headers.get("origin") || "https://concrete-logic.lovable.app")}/payment-success?order_id={order_id}`,
+          return_url: `${(req.headers.get("origin") || "https://concrete-logic.lovable.app")}/payment-success?order_id={order_id}&course=${courseId}`,
+          cancel_url: `${(req.headers.get("origin") || "https://concrete-logic.lovable.app")}/payment-failed?order_id={order_id}&course=${courseId}`,
           notify_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/cashfree-webhook`,
         },
         order_note: `Course purchase: ${courseId}`,
