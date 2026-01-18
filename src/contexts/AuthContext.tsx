@@ -269,7 +269,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   };
 
-  const isAdmin = hasAdminRole || profile?.role === 'admin';
+  // Use ONLY user_roles table for admin check (server-authoritative via RLS)
+  const isAdmin = hasAdminRole;
 
   return (
     <AuthContext.Provider
