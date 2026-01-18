@@ -11,6 +11,8 @@ import CourseDetail from "./pages/CourseDetail";
 import CoursePlayer from "./pages/CoursePlayer";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentFailed from "./pages/PaymentFailed";
 import ResetPassword from "./pages/ResetPassword";
@@ -37,6 +39,8 @@ const App = () => (
             <Route path="/learn/:slug" element={<CoursePlayer />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/payment-failed" element={<PaymentFailed />} />
             <Route path="/reset-password" element={<ResetPassword />} />

@@ -13,11 +13,12 @@ import { CourseEditDialog } from '@/components/admin/CourseEditDialog';
 import { LessonManagement } from '@/components/admin/LessonManagement';
 import { CouponManagement } from '@/components/admin/CouponManagement';
 import { CertificateTemplateSettings } from '@/components/admin/CertificateTemplateSettings';
+import { BlogManagement } from '@/components/admin/BlogManagement';
 import { toast } from 'sonner';
 import { 
   Users, BookOpen, DollarSign, Settings, 
   ArrowLeft, TrendingUp, CreditCard, MessageSquare, Pencil, 
-  BarChart3, Copy, Eye, EyeOff, Instagram, Save, Loader2, Video, Trash2, Award
+  BarChart3, Copy, Eye, EyeOff, Instagram, Save, Loader2, Video, Trash2, Award, FileText
 } from 'lucide-react';
 
 export default function Admin() {
