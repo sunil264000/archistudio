@@ -7,7 +7,7 @@ export function Footer() {
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
           <div className="md:col-span-1">
-            <div className="font-display font-bold text-xl mb-4">ArchLearn</div>
+            <div className="font-display font-bold text-xl mb-4">Archistudio</div>
             <p className="text-sm text-muted-foreground">
               Practical architecture education for the real world.
             </p>
@@ -88,7 +88,7 @@ export function Footer() {
 
         <div className="border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} ArchLearn. All rights reserved.
+            © {new Date().getFullYear()} Archistudio. All rights reserved.
           </div>
           <div className="text-sm text-muted-foreground">
             Made for architects who want to build, not just design.
