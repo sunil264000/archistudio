@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CourseEditDialog } from '@/components/admin/CourseEditDialog';
 import { LessonManagement } from '@/components/admin/LessonManagement';
+import { CouponManagement } from '@/components/admin/CouponManagement';
 import { toast } from 'sonner';
 import { 
   Users, BookOpen, DollarSign, Settings, 
@@ -129,11 +130,12 @@ export default function Admin() {
 
           {/* Management Tabs */}
           <Tabs defaultValue="courses" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="courses">Courses</TabsTrigger>
               <TabsTrigger value="lessons">Lessons</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="payments">Payments</TabsTrigger>
+              <TabsTrigger value="coupons">Coupons</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="support">Support</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -195,6 +197,21 @@ export default function Admin() {
                 </CardHeader>
                 <CardContent>
                   <PaymentsTable />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="coupons">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Coupon Management
+                  </CardTitle>
+                  <CardDescription>Create and manage discount coupons</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <CouponManagement />
                 </CardContent>
               </Card>
             </TabsContent>
