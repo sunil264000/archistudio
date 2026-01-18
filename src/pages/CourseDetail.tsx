@@ -310,12 +310,41 @@ export default function CourseDetail() {
                       );
                     })
                   ) : (
-                    // Placeholder when no content imported yet
-                    <div className="text-center py-8 text-muted-foreground">
-                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Course content is being prepared.</p>
-                      <p className="text-sm mt-2">Check back soon!</p>
-                    </div>
+                    // Fake placeholder modules when no content imported yet
+                    [
+                      { title: 'Introduction & Setup', lessons: 3, duration: '45 min', freePreview: true },
+                      { title: 'Core Concepts', lessons: 5, duration: '1.5 hrs', freePreview: false },
+                      { title: 'Practical Application', lessons: 6, duration: '2 hrs', freePreview: false },
+                      { title: 'Advanced Techniques', lessons: 4, duration: '1.5 hrs', freePreview: false },
+                      { title: 'Real-World Projects', lessons: 5, duration: '2 hrs', freePreview: false },
+                      { title: 'Final Project & Certificate', lessons: 2, duration: '1 hr', freePreview: false },
+                    ].map((module, i) => (
+                      <div 
+                        key={i}
+                        className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
+                            {i + 1}
+                          </div>
+                          <div>
+                            <p className="font-medium">{module.title}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {module.lessons} lessons • {module.duration}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {module.freePreview ? (
+                            <Badge variant="outline" className="text-xs gap-1">
+                              <Eye className="h-3 w-3" /> Free Preview
+                            </Badge>
+                          ) : (
+                            <Lock className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </div>
+                      </div>
+                    ))
                   )}
                 </CardContent>
               </Card>
