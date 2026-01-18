@@ -199,6 +199,10 @@ function CourseCard({ course, featured = false, index = 0 }: CourseCardProps) {
        customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
        customerEmail: user.email || '',
        customerPhone: profile?.phone || '9999999999',
+       courseTitle: course.title,
+       courseShortDescription: course.shortDescription,
+       courseDescription: course.description,
+       courseLevel: course.level,
      });
   };
 

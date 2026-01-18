@@ -7,11 +7,17 @@ const corsHeaders = {
 };
 
 interface OrderRequest {
-  courseId: string;
+  courseId: string; // course slug
   amount: number;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+
+  // Optional course metadata so backend can upsert the course if missing
+  courseTitle?: string;
+  courseShortDescription?: string;
+  courseDescription?: string;
+  courseLevel?: string;
 }
 
 serve(async (req) => {
@@ -41,18 +47,55 @@ serve(async (req) => {
       throw new Error("Unauthorized");
     }
 
-    const { courseId, amount, customerName, customerEmail, customerPhone }: OrderRequest = await req.json();
+    const {
+      courseId,
+      amount,
+      customerName,
+      customerEmail,
+      customerPhone,
+      courseTitle,
+      courseShortDescription,
+      courseDescription,
+      courseLevel,
+    }: OrderRequest = await req.json();
 
     // Resolve course UUID from slug (frontend uses slugs)
-    const { data: courseRow, error: courseError } = await supabaseClient
+    let { data: courseRow } = await supabaseClient
       .from("courses")
       .select("id")
       .eq("slug", courseId)
-      .single();
+      .maybeSingle();
 
-    if (courseError || !courseRow?.id) {
-      console.error("Course lookup error:", courseError);
-      throw new Error("Invalid course");
+    // If course isn't in DB yet, create it (best-effort)
+    if (!courseRow?.id) {
+      if (!courseTitle) {
+        throw new Error("Invalid course");
+      }
+
+      const { data: insertedCourse, error: insertCourseError } = await supabaseClient
+        .from("courses")
+        .insert({
+          slug: courseId,
+          title: courseTitle,
+          short_description: courseShortDescription ?? null,
+          description: courseDescription ?? null,
+          level: (courseLevel as any) ?? "beginner",
+          is_published: true,
+          is_featured: false,
+          duration_hours: 0,
+          total_lessons: 0,
+          price_inr: amount,
+          price_usd: 0,
+        })
+        .select("id")
+        .single();
+
+      if (insertCourseError || !insertedCourse?.id) {
+        console.error("Course upsert error:", insertCourseError);
+        throw new Error("Invalid course");
+      }
+
+      courseRow = insertedCourse;
     }
 
     const appId = Deno.env.get("CASHFREE_APP_ID");
