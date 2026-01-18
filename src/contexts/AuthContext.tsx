@@ -39,6 +39,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasAdminRole, setHasAdminRole] = useState(false);
+
+  const checkAdminRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle();
+      
+      return !!data;
+    } catch {
+      return false;
+    }
+  };
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -107,6 +123,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
             
             setProfile(userProfile);
+            
+            // Check admin role
+            const isAdminUser = await checkAdminRole(session.user.id);
+            setHasAdminRole(isAdminUser);
+            
             setLoading(false);
           }, 0);
         } else {
@@ -131,6 +152,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             );
           }
           setProfile(userProfile);
+          
+          // Check admin role
+          const isAdminUser = await checkAdminRole(session.user.id);
+          setHasAdminRole(isAdminUser);
+          
           setLoading(false);
         });
       } else {
@@ -243,7 +269,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   };
 
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = hasAdminRole || profile?.role === 'admin';
 
   return (
     <AuthContext.Provider
