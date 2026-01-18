@@ -269,14 +269,14 @@ export function CouponManagement() {
               <div className="grid gap-2">
                 <Label>Applicable Course</Label>
                 <Select
-                  value={formData.applicable_course_id}
-                  onValueChange={(v) => setFormData({ ...formData, applicable_course_id: v })}
+                  value={formData.applicable_course_id || "all"}
+                  onValueChange={(v) => setFormData({ ...formData, applicable_course_id: v === "all" ? "" : v })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All courses" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All courses</SelectItem>
+                    <SelectItem value="all">All courses</SelectItem>
                     {courses.map((course) => (
                       <SelectItem key={course.id} value={course.id}>
                         {course.title}
