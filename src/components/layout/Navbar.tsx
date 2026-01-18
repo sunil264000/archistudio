@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck } from 'lucide-react';
 import { useState, useEffect } from 'react';
-
+import { CartSheet } from '@/components/cart/CartSheet';
 export function Navbar() {
   const { user, profile, signOut, loading, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -46,6 +46,8 @@ export function Navbar() {
               Blog
             </Link>
           </div>
+
+          <CartSheet />
 
           <Button variant="ghost" size="icon" onClick={toggleDarkMode}>
             {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}

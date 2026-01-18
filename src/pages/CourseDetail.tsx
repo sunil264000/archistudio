@@ -8,12 +8,44 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Clock, BookOpen, Star, CheckCircle, Play, ArrowLeft, CreditCard, Loader2, Users, Award, FileText, Lock, Eye, ChevronDown, Video } from 'lucide-react';
+import { Clock, BookOpen, Star, CheckCircle, Play, ArrowLeft, CreditCard, Loader2, Users, Award, FileText, Lock, Eye, ChevronDown, Video, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/contexts/CartContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
 import { useCourseModules } from '@/hooks/useCourseModules';
 import { useToast } from '@/hooks/use-toast';
 import { CourseReviews } from '@/components/course/CourseReviews';
+
+// Add to Cart Button Component
+function AddToCartButton({ course }: { course: any }) {
+  const { addToCart, isInCart, removeFromCart } = useCart();
+  const inCart = isInCart(course.slug);
+  
+  const handleClick = () => {
+    if (inCart) {
+      removeFromCart(course.slug);
+    } else {
+      addToCart({
+        courseId: course.slug,
+        slug: course.slug,
+        title: course.title,
+        price: course.priceInr,
+        thumbnail: course.thumbnail,
+      });
+    }
+  };
+  
+  return (
+    <Button 
+      variant={inCart ? "secondary" : "outline"}
+      onClick={handleClick}
+      className="w-full"
+    >
+      <ShoppingCart className="h-4 w-4 mr-2" />
+      {inCart ? 'Remove from Cart' : 'Add to Cart'}
+    </Button>
+  );
+}
 
 // Expandable Module Component
 interface ExpandableModuleProps {
@@ -365,6 +397,10 @@ export default function CourseDetail() {
                       </>
                     )}
                   </Button>
+
+                  {course.priceInr > 0 && (
+                    <AddToCartButton course={course} />
+                  )}
 
                   <p className="text-center text-sm text-muted-foreground">
                     7-day money-back guarantee
