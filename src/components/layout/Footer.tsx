@@ -69,17 +69,17 @@ export function Footer() {
             <ul className="space-y-2 text-sm">
               <li>
                 <Link to="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Terms of Service
+                  Terms & Conditions
                 </Link>
               </li>
               <li>
-                <Link to="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Privacy Policy
+                <Link to="/refunds" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Refunds & Cancellations
                 </Link>
               </li>
               <li>
-                <Link to="/refund" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Refund Policy
+                <Link to="/contact" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Contact Us
                 </Link>
               </li>
             </ul>
