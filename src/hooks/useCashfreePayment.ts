@@ -9,11 +9,17 @@ declare global {
 }
 
 interface PaymentDetails {
-  courseId: string;
+  courseId: string; // course slug
   amount: number;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+
+  // Optional course metadata (helps backend create course row if missing)
+  courseTitle?: string;
+  courseShortDescription?: string;
+  courseDescription?: string;
+  courseLevel?: string;
 }
 
 export const useCashfreePayment = () => {
