@@ -86,20 +86,27 @@ serve(async (req) => {
     }
 
     // Store payment record in pending state
+    // Note: course_id is stored as metadata since frontend uses slugs, not DB UUIDs
     const { error: paymentError } = await supabaseClient
       .from("payments")
       .insert({
         user_id: user.id,
-        course_id: courseId,
         amount: amount,
         currency: "INR",
         status: "pending",
         payment_gateway: "cashfree",
         gateway_order_id: orderId,
+        metadata: { 
+          course_slug: courseId,
+          customer_name: customerName,
+          customer_email: customerEmail,
+          customer_phone: customerPhone
+        }
       });
 
     if (paymentError) {
       console.error("Payment record error:", paymentError);
+      // Don't throw - payment can still proceed even if record fails
     }
 
     return new Response(
