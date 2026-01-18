@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -6,11 +7,95 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Clock, BookOpen, Star, CheckCircle, Play, ArrowLeft, CreditCard, Loader2, Users, Award, FileText, Lock, Eye } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Clock, BookOpen, Star, CheckCircle, Play, ArrowLeft, CreditCard, Loader2, Users, Award, FileText, Lock, Eye, ChevronDown, Video } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
 import { useCourseModules } from '@/hooks/useCourseModules';
 import { useToast } from '@/hooks/use-toast';
+
+// Expandable Module Component
+interface ExpandableModuleProps {
+  index: number;
+  title: string;
+  lessonCount: number;
+  duration: string;
+  hasFreePreview: boolean;
+  lessons: {
+    id: string;
+    title: string;
+    duration_minutes: number | null;
+    is_free_preview: boolean;
+    video_url: string | null;
+  }[];
+}
+
+function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview, lessons }: ExpandableModuleProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger asChild>
+        <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
+              {index + 1}
+            </div>
+            <div>
+              <p className="font-medium">{title}</p>
+              <p className="text-sm text-muted-foreground">
+                {lessonCount} lessons • {duration}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {hasFreePreview && (
+              <Badge variant="outline" className="text-xs gap-1">
+                <Eye className="h-3 w-3" /> Free Preview
+              </Badge>
+            )}
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          </div>
+        </div>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="ml-11 mt-1 space-y-1 pb-2">
+          {lessons.map((lesson, lessonIdx) => (
+            <div 
+              key={lesson.id}
+              className="flex items-center justify-between py-2 px-3 rounded text-sm hover:bg-muted/30 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                {lesson.video_url ? (
+                  <Video className="h-3.5 w-3.5 text-primary" />
+                ) : (
+                  <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
+                <span className={lesson.is_free_preview ? 'text-foreground' : 'text-muted-foreground'}>
+                  {lesson.title}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {lesson.duration_minutes && lesson.duration_minutes > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {lesson.duration_minutes} min
+                  </span>
+                )}
+                {lesson.is_free_preview ? (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                    Free
+                  </Badge>
+                ) : (
+                  <Lock className="h-3 w-3 text-muted-foreground" />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
 
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -269,48 +354,31 @@ export default function CourseDetail() {
                     {displayTotalLessons} lessons • {displayTotalHours} hours total
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-2">
                   {modulesLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
                   ) : hasRealContent ? (
-                    // Real modules from database
+                    // Real modules from database - EXPANDABLE
                     dbModules.map((module, i) => {
                       const moduleDuration = module.lessons.reduce((sum, l) => sum + (l.duration_minutes || 0), 0);
                       const hasFreePreview = module.lessons.some(l => l.is_free_preview);
                       
                       return (
-                        <div 
+                        <ExpandableModule
                           key={module.id}
-                          className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                              {i + 1}
-                            </div>
-                            <div>
-                              <p className="font-medium">{module.title}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {module.lessons.length} lessons • {formatDuration(moduleDuration)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {hasFreePreview && (
-                              <Badge variant="outline" className="text-xs gap-1">
-                                <Eye className="h-3 w-3" /> Free Preview
-                              </Badge>
-                            )}
-                            {!hasFreePreview && (
-                              <Lock className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </div>
-                        </div>
+                          index={i}
+                          title={module.title}
+                          lessonCount={module.lessons.length}
+                          duration={formatDuration(moduleDuration)}
+                          hasFreePreview={hasFreePreview}
+                          lessons={module.lessons}
+                        />
                       );
                     })
                   ) : (
-                    // Fake placeholder modules when no content imported yet
+                    // Fake placeholder modules when no content imported yet (not expandable)
                     [
                       { title: 'Introduction & Setup', lessons: 3, duration: '45 min', freePreview: true },
                       { title: 'Core Concepts', lessons: 5, duration: '1.5 hrs', freePreview: false },
@@ -321,7 +389,7 @@ export default function CourseDetail() {
                     ].map((module, i) => (
                       <div 
                         key={i}
-                        className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                        className="flex items-center justify-between p-4 rounded-lg bg-muted/50"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">

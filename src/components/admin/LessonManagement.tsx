@@ -12,7 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { toast } from 'sonner';
 import { 
   Plus, Pencil, Trash2, Upload, Video, FileText, 
-  GripVertical, Loader2, ChevronRight, FolderPlus 
+  GripVertical, Loader2, ChevronRight, FolderPlus, Save
 } from 'lucide-react';
 import { GoogleDriveImport } from './GoogleDriveImport';
 
@@ -65,6 +65,10 @@ export function LessonManagement() {
   });
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Batch free preview changes - track locally before saving
+  const [pendingFreePreviewChanges, setPendingFreePreviewChanges] = useState<Record<string, boolean>>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchCourses();
@@ -264,13 +268,66 @@ export function LessonManagement() {
 
   const selectedCourseData = courses.find(c => c.id === selectedCourse);
 
+  // Get effective free preview value (pending change or original)
+  const getEffectiveFreePreview = (lessonId: string, original: boolean) => {
+    return pendingFreePreviewChanges.hasOwnProperty(lessonId) 
+      ? pendingFreePreviewChanges[lessonId] 
+      : original;
+  };
+
+  // Toggle free preview locally
+  const toggleFreePreview = (lessonId: string, currentValue: boolean) => {
+    const originalValue = lessons[Object.keys(lessons).find(k => 
+      lessons[k].some(l => l.id === lessonId)
+    ) || '']?.find(l => l.id === lessonId)?.is_free_preview ?? false;
+    
+    const newValue = !currentValue;
+    
+    if (newValue === originalValue) {
+      // Remove from pending if back to original
+      setPendingFreePreviewChanges(prev => {
+        const updated = { ...prev };
+        delete updated[lessonId];
+        return updated;
+      });
+    } else {
+      setPendingFreePreviewChanges(prev => ({ ...prev, [lessonId]: newValue }));
+    }
+  };
+
+  // Save all pending changes
+  const saveAllChanges = async () => {
+    if (Object.keys(pendingFreePreviewChanges).length === 0) return;
+    
+    setSaving(true);
+    try {
+      const updates = Object.entries(pendingFreePreviewChanges).map(([lessonId, isFreePreview]) =>
+        supabase.from('lessons').update({ is_free_preview: isFreePreview }).eq('id', lessonId)
+      );
+      
+      await Promise.all(updates);
+      toast.success(`Saved ${Object.keys(pendingFreePreviewChanges).length} changes`);
+      setPendingFreePreviewChanges({});
+      if (selectedCourse) fetchModules(selectedCourse);
+    } catch (error: any) {
+      toast.error('Failed to save changes: ' + error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const hasPendingChanges = Object.keys(pendingFreePreviewChanges).length > 0;
+
   return (
     <div className="space-y-6">
       {/* Course Selector */}
       <div className="flex items-center gap-4">
         <div className="flex-1">
           <Label>Select Course</Label>
-          <Select value={selectedCourse || ''} onValueChange={setSelectedCourse}>
+          <Select value={selectedCourse || ''} onValueChange={(val) => {
+            setSelectedCourse(val);
+            setPendingFreePreviewChanges({}); // Clear pending when switching course
+          }}>
             <SelectTrigger>
               <SelectValue placeholder="Choose a course to manage" />
             </SelectTrigger>
@@ -290,6 +347,19 @@ export function LessonManagement() {
           </Button>
         )}
       </div>
+
+      {/* Save Changes Button */}
+      {hasPendingChanges && (
+        <div className="flex items-center justify-between p-3 bg-accent/10 border border-accent/30 rounded-lg">
+          <span className="text-sm">
+            {Object.keys(pendingFreePreviewChanges).length} unsaved changes
+          </span>
+          <Button onClick={saveAllChanges} disabled={saving} className="gap-2">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save All Changes
+          </Button>
+        </div>
+      )}
 
       {/* Google Drive Import */}
       {selectedCourse && selectedCourseData && (
@@ -364,26 +434,25 @@ export function LessonManagement() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            {/* Free Preview Toggle */}
-                            <div 
-                              className="flex items-center gap-1.5 cursor-pointer"
-                              onClick={async () => {
-                                await supabase
-                                  .from('lessons')
-                                  .update({ is_free_preview: !lesson.is_free_preview })
-                                  .eq('id', lesson.id);
-                                toast.success(lesson.is_free_preview ? 'Removed free preview' : 'Marked as free preview');
-                                if (selectedCourse) fetchModules(selectedCourse);
-                              }}
-                            >
-                              <Switch
-                                checked={lesson.is_free_preview}
-                                className="scale-75"
-                              />
-                              <span className={`text-xs ${lesson.is_free_preview ? 'text-green-500' : 'text-muted-foreground'}`}>
-                                Free
-                              </span>
-                            </div>
+                            {/* Free Preview Toggle - batch save */}
+                            {(() => {
+                              const effectiveValue = getEffectiveFreePreview(lesson.id, lesson.is_free_preview);
+                              const hasChange = pendingFreePreviewChanges.hasOwnProperty(lesson.id);
+                              return (
+                                <div 
+                                  className={`flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded ${hasChange ? 'bg-accent/20 border border-accent/40' : ''}`}
+                                  onClick={() => toggleFreePreview(lesson.id, effectiveValue)}
+                                >
+                                  <Switch
+                                    checked={effectiveValue}
+                                    className="scale-75"
+                                  />
+                                  <span className={`text-xs ${effectiveValue ? 'text-green-500' : 'text-muted-foreground'}`}>
+                                    Free
+                                  </span>
+                                </div>
+                              );
+                            })()}
                             <label className="cursor-pointer">
                               <input
                                 type="file"

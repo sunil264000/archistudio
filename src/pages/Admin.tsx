@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { 
   Users, BookOpen, DollarSign, Settings, 
   ArrowLeft, TrendingUp, CreditCard, MessageSquare, Pencil, 
-  BarChart3, Copy, Eye, EyeOff, Instagram, Save, Loader2, Video
+  BarChart3, Copy, Eye, EyeOff, Instagram, Save, Loader2, Video, Trash2
 } from 'lucide-react';
 
 export default function Admin() {
@@ -390,29 +390,133 @@ function UsersTable() {
 
 function PaymentsTable() {
   const [payments, setPayments] = useState<any[]>([]);
-  useEffect(() => {
-    supabase.from('payments').select('*').order('created_at', { ascending: false }).limit(50).then(({ data }) => {
-      setPayments(data || []);
+  const [filter, setFilter] = useState<'all' | 'completed' | 'failed' | 'pending'>('all');
+  const [stats, setStats] = useState({ total: 0, monthly: 0, successful: 0, failed: 0 });
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const fetchPayments = async () => {
+    const { data } = await supabase
+      .from('payments')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    
+    const allPayments = data || [];
+    setPayments(allPayments);
+    
+    // Calculate stats
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    const completed = allPayments.filter(p => p.status === 'completed');
+    const monthlyPayments = completed.filter(p => new Date(p.created_at) >= startOfMonth);
+    
+    setStats({
+      total: completed.reduce((sum, p) => sum + (p.amount || 0), 0),
+      monthly: monthlyPayments.reduce((sum, p) => sum + (p.amount || 0), 0),
+      successful: completed.length,
+      failed: allPayments.filter(p => p.status === 'failed').length,
     });
+  };
+
+  useEffect(() => {
+    fetchPayments();
   }, []);
 
-  return payments.length === 0 ? (
-    <p className="text-muted-foreground text-center py-8">No payments recorded yet.</p>
-  ) : (
-    <div className="space-y-2">
-      {payments.map(payment => (
-        <div key={payment.id} className="flex items-center justify-between p-3 border rounded-lg">
-          <div>
-            <p className="font-medium">₹{payment.amount}</p>
-            <p className="text-sm text-muted-foreground">
-              {payment.payment_gateway} • {new Date(payment.created_at).toLocaleDateString()}
-            </p>
-          </div>
-          <Badge variant={payment.status === 'completed' ? "default" : payment.status === 'failed' ? "destructive" : "secondary"}>
-            {payment.status}
-          </Badge>
+  const handleDelete = async (paymentId: string) => {
+    if (!confirm('Are you sure you want to delete this payment record?')) return;
+    setDeleting(paymentId);
+    try {
+      await supabase.from('payments').delete().eq('id', paymentId);
+      toast.success('Payment record deleted');
+      fetchPayments();
+    } catch (error) {
+      toast.error('Failed to delete payment');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const filteredPayments = payments.filter(p => {
+    if (filter === 'all') return true;
+    return p.status === filter;
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="p-4 border rounded-lg text-center bg-green-500/10">
+          <p className="text-2xl font-bold text-green-600">₹{stats.total.toLocaleString()}</p>
+          <p className="text-sm text-muted-foreground">Total Revenue</p>
         </div>
-      ))}
+        <div className="p-4 border rounded-lg text-center bg-blue-500/10">
+          <p className="text-2xl font-bold text-blue-600">₹{stats.monthly.toLocaleString()}</p>
+          <p className="text-sm text-muted-foreground">This Month</p>
+        </div>
+        <div className="p-4 border rounded-lg text-center bg-success/10">
+          <p className="text-2xl font-bold text-success">{stats.successful}</p>
+          <p className="text-sm text-muted-foreground">Successful</p>
+        </div>
+        <div className="p-4 border rounded-lg text-center bg-destructive/10">
+          <p className="text-2xl font-bold text-destructive">{stats.failed}</p>
+          <p className="text-sm text-muted-foreground">Failed</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-2">
+        {(['all', 'completed', 'failed', 'pending'] as const).map(status => (
+          <Button
+            key={status}
+            variant={filter === status ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter(status)}
+          >
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </Button>
+        ))}
+      </div>
+
+      {/* Payments List */}
+      {filteredPayments.length === 0 ? (
+        <p className="text-muted-foreground text-center py-8">No payments found.</p>
+      ) : (
+        <div className="space-y-2">
+          {filteredPayments.map(payment => (
+            <div key={payment.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <p className="font-medium">₹{payment.amount}</p>
+                  <Badge variant={payment.status === 'completed' ? "default" : payment.status === 'failed' ? "destructive" : "secondary"}>
+                    {payment.status}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {payment.payment_gateway} • {new Date(payment.created_at).toLocaleString()}
+                </p>
+                {payment.gateway_order_id && (
+                  <p className="text-xs text-muted-foreground font-mono">
+                    Order: {payment.gateway_order_id}
+                  </p>
+                )}
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => handleDelete(payment.id)}
+                disabled={deleting === payment.id}
+              >
+                {deleting === payment.id ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                )}
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
