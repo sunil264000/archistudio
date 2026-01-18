@@ -11,6 +11,8 @@ import { Clock, BookOpen, Search, Star, Filter, ShoppingCart, CreditCard, Loader
 import { useAuth } from '@/contexts/AuthContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
 import { useToast } from '@/hooks/use-toast';
+import { Background3D } from '@/components/3d/Background3D';
+import { SEOHead } from '@/components/seo/SEOHead';
 
 export default function Courses() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -29,10 +31,19 @@ export default function Courses() {
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
+      <SEOHead 
+        title="All Courses - Concrete Logic"
+        description="Browse our complete catalog of architecture and 3D visualization courses. Learn 3ds Max, AutoCAD, Revit, SketchUp and more."
+        url="https://concrete-logic.lovable.app/courses"
+      />
+      
       <Navbar />
       
-      {/* 3D Background with Grid Pattern */}
-      <div className="fixed inset-0 -z-10">
+      {/* Live 3D Background */}
+      <Background3D intensity="light" />
+      
+      {/* Enhanced 3D Background with Grid Pattern */}
+      <div className="fixed inset-0 -z-5 pointer-events-none">
         {/* Animated gradient orbs */}
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-pulse" 
              style={{ animationDuration: '4s' }} />

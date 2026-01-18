@@ -17,9 +17,9 @@ export function CartSheet() {
       navigate('/auth');
       return;
     }
-    // For now, navigate to first course - could implement multi-course checkout later
+    // Navigate to first course detail page to complete purchase
     if (items.length > 0) {
-      navigate(`/courses/${items[0].slug}`);
+      navigate(`/course/${items[0].slug}`);
     }
   };
 
