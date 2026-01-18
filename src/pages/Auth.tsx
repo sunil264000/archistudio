@@ -3,11 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { EmailAuthForm } from '@/components/auth/EmailAuthForm';
 import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton';
-import { PhoneAuthForm } from '@/components/auth/PhoneAuthForm';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Mail, Phone, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Auth() {
@@ -17,7 +15,6 @@ export default function Auth() {
   const [mode, setMode] = useState<'login' | 'signup'>(
     searchParams.get('mode') === 'signup' ? 'signup' : 'login'
   );
-  const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
 
   useEffect(() => {
     if (!loading && user) {
@@ -85,27 +82,8 @@ export default function Auth() {
                 </div>
               </div>
 
-              {/* Auth Method Tabs */}
-              <Tabs value={authMethod} onValueChange={(v) => setAuthMethod(v as 'email' | 'phone')}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="email" className="gap-2">
-                    <Mail className="h-4 w-4" />
-                    Email
-                  </TabsTrigger>
-                  <TabsTrigger value="phone" className="gap-2">
-                    <Phone className="h-4 w-4" />
-                    Phone
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="email" className="mt-4">
-                  <EmailAuthForm mode={mode} onSuccess={handleSuccess} />
-                </TabsContent>
-
-                <TabsContent value="phone" className="mt-4">
-                  <PhoneAuthForm onSuccess={handleSuccess} />
-                </TabsContent>
-              </Tabs>
+              {/* Email Auth Form */}
+              <EmailAuthForm mode={mode} onSuccess={handleSuccess} />
 
               {/* Toggle Login/Signup */}
               <div className="text-center text-sm">
