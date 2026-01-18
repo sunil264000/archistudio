@@ -757,6 +757,81 @@ export type Database = {
           },
         ]
       }
+      referral_uses: {
+        Row: {
+          course_id: string | null
+          created_at: string | null
+          discount_applied: number | null
+          id: string
+          referral_id: string
+          referred_user_id: string
+          referrer_reward: number | null
+        }
+        Insert: {
+          course_id?: string | null
+          created_at?: string | null
+          discount_applied?: number | null
+          id?: string
+          referral_id: string
+          referred_user_id: string
+          referrer_reward?: number | null
+        }
+        Update: {
+          course_id?: string | null
+          created_at?: string | null
+          discount_applied?: number | null
+          id?: string
+          referral_id?: string
+          referred_user_id?: string
+          referrer_reward?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_uses_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_uses_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          created_at: string | null
+          id: string
+          referral_code: string
+          referrer_id: string
+          total_earned_discount: number | null
+          total_referrals: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          referral_code: string
+          referrer_id: string
+          total_earned_discount?: number | null
+          total_referrals?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          referral_code?: string
+          referrer_id?: string
+          total_earned_discount?: number | null
+          total_referrals?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           course_id: string
@@ -935,6 +1010,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_referral_by_code: {
+        Args: { code: string }
+        Returns: {
+          id: string
+          referral_code: string
+          referrer_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

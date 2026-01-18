@@ -42,9 +42,9 @@ export function Navbar() {
             <Link to="/courses" className="text-muted-foreground hover:text-foreground transition-colors">
               Courses
             </Link>
-            <a href="/#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
-              Pricing
-            </a>
+            <Link to="/blog" className="text-muted-foreground hover:text-foreground transition-colors">
+              Blog
+            </Link>
           </div>
 
           <Button variant="ghost" size="icon" onClick={toggleDarkMode}>

@@ -4,9 +4,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
-import { ShieldCheck } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ShieldCheck, BookOpen, Award, BarChart3, Gift } from 'lucide-react';
 import { EnrolledCourses } from '@/components/dashboard/EnrolledCourses';
 import { Certificates } from '@/components/dashboard/Certificates';
+import { ProgressAnalytics } from '@/components/dashboard/ProgressAnalytics';
+import { ReferralSection } from '@/components/dashboard/ReferralSection';
 
 export default function Dashboard() {
   const { user, profile, loading, isAdmin } = useAuth();
@@ -46,8 +49,42 @@ export default function Dashboard() {
             )}
           </div>
 
-          <EnrolledCourses />
-          <Certificates />
+          <Tabs defaultValue="courses" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4 max-w-lg">
+              <TabsTrigger value="courses" className="gap-2">
+                <BookOpen className="h-4 w-4" />
+                <span className="hidden sm:inline">Courses</span>
+              </TabsTrigger>
+              <TabsTrigger value="progress" className="gap-2">
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Progress</span>
+              </TabsTrigger>
+              <TabsTrigger value="certificates" className="gap-2">
+                <Award className="h-4 w-4" />
+                <span className="hidden sm:inline">Certificates</span>
+              </TabsTrigger>
+              <TabsTrigger value="referrals" className="gap-2">
+                <Gift className="h-4 w-4" />
+                <span className="hidden sm:inline">Referrals</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="courses">
+              <EnrolledCourses />
+            </TabsContent>
+
+            <TabsContent value="progress">
+              <ProgressAnalytics />
+            </TabsContent>
+
+            <TabsContent value="certificates">
+              <Certificates />
+            </TabsContent>
+
+            <TabsContent value="referrals">
+              <ReferralSection />
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
       <Footer />
