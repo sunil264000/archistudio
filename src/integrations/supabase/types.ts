@@ -307,13 +307,45 @@ export type Database = {
           },
         ]
       }
+      course_bundles: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          discount_percentage: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          discount_percentage?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          discount_percentage?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       courses: {
         Row: {
+          bundle_id: string | null
           created_at: string | null
           description: string | null
           duration_hours: number | null
           id: string
           is_featured: boolean | null
+          is_highlighted: boolean | null
           is_published: boolean | null
           is_subscription_only: boolean | null
           level: string | null
@@ -329,11 +361,13 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          bundle_id?: string | null
           created_at?: string | null
           description?: string | null
           duration_hours?: number | null
           id?: string
           is_featured?: boolean | null
+          is_highlighted?: boolean | null
           is_published?: boolean | null
           is_subscription_only?: boolean | null
           level?: string | null
@@ -349,11 +383,13 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          bundle_id?: string | null
           created_at?: string | null
           description?: string | null
           duration_hours?: number | null
           id?: string
           is_featured?: boolean | null
+          is_highlighted?: boolean | null
           is_published?: boolean | null
           is_subscription_only?: boolean | null
           level?: string | null
@@ -368,14 +404,25 @@ export type Database = {
           total_lessons?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "courses_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "course_bundles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       enrollments: {
         Row: {
           course_id: string
           enrolled_at: string | null
           expires_at: string | null
+          granted_at: string | null
+          granted_by: string | null
           id: string
+          is_manual: boolean | null
           payment_id: string | null
           status: string | null
           user_id: string
@@ -384,7 +431,10 @@ export type Database = {
           course_id: string
           enrolled_at?: string | null
           expires_at?: string | null
+          granted_at?: string | null
+          granted_by?: string | null
           id?: string
+          is_manual?: boolean | null
           payment_id?: string | null
           status?: string | null
           user_id: string
@@ -393,7 +443,10 @@ export type Database = {
           course_id?: string
           enrolled_at?: string | null
           expires_at?: string | null
+          granted_at?: string | null
+          granted_by?: string | null
           id?: string
+          is_manual?: boolean | null
           payment_id?: string | null
           status?: string | null
           user_id?: string
