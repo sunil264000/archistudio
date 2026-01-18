@@ -10,11 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CourseEditDialog } from '@/components/admin/CourseEditDialog';
+import { LessonManagement } from '@/components/admin/LessonManagement';
 import { toast } from 'sonner';
 import { 
   Users, BookOpen, DollarSign, Settings, 
   ArrowLeft, TrendingUp, CreditCard, MessageSquare, Pencil, 
-  BarChart3, Copy, Eye, EyeOff, Instagram, Save, Loader2
+  BarChart3, Copy, Eye, EyeOff, Instagram, Save, Loader2, Video
 } from 'lucide-react';
 
 export default function Admin() {
@@ -128,8 +129,9 @@ export default function Admin() {
 
           {/* Management Tabs */}
           <Tabs defaultValue="courses" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="courses">Courses</TabsTrigger>
+              <TabsTrigger value="lessons">Lessons</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="payments">Payments</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -148,6 +150,21 @@ export default function Admin() {
                 </CardHeader>
                 <CardContent>
                   <CoursesTable />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="lessons">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Video className="h-5 w-5" />
+                    Lesson & Video Management
+                  </CardTitle>
+                  <CardDescription>Add modules, lessons, and upload videos</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <LessonManagement />
                 </CardContent>
               </Card>
             </TabsContent>
