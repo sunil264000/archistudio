@@ -160,6 +160,7 @@ export type Database = {
         Row: {
           accent_color: string | null
           background_color: string | null
+          body_text_color: string | null
           border_style: string | null
           font_family: string | null
           id: string
@@ -170,12 +171,15 @@ export type Database = {
           show_border: boolean | null
           signature_name: string | null
           signature_title: string | null
+          tagline_color: string | null
+          title_color: string | null
           updated_at: string | null
           updated_by: string | null
         }
         Insert: {
           accent_color?: string | null
           background_color?: string | null
+          body_text_color?: string | null
           border_style?: string | null
           font_family?: string | null
           id?: string
@@ -186,12 +190,15 @@ export type Database = {
           show_border?: boolean | null
           signature_name?: string | null
           signature_title?: string | null
+          tagline_color?: string | null
+          title_color?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
         Update: {
           accent_color?: string | null
           background_color?: string | null
+          body_text_color?: string | null
           border_style?: string | null
           font_family?: string | null
           id?: string
@@ -202,6 +209,8 @@ export type Database = {
           show_border?: boolean | null
           signature_name?: string | null
           signature_title?: string | null
+          tagline_color?: string | null
+          title_color?: string | null
           updated_at?: string | null
           updated_by?: string | null
         }
