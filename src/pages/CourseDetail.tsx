@@ -15,7 +15,8 @@ import { useCashfreePayment } from '@/hooks/useCashfreePayment';
 import { useCourseModules } from '@/hooks/useCourseModules';
 import { useToast } from '@/hooks/use-toast';
 import { CourseReviews } from '@/components/course/CourseReviews';
-
+import { SEOHead, generateCourseSchema } from '@/components/seo/SEOHead';
+import { LiveViewerCounter } from '@/components/social-proof/LiveViewerCounter';
 // Add to Cart Button Component
 function AddToCartButton({ course }: { course: any }) {
   const { addToCart, isInCart, removeFromCart } = useCart();
@@ -289,8 +290,33 @@ export default function CourseDetail() {
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
+  const courseUrl = `https://concrete-logic.lovable.app/courses/${course.slug}`;
+  const courseSchema = generateCourseSchema({
+    title: course.title,
+    description: course.description,
+    price: course.priceInr,
+    currency: 'INR',
+    image: categoryImages[course.category],
+    url: courseUrl,
+    duration: `${course.durationHours} hours`,
+    level: course.level,
+  });
+
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead 
+        title={`${course.title} - Concrete Logic`}
+        description={course.shortDescription}
+        type="product"
+        price={course.priceInr}
+        url={courseUrl}
+        keywords={`${course.title}, ${category?.name}, architecture course, 3D visualization`}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(courseSchema) }}
+      />
+      
       <Navbar />
       
       {/* Hero Section */}
@@ -325,6 +351,9 @@ export default function CourseDetail() {
               <p className="text-xl text-muted-foreground">
                 {course.shortDescription}
               </p>
+
+              {/* Live viewer counter */}
+              <LiveViewerCounter courseSlug={slug} variant="course" />
 
               <div className="flex flex-wrap items-center gap-6 text-muted-foreground">
                 <span className="flex items-center gap-2">
