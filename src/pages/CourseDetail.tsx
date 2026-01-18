@@ -51,7 +51,7 @@ export default function CourseDetail() {
     }
 
     await initiatePayment({
-      courseId: course.id,
+      courseId: course.slug,
       amount: course.priceInr,
       customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
       customerEmail: user.email || '',

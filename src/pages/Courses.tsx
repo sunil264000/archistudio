@@ -193,13 +193,13 @@ function CourseCard({ course, featured = false, index = 0 }: CourseCardProps) {
       return;
     }
 
-    await initiatePayment({
-      courseId: course.id,
-      amount: course.priceInr,
-      customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
-      customerEmail: user.email || '',
-      customerPhone: profile?.phone || '9999999999',
-    });
+     await initiatePayment({
+       courseId: course.slug,
+       amount: course.priceInr,
+       customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
+       customerEmail: user.email || '',
+       customerPhone: profile?.phone || '9999999999',
+     });
   };
 
   return (
