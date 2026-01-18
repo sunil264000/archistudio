@@ -14,6 +14,7 @@ import {
   Plus, Pencil, Trash2, Upload, Video, FileText, 
   GripVertical, Loader2, ChevronRight, FolderPlus 
 } from 'lucide-react';
+import { GoogleDriveImport } from './GoogleDriveImport';
 
 interface Course {
   id: string;
@@ -261,6 +262,8 @@ export function LessonManagement() {
     }
   };
 
+  const selectedCourseData = courses.find(c => c.id === selectedCourse);
+
   return (
     <div className="space-y-6">
       {/* Course Selector */}
@@ -287,6 +290,15 @@ export function LessonManagement() {
           </Button>
         )}
       </div>
+
+      {/* Google Drive Import */}
+      {selectedCourse && selectedCourseData && (
+        <GoogleDriveImport
+          courseId={selectedCourse}
+          courseName={selectedCourseData.title}
+          onImportComplete={() => fetchModules(selectedCourse)}
+        />
+      )}
 
       {/* Modules & Lessons */}
       {loading ? (
