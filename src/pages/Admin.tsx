@@ -14,11 +14,16 @@ import { LessonManagement } from '@/components/admin/LessonManagement';
 import { CouponManagement } from '@/components/admin/CouponManagement';
 import { CertificateTemplateSettings } from '@/components/admin/CertificateTemplateSettings';
 import { BlogManagement } from '@/components/admin/BlogManagement';
+import { ManualEnrollment } from '@/components/admin/ManualEnrollment';
+import { CourseBundleManagement } from '@/components/admin/CourseBundleManagement';
+import { AdminHeader } from '@/components/admin/AdminHeader';
 import { toast } from 'sonner';
+import { motion } from 'framer-motion';
 import { 
   Users, BookOpen, DollarSign, Settings, 
   ArrowLeft, TrendingUp, CreditCard, MessageSquare, Pencil, 
-  BarChart3, Copy, Eye, EyeOff, Instagram, Save, Loader2, Video, Trash2, Award, FileText
+  BarChart3, Copy, Eye, EyeOff, Instagram, Save, Loader2, Video, Trash2, Award, FileText,
+  Package, UserPlus, Sparkles
 } from 'lucide-react';
 
 export default function Admin() {
@@ -69,214 +74,291 @@ export default function Admin() {
       <Navbar />
       <main className="py-8">
         <div className="container mx-auto px-4">
-          <div className="flex items-center gap-4 mb-8">
+          <div className="flex items-center gap-4 mb-6">
             <Link to="/dashboard">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
             </Link>
-            <div>
-              <h1 className="text-3xl font-bold">Admin Panel</h1>
-              <p className="text-muted-foreground">Manage your platform</p>
-            </div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid md:grid-cols-4 gap-4 mb-8">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold flex items-center gap-2">
-                  <Users className="h-5 w-5 text-blue-500" />
-                  {stats.totalUsers}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Courses</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-green-500" />
-                  {stats.totalCourses}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-yellow-500" />
-                  ₹{stats.totalRevenue.toLocaleString()}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Enrollments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-purple-500" />
-                  {stats.totalEnrollments}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Enhanced Header with 3D Elements */}
+          <AdminHeader stats={stats} />
 
-          {/* Management Tabs */}
+          {/* Management Tabs with improved styling */}
           <Tabs defaultValue="courses" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-9">
-              <TabsTrigger value="courses">Courses</TabsTrigger>
-              <TabsTrigger value="lessons">Lessons</TabsTrigger>
-              <TabsTrigger value="users">Users</TabsTrigger>
-              <TabsTrigger value="payments">Payments</TabsTrigger>
-              <TabsTrigger value="coupons">Coupons</TabsTrigger>
-              <TabsTrigger value="certificates">Certificates</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
-              <TabsTrigger value="support">Support</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
-            </TabsList>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <TabsList className="grid w-full grid-cols-11 h-auto p-1 bg-muted/50">
+                <TabsTrigger value="courses" className="gap-1 text-xs py-2">
+                  <BookOpen className="h-3 w-3" />
+                  <span className="hidden sm:inline">Courses</span>
+                </TabsTrigger>
+                <TabsTrigger value="bundles" className="gap-1 text-xs py-2">
+                  <Package className="h-3 w-3" />
+                  <span className="hidden sm:inline">Bundles</span>
+                </TabsTrigger>
+                <TabsTrigger value="lessons" className="gap-1 text-xs py-2">
+                  <Video className="h-3 w-3" />
+                  <span className="hidden sm:inline">Lessons</span>
+                </TabsTrigger>
+                <TabsTrigger value="users" className="gap-1 text-xs py-2">
+                  <Users className="h-3 w-3" />
+                  <span className="hidden sm:inline">Users</span>
+                </TabsTrigger>
+                <TabsTrigger value="access" className="gap-1 text-xs py-2">
+                  <UserPlus className="h-3 w-3" />
+                  <span className="hidden sm:inline">Access</span>
+                </TabsTrigger>
+                <TabsTrigger value="payments" className="gap-1 text-xs py-2">
+                  <CreditCard className="h-3 w-3" />
+                  <span className="hidden sm:inline">Payments</span>
+                </TabsTrigger>
+                <TabsTrigger value="coupons" className="gap-1 text-xs py-2">
+                  <Sparkles className="h-3 w-3" />
+                  <span className="hidden sm:inline">Coupons</span>
+                </TabsTrigger>
+                <TabsTrigger value="certificates" className="gap-1 text-xs py-2">
+                  <Award className="h-3 w-3" />
+                  <span className="hidden sm:inline">Certs</span>
+                </TabsTrigger>
+                <TabsTrigger value="analytics" className="gap-1 text-xs py-2">
+                  <BarChart3 className="h-3 w-3" />
+                  <span className="hidden sm:inline">Analytics</span>
+                </TabsTrigger>
+                <TabsTrigger value="support" className="gap-1 text-xs py-2">
+                  <MessageSquare className="h-3 w-3" />
+                  <span className="hidden sm:inline">Support</span>
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="gap-1 text-xs py-2">
+                  <Settings className="h-3 w-3" />
+                  <span className="hidden sm:inline">Settings</span>
+                </TabsTrigger>
+              </TabsList>
+            </motion.div>
 
             <TabsContent value="courses">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5" />
-                    Course Management
-                  </CardTitle>
-                  <CardDescription>Manage all courses on the platform</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <CoursesTable />
-                </CardContent>
-              </Card>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-2">
+                  <CardHeader className="bg-muted/30">
+                    <CardTitle className="flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 text-accent" />
+                      Course Management
+                    </CardTitle>
+                    <CardDescription>Manage all courses on the platform</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <CoursesTable />
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </TabsContent>
+
+            <TabsContent value="bundles">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-2">
+                  <CardHeader className="bg-muted/30">
+                    <CardTitle className="flex items-center gap-2">
+                      <Package className="h-5 w-5 text-accent" />
+                      Course Bundles & Highlights
+                    </CardTitle>
+                    <CardDescription>Bundle courses together and highlight featured courses</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <CourseBundleManagement />
+                  </CardContent>
+                </Card>
+              </motion.div>
             </TabsContent>
 
             <TabsContent value="lessons">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Video className="h-5 w-5" />
-                    Lesson & Video Management
-                  </CardTitle>
-                  <CardDescription>Add modules, lessons, and upload videos</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <LessonManagement />
-                </CardContent>
-              </Card>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-2">
+                  <CardHeader className="bg-muted/30">
+                    <CardTitle className="flex items-center gap-2">
+                      <Video className="h-5 w-5 text-accent" />
+                      Lesson & Video Management
+                    </CardTitle>
+                    <CardDescription>Add modules, lessons, and upload videos</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <LessonManagement />
+                  </CardContent>
+                </Card>
+              </motion.div>
             </TabsContent>
 
             <TabsContent value="users">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    User Management
-                  </CardTitle>
-                  <CardDescription>View user details including IDs and credentials</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <UsersTable />
-                </CardContent>
-              </Card>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-2">
+                  <CardHeader className="bg-muted/30">
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-accent" />
+                      User Management
+                    </CardTitle>
+                    <CardDescription>View user details including IDs and credentials</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <UsersTable />
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </TabsContent>
+
+            <TabsContent value="access">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-2">
+                  <CardHeader className="bg-muted/30">
+                    <CardTitle className="flex items-center gap-2">
+                      <UserPlus className="h-5 w-5 text-accent" />
+                      Manual Access Control
+                    </CardTitle>
+                    <CardDescription>Grant free access to courses without payment</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <ManualEnrollment />
+                  </CardContent>
+                </Card>
+              </motion.div>
             </TabsContent>
 
             <TabsContent value="payments">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="h-5 w-5" />
-                    Payment History
-                  </CardTitle>
-                  <CardDescription>View all transactions</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <PaymentsTable />
-                </CardContent>
-              </Card>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-2">
+                  <CardHeader className="bg-muted/30">
+                    <CardTitle className="flex items-center gap-2">
+                      <CreditCard className="h-5 w-5 text-accent" />
+                      Payment History
+                    </CardTitle>
+                    <CardDescription>View all transactions</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <PaymentsTable />
+                  </CardContent>
+                </Card>
+              </motion.div>
             </TabsContent>
 
             <TabsContent value="coupons">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="h-5 w-5" />
-                    Coupon Management
-                  </CardTitle>
-                  <CardDescription>Create and manage discount coupons</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <CouponManagement />
-                </CardContent>
-              </Card>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-2">
+                  <CardHeader className="bg-muted/30">
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-accent" />
+                      Coupon Management
+                    </CardTitle>
+                    <CardDescription>Create and manage discount coupons</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <CouponManagement />
+                  </CardContent>
+                </Card>
+              </motion.div>
             </TabsContent>
 
             <TabsContent value="certificates">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Award className="h-5 w-5" />
-                    Certificate Template
-                  </CardTitle>
-                  <CardDescription>Design and customize certificate templates</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <CertificateTemplateSettings />
-                </CardContent>
-              </Card>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-2">
+                  <CardHeader className="bg-muted/30">
+                    <CardTitle className="flex items-center gap-2">
+                      <Award className="h-5 w-5 text-accent" />
+                      Certificate Template
+                    </CardTitle>
+                    <CardDescription>Design and customize certificate templates</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <CertificateTemplateSettings />
+                  </CardContent>
+                </Card>
+              </motion.div>
             </TabsContent>
 
             <TabsContent value="analytics">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Analytics Dashboard
-                  </CardTitle>
-                  <CardDescription>View platform analytics and insights</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <AnalyticsPanel />
-                </CardContent>
-              </Card>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-2">
+                  <CardHeader className="bg-muted/30">
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5 text-accent" />
+                      Analytics Dashboard
+                    </CardTitle>
+                    <CardDescription>View platform analytics and insights</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <AnalyticsPanel />
+                  </CardContent>
+                </Card>
+              </motion.div>
             </TabsContent>
 
             <TabsContent value="support">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="h-5 w-5" />
-                    Support Tickets
-                  </CardTitle>
-                  <CardDescription>Manage support requests</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <SupportTable />
-                </CardContent>
-              </Card>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-2">
+                  <CardHeader className="bg-muted/30">
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5 text-accent" />
+                      Support Tickets
+                    </CardTitle>
+                    <CardDescription>Manage support requests</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <SupportTable />
+                  </CardContent>
+                </Card>
+              </motion.div>
             </TabsContent>
 
             <TabsContent value="settings">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Settings className="h-5 w-5" />
-                    Site Settings
-                  </CardTitle>
-                  <CardDescription>Configure social links and site settings</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <SiteSettingsPanel />
-                </CardContent>
-              </Card>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-2">
+                  <CardHeader className="bg-muted/30">
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="h-5 w-5 text-accent" />
+                      Site Settings
+                    </CardTitle>
+                    <CardDescription>Configure social links and site settings</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <SiteSettingsPanel />
+                  </CardContent>
+                </Card>
+              </motion.div>
             </TabsContent>
           </Tabs>
         </div>
