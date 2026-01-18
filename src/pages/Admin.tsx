@@ -7,9 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { CourseEditDialog } from '@/components/admin/CourseEditDialog';
 import { 
   Users, BookOpen, DollarSign, BarChart3, Settings, 
-  ArrowLeft, TrendingUp, CreditCard, MessageSquare 
+  ArrowLeft, TrendingUp, CreditCard, MessageSquare, Pencil, Plus 
 } from 'lucide-react';
 
 export default function Admin() {
@@ -198,28 +199,68 @@ export default function Admin() {
 
 function CoursesTable() {
   const [courses, setCourses] = useState<any[]>([]);
-  useEffect(() => {
+  const [editingCourse, setEditingCourse] = useState<any | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const fetchCourses = () => {
     supabase.from('courses').select('*').order('created_at', { ascending: false }).then(({ data }) => {
       setCourses(data || []);
     });
+  };
+
+  useEffect(() => {
+    fetchCourses();
   }, []);
 
-  return courses.length === 0 ? (
-    <p className="text-muted-foreground text-center py-8">No courses in database yet. Courses are loaded from local data.</p>
-  ) : (
-    <div className="space-y-2">
-      {courses.map(course => (
-        <div key={course.id} className="flex items-center justify-between p-3 border rounded-lg">
-          <div>
-            <p className="font-medium">{course.title}</p>
-            <p className="text-sm text-muted-foreground">{course.level}</p>
-          </div>
-          <Badge variant={course.is_published ? "default" : "secondary"}>
-            {course.is_published ? "Published" : "Draft"}
-          </Badge>
+  const handleEdit = (course: any) => {
+    setEditingCourse(course);
+    setDialogOpen(true);
+  };
+
+  return (
+    <>
+      {courses.length === 0 ? (
+        <p className="text-muted-foreground text-center py-8">No courses in database yet. Courses are loaded from local data.</p>
+      ) : (
+        <div className="space-y-2">
+          {courses.map(course => (
+            <div key={course.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-4">
+                {course.thumbnail_url && (
+                  <img 
+                    src={course.thumbnail_url} 
+                    alt={course.title}
+                    className="h-12 w-16 object-cover rounded"
+                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                  />
+                )}
+                <div>
+                  <p className="font-medium">{course.title}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {course.level} • ₹{course.price_inr || 0}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant={course.is_published ? "default" : "secondary"}>
+                  {course.is_published ? "Published" : "Draft"}
+                </Badge>
+                <Button variant="ghost" size="icon" onClick={() => handleEdit(course)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      )}
+      
+      <CourseEditDialog
+        course={editingCourse}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSave={fetchCourses}
+      />
+    </>
   );
 }
 
