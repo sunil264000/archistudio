@@ -55,9 +55,11 @@ serve(async (req) => {
       throw updateError;
     }
 
-    // If payment successful, create enrollment
+    // If payment successful, create enrollment and send email
     if (status === "completed" && paymentData) {
       let courseId = paymentData.course_id as string | null;
+      let courseName = "";
+      let courseSlug = "";
 
       // Backfill course_id from stored slug if needed
       if (!courseId) {
@@ -65,7 +67,7 @@ serve(async (req) => {
         if (slug) {
           const { data: courseRow, error: courseError } = await supabaseClient
             .from("courses")
-            .select("id")
+            .select("id, title, slug")
             .eq("slug", slug)
             .single();
 
@@ -73,7 +75,21 @@ serve(async (req) => {
             console.error("Course lookup error (webhook):", courseError);
           } else {
             courseId = courseRow?.id ?? null;
+            courseName = courseRow?.title ?? "";
+            courseSlug = courseRow?.slug ?? "";
           }
+        }
+      } else {
+        // Get course details for email
+        const { data: courseRow } = await supabaseClient
+          .from("courses")
+          .select("title, slug")
+          .eq("id", courseId)
+          .single();
+        
+        if (courseRow) {
+          courseName = courseRow.title;
+          courseSlug = courseRow.slug;
         }
       }
 
@@ -95,6 +111,35 @@ serve(async (req) => {
 
         if (enrollmentError) {
           console.error("Error creating enrollment:", enrollmentError);
+        } else {
+          // Get user email for notification
+          const { data: profile } = await supabaseClient
+            .from("profiles")
+            .select("email, full_name")
+            .eq("user_id", paymentData.user_id)
+            .single();
+
+          if (profile?.email && courseName) {
+            // Send enrollment confirmation email
+            const baseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+            const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+            
+            fetch(`${baseUrl}/functions/v1/send-enrollment-email`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${anonKey}`,
+              },
+              body: JSON.stringify({
+                email: profile.email,
+                name: profile.full_name || "",
+                courseName: courseName,
+                courseSlug: courseSlug,
+                isFree: false,
+                amount: paymentData.amount,
+              }),
+            }).catch(err => console.error("Enrollment email error:", err));
+          }
         }
       }
     }
