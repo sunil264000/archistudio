@@ -1,5 +1,31 @@
 // Cleaned, deduplicated, and categorized courses with AI-generated descriptions
 
+// Course thumbnail images by category
+import coronaRenderingImg from '@/assets/courses/corona-rendering.jpg';
+import dsMaxImg from '@/assets/courses/3ds-max.jpg';
+import revitBimImg from '@/assets/courses/revit-bim.jpg';
+import sketchupImg from '@/assets/courses/sketchup.jpg';
+import autocadImg from '@/assets/courses/autocad.jpg';
+import visualizationImg from '@/assets/courses/visualization.jpg';
+import rhinoImg from '@/assets/courses/rhino.jpg';
+import fundamentalsImg from '@/assets/courses/fundamentals.jpg';
+import interiorDesignImg from '@/assets/courses/interior-design.jpg';
+import postProductionImg from '@/assets/courses/post-production.jpg';
+
+// Category to image mapping
+export const categoryImages: Record<string, string> = {
+  'corona-vray': coronaRenderingImg,
+  '3ds-max': dsMaxImg,
+  'revit-bim': revitBimImg,
+  'sketchup': sketchupImg,
+  'autocad': autocadImg,
+  'visualization': visualizationImg,
+  'rhino': rhinoImg,
+  'fundamentals': fundamentalsImg,
+  'interior-design': interiorDesignImg,
+  'post-production': postProductionImg,
+};
+
 export interface Course {
   id: string;
   title: string;

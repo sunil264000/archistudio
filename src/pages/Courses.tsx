@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { courses, courseCategories, getFeaturedCourses, getCoursesByCategory } from '@/data/courses';
+import { courses, courseCategories, getFeaturedCourses, getCoursesByCategory, categoryImages } from '@/data/courses';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -139,15 +139,17 @@ function CourseCard({ course, featured = false }: { course: typeof courses[0]; f
 
   return (
     <Card className={`group hover:shadow-lg transition-all duration-300 ${featured ? 'border-primary/50' : ''}`}>
-      <div className="aspect-video bg-gradient-to-br from-primary/20 to-secondary/20 relative overflow-hidden">
+      <div className="aspect-video relative overflow-hidden">
+        <img 
+          src={categoryImages[course.category] || '/placeholder.svg'} 
+          alt={course.title}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        />
         {featured && (
           <Badge className="absolute top-2 right-2 bg-yellow-500">
             <Star className="h-3 w-3 mr-1 fill-current" /> Featured
           </Badge>
         )}
-        <div className="absolute inset-0 flex items-center justify-center text-4xl opacity-50">
-          {courseCategories.find(c => c.id === course.category)?.icon}
-        </div>
       </div>
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2 mb-2">
