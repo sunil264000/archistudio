@@ -7,10 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { CourseEditDialog } from '@/components/admin/CourseEditDialog';
+import { toast } from 'sonner';
 import { 
-  Users, BookOpen, DollarSign, BarChart3, Settings, 
-  ArrowLeft, TrendingUp, CreditCard, MessageSquare, Pencil, Plus 
+  Users, BookOpen, DollarSign, Settings, 
+  ArrowLeft, TrendingUp, CreditCard, MessageSquare, Pencil, 
+  BarChart3, Copy, Eye, EyeOff, Instagram, Save, Loader2
 } from 'lucide-react';
 
 export default function Admin() {
@@ -124,11 +128,13 @@ export default function Admin() {
 
           {/* Management Tabs */}
           <Tabs defaultValue="courses" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="courses">Courses</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="payments">Payments</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="support">Support</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
 
             <TabsContent value="courses">
@@ -153,7 +159,7 @@ export default function Admin() {
                     <Users className="h-5 w-5" />
                     User Management
                   </CardTitle>
-                  <CardDescription>View and manage users</CardDescription>
+                  <CardDescription>View user details including IDs and credentials</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <UsersTable />
@@ -176,6 +182,21 @@ export default function Admin() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="analytics">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Analytics Dashboard
+                  </CardTitle>
+                  <CardDescription>View platform analytics and insights</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AnalyticsPanel />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
             <TabsContent value="support">
               <Card>
                 <CardHeader>
@@ -187,6 +208,21 @@ export default function Admin() {
                 </CardHeader>
                 <CardContent>
                   <SupportTable />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="settings">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Site Settings
+                  </CardTitle>
+                  <CardDescription>Configure social links and site settings</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SiteSettingsPanel />
                 </CardContent>
               </Card>
             </TabsContent>
@@ -220,7 +256,7 @@ function CoursesTable() {
   return (
     <>
       {courses.length === 0 ? (
-        <p className="text-muted-foreground text-center py-8">No courses in database yet. Courses are loaded from local data.</p>
+        <p className="text-muted-foreground text-center py-8">No courses in database yet.</p>
       ) : (
         <div className="space-y-2">
           {courses.map(course => (
@@ -266,23 +302,69 @@ function CoursesTable() {
 
 function UsersTable() {
   const [users, setUsers] = useState<any[]>([]);
+  const [showIds, setShowIds] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     supabase.from('profiles').select('*').order('created_at', { ascending: false }).then(({ data }) => {
       setUsers(data || []);
     });
   }, []);
 
+  const toggleShowId = (id: string) => {
+    setShowIds(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied to clipboard`);
+  };
+
   return users.length === 0 ? (
     <p className="text-muted-foreground text-center py-8">No users registered yet.</p>
   ) : (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {users.map(user => (
-        <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
-          <div>
-            <p className="font-medium">{user.full_name || 'No name'}</p>
-            <p className="text-sm text-muted-foreground">{user.email}</p>
+        <div key={user.id} className="p-4 border rounded-lg space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">{user.full_name || 'No name'}</p>
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+              {user.phone && (
+                <p className="text-sm text-muted-foreground">Phone: {user.phone}</p>
+              )}
+            </div>
+            <Badge>{user.role || 'student'}</Badge>
           </div>
-          <Badge>{user.role || 'student'}</Badge>
+          
+          {/* User ID Section */}
+          <div className="flex items-center gap-2 p-2 bg-muted/50 rounded text-sm">
+            <span className="text-muted-foreground">User ID:</span>
+            <code className="flex-1 font-mono text-xs">
+              {showIds[user.id] ? user.user_id : '••••••••-••••-••••-••••-••••••••••••'}
+            </code>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-6 w-6"
+              onClick={() => toggleShowId(user.id)}
+            >
+              {showIds[user.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-6 w-6"
+              onClick={() => copyToClipboard(user.user_id, 'User ID')}
+            >
+              <Copy className="h-3 w-3" />
+            </Button>
+          </div>
+
+          <div className="flex gap-4 text-xs text-muted-foreground">
+            <span>Email verified: {user.email_verified ? '✓' : '✗'}</span>
+            <span>Phone verified: {user.phone_verified ? '✓' : '✗'}</span>
+            <span>Joined: {new Date(user.created_at).toLocaleDateString()}</span>
+          </div>
         </div>
       ))}
     </div>
@@ -292,7 +374,7 @@ function UsersTable() {
 function PaymentsTable() {
   const [payments, setPayments] = useState<any[]>([]);
   useEffect(() => {
-    supabase.from('payments').select('*').order('created_at', { ascending: false }).limit(20).then(({ data }) => {
+    supabase.from('payments').select('*').order('created_at', { ascending: false }).limit(50).then(({ data }) => {
       setPayments(data || []);
     });
   }, []);
@@ -305,13 +387,198 @@ function PaymentsTable() {
         <div key={payment.id} className="flex items-center justify-between p-3 border rounded-lg">
           <div>
             <p className="font-medium">₹{payment.amount}</p>
-            <p className="text-sm text-muted-foreground">{payment.payment_gateway}</p>
+            <p className="text-sm text-muted-foreground">
+              {payment.payment_gateway} • {new Date(payment.created_at).toLocaleDateString()}
+            </p>
           </div>
-          <Badge variant={payment.status === 'completed' ? "default" : "secondary"}>
+          <Badge variant={payment.status === 'completed' ? "default" : payment.status === 'failed' ? "destructive" : "secondary"}>
             {payment.status}
           </Badge>
         </div>
       ))}
+    </div>
+  );
+}
+
+function AnalyticsPanel() {
+  const [analytics, setAnalytics] = useState({
+    pageViews: 0,
+    signups: 0,
+    conversions: 0,
+    recentEvents: [] as any[],
+  });
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      const { data: events } = await supabase
+        .from('analytics_events')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (events) {
+        const pageViews = events.filter(e => e.event_type === 'page_view').length;
+        const signups = events.filter(e => e.event_type === 'signup').length;
+        const conversions = events.filter(e => e.event_type === 'purchase').length;
+
+        setAnalytics({
+          pageViews,
+          signups,
+          conversions,
+          recentEvents: events.slice(0, 20),
+        });
+      }
+    };
+
+    fetchAnalytics();
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-3 gap-4">
+        <div className="p-4 border rounded-lg text-center">
+          <p className="text-2xl font-bold">{analytics.pageViews}</p>
+          <p className="text-sm text-muted-foreground">Page Views</p>
+        </div>
+        <div className="p-4 border rounded-lg text-center">
+          <p className="text-2xl font-bold">{analytics.signups}</p>
+          <p className="text-sm text-muted-foreground">Sign Ups</p>
+        </div>
+        <div className="p-4 border rounded-lg text-center">
+          <p className="text-2xl font-bold">{analytics.conversions}</p>
+          <p className="text-sm text-muted-foreground">Purchases</p>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="font-semibold mb-3">Recent Events</h3>
+        {analytics.recentEvents.length === 0 ? (
+          <p className="text-muted-foreground text-center py-4">No analytics events yet.</p>
+        ) : (
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {analytics.recentEvents.map(event => (
+              <div key={event.id} className="flex items-center justify-between p-2 border rounded text-sm">
+                <div>
+                  <Badge variant="outline">{event.event_type}</Badge>
+                  <span className="ml-2 text-muted-foreground">{event.page_url}</span>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(event.created_at).toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SiteSettingsPanel() {
+  const [settings, setSettings] = useState({
+    instagram_url: '',
+    facebook_url: '',
+    twitter_url: '',
+    youtube_url: '',
+    linkedin_url: '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('key, value');
+
+      if (data) {
+        const settingsObj: Record<string, string> = {};
+        data.forEach(item => {
+          settingsObj[item.key] = item.value || '';
+        });
+        setSettings(prev => ({ ...prev, ...settingsObj }));
+      }
+    };
+
+    fetchSettings();
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      for (const [key, value] of Object.entries(settings)) {
+        await supabase
+          .from('site_settings')
+          .update({ value, updated_at: new Date().toISOString() })
+          .eq('key', key);
+      }
+      toast.success('Settings saved successfully');
+    } catch (error) {
+      toast.error('Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="font-semibold mb-4 flex items-center gap-2">
+          <Instagram className="h-4 w-4" />
+          Social Media Links
+        </h3>
+        <div className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="instagram">Instagram URL</Label>
+            <Input
+              id="instagram"
+              placeholder="https://instagram.com/yourusername"
+              value={settings.instagram_url}
+              onChange={(e) => setSettings(prev => ({ ...prev, instagram_url: e.target.value }))}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="facebook">Facebook URL</Label>
+            <Input
+              id="facebook"
+              placeholder="https://facebook.com/yourpage"
+              value={settings.facebook_url}
+              onChange={(e) => setSettings(prev => ({ ...prev, facebook_url: e.target.value }))}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="twitter">Twitter/X URL</Label>
+            <Input
+              id="twitter"
+              placeholder="https://twitter.com/yourusername"
+              value={settings.twitter_url}
+              onChange={(e) => setSettings(prev => ({ ...prev, twitter_url: e.target.value }))}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="youtube">YouTube URL</Label>
+            <Input
+              id="youtube"
+              placeholder="https://youtube.com/@yourchannel"
+              value={settings.youtube_url}
+              onChange={(e) => setSettings(prev => ({ ...prev, youtube_url: e.target.value }))}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="linkedin">LinkedIn URL</Label>
+            <Input
+              id="linkedin"
+              placeholder="https://linkedin.com/in/yourprofile"
+              value={settings.linkedin_url}
+              onChange={(e) => setSettings(prev => ({ ...prev, linkedin_url: e.target.value }))}
+            />
+          </div>
+        </div>
+      </div>
+
+      <Button onClick={handleSave} disabled={saving} className="gap-2">
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+        Save Settings
+      </Button>
     </div>
   );
 }

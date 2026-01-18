@@ -5,9 +5,7 @@ import { ProblemSection } from '@/components/home/ProblemSection';
 import { WhatYouLearnSection } from '@/components/home/WhatYouLearnSection';
 import { CourseStructureSection } from '@/components/home/CourseStructureSection';
 import { ComparisonSection } from '@/components/home/ComparisonSection';
-import { InstructorSection } from '@/components/home/InstructorSection';
 import { TestimonialsSection } from '@/components/home/TestimonialsSection';
-import { PricingSection } from '@/components/home/PricingSection';
 import { FinalCTASection } from '@/components/home/FinalCTASection';
 
 export default function Index() {
@@ -30,16 +28,10 @@ export default function Index() {
       {/* Section 5: Why Different (Comparison Table) */}
       <ComparisonSection />
       
-      {/* Section 6: Instructor Bio */}
-      <InstructorSection />
-      
-      {/* Section 7: Testimonials */}
+      {/* Section 6: Testimonials */}
       <TestimonialsSection />
       
-      {/* Section 8: Pricing */}
-      <PricingSection />
-      
-      {/* Section 9: Final CTA */}
+      {/* Section 7: Final CTA */}
       <FinalCTASection />
       
       <Footer />
