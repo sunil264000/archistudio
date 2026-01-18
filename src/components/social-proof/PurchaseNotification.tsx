@@ -14,6 +14,8 @@ const fakeNames = [
   'Rahul M.', 'Priya S.', 'Amit K.', 'Sneha R.', 'Vikram P.', 
   'Ananya G.', 'Rohan D.', 'Kavitha N.', 'Arjun B.', 'Meera L.',
   'Karan T.', 'Divya C.', 'Aditya V.', 'Pooja H.', 'Nikhil J.',
+  'Sanjay R.', 'Neha P.', 'Rajesh K.', 'Anjali S.', 'Deepak M.',
+  'Manish G.', 'Sakshi T.', 'Varun B.', 'Shreya D.', 'Akash L.',
 ];
 
 const courseNames = [
@@ -24,9 +26,48 @@ const courseNames = [
   'Revit BIM Fundamentals',
   'SketchUp Pro Training',
   'Corona Rendering Expert',
+  'Post Production Mastery',
+  'Rhino 3D Modeling',
 ];
 
-const timeOptions = ['just now', '2 min ago', '5 min ago', '12 min ago', '1 hour ago', '3 hours ago'];
+const cities = [
+  'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 
+  'Pune', 'Kolkata', 'Ahmedabad', 'Jaipur', 'Lucknow',
+];
+
+const actionTypes = [
+  { action: 'purchased', icon: 'cart' },
+  { action: 'enrolled in', icon: 'cart' },
+  { action: 'started learning', icon: 'play' },
+  { action: 'completed a lesson in', icon: 'check' },
+  { action: 'earned a certificate for', icon: 'award' },
+];
+
+const getRandomTime = () => {
+  const options = [
+    { text: 'just now', weight: 10 },
+    { text: '2 min ago', weight: 15 },
+    { text: '5 min ago', weight: 20 },
+    { text: '12 min ago', weight: 15 },
+    { text: '23 min ago', weight: 10 },
+    { text: '45 min ago', weight: 8 },
+    { text: '1 hour ago', weight: 7 },
+    { text: '2 hours ago', weight: 5 },
+    { text: '3 hours ago', weight: 4 },
+    { text: '5 hours ago', weight: 3 },
+    { text: '8 hours ago', weight: 2 },
+    { text: 'yesterday', weight: 1 },
+  ];
+  
+  const totalWeight = options.reduce((sum, opt) => sum + opt.weight, 0);
+  let random = Math.random() * totalWeight;
+  
+  for (const option of options) {
+    random -= option.weight;
+    if (random <= 0) return option.text;
+  }
+  return options[0].text;
+};
 
 export function PurchaseNotification() {
   const [notification, setNotification] = useState<Purchase | null>(null);
@@ -75,10 +116,15 @@ export function PurchaseNotification() {
           isReal: true,
         };
       } else {
+        const actionType = actionTypes[Math.floor(Math.random() * actionTypes.length)];
+        const showCity = Math.random() > 0.6;
+        const name = fakeNames[Math.floor(Math.random() * fakeNames.length)];
+        const city = cities[Math.floor(Math.random() * cities.length)];
+        
         purchase = {
-          name: fakeNames[Math.floor(Math.random() * fakeNames.length)],
+          name: showCity ? `${name} from ${city}` : name,
           course: courseNames[Math.floor(Math.random() * courseNames.length)],
-          timeAgo: timeOptions[Math.floor(Math.random() * timeOptions.length)],
+          timeAgo: getRandomTime(),
           isReal: false,
         };
       }
@@ -86,18 +132,18 @@ export function PurchaseNotification() {
       setNotification(purchase);
       setIsVisible(true);
       
-      setTimeout(() => setIsVisible(false), 5000);
+      setTimeout(() => setIsVisible(false), 6000);
     };
 
     // Initial delay
     const initialDelay = setTimeout(() => {
       showNotification();
-    }, 8000);
+    }, 6000);
 
-    // Show notification every 20-40 seconds
+    // Show notification every 15-35 seconds
     const interval = setInterval(() => {
       showNotification();
-    }, 20000 + Math.random() * 20000);
+    }, 15000 + Math.random() * 20000);
 
     return () => {
       clearTimeout(initialDelay);
@@ -121,10 +167,10 @@ export function PurchaseNotification() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground">
-                {notification.name} purchased
+                {notification.name}
               </p>
               <p className="text-sm text-primary font-semibold truncate">
-                {notification.course}
+                purchased {notification.course}
               </p>
               <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                 <Clock className="h-3 w-3" />
