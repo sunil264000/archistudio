@@ -57,17 +57,45 @@ serve(async (req) => {
 
     // If payment successful, create enrollment
     if (status === "completed" && paymentData) {
-      const { error: enrollmentError } = await supabaseClient
-        .from("enrollments")
-        .insert({
-          user_id: paymentData.user_id,
-          course_id: paymentData.course_id,
-          payment_id: paymentData.id,
-          status: "active",
-        });
+      let courseId = paymentData.course_id as string | null;
 
-      if (enrollmentError) {
-        console.error("Error creating enrollment:", enrollmentError);
+      // Backfill course_id from stored slug if needed
+      if (!courseId) {
+        const slug = (paymentData.metadata as any)?.course_slug as string | undefined;
+        if (slug) {
+          const { data: courseRow, error: courseError } = await supabaseClient
+            .from("courses")
+            .select("id")
+            .eq("slug", slug)
+            .single();
+
+          if (courseError) {
+            console.error("Course lookup error (webhook):", courseError);
+          } else {
+            courseId = courseRow?.id ?? null;
+          }
+        }
+      }
+
+      if (!courseId) {
+        console.error("Cannot create enrollment: missing course_id", {
+          orderId,
+          paymentId,
+          metadata: paymentData.metadata,
+        });
+      } else {
+        const { error: enrollmentError } = await supabaseClient
+          .from("enrollments")
+          .insert({
+            user_id: paymentData.user_id,
+            course_id: courseId,
+            payment_id: paymentData.id,
+            status: "active",
+          });
+
+        if (enrollmentError) {
+          console.error("Error creating enrollment:", enrollmentError);
+        }
       }
     }
 

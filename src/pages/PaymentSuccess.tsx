@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { CheckCircle, Loader2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { courses } from "@/data/courses";
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -23,15 +24,19 @@ const PaymentSuccess = () => {
         // Check payment status in database
         const { data: payment, error } = await supabase
           .from("payments")
-          .select("status, course_id, courses(title)")
+          .select("status, course_id, metadata, courses(title)")
           .eq("gateway_order_id", orderId)
           .single();
 
         if (error) throw error;
 
+        const dbTitle = (payment as any).courses?.title as string | undefined;
+        const slug = (payment as any).metadata?.course_slug as string | undefined;
+        const localTitle = slug ? courses.find((c) => c.slug === slug)?.title : undefined;
+
         if (payment?.status === "completed") {
           setStatus("success");
-          setCourseName((payment as any).courses?.title || "your course");
+          setCourseName(dbTitle || localTitle || "your course");
         } else if (payment?.status === "failed") {
           setStatus("failed");
         } else {
