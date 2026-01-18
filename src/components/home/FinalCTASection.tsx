@@ -1,8 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function FinalCTASection() {
+  const { user } = useAuth();
+
   return (
     <section className="section-padding bg-primary text-primary-foreground relative overflow-hidden">
       {/* Grid pattern */}
@@ -29,20 +32,20 @@ export function FinalCTASection() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <Link to="/auth?mode=signup">
+            <Link to={user ? "/courses" : "/auth?mode=signup"}>
               <Button 
                 size="lg" 
                 variant="secondary" 
                 className="gap-2 text-base px-8 h-12"
               >
-                Start Your Free Account
+                {user ? "Browse Courses" : "Start Your Free Account"}
                 <ArrowRight className="h-5 w-5" />
               </Button>
             </Link>
           </div>
 
           <p className="text-sm opacity-60">
-            Free preview lessons available. No credit card required.
+            {user ? "Explore 70+ professional courses" : "Free preview lessons available. No credit card required."}
           </p>
         </div>
       </div>
