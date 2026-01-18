@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.scan-google-drive]
 verify_jwt = false
+
+[functions.sync-courses]
+verify_jwt = false
