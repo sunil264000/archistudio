@@ -112,6 +112,76 @@ serve(async (req) => {
         if (enrollmentError) {
           console.error("Error creating enrollment:", enrollmentError);
         } else {
+          // Check for referral reward - only if purchase is above ₹500
+          const purchaseAmount = Number(paymentData.amount) || 0;
+          
+          if (purchaseAmount >= 500) {
+            // Check if this user was referred
+            const { data: referralUse } = await supabaseClient
+              .from("referral_uses")
+              .select("referral_id, referrals(referrer_id)")
+              .eq("referred_user_id", paymentData.user_id)
+              .maybeSingle();
+
+            if (referralUse?.referral_id) {
+              const referrerId = (referralUse.referrals as any)?.referrer_id;
+              
+              if (referrerId) {
+                // Create a ₹100 discount coupon for the referrer
+                const couponCode = `REF${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+                
+                const { error: couponError } = await supabaseClient
+                  .from("coupons")
+                  .insert({
+                    code: couponCode,
+                    description: `Referral reward - ₹100 off (earned from referral purchase)`,
+                    discount_type: "fixed",
+                    discount_value: 100,
+                    is_active: true,
+                    max_uses: 1,
+                    used_count: 0,
+                    valid_from: new Date().toISOString(),
+                    valid_until: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // Valid for 90 days
+                    min_purchase_amount: 500,
+                  });
+
+                if (couponError) {
+                  console.error("Error creating referral coupon:", couponError);
+                } else {
+                  console.log(`Created referral coupon ${couponCode} for referrer ${referrerId}`);
+                  
+                  // Update referral stats - increment total earned by 100
+                  const { data: currentReferral } = await supabaseClient
+                    .from("referrals")
+                    .select("total_earned_discount")
+                    .eq("id", referralUse.referral_id)
+                    .single();
+
+                  const currentTotal = currentReferral?.total_earned_discount || 0;
+                  
+                  await supabaseClient
+                    .from("referrals")
+                    .update({
+                      total_earned_discount: currentTotal + 100,
+                      updated_at: new Date().toISOString(),
+                    })
+                    .eq("id", referralUse.referral_id);
+
+                  // Create notification for referrer
+                  await supabaseClient
+                    .from("notifications")
+                    .insert({
+                      user_id: referrerId,
+                      title: "🎉 Referral Reward Earned!",
+                      message: `You earned a ₹100 discount coupon! Code: ${couponCode}. Your referred friend made a purchase above ₹500.`,
+                      type: "reward",
+                      action_url: "/dashboard",
+                    });
+                }
+              }
+            }
+          }
+          
           // Get user email for notification
           const { data: profile } = await supabaseClient
             .from("profiles")

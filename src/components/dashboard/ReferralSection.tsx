@@ -115,10 +115,10 @@ export function ReferralSection() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Gift className="h-5 w-5 text-accent" />
-          Referral Program
+          Refer & Earn ₹100
         </CardTitle>
         <CardDescription>
-          Invite friends and earn ₹100 credit for each successful referral. Your friends get 10% off!
+          When your friend purchases a course above ₹500, you get a ₹100 discount coupon!
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -204,13 +204,16 @@ export function ReferralSection() {
 
             {/* How it works */}
             <div className="p-4 bg-accent/10 rounded-lg">
-              <h4 className="font-semibold text-sm mb-2">How it works</h4>
+              <h4 className="font-semibold text-sm mb-2">How Refer & Earn Works</h4>
               <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                <li>Share your referral code with friends</li>
-                <li>They get 10% off their first course purchase</li>
-                <li>You earn ₹100 credit when they complete payment</li>
-                <li>Use credits on your next course purchase</li>
+                <li>Share your unique referral code with friends</li>
+                <li>They sign up using your code</li>
+                <li>When they buy any course above ₹500</li>
+                <li>You automatically get a ₹100 discount coupon!</li>
               </ol>
+              <p className="text-xs text-muted-foreground mt-3 italic">
+                * Coupons are valid for 90 days and require minimum ₹500 purchase
+              </p>
             </div>
           </>
         )}
