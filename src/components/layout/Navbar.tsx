@@ -45,9 +45,6 @@ export function Navbar() {
             <a href="/#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
               Pricing
             </a>
-            <a href="/#instructor" className="text-muted-foreground hover:text-foreground transition-colors">
-              Instructor
-            </a>
           </div>
 
           <Button variant="ghost" size="icon" onClick={toggleDarkMode}>
@@ -118,13 +115,6 @@ export function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Pricing
-            </a>
-            <a 
-              href="/#instructor" 
-              className="text-muted-foreground hover:text-foreground transition-colors py-2"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Instructor
             </a>
             <button 
               onClick={() => { toggleDarkMode(); setMobileMenuOpen(false); }}
