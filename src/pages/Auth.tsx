@@ -47,7 +47,7 @@ export default function Auth() {
             <span className="text-sm">Back to home</span>
           </Link>
           <Link to="/" className="font-display font-bold text-xl tracking-tight">
-            ArchLearn
+            Archistudio
           </Link>
         </div>
       </header>
@@ -111,6 +111,15 @@ export default function Auth() {
                   </p>
                 )}
               </div>
+
+              {/* Forgot Password */}
+              {mode === 'login' && (
+                <div className="text-center">
+                  <Link to="/reset-password" className="text-sm text-muted-foreground hover:text-accent">
+                    Forgot your password?
+                  </Link>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -131,7 +140,7 @@ export default function Auth() {
       {/* Footer */}
       <footer className="border-t border-border py-6">
         <div className="container-wide text-center text-sm text-muted-foreground">
-          <p>© 2024 ArchLearn. All rights reserved.</p>
+          <p>© 2024 Archistudio. All rights reserved.</p>
         </div>
       </footer>
     </div>
