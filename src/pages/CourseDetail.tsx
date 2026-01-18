@@ -140,6 +140,12 @@ export default function CourseDetail() {
       return;
     }
 
+    // Handle free courses
+    if (course.priceInr === 0) {
+      await handleFreeEnrollment();
+      return;
+    }
+
     await initiatePayment({
       courseId: course.slug,
       amount: course.priceInr,
@@ -151,6 +157,85 @@ export default function CourseDetail() {
       courseDescription: course.description,
       courseLevel: course.level,
     });
+  };
+
+  const handleFreeEnrollment = async () => {
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Get or create course in database
+      let { data: dbCourse } = await supabase
+        .from('courses')
+        .select('id')
+        .eq('slug', course.slug)
+        .single();
+
+      if (!dbCourse) {
+        const { data: newCourse, error: createError } = await supabase
+          .from('courses')
+          .insert({
+            slug: course.slug,
+            title: course.title,
+            description: course.description,
+            short_description: course.shortDescription,
+            level: course.level,
+            price_inr: 0,
+            price_usd: 0,
+            is_published: true,
+          })
+          .select('id')
+          .single();
+
+        if (createError) throw createError;
+        dbCourse = newCourse;
+      }
+
+      // Create enrollment
+      const { error: enrollError } = await supabase
+        .from('enrollments')
+        .insert({
+          user_id: user!.id,
+          course_id: dbCourse!.id,
+          status: 'active',
+        });
+
+      if (enrollError) {
+        if (enrollError.code === '23505') {
+          toast({
+            title: "Already Enrolled",
+            description: "You're already enrolled in this course!",
+          });
+          navigate(`/course/${course.slug}/learn`);
+          return;
+        }
+        throw enrollError;
+      }
+
+      // Send enrollment email (fire and forget)
+      supabase.functions.invoke('send-enrollment-email', {
+        body: {
+          email: user!.email,
+          name: profile?.full_name || user!.email?.split('@')[0],
+          courseName: course.title,
+          courseSlug: course.slug,
+          isFree: true,
+        }
+      }).catch(err => console.error('Enrollment email error:', err));
+
+      toast({
+        title: "Enrolled Successfully! 🎉",
+        description: "You can now access all course content.",
+      });
+
+      navigate(`/course/${course.slug}/learn`);
+    } catch (error: any) {
+      console.error('Free enrollment error:', error);
+      toast({
+        title: "Enrollment Failed",
+        description: error.message || "Failed to enroll. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const levelColors: Record<string, string> = {
@@ -247,8 +332,14 @@ export default function CourseDetail() {
                 </div>
                 <CardContent className="p-6 space-y-4">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold">₹{course.priceInr.toLocaleString()}</span>
-                    <span className="text-muted-foreground">(${course.priceUsd})</span>
+                    {course.priceInr === 0 ? (
+                      <span className="text-3xl font-bold text-success">Free</span>
+                    ) : (
+                      <>
+                        <span className="text-3xl font-bold">₹{course.priceInr.toLocaleString()}</span>
+                        <span className="text-muted-foreground">(${course.priceUsd})</span>
+                      </>
+                    )}
                   </div>
                   
                   <Button 
@@ -261,6 +352,11 @@ export default function CourseDetail() {
                       <>
                         <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                         Processing...
+                      </>
+                    ) : course.priceInr === 0 ? (
+                      <>
+                        <BookOpen className="h-5 w-5 mr-2" />
+                        Enroll for Free
                       </>
                     ) : (
                       <>

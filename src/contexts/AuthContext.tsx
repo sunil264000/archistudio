@@ -188,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const redirectUrl = `${window.location.origin}/`;
       
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -201,6 +201,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (error) {
         return { error };
+      }
+
+      // Send welcome email (fire and forget - don't block signup)
+      if (data?.user) {
+        supabase.functions.invoke('send-welcome-email', {
+          body: { email, name: fullName }
+        }).catch(err => console.error('Welcome email error:', err));
       }
       
       return { error: null };
