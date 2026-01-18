@@ -155,13 +155,14 @@ export function Background3D({ className = '', intensity = 'medium' }: Backgroun
   
   return (
     <div 
-      className={`absolute inset-0 pointer-events-none ${className}`}
-      style={{ opacity }}
+      className={`absolute inset-0 ${className}`}
+      style={{ opacity, pointerEvents: 'none' }}
     >
       <Canvas
         camera={{ position: [0, 0, 15], fov: 60 }}
         dpr={[1, 1.5]}
         gl={{ antialias: true, alpha: true }}
+        style={{ pointerEvents: 'none' }}
       >
         <Suspense fallback={null}>
           <Scene />
