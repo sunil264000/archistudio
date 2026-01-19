@@ -337,6 +337,53 @@ export type Database = {
         }
         Relationships: []
       }
+      course_questions: {
+        Row: {
+          answer: string | null
+          answered_at: string | null
+          answered_by: string | null
+          course_id: string
+          created_at: string | null
+          id: string
+          is_public: boolean | null
+          question: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          answer?: string | null
+          answered_at?: string | null
+          answered_by?: string | null
+          course_id: string
+          created_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          question: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          answer?: string | null
+          answered_at?: string | null
+          answered_by?: string | null
+          course_id?: string
+          created_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          question?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_questions_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           bundle_id: string | null
@@ -628,8 +675,10 @@ export type Database = {
       notifications: {
         Row: {
           action_url: string | null
+          blog_post_id: string | null
           created_at: string | null
           id: string
+          is_global: boolean | null
           message: string
           read: boolean | null
           title: string
@@ -638,8 +687,10 @@ export type Database = {
         }
         Insert: {
           action_url?: string | null
+          blog_post_id?: string | null
           created_at?: string | null
           id?: string
+          is_global?: boolean | null
           message: string
           read?: boolean | null
           title: string
@@ -648,15 +699,25 @@ export type Database = {
         }
         Update: {
           action_url?: string | null
+          blog_post_id?: string | null
           created_at?: string | null
           id?: string
+          is_global?: boolean | null
           message?: string
           read?: boolean | null
           title?: string
           type?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_blog_post_id_fkey"
+            columns: ["blog_post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payments: {
         Row: {

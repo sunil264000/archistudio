@@ -17,13 +17,15 @@ import { BlogManagement } from '@/components/admin/BlogManagement';
 import { ManualEnrollment } from '@/components/admin/ManualEnrollment';
 import { CourseBundleManagement } from '@/components/admin/CourseBundleManagement';
 import { AdminHeader } from '@/components/admin/AdminHeader';
+import { QAManagement } from '@/components/admin/QAManagement';
+import { NotificationManagement } from '@/components/admin/NotificationManagement';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
   Users, BookOpen, DollarSign, Settings, 
   ArrowLeft, TrendingUp, CreditCard, MessageSquare, Pencil, 
   BarChart3, Copy, Eye, EyeOff, Instagram, Save, Loader2, Video, Trash2, Award, FileText,
-  Package, UserPlus, Sparkles
+  Package, UserPlus, Sparkles, Bell, HelpCircle
 } from 'lucide-react';
 
 export default function Admin() {
@@ -93,7 +95,7 @@ export default function Admin() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <TabsList className="grid w-full grid-cols-11 h-auto p-1 bg-muted/50">
+              <TabsList className="grid w-full grid-cols-13 h-auto p-1 bg-muted/50">
                 <TabsTrigger value="courses" className="gap-1 text-xs py-2">
                   <BookOpen className="h-3 w-3" />
                   <span className="hidden sm:inline">Courses</span>
@@ -113,6 +115,14 @@ export default function Admin() {
                 <TabsTrigger value="access" className="gap-1 text-xs py-2">
                   <UserPlus className="h-3 w-3" />
                   <span className="hidden sm:inline">Access</span>
+                </TabsTrigger>
+                <TabsTrigger value="qa" className="gap-1 text-xs py-2">
+                  <HelpCircle className="h-3 w-3" />
+                  <span className="hidden sm:inline">Q&A</span>
+                </TabsTrigger>
+                <TabsTrigger value="notifications" className="gap-1 text-xs py-2">
+                  <Bell className="h-3 w-3" />
+                  <span className="hidden sm:inline">Notify</span>
                 </TabsTrigger>
                 <TabsTrigger value="payments" className="gap-1 text-xs py-2">
                   <CreditCard className="h-3 w-3" />
@@ -236,6 +246,46 @@ export default function Admin() {
                   </CardHeader>
                   <CardContent className="pt-6">
                     <ManualEnrollment />
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </TabsContent>
+
+            <TabsContent value="qa">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-2">
+                  <CardHeader className="bg-muted/30">
+                    <CardTitle className="flex items-center gap-2">
+                      <HelpCircle className="h-5 w-5 text-accent" />
+                      Course Q&A Management
+                    </CardTitle>
+                    <CardDescription>Answer student questions from all courses</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <QAManagement />
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </TabsContent>
+
+            <TabsContent value="notifications">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-2">
+                  <CardHeader className="bg-muted/30">
+                    <CardTitle className="flex items-center gap-2">
+                      <Bell className="h-5 w-5 text-accent" />
+                      Push Notifications
+                    </CardTitle>
+                    <CardDescription>Send notifications to specific users or all users</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <NotificationManagement />
                   </CardContent>
                 </Card>
               </motion.div>

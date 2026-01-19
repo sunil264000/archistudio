@@ -217,15 +217,19 @@ export function EnrolledCourses() {
             <div className="grid md:grid-cols-2 gap-4">
               {enrolledCourses.map((enrollment) => (
                 <Card key={enrollment.id} className="overflow-hidden">
-                  <div className="aspect-video relative">
+                <div className="aspect-video relative bg-gradient-to-br from-primary/20 to-accent/20">
                     {enrollment.course.thumbnail_url ? (
                       <img
                         src={enrollment.course.thumbnail_url}
                         alt={enrollment.course.title}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center');
+                        }}
                       />
                     ) : (
-                      <div className="w-full h-full bg-muted flex items-center justify-center">
+                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
                         <BookOpen className="h-12 w-12 text-muted-foreground" />
                       </div>
                     )}
