@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward } from 'lucide-react';
+import { Loader2, Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, Shield } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SecureVideoPlayerProps {
   lessonId: string;
@@ -30,34 +31,132 @@ export function SecureVideoPlayer({
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [watermarkPosition, setWatermarkPosition] = useState({ x: 50, y: 50 });
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
+  const watermarkIntervalRef = useRef<NodeJS.Timeout>();
+  const { user } = useAuth();
 
   const isExternalUrl = (url: string) => /^https?:\/\//i.test(url);
   const isGoogleDrivePreview = (url: string) =>
     /drive\.google\.com\/file\/d\/.+\/preview/i.test(url);
+  const isGoogleDriveView = (url: string) =>
+    /drive\.google\.com\/file\/d\/.+\/view/i.test(url);
+
+  // Convert Google Drive view URL to preview URL
+  const convertToPreviewUrl = (url: string): string => {
+    return url.replace('/view', '/preview');
+  };
+
+  // Move watermark randomly to make it harder to crop out
+  useEffect(() => {
+    watermarkIntervalRef.current = setInterval(() => {
+      setWatermarkPosition({
+        x: 10 + Math.random() * 80, // 10% to 90%
+        y: 10 + Math.random() * 80,
+      });
+    }, 8000); // Move every 8 seconds
+
+    return () => {
+      if (watermarkIntervalRef.current) {
+        clearInterval(watermarkIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Generate secure streaming URL through our proxy
+  const generateStreamingUrl = async (path: string): Promise<string | null> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return null;
+
+      const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const timestamp = Date.now();
+      const randomSalt = Math.random().toString(36).substring(7);
+      
+      // Build secure URL with token, lesson, path, and timestamp
+      const params = new URLSearchParams({
+        t: session.access_token,
+        l: lessonId,
+        p: path,
+        ts: timestamp.toString(),
+        _: randomSalt, // Cache buster
+      });
+
+      return `${baseUrl}/functions/v1/stream-video?${params.toString()}`;
+    } catch (err) {
+      console.error('Failed to generate streaming URL:', err);
+      return null;
+    }
+  };
+
+  // Generate decoy URLs to confuse download managers
+  const generateDecoyUrls = () => {
+    const decoys = [];
+    for (let i = 0; i < 5; i++) {
+      const fakeToken = Math.random().toString(36).substring(2, 15);
+      const fakeTimestamp = Date.now() - Math.floor(Math.random() * 10000);
+      decoys.push(`https://decoy-${i}.invalid/video?t=${fakeToken}&ts=${fakeTimestamp}`);
+    }
+    // Add decoy link elements to DOM (these will fail to download but confuse sniffers)
+    decoys.forEach((url, i) => {
+      const link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = url;
+      link.id = `decoy-${i}`;
+      document.head.appendChild(link);
+    });
+  };
+
+  // Clean up decoy URLs
+  const cleanupDecoys = () => {
+    for (let i = 0; i < 5; i++) {
+      const decoy = document.getElementById(`decoy-${i}`);
+      if (decoy) decoy.remove();
+    }
+  };
 
   useEffect(() => {
-    // If the lesson video is an external URL (e.g., Google Drive embed), skip signed URLs.
+    generateDecoyUrls();
+    return () => cleanupDecoys();
+  }, []);
+
+  useEffect(() => {
+    // Handle external URLs (Google Drive)
     if (videoPath && isExternalUrl(videoPath)) {
+      let finalUrl = videoPath;
+      
+      // Convert view URL to preview URL for Google Drive
+      if (isGoogleDriveView(videoPath)) {
+        finalUrl = convertToPreviewUrl(videoPath);
+      }
+      
       setError(null);
-      setVideoUrl(videoPath);
+      setVideoUrl(finalUrl);
       setLoading(false);
       return;
     }
 
-    const fetchSignedUrl = async () => {
+    // For internal videos, use streaming proxy
+    const fetchStreamingUrl = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const { data, error: fnError } = await supabase.functions.invoke('get-video-url', {
-          body: { lessonId, videoPath },
-        });
+        const streamUrl = await generateStreamingUrl(videoPath);
+        
+        if (!streamUrl) {
+          // Fallback to signed URL approach
+          const { data, error: fnError } = await supabase.functions.invoke('get-video-url', {
+            body: { lessonId, videoPath },
+          });
 
-        if (fnError) throw fnError;
-        if (!data?.signedUrl) throw new Error('Could not get video URL');
+          if (fnError) throw fnError;
+          if (!data?.signedUrl) throw new Error('Could not get video URL');
 
-        setVideoUrl(data.signedUrl);
+          setVideoUrl(data.signedUrl);
+        } else {
+          setVideoUrl(streamUrl);
+        }
       } catch (err: any) {
         console.error('Error fetching video URL:', err);
         setError(err.message || 'Failed to load video');
@@ -67,7 +166,7 @@ export function SecureVideoPlayer({
     };
 
     if (videoPath) {
-      fetchSignedUrl();
+      fetchStreamingUrl();
     }
   }, [lessonId, videoPath]);
 
@@ -176,7 +275,20 @@ export function SecureVideoPlayer({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // External embeds (Google Drive preview) can't be played via <video> and won't support time-based progress.
+  // Get user identifier for watermark
+  const getUserWatermark = () => {
+    if (user?.email) {
+      // Partially mask the email for privacy but still identifiable
+      const [localPart, domain] = user.email.split('@');
+      if (localPart.length > 3) {
+        return `${localPart.slice(0, 2)}***@${domain}`;
+      }
+      return user.email;
+    }
+    return '';
+  };
+
+  // External embeds (Google Drive preview) with user watermark
   if (!loading && !error && videoUrl && isGoogleDrivePreview(videoUrl)) {
     return (
       <div 
@@ -186,8 +298,8 @@ export function SecureVideoPlayer({
       >
         {/* Invisible overlay to block right-click and prevent download options */}
         <div 
-          className="absolute inset-0 z-10 pointer-events-none"
-          style={{ background: 'transparent' }}
+          className="absolute inset-0 z-10"
+          style={{ background: 'transparent', pointerEvents: 'none' }}
         />
         <iframe
           title="Lesson video"
@@ -195,16 +307,37 @@ export function SecureVideoPlayer({
           className="absolute inset-0 h-full w-full"
           allow="autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
-          // Restrictive sandbox while still allowing Drive to render but block downloads.
           sandbox="allow-scripts allow-same-origin allow-presentation"
           style={{ pointerEvents: 'auto' }}
         />
-        <div className="absolute bottom-2 left-2 text-[10px] text-white/40 pointer-events-none select-none z-20">
+        
+        {/* Moving user watermark - identifies who downloaded if leaked */}
+        <div 
+          className="absolute text-white/20 text-sm pointer-events-none select-none z-20 font-mono transition-all duration-1000"
+          style={{ 
+            left: `${watermarkPosition.x}%`, 
+            top: `${watermarkPosition.y}%`,
+            transform: 'translate(-50%, -50%)',
+            textShadow: '0 0 2px rgba(0,0,0,0.5)',
+          }}
+        >
+          {getUserWatermark()}
+        </div>
+
+        {/* Corner watermarks */}
+        <div className="absolute bottom-2 left-2 text-[10px] text-white/30 pointer-events-none select-none z-20 flex items-center gap-1">
+          <Shield className="h-3 w-3" />
           Protected Content
         </div>
-        {/* Anti-download watermark */}
-        <div className="absolute top-4 right-4 text-white/10 text-xs pointer-events-none select-none z-20">
+        <div className="absolute top-2 right-2 text-white/15 text-xs pointer-events-none select-none z-20">
           Concrete Logic
+        </div>
+
+        {/* Notice for embedded videos */}
+        <div className="absolute bottom-12 left-0 right-0 text-center">
+          <span className="text-[10px] text-white/40 bg-black/40 px-2 py-1 rounded">
+            Embedded video (progress tracking limited)
+          </span>
         </div>
       </div>
     );
@@ -260,7 +393,21 @@ export function SecureVideoPlayer({
         controlsList="nodownload nofullscreen noremoteplayback"
         disablePictureInPicture
         onContextMenu={(e) => e.preventDefault()}
+        crossOrigin="anonymous"
       />
+
+      {/* Moving user watermark - identifies who downloaded if leaked */}
+      <div 
+        className="absolute text-white/15 text-sm pointer-events-none select-none font-mono transition-all duration-1000"
+        style={{ 
+          left: `${watermarkPosition.x}%`, 
+          top: `${watermarkPosition.y}%`,
+          transform: 'translate(-50%, -50%)',
+          textShadow: '0 0 2px rgba(0,0,0,0.5)',
+        }}
+      >
+        {getUserWatermark()}
+      </div>
 
       {/* Custom Controls Overlay */}
       <div 
@@ -358,9 +505,13 @@ export function SecureVideoPlayer({
         </div>
       </div>
 
-      {/* Anti-download watermark (subtle) */}
-      <div className="absolute top-4 right-4 text-white/10 text-xs pointer-events-none select-none">
-        Protected Content
+      {/* Corner watermarks */}
+      <div className="absolute top-2 left-2 text-white/10 text-xs pointer-events-none select-none flex items-center gap-1">
+        <Shield className="h-3 w-3" />
+        Protected
+      </div>
+      <div className="absolute top-2 right-2 text-white/10 text-xs pointer-events-none select-none">
+        Concrete Logic
       </div>
     </div>
   );
