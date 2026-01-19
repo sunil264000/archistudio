@@ -175,9 +175,16 @@ export function SecureVideoPlayer({
   if (error) {
     return (
       <div className="aspect-video bg-black rounded-lg flex items-center justify-center">
-        <div className="text-center text-white">
-          <p className="text-red-400 mb-2">Failed to load video</p>
-          <p className="text-sm text-gray-400">{error}</p>
+        <div className="text-center text-white px-4">
+          <p className="text-red-400 mb-2 text-lg font-medium">Video Not Available</p>
+          <p className="text-sm text-gray-400 mb-4 max-w-md">
+            {error.includes('Object not found') || error.includes('404') 
+              ? 'The video file has not been uploaded yet. Please contact the administrator.' 
+              : error}
+          </p>
+          <p className="text-xs text-gray-500">
+            If you're the admin, please upload the video in the Admin Panel → Lessons section.
+          </p>
         </div>
       </div>
     );
