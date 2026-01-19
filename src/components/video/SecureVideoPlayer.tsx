@@ -32,7 +32,19 @@ export function SecureVideoPlayer({
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
 
+  const isExternalUrl = (url: string) => /^https?:\/\//i.test(url);
+  const isGoogleDrivePreview = (url: string) =>
+    /drive\.google\.com\/file\/d\/.+\/preview/i.test(url);
+
   useEffect(() => {
+    // If the lesson video is an external URL (e.g., Google Drive embed), skip signed URLs.
+    if (videoPath && isExternalUrl(videoPath)) {
+      setError(null);
+      setVideoUrl(videoPath);
+      setLoading(false);
+      return;
+    }
+
     const fetchSignedUrl = async () => {
       try {
         setLoading(true);
@@ -163,6 +175,26 @@ export function SecureVideoPlayer({
     const secs = Math.floor(time % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // External embeds (Google Drive preview) can't be played via <video> and won't support time-based progress.
+  if (!loading && !error && videoUrl && isGoogleDrivePreview(videoUrl)) {
+    return (
+      <div ref={containerRef} className="relative aspect-video bg-black rounded-lg overflow-hidden">
+        <iframe
+          title="Lesson video"
+          src={videoUrl}
+          className="absolute inset-0 h-full w-full"
+          allow="autoplay; encrypted-media; picture-in-picture"
+          allowFullScreen
+          // Restrictive sandbox while still allowing Drive to render.
+          sandbox="allow-scripts allow-same-origin allow-presentation"
+        />
+        <div className="absolute bottom-2 left-2 text-[10px] text-white/40 pointer-events-none select-none">
+          Embedded video (progress tracking limited)
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
