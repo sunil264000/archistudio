@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { courses, courseCategories, categoryImages } from '@/data/courses';
+import { useDynamicCourseData } from '@/hooks/useDynamicCourseData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -137,6 +138,7 @@ export default function CourseDetail() {
   const { user, profile } = useAuth();
   const { initiatePayment, isLoading } = useCashfreePayment();
   const { toast } = useToast();
+  const { getThumbnail } = useDynamicCourseData();
   
   // Fetch real modules from database
   const { modules: dbModules, loading: modulesLoading, totalLessons: dbTotalLessons, totalDuration } = useCourseModules(slug);
@@ -380,9 +382,12 @@ export default function CourseDetail() {
               <Card className="sticky top-24 overflow-hidden">
                 <div className="aspect-video relative">
                   <img 
-                    src={categoryImages[course.category] || '/placeholder.svg'} 
+                    src={getThumbnail(course.slug, categoryImages[course.category] || '/placeholder.svg')} 
                     alt={course.title}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = categoryImages[course.category] || '/placeholder.svg';
+                    }}
                   />
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                     <Button size="lg" variant="secondary" className="gap-2">

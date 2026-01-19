@@ -3,11 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { courses, courseCategories, getFeaturedCourses, categoryImages } from '@/data/courses';
+import { useDynamicCourseData } from '@/hooks/useDynamicCourseData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Clock, BookOpen, Search, Star, Filter, ShoppingCart, CreditCard, Loader2 } from 'lucide-react';
+import { Clock, BookOpen, Search, Star, Filter, ShoppingCart, CreditCard, Loader2, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +18,7 @@ import { SEOHead } from '@/components/seo/SEOHead';
 export default function Courses() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const { getThumbnail, isHighlighted, isFeatured } = useDynamicCourseData();
 
   const filteredCourses = courses.filter(course => {
     const matchesCategory = !selectedCategory || course.category === selectedCategory;
@@ -25,6 +27,15 @@ export default function Courses() {
       course.shortDescription.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch && course.isPublished;
+  });
+
+  // Sort highlighted courses first
+  const sortedCourses = [...filteredCourses].sort((a, b) => {
+    const aHighlighted = isHighlighted(a.slug);
+    const bHighlighted = isHighlighted(b.slug);
+    if (aHighlighted && !bHighlighted) return -1;
+    if (!aHighlighted && bHighlighted) return 1;
+    return 0;
   });
 
   const featuredCourses = getFeaturedCourses();
@@ -134,7 +145,14 @@ export default function Courses() {
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
               {featuredCourses.slice(0, 6).map((course, index) => (
-                <CourseCard key={course.id} course={course} featured index={index} />
+                <CourseCard 
+                  key={course.id} 
+                  course={course} 
+                  featured 
+                  index={index} 
+                  getThumbnail={getThumbnail}
+                  isHighlighted={isHighlighted(course.slug)}
+                />
               ))}
             </div>
           </div>
@@ -152,7 +170,7 @@ export default function Courses() {
                 : 'All Courses'}
           </h2>
           
-          {filteredCourses.length === 0 ? (
+          {sortedCourses.length === 0 ? (
             <div className="text-center py-12 animate-fade-in">
               <p className="text-muted-foreground text-lg">No courses found matching your criteria.</p>
               <Button variant="outline" className="mt-4" onClick={() => { setSelectedCategory(null); setSearchQuery(''); }}>
@@ -161,8 +179,14 @@ export default function Courses() {
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredCourses.map((course, index) => (
-                <CourseCard key={course.id} course={course} index={index} />
+              {sortedCourses.map((course, index) => (
+                <CourseCard 
+                  key={course.id} 
+                  course={course} 
+                  index={index} 
+                  getThumbnail={getThumbnail}
+                  isHighlighted={isHighlighted(course.slug)}
+                />
               ))}
             </div>
           )}
@@ -178,9 +202,11 @@ interface CourseCardProps {
   course: typeof courses[0];
   featured?: boolean;
   index?: number;
+  getThumbnail: (slug: string, fallback: string) => string;
+  isHighlighted?: boolean;
 }
 
-function CourseCard({ course, featured = false, index = 0 }: CourseCardProps) {
+function CourseCard({ course, featured = false, index = 0, getThumbnail, isHighlighted = false }: CourseCardProps) {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { initiatePayment, isLoading } = useCashfreePayment();
@@ -221,7 +247,7 @@ function CourseCard({ course, featured = false, index = 0 }: CourseCardProps) {
     <Card 
       className={`group overflow-hidden transition-all duration-500 hover:shadow-xl border-border/50 bg-card/80 backdrop-blur-sm ${
         featured ? 'border-accent/50 shadow-accent/10' : ''
-      }`}
+      } ${isHighlighted ? 'ring-2 ring-warning/50 shadow-warning/20' : ''}`}
       style={{ 
         animationDelay: `${index * 0.1}s`,
         transform: isHovered ? 'translateY(-8px) scale(1.02)' : 'translateY(0) scale(1)',
@@ -231,13 +257,25 @@ function CourseCard({ course, featured = false, index = 0 }: CourseCardProps) {
     >
       <div className="aspect-video relative overflow-hidden">
         <img 
-          src={categoryImages[course.category] || '/placeholder.svg'} 
+          src={getThumbnail(course.slug, categoryImages[course.category] || '/placeholder.svg')} 
           alt={course.title}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          onError={(e) => {
+            e.currentTarget.src = categoryImages[course.category] || '/placeholder.svg';
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
-        {featured && (
+        {/* Highlighted badge */}
+        {isHighlighted && (
+          <div className="absolute top-2 left-2">
+            <Badge className="bg-warning text-warning-foreground border-0 shadow-lg">
+              <Sparkles className="h-3 w-3 mr-1" /> Recommended
+            </Badge>
+          </div>
+        )}
+        
+        {featured && !isHighlighted && (
           <div className="absolute top-2 right-2">
             <Badge className="bg-warning text-warning-foreground border-0 animate-pulse">
               <Star className="h-3 w-3 mr-1 fill-current" /> Featured

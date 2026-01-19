@@ -1,17 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navbar } from '@/components/layout/Navbar';
 import { SecureVideoPlayer } from '@/components/video/SecureVideoPlayer';
+import { CourseQA } from '@/components/course/CourseQA';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ChevronLeft, Play, CheckCircle, Lock, Clock, 
-  BookOpen, Award, ChevronRight
+  BookOpen, Award, ChevronRight, CheckCircle2, MessageCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -49,6 +51,8 @@ export default function CoursePlayer() {
   const [progress, setProgress] = useState<Record<string, LessonProgress>>({});
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [watchProgress, setWatchProgress] = useState(0);
+  const [showFinishButton, setShowFinishButton] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -146,8 +150,16 @@ export default function CoursePlayer() {
     setCurrentLesson(lesson);
   };
 
-  const handleProgress = async (progressPercent: number, currentTime: number) => {
+  const handleProgress = useCallback(async (progressPercent: number, currentTime: number) => {
     if (!currentLesson || !user) return;
+
+    // Update watch progress state for UI
+    setWatchProgress(progressPercent);
+    
+    // Show finish button at 95% or more
+    if (progressPercent >= 95 && !progress[currentLesson.id]?.completed) {
+      setShowFinishButton(true);
+    }
 
     // Save progress every 10 seconds
     const roundedTime = Math.floor(currentTime / 10) * 10;
@@ -161,9 +173,9 @@ export default function CoursePlayer() {
     }, {
       onConflict: 'user_id,lesson_id',
     });
-  };
+  }, [currentLesson, user, progress]);
 
-  const handleComplete = async () => {
+  const handleComplete = useCallback(async () => {
     if (!currentLesson || !user) return;
 
     await supabase.from('progress').upsert({
@@ -180,8 +192,26 @@ export default function CoursePlayer() {
       ...prev,
       [currentLesson.id]: { ...prev[currentLesson.id], completed: true, lesson_id: currentLesson.id, last_position_seconds: 0 },
     }));
+    
+    setShowFinishButton(false);
+    setWatchProgress(0);
 
-    toast.success('Lesson completed!');
+    toast.success('Lesson completed! 🎉');
+    
+    // Check for course completion
+    const allLessons = modules.flatMap(m => m.lessons);
+    const newCompletedCount = Object.values(progress).filter(p => p.completed).length + 1;
+    if (newCompletedCount >= allLessons.length) {
+      toast.success('🏆 Congratulations! You completed the course!');
+      // Trigger certificate generation
+      supabase.functions.invoke('check-course-completion', {
+        body: { userId: user.id, courseId: course?.id }
+      }).catch(console.error);
+    }
+  }, [currentLesson, user, modules, progress, course]);
+
+  const handleFinishLesson = () => {
+    handleComplete();
   };
 
   const goToNextLesson = () => {
@@ -301,10 +331,10 @@ export default function CoursePlayer() {
         </aside>
 
         {/* Main Content - Video Player */}
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 flex flex-col overflow-auto">
           {currentLesson ? (
-            <>
-              <div className="flex-1 bg-black flex items-center justify-center p-4">
+            <ScrollArea className="flex-1">
+              <div className="bg-black flex items-center justify-center p-4">
                 {currentLesson.video_url ? (
                   <div className="w-full max-w-5xl">
                     <SecureVideoPlayer
@@ -316,7 +346,7 @@ export default function CoursePlayer() {
                     />
                   </div>
                 ) : (
-                  <div className="text-center text-white">
+                  <div className="text-center text-white py-16">
                     <BookOpen className="h-16 w-16 mx-auto mb-4 opacity-50" />
                     <p>No video available for this lesson</p>
                     {currentLesson.description && (
@@ -330,20 +360,41 @@ export default function CoursePlayer() {
 
               {/* Lesson Info Bar */}
               <div className="border-t p-4 bg-card">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold">{currentLesson.title}</h3>
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold truncate">{currentLesson.title}</h3>
+                      {progress[currentLesson.id]?.completed && (
+                        <Badge variant="secondary" className="bg-success/10 text-success shrink-0">
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          Completed
+                        </Badge>
+                      )}
+                    </div>
                     {currentLesson.description && (
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                         {currentLesson.description}
                       </p>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 shrink-0">
                     <Button variant="outline" size="sm" onClick={goToPrevLesson}>
                       <ChevronLeft className="h-4 w-4" />
                       Previous
                     </Button>
+                    
+                    {/* Finish Lesson Button - Shows at 95%+ watch time */}
+                    {showFinishButton && !progress[currentLesson.id]?.completed && (
+                      <Button 
+                        size="sm" 
+                        onClick={handleFinishLesson}
+                        className="bg-success hover:bg-success/90 text-success-foreground animate-pulse"
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-1" />
+                        Finish Lesson
+                      </Button>
+                    )}
+                    
                     <Button size="sm" onClick={goToNextLesson}>
                       Next
                       <ChevronRight className="h-4 w-4" />
@@ -351,7 +402,24 @@ export default function CoursePlayer() {
                   </div>
                 </div>
               </div>
-            </>
+
+              {/* Q&A Section Below Video */}
+              {course && (
+                <div className="p-4 border-t">
+                  <Tabs defaultValue="qa" className="w-full">
+                    <TabsList className="mb-4">
+                      <TabsTrigger value="qa" className="gap-2">
+                        <MessageCircle className="h-4 w-4" />
+                        Questions & Answers
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="qa">
+                      <CourseQA courseId={course.id} />
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              )}
+            </ScrollArea>
           ) : (
             <div className="flex-1 flex items-center justify-center">
               <p className="text-muted-foreground">Select a lesson to start learning</p>
