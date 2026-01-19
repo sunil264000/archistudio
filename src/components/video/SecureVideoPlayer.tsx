@@ -11,6 +11,11 @@ interface SecureVideoPlayerProps {
   onProgress?: (progress: number, currentTime: number) => void;
   onComplete?: () => void;
   initialPosition?: number;
+  /**
+   * If true, allows embedding external video URLs (e.g., Google Drive iframe).
+   * WARNING: external hosts can be captured by download extensions.
+   */
+  allowExternal?: boolean;
 }
 
 export function SecureVideoPlayer({ 
@@ -18,7 +23,8 @@ export function SecureVideoPlayer({
   videoPath, 
   onProgress,
   onComplete,
-  initialPosition = 0 
+  initialPosition = 0,
+  allowExternal = false,
 }: SecureVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -121,15 +127,25 @@ export function SecureVideoPlayer({
   }, []);
 
   useEffect(() => {
-    // Handle external URLs (Google Drive)
+    // Handle external URLs (e.g., Google Drive).
+    // NOTE: external hosts can always be captured by download extensions.
     if (videoPath && isExternalUrl(videoPath)) {
+      if (!allowExternal) {
+        setError(
+          'This lesson video is hosted externally and cannot be fully protected. Please upload it to secure storage to disable download extensions.'
+        );
+        setVideoUrl(null);
+        setLoading(false);
+        return;
+      }
+
       let finalUrl = videoPath;
-      
+
       // Convert view URL to preview URL for Google Drive
       if (isGoogleDriveView(videoPath)) {
         finalUrl = convertToPreviewUrl(videoPath);
       }
-      
+
       setError(null);
       setVideoUrl(finalUrl);
       setLoading(false);
