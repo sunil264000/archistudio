@@ -179,18 +179,32 @@ export function SecureVideoPlayer({
   // External embeds (Google Drive preview) can't be played via <video> and won't support time-based progress.
   if (!loading && !error && videoUrl && isGoogleDrivePreview(videoUrl)) {
     return (
-      <div ref={containerRef} className="relative aspect-video bg-black rounded-lg overflow-hidden">
+      <div 
+        ref={containerRef} 
+        className="relative aspect-video bg-black rounded-lg overflow-hidden"
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        {/* Invisible overlay to block right-click and prevent download options */}
+        <div 
+          className="absolute inset-0 z-10 pointer-events-none"
+          style={{ background: 'transparent' }}
+        />
         <iframe
           title="Lesson video"
-          src={videoUrl}
+          src={`${videoUrl}?modestbranding=1&rel=0`}
           className="absolute inset-0 h-full w-full"
           allow="autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
-          // Restrictive sandbox while still allowing Drive to render.
+          // Restrictive sandbox while still allowing Drive to render but block downloads.
           sandbox="allow-scripts allow-same-origin allow-presentation"
+          style={{ pointerEvents: 'auto' }}
         />
-        <div className="absolute bottom-2 left-2 text-[10px] text-white/40 pointer-events-none select-none">
-          Embedded video (progress tracking limited)
+        <div className="absolute bottom-2 left-2 text-[10px] text-white/40 pointer-events-none select-none z-20">
+          Protected Content
+        </div>
+        {/* Anti-download watermark */}
+        <div className="absolute top-4 right-4 text-white/10 text-xs pointer-events-none select-none z-20">
+          Concrete Logic
         </div>
       </div>
     );

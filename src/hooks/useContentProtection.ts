@@ -65,7 +65,7 @@ export function useContentProtection() {
     // Check for DevTools periodically
     const devToolsInterval = setInterval(detectDevTools, 1000);
 
-    // Add CSS to prevent selection
+    // Add CSS to prevent selection and downloads
     if (!import.meta.env.DEV) {
       const style = document.createElement('style');
       style.id = 'content-protection-style';
@@ -82,13 +82,33 @@ export function useContentProtection() {
           -ms-user-select: text;
           user-select: text;
         }
-        img {
+        img, video {
           -webkit-user-drag: none;
           -khtml-user-drag: none;
           -moz-user-drag: none;
           -o-user-drag: none;
           user-drag: none;
-          pointer-events: none;
+        }
+        video {
+          pointer-events: auto !important;
+        }
+        video::-webkit-media-controls-enclosure {
+          overflow: hidden;
+        }
+        video::-webkit-media-controls-panel {
+          width: calc(100% + 30px);
+        }
+        video::-webkit-media-controls-download-button {
+          display: none !important;
+        }
+        video::-internal-media-controls-download-button {
+          display: none !important;
+        }
+        video::-webkit-media-controls-overflow-button {
+          display: none !important;
+        }
+        iframe {
+          pointer-events: auto;
         }
       `;
       document.head.appendChild(style);
