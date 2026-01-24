@@ -22,6 +22,7 @@ import { LiveViewerCounter } from '@/components/social-proof/LiveViewerCounter';
 import { useSaleDiscount } from '@/hooks/useSaleDiscount';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { supabase } from '@/integrations/supabase/client';
+import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
 
 // Add to Cart Button Component
 function AddToCartButton({ course }: { course: any }) {
@@ -165,6 +166,20 @@ export default function CourseDetail() {
   // Fetch database course ID + public meta for correct stats display (even for guests)
   const [dbCourseId, setDbCourseId] = useState<string | null>(null);
   const [dbCourseMeta, setDbCourseMeta] = useState<{ total_lessons: number | null; duration_hours: number | null } | null>(null);
+  
+  // Phone number dialog state
+  const [showPhoneDialog, setShowPhoneDialog] = useState(false);
+  const [pendingPaymentData, setPendingPaymentData] = useState<{
+    courseId: string;
+    amount: number;
+    customerName: string;
+    customerEmail: string;
+    courseTitle: string;
+    courseShortDescription?: string;
+    courseDescription?: string;
+    courseLevel?: string;
+  } | null>(null);
+  
   useEffect(() => {
     if (slug) {
       supabase
@@ -222,17 +237,57 @@ export default function CourseDetail() {
       return;
     }
 
+    const customerPhone = profile?.phone?.replace(/[\s-]/g, '');
+    const hasValidPhone = customerPhone && customerPhone.length >= 10;
+
+    if (!hasValidPhone) {
+      // Show phone dialog and store payment data
+      setPendingPaymentData({
+        courseId: course.slug,
+        amount: effectivePriceInr,
+        customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
+        customerEmail: user.email || '',
+        courseTitle: course.title,
+        courseShortDescription: course.shortDescription,
+        courseDescription: course.description,
+        courseLevel: course.level,
+      });
+      setShowPhoneDialog(true);
+      return;
+    }
+
     await initiatePayment({
       courseId: course.slug,
       amount: effectivePriceInr,
       customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
       customerEmail: user.email || '',
-      customerPhone: profile?.phone || '9999999999',
+      customerPhone: customerPhone,
       courseTitle: course.title,
       courseShortDescription: course.shortDescription,
       courseDescription: course.description,
       courseLevel: course.level,
     });
+  };
+
+  const handlePhoneSubmit = async (phone: string) => {
+    if (!pendingPaymentData) return;
+    
+    // Update profile with phone number
+    if (user) {
+      await supabase
+        .from('profiles')
+        .update({ phone: phone })
+        .eq('user_id', user.id);
+    }
+    
+    setShowPhoneDialog(false);
+    
+    await initiatePayment({
+      ...pendingPaymentData,
+      customerPhone: phone,
+    });
+    
+    setPendingPaymentData(null);
   };
 
   const handleFreeEnrollment = async () => {
@@ -717,6 +772,13 @@ export default function CourseDetail() {
       </section>
 
       <Footer />
+      
+      <PhoneNumberDialog
+        open={showPhoneDialog}
+        onOpenChange={setShowPhoneDialog}
+        onSubmit={handlePhoneSubmit}
+        isLoading={isLoading}
+      />
     </div>
   );
 }
