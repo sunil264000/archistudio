@@ -316,6 +316,8 @@ serve(async (req) => {
                 courseSlug: courseSlug,
                 isFree: false,
                 amount: paymentData.amount,
+                orderId: orderId,
+                paymentDate: paymentData.created_at || new Date().toISOString(),
               }),
             }).catch(err => console.error("Enrollment email error:", err));
           }
