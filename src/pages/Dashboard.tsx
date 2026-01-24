@@ -5,11 +5,12 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ShieldCheck, BookOpen, Award, BarChart3, Gift } from 'lucide-react';
+import { ShieldCheck, BookOpen, Award, BarChart3, Gift, Library } from 'lucide-react';
 import { EnrolledCourses } from '@/components/dashboard/EnrolledCourses';
 import { Certificates } from '@/components/dashboard/Certificates';
 import { ProgressAnalytics } from '@/components/dashboard/ProgressAnalytics';
 import { ReferralSection } from '@/components/dashboard/ReferralSection';
+import { PurchasedEbooks } from '@/components/dashboard/PurchasedEbooks';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 
 export default function Dashboard() {
@@ -54,10 +55,14 @@ export default function Dashboard() {
           </div>
 
           <Tabs defaultValue="courses" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 max-w-lg">
+            <TabsList className="grid w-full grid-cols-5 max-w-xl">
               <TabsTrigger value="courses" className="gap-2">
                 <BookOpen className="h-4 w-4" />
                 <span className="hidden sm:inline">Studios</span>
+              </TabsTrigger>
+              <TabsTrigger value="ebooks" className="gap-2">
+                <Library className="h-4 w-4" />
+                <span className="hidden sm:inline">eBooks</span>
               </TabsTrigger>
               <TabsTrigger value="progress" className="gap-2">
                 <BarChart3 className="h-4 w-4" />
@@ -75,6 +80,10 @@ export default function Dashboard() {
 
             <TabsContent value="courses">
               <EnrolledCourses />
+            </TabsContent>
+
+            <TabsContent value="ebooks">
+              <PurchasedEbooks />
             </TabsContent>
 
             <TabsContent value="progress">

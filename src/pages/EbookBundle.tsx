@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BookOpen, 
@@ -17,7 +17,9 @@ import {
   X,
   Plus,
   Minus,
-  Gift
+  Gift,
+  Loader2,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -74,15 +76,17 @@ export default function EbookBundle() {
   const [ebooks, setEbooks] = useState<Ebook[]>([]);
   const [pricingSettings, setPricingSettings] = useState<PricingSettings | null>(null);
   const [selectedBooks, setSelectedBooks] = useState<Set<string>>(new Set());
+  const [ownedEbookIds, setOwnedEbookIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [phoneDialogOpen, setPhoneDialogOpen] = useState(false);
+  const [downloading, setDownloading] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const { initiatePayment, isLoading: purchasing } = useEbookPayment();
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [user]);
 
   const fetchData = async () => {
     const [ebooksRes, pricingRes] = await Promise.all([
@@ -92,8 +96,67 @@ export default function EbookBundle() {
     
     if (ebooksRes.data) setEbooks(ebooksRes.data);
     if (pricingRes.data) setPricingSettings(pricingRes.data);
+
+    // Fetch owned ebooks if user is logged in
+    if (user) {
+      const { data: purchases } = await supabase
+        .from('ebook_purchases')
+        .select('ebook_ids')
+        .eq('user_id', user.id)
+        .eq('status', 'completed');
+
+      if (purchases) {
+        const owned = new Set<string>();
+        purchases.forEach(p => p.ebook_ids?.forEach(id => owned.add(id)));
+        setOwnedEbookIds(owned);
+      }
+    }
+
     setLoading(false);
   };
+
+  const handleDownload = async (ebookId: string, title: string) => {
+    setDownloading(ebookId);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        throw new Error('Please login to download');
+      }
+
+      const response = await supabase.functions.invoke('download-ebook', {
+        body: { ebookId },
+      });
+
+      if (response.error) throw response.error;
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Download Started',
+        description: `Downloading "${title}"`,
+      });
+    } catch (error: any) {
+      console.error('Download error:', error);
+      toast({
+        title: 'Download Failed',
+        description: error.message || 'Failed to download eBook',
+        variant: 'destructive',
+      });
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const ownedEbooks = ebooks.filter(e => ownedEbookIds.has(e.id));
+  const availableEbooks = ebooks.filter(e => !ownedEbookIds.has(e.id));
 
   // Dynamic tiered pricing based on admin settings
   const calculatePrice = (bookCount: number): { total: number; perBook: number; savings: number } => {
@@ -308,11 +371,92 @@ export default function EbookBundle() {
           </motion.div>
         </section>
 
-        {/* Categories Grid */}
+        {/* My Library Section - Owned eBooks */}
+        {ownedEbooks.length > 0 && (
+          <section className="container mx-auto px-4 mb-12">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Card className="bg-gradient-to-br from-success/10 via-success/5 to-transparent border-success/30">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 rounded-xl bg-success/20 flex items-center justify-center">
+                        <CheckCircle2 className="h-6 w-6 text-success" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">My eBook Library</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {ownedEbooks.length} {ownedEbooks.length === 1 ? 'eBook' : 'eBooks'} you own
+                        </p>
+                      </div>
+                    </div>
+                    <Link to="/dashboard">
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <Library className="h-4 w-4" />
+                        View in Dashboard
+                      </Button>
+                    </Link>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {ownedEbooks.map((book) => (
+                      <motion.div
+                        key={book.id}
+                        whileHover={{ scale: 1.02 }}
+                        className="p-4 rounded-xl bg-background/80 border border-success/20"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-success/20 flex items-center justify-center shrink-0">
+                            <BookOpen className="h-5 w-5 text-success" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-sm line-clamp-2 mb-1">{book.title}</h4>
+                            <Badge variant="outline" className="text-xs bg-success/10 border-success/30 text-success">
+                              Owned
+                            </Badge>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="w-full mt-3 gap-2 bg-success hover:bg-success/90"
+                          onClick={() => handleDownload(book.id, book.title)}
+                          disabled={downloading === book.id}
+                        >
+                          {downloading === book.id ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Downloading...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="h-4 w-4" />
+                              Download PDF
+                            </>
+                          )}
+                        </Button>
+                      </motion.div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </section>
+        )}
+
+        {/* Categories Grid - Available for Purchase */}
         <section className="container mx-auto px-4 mb-8">
+          {availableEbooks.length > 0 && (
+            <h2 className="text-2xl font-bold mb-6">
+              {ownedEbooks.length > 0 ? 'Available for Purchase' : 'Browse eBooks'}
+            </h2>
+          )}
           <div className="space-y-8">
             {categories.map((category, catIndex) => {
-              const categoryBooks = ebooks.filter(e => e.category === category);
+              const categoryBooks = availableEbooks.filter(e => e.category === category);
+              if (categoryBooks.length === 0) return null;
               const selectedInCategory = categoryBooks.filter(b => selectedBooks.has(b.id)).length;
               const allSelected = selectedInCategory === categoryBooks.length;
               
