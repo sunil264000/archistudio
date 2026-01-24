@@ -10,10 +10,9 @@ import {
   Loader2, RefreshCw, Eye, EyeOff, Star, Image as ImageIcon, 
   FolderX, CheckSquare, Square, ArrowUpDown, Filter,
   BookOpen, Layers, Clock, AlertCircle, CheckCircle2,
-  Package, X, Link2, Unlink, FolderSync, ExternalLink, EyeIcon,
-  ChevronRight, Play, Video, FileText
+  Package, X, Link2, Unlink, FolderSync, ExternalLink,
+  ChevronRight, Video, FileText
 } from 'lucide-react';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -119,6 +118,7 @@ export function CourseManagement() {
   const [folderUrl, setFolderUrl] = useState('');
   const [linking, setLinking] = useState(false);
   const [syncingCourse, setSyncingCourse] = useState<string | null>(null);
+  const [scanningCourse, setScanningCourse] = useState<string | null>(null);
   
   // Expanded course content preview
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
@@ -287,6 +287,36 @@ export function CourseManagement() {
     }
   };
 
+  // Quick-scan a linked folder to verify it is readable and has content
+  const handleQuickScanFolder = async (course: Course) => {
+    if (!course.drive_folder_id) {
+      toast.error('No folder linked to this course');
+      return;
+    }
+
+    setScanningCourse(course.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('scan-google-drive', {
+        body: {
+          folderId: course.drive_folder_id,
+          action: 'quick-scan',
+          maxDepth: 6,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Quick scan failed');
+
+      toast.success(`Folder scan: ${data.videoCount} videos, ${data.folderCount} folders`, {
+        description: data.resourceCount ? `${data.resourceCount} resources` : undefined,
+      });
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to scan folder');
+    } finally {
+      setScanningCourse(null);
+    }
+  };
+
   // Link folder to course
   const handleLinkFolder = async () => {
     if (!linkingCourse || !folderUrl.trim()) return;
@@ -313,14 +343,17 @@ export function CourseManagement() {
       if (error) throw error;
       
       // Update local state
-      setCourses(prev => prev.map(c => 
-        c.id === linkingCourse.id ? { ...c, drive_folder_id: folderId } : c
-      ));
-      
-      toast.success('Folder linked successfully');
+      const updatedCourse: Course = { ...linkingCourse, drive_folder_id: folderId };
+      setCourses(prev => prev.map(c => (c.id === linkingCourse.id ? updatedCourse : c)));
+
+      toast.success('Folder linked. Starting sync…');
       setLinkDialogOpen(false);
       setFolderUrl('');
       setLinkingCourse(null);
+
+      // Immediately sync/import so it doesn't remain "Empty" after linking
+      // (If Drive permissions/API are wrong, the sync toast will show the error)
+      await handleSyncCourse(updatedCourse);
     } catch (err: any) {
       toast.error(err.message || 'Failed to link folder');
     } finally {
@@ -1183,6 +1216,24 @@ export function CourseManagement() {
                       {/* Link/Unlink folder */}
                       {isLinked ? (
                         <>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleQuickScanFolder(course)}
+                              disabled={scanningCourse === course.id}
+                            >
+                              {scanningCourse === course.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Search className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Scan folder (counts videos)</TooltipContent>
+                        </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button 
