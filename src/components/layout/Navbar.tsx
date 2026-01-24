@@ -213,6 +213,29 @@ export function Navbar() {
                 </button>
               </div>
               
+              {!loading && user && (
+                <div className="flex flex-col gap-2 pt-4 border-t border-border">
+                  {isAdmin && (
+                    <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="outline" className="w-full gap-2 border-accent/50">
+                        <ShieldCheck className="h-4 w-4 text-accent" />
+                        Admin Panel
+                      </Button>
+                    </Link>
+                  )}
+                  <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full gap-2 justify-start">
+                      <User className="h-4 w-4" />
+                      {profile?.full_name || 'My Dashboard'}
+                    </Button>
+                  </Link>
+                  <Button variant="outline" className="w-full gap-2" onClick={() => { signOut(); setMobileMenuOpen(false); }}>
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </Button>
+                </div>
+              )}
+
               {!loading && !user && (
                 <div className="flex flex-col gap-2 pt-4 border-t border-border">
                   <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
