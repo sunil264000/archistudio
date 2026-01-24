@@ -117,22 +117,37 @@ export function useDynamicCourseData() {
   };
 
   /**
-   * Get normalized INR price for a course.
+   * Get dynamic INR price for a course based on content richness.
    * - Prefer backend price_inr when available.
-   * - Fallback: normalize any static/high price into ₹300–₹600 so UI stays consistent.
+   * - Fallback: Calculate price based on slug hash to ensure consistency.
+   * - Price range: ₹500–₹3000 based on perceived content value.
    */
-  const getPriceInr = (courseSlug: string, fallbackPrice: number): number => {
+  const getPriceInr = (courseSlug: string, fallbackPrice: number, durationHours?: number, totalLessons?: number): number => {
     const dynamic = dynamicData[courseSlug];
     if (typeof dynamic?.price_inr === 'number' && !Number.isNaN(dynamic.price_inr)) {
       return Math.round(dynamic.price_inr);
     }
 
-    // Deterministic clamp into [300, 600] even if fallback is old (e.g. 7499)
-    const min = 300;
-    const max = 600;
-    const range = max - min + 1;
-    const n = Math.abs(Math.round(fallbackPrice || 0));
-    return min + (n % range);
+    // Generate consistent price based on slug hash for deterministic pricing
+    const slugHash = courseSlug.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    
+    // Price tiers based on content indicators
+    const min = 500;
+    const max = 3000;
+    
+    // Calculate a base tier from slug hash (0-4 tiers)
+    const tier = slugHash % 5;
+    
+    // Price brackets: ₹500, ₹999, ₹1499, ₹1999, ₹2499, ₹2999
+    const priceTiers = [499, 799, 999, 1499, 1999, 2499, 2999];
+    
+    // Use content signals if available, otherwise use hash-based tier
+    let tierIndex = tier;
+    if (durationHours && durationHours > 20) tierIndex = Math.min(tierIndex + 2, 6);
+    else if (durationHours && durationHours > 10) tierIndex = Math.min(tierIndex + 1, 6);
+    if (totalLessons && totalLessons > 50) tierIndex = Math.min(tierIndex + 1, 6);
+    
+    return priceTiers[tierIndex % priceTiers.length];
   };
 
   return {
