@@ -1,20 +1,26 @@
 import { useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * Security Hook - Prevents content copying and protects against data scraping
+ * Admins can bypass all protections for content management
  */
 export function useContentProtection() {
+  const { isAdmin } = useAuth();
+
   useEffect(() => {
+    // Allow all actions in development or for admins
+    const shouldBypass = import.meta.env.DEV || isAdmin;
+
     // Disable right-click context menu
     const handleContextMenu = (e: MouseEvent) => {
-      // Allow context menu in development
-      if (import.meta.env.DEV) return;
+      if (shouldBypass) return;
       e.preventDefault();
     };
 
     // Disable keyboard shortcuts for copying/saving
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (import.meta.env.DEV) return;
+      if (shouldBypass) return;
       
       // Disable Ctrl+C, Ctrl+U, Ctrl+S, F12
       if (
@@ -29,7 +35,7 @@ export function useContentProtection() {
 
     // Disable text selection (except for inputs)
     const handleSelectStart = (e: Event) => {
-      if (import.meta.env.DEV) return;
+      if (shouldBypass) return;
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
         return;
@@ -39,13 +45,13 @@ export function useContentProtection() {
 
     // Disable drag
     const handleDragStart = (e: DragEvent) => {
-      if (import.meta.env.DEV) return;
+      if (shouldBypass) return;
       e.preventDefault();
     };
 
     // Detect DevTools opening
     const detectDevTools = () => {
-      if (import.meta.env.DEV) return;
+      if (shouldBypass) return;
       
       const threshold = 160;
       const widthThreshold = window.outerWidth - window.innerWidth > threshold;
@@ -65,8 +71,8 @@ export function useContentProtection() {
     // Check for DevTools periodically
     const devToolsInterval = setInterval(detectDevTools, 1000);
 
-    // Add CSS to prevent selection and downloads
-    if (!import.meta.env.DEV) {
+    // Add CSS to prevent selection and downloads (only for non-admins in production)
+    if (!shouldBypass) {
       const style = document.createElement('style');
       style.id = 'content-protection-style';
       style.textContent = `
@@ -124,5 +130,5 @@ export function useContentProtection() {
       const styleEl = document.getElementById('content-protection-style');
       if (styleEl) styleEl.remove();
     };
-  }, []);
+  }, [isAdmin]);
 }
