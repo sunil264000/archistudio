@@ -11,3 +11,30 @@ verify_jwt = false
 
 [functions.auto-scan-courses]
 verify_jwt = false
+
+[functions.preview-ebook]
+verify_jwt = false
+
+[functions.download-ebook]
+verify_jwt = false
+
+[functions.send-welcome-email]
+verify_jwt = false
+
+[functions.send-ebook-purchase-email]
+verify_jwt = false
+
+[functions.send-ebook-gift-email]
+verify_jwt = false
+
+[functions.ebook-payment-webhook]
+verify_jwt = false
+
+[functions.cashfree-webhook]
+verify_jwt = false
+
+[functions.create-ebook-order]
+verify_jwt = false
+
+[functions.create-cashfree-order]
+verify_jwt = false
