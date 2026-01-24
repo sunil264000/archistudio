@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Navbar } from '@/components/layout/Navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,24 +12,35 @@ import { CourseEditDialog } from '@/components/admin/CourseEditDialog';
 import { LessonManagement } from '@/components/admin/LessonManagement';
 import { CouponManagement } from '@/components/admin/CouponManagement';
 import { CertificateTemplateSettings } from '@/components/admin/CertificateTemplateSettings';
-import { BlogManagement } from '@/components/admin/BlogManagement';
 import { ManualEnrollment } from '@/components/admin/ManualEnrollment';
 import { CourseBundleManagement } from '@/components/admin/CourseBundleManagement';
-import { AdminHeader } from '@/components/admin/AdminHeader';
 import { QAManagement } from '@/components/admin/QAManagement';
 import { NotificationManagement } from '@/components/admin/NotificationManagement';
+import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { AdminOverview } from '@/components/admin/AdminOverview';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
   Users, BookOpen, DollarSign, Settings, 
-  ArrowLeft, TrendingUp, CreditCard, MessageSquare, Pencil, 
-  BarChart3, Copy, Eye, EyeOff, Instagram, Save, Loader2, Video, Trash2, Award, FileText,
-  Package, UserPlus, Sparkles, Bell, HelpCircle
+  ArrowLeft, CreditCard, MessageSquare, Pencil, 
+  Copy, Eye, EyeOff, Save, Loader2, Trash2, Award,
+  Package, UserPlus, Sparkles, Bell, HelpCircle, Video, BarChart3,
+  Instagram, Send
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+// Telegram icon component
+const TelegramIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+  </svg>
+);
 
 export default function Admin() {
   const { user, loading, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('overview');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalCourses: 0,
@@ -66,361 +76,100 @@ export default function Admin() {
   if (loading || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse">Loading...</div>
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin text-accent" />
+          <span>Loading admin panel...</span>
+        </div>
       </div>
     );
   }
 
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return <AdminOverview stats={stats} />;
+      case 'courses':
+        return <CoursesPanel />;
+      case 'bundles':
+        return <CourseBundleManagement />;
+      case 'lessons':
+        return <LessonManagement />;
+      case 'users':
+        return <UsersPanel />;
+      case 'access':
+        return <ManualEnrollment />;
+      case 'qa':
+        return <QAManagement />;
+      case 'notifications':
+        return <NotificationManagement />;
+      case 'payments':
+        return <PaymentsPanel />;
+      case 'coupons':
+        return <CouponManagement />;
+      case 'certificates':
+        return <CertificateTemplateSettings />;
+      case 'analytics':
+        return <AnalyticsPanel />;
+      case 'support':
+        return <SupportPanel />;
+      case 'settings':
+        return <SiteSettingsPanel />;
+      default:
+        return <AdminOverview stats={stats} />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="py-8">
-        <div className="container mx-auto px-4">
+      <AdminSidebar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        collapsed={sidebarCollapsed}
+        onCollapsedChange={setSidebarCollapsed}
+      />
+      
+      <main
+        className={cn(
+          "pt-20 pb-8 transition-all duration-300",
+          sidebarCollapsed ? "ml-[72px]" : "ml-64"
+        )}
+      >
+        <div className="container mx-auto px-4 lg:px-8">
+          {/* Breadcrumb */}
           <div className="flex items-center gap-4 mb-6">
             <Link to="/dashboard">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+              <Button variant="ghost" size="sm" className="gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
               </Button>
             </Link>
+            <span className="text-muted-foreground">/</span>
+            <span className="font-medium capitalize">{activeTab}</span>
           </div>
 
-          {/* Enhanced Header with 3D Elements */}
-          <AdminHeader stats={stats} />
-
-          {/* Management Tabs with improved styling */}
-          <Tabs defaultValue="courses" className="space-y-4">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <TabsList className="grid w-full grid-cols-13 h-auto p-1 bg-muted/50">
-                <TabsTrigger value="courses" className="gap-1 text-xs py-2">
-                  <BookOpen className="h-3 w-3" />
-                  <span className="hidden sm:inline">Courses</span>
-                </TabsTrigger>
-                <TabsTrigger value="bundles" className="gap-1 text-xs py-2">
-                  <Package className="h-3 w-3" />
-                  <span className="hidden sm:inline">Bundles</span>
-                </TabsTrigger>
-                <TabsTrigger value="lessons" className="gap-1 text-xs py-2">
-                  <Video className="h-3 w-3" />
-                  <span className="hidden sm:inline">Lessons</span>
-                </TabsTrigger>
-                <TabsTrigger value="users" className="gap-1 text-xs py-2">
-                  <Users className="h-3 w-3" />
-                  <span className="hidden sm:inline">Users</span>
-                </TabsTrigger>
-                <TabsTrigger value="access" className="gap-1 text-xs py-2">
-                  <UserPlus className="h-3 w-3" />
-                  <span className="hidden sm:inline">Access</span>
-                </TabsTrigger>
-                <TabsTrigger value="qa" className="gap-1 text-xs py-2">
-                  <HelpCircle className="h-3 w-3" />
-                  <span className="hidden sm:inline">Q&A</span>
-                </TabsTrigger>
-                <TabsTrigger value="notifications" className="gap-1 text-xs py-2">
-                  <Bell className="h-3 w-3" />
-                  <span className="hidden sm:inline">Notify</span>
-                </TabsTrigger>
-                <TabsTrigger value="payments" className="gap-1 text-xs py-2">
-                  <CreditCard className="h-3 w-3" />
-                  <span className="hidden sm:inline">Payments</span>
-                </TabsTrigger>
-                <TabsTrigger value="coupons" className="gap-1 text-xs py-2">
-                  <Sparkles className="h-3 w-3" />
-                  <span className="hidden sm:inline">Coupons</span>
-                </TabsTrigger>
-                <TabsTrigger value="certificates" className="gap-1 text-xs py-2">
-                  <Award className="h-3 w-3" />
-                  <span className="hidden sm:inline">Certs</span>
-                </TabsTrigger>
-                <TabsTrigger value="analytics" className="gap-1 text-xs py-2">
-                  <BarChart3 className="h-3 w-3" />
-                  <span className="hidden sm:inline">Analytics</span>
-                </TabsTrigger>
-                <TabsTrigger value="support" className="gap-1 text-xs py-2">
-                  <MessageSquare className="h-3 w-3" />
-                  <span className="hidden sm:inline">Support</span>
-                </TabsTrigger>
-                <TabsTrigger value="settings" className="gap-1 text-xs py-2">
-                  <Settings className="h-3 w-3" />
-                  <span className="hidden sm:inline">Settings</span>
-                </TabsTrigger>
-              </TabsList>
-            </motion.div>
-
-            <TabsContent value="courses">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="border-2">
-                  <CardHeader className="bg-muted/30">
-                    <CardTitle className="flex items-center gap-2">
-                      <BookOpen className="h-5 w-5 text-accent" />
-                      Course Management
-                    </CardTitle>
-                    <CardDescription>Manage all courses on the platform</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <CoursesTable />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </TabsContent>
-
-            <TabsContent value="bundles">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="border-2">
-                  <CardHeader className="bg-muted/30">
-                    <CardTitle className="flex items-center gap-2">
-                      <Package className="h-5 w-5 text-accent" />
-                      Course Bundles & Highlights
-                    </CardTitle>
-                    <CardDescription>Bundle courses together and highlight featured courses</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <CourseBundleManagement />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </TabsContent>
-
-            <TabsContent value="lessons">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="border-2">
-                  <CardHeader className="bg-muted/30">
-                    <CardTitle className="flex items-center gap-2">
-                      <Video className="h-5 w-5 text-accent" />
-                      Lesson & Video Management
-                    </CardTitle>
-                    <CardDescription>Add modules, lessons, and upload videos</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <LessonManagement />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </TabsContent>
-
-            <TabsContent value="users">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="border-2">
-                  <CardHeader className="bg-muted/30">
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5 text-accent" />
-                      User Management
-                    </CardTitle>
-                    <CardDescription>View user details including IDs and credentials</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <UsersTable />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </TabsContent>
-
-            <TabsContent value="access">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="border-2">
-                  <CardHeader className="bg-muted/30">
-                    <CardTitle className="flex items-center gap-2">
-                      <UserPlus className="h-5 w-5 text-accent" />
-                      Manual Access Control
-                    </CardTitle>
-                    <CardDescription>Grant free access to courses without payment</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <ManualEnrollment />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </TabsContent>
-
-            <TabsContent value="qa">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="border-2">
-                  <CardHeader className="bg-muted/30">
-                    <CardTitle className="flex items-center gap-2">
-                      <HelpCircle className="h-5 w-5 text-accent" />
-                      Course Q&A Management
-                    </CardTitle>
-                    <CardDescription>Answer student questions from all courses</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <QAManagement />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </TabsContent>
-
-            <TabsContent value="notifications">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="border-2">
-                  <CardHeader className="bg-muted/30">
-                    <CardTitle className="flex items-center gap-2">
-                      <Bell className="h-5 w-5 text-accent" />
-                      Push Notifications
-                    </CardTitle>
-                    <CardDescription>Send notifications to specific users or all users</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <NotificationManagement />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </TabsContent>
-
-            <TabsContent value="payments">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="border-2">
-                  <CardHeader className="bg-muted/30">
-                    <CardTitle className="flex items-center gap-2">
-                      <CreditCard className="h-5 w-5 text-accent" />
-                      Payment History
-                    </CardTitle>
-                    <CardDescription>View all transactions</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <PaymentsTable />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </TabsContent>
-
-            <TabsContent value="coupons">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="border-2">
-                  <CardHeader className="bg-muted/30">
-                    <CardTitle className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-accent" />
-                      Coupon Management
-                    </CardTitle>
-                    <CardDescription>Create and manage discount coupons</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <CouponManagement />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </TabsContent>
-
-            <TabsContent value="certificates">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="border-2">
-                  <CardHeader className="bg-muted/30">
-                    <CardTitle className="flex items-center gap-2">
-                      <Award className="h-5 w-5 text-accent" />
-                      Certificate Template
-                    </CardTitle>
-                    <CardDescription>Design and customize certificate templates</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <CertificateTemplateSettings />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </TabsContent>
-
-            <TabsContent value="analytics">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="border-2">
-                  <CardHeader className="bg-muted/30">
-                    <CardTitle className="flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5 text-accent" />
-                      Analytics Dashboard
-                    </CardTitle>
-                    <CardDescription>View platform analytics and insights</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <AnalyticsPanel />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </TabsContent>
-
-            <TabsContent value="support">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="border-2">
-                  <CardHeader className="bg-muted/30">
-                    <CardTitle className="flex items-center gap-2">
-                      <MessageSquare className="h-5 w-5 text-accent" />
-                      Support Tickets
-                    </CardTitle>
-                    <CardDescription>Manage support requests</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <SupportTable />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </TabsContent>
-
-            <TabsContent value="settings">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <Card className="border-2">
-                  <CardHeader className="bg-muted/30">
-                    <CardTitle className="flex items-center gap-2">
-                      <Settings className="h-5 w-5 text-accent" />
-                      Site Settings
-                    </CardTitle>
-                    <CardDescription>Configure social links and site settings</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <SiteSettingsPanel />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </TabsContent>
-          </Tabs>
+          {/* Dynamic Content */}
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {renderContent()}
+          </motion.div>
         </div>
       </main>
     </div>
   );
 }
 
-function CoursesTable() {
+// ==================== Panel Components ====================
+
+function CoursesPanel() {
   const [courses, setCourses] = useState<any[]>([]);
   const [editingCourse, setEditingCourse] = useState<any | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchCourses = () => {
     supabase.from('courses').select('*').order('created_at', { ascending: false }).then(({ data }) => {
@@ -432,61 +181,104 @@ function CoursesTable() {
     fetchCourses();
   }, []);
 
-  const handleEdit = (course: any) => {
-    setEditingCourse(course);
-    setDialogOpen(true);
-  };
+  const filteredCourses = courses.filter(course =>
+    course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    course.slug?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <>
-      {courses.length === 0 ? (
-        <p className="text-muted-foreground text-center py-8">No courses in database yet.</p>
-      ) : (
-        <div className="space-y-2">
-          {courses.map(course => (
-            <div key={course.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-4">
-                {course.thumbnail_url && (
-                  <img 
-                    src={course.thumbnail_url} 
-                    alt={course.title}
-                    className="h-12 w-16 object-cover rounded"
-                    onError={(e) => (e.currentTarget.style.display = 'none')}
-                  />
-                )}
-                <div>
-                  <p className="font-medium">{course.title}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {course.level} • ₹{course.price_inr || 0}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant={course.is_published ? "default" : "secondary"}>
-                  {course.is_published ? "Published" : "Draft"}
-                </Badge>
-                <Button variant="ghost" size="icon" onClick={() => handleEdit(course)}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-accent" />
+              Course Management
+            </CardTitle>
+            <CardDescription>
+              {courses.length} courses total • Edit pricing, thumbnails, and course details
+            </CardDescription>
+          </div>
+          <Input
+            placeholder="Search courses..."
+            className="w-64"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
-      )}
-      
-      <CourseEditDialog
-        course={editingCourse}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onSave={fetchCourses}
-      />
-    </>
+      </CardHeader>
+      <CardContent>
+        {filteredCourses.length === 0 ? (
+          <p className="text-muted-foreground text-center py-8">No courses found.</p>
+        ) : (
+          <div className="grid gap-3">
+            {filteredCourses.map(course => (
+              <motion.div
+                key={course.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex items-center justify-between p-4 border rounded-xl hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  {course.thumbnail_url ? (
+                    <img 
+                      src={course.thumbnail_url} 
+                      alt={course.title}
+                      className="h-14 w-20 object-cover rounded-lg"
+                      onError={(e) => (e.currentTarget.style.display = 'none')}
+                    />
+                  ) : (
+                    <div className="h-14 w-20 bg-muted rounded-lg flex items-center justify-center">
+                      <BookOpen className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-medium">{course.title}</p>
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                      <span className="capitalize">{course.level || 'beginner'}</span>
+                      <span>•</span>
+                      <span className="font-medium text-foreground">₹{course.price_inr?.toLocaleString() || 0}</span>
+                      <span className="text-xs">(${course.price_usd || 0})</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant={course.is_published ? "default" : "secondary"}>
+                    {course.is_published ? "Published" : "Draft"}
+                  </Badge>
+                  {course.is_featured && (
+                    <Badge variant="outline" className="border-warning text-warning">
+                      Featured
+                    </Badge>
+                  )}
+                  <Button variant="outline" size="sm" onClick={() => {
+                    setEditingCourse(course);
+                    setDialogOpen(true);
+                  }}>
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+        
+        <CourseEditDialog
+          course={editingCourse}
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onSave={fetchCourses}
+        />
+      </CardContent>
+    </Card>
   );
 }
 
-function UsersTable() {
+function UsersPanel() {
   const [users, setUsers] = useState<any[]>([]);
   const [showIds, setShowIds] = useState<Record<string, boolean>>({});
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     supabase.from('profiles').select('*').order('created_at', { ascending: false }).then(({ data }) => {
@@ -503,59 +295,82 @@ function UsersTable() {
     toast.success(`${label} copied to clipboard`);
   };
 
-  return users.length === 0 ? (
-    <p className="text-muted-foreground text-center py-8">No users registered yet.</p>
-  ) : (
-    <div className="space-y-3">
-      {users.map(user => (
-        <div key={user.id} className="p-4 border rounded-lg space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">{user.full_name || 'No name'}</p>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
-              {user.phone && (
-                <p className="text-sm text-muted-foreground">Phone: {user.phone}</p>
-              )}
-            </div>
-            <Badge>{user.role || 'student'}</Badge>
-          </div>
-          
-          {/* User ID Section */}
-          <div className="flex items-center gap-2 p-2 bg-muted/50 rounded text-sm">
-            <span className="text-muted-foreground">User ID:</span>
-            <code className="flex-1 font-mono text-xs">
-              {showIds[user.id] ? user.user_id : '••••••••-••••-••••-••••-••••••••••••'}
-            </code>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-6 w-6"
-              onClick={() => toggleShowId(user.id)}
-            >
-              {showIds[user.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-6 w-6"
-              onClick={() => copyToClipboard(user.user_id, 'User ID')}
-            >
-              <Copy className="h-3 w-3" />
-            </Button>
-          </div>
+  const filteredUsers = users.filter(user =>
+    user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-          <div className="flex gap-4 text-xs text-muted-foreground">
-            <span>Email verified: {user.email_verified ? '✓' : '✗'}</span>
-            <span>Phone verified: {user.phone_verified ? '✓' : '✗'}</span>
-            <span>Joined: {new Date(user.created_at).toLocaleDateString()}</span>
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-accent" />
+              User Management
+            </CardTitle>
+            <CardDescription>{users.length} registered users</CardDescription>
           </div>
+          <Input
+            placeholder="Search users..."
+            className="w-64"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
-      ))}
-    </div>
+      </CardHeader>
+      <CardContent>
+        {filteredUsers.length === 0 ? (
+          <p className="text-muted-foreground text-center py-8">No users found.</p>
+        ) : (
+          <div className="space-y-3">
+            {filteredUsers.map(user => (
+              <div key={user.id} className="p-4 border rounded-xl space-y-3 hover:bg-muted/30 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center">
+                      <span className="text-accent font-medium">
+                        {(user.full_name || user.email || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-medium">{user.full_name || 'No name'}</p>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                    </div>
+                  </div>
+                  <Badge>{user.role || 'student'}</Badge>
+                </div>
+                
+                <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg text-sm">
+                  <span className="text-muted-foreground">User ID:</span>
+                  <code className="flex-1 font-mono text-xs">
+                    {showIds[user.id] ? user.user_id : '••••••••-••••-••••-••••-••••••••••••'}
+                  </code>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleShowId(user.id)}>
+                    {showIds[user.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => copyToClipboard(user.user_id, 'User ID')}>
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+
+                <div className="flex gap-4 text-xs text-muted-foreground">
+                  <span className={user.email_verified ? 'text-emerald-600' : ''}>
+                    Email: {user.email_verified ? '✓ Verified' : '✗ Unverified'}
+                  </span>
+                  <span>•</span>
+                  <span>Joined: {new Date(user.created_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
-function PaymentsTable() {
+function PaymentsPanel() {
   const [payments, setPayments] = useState<any[]>([]);
   const [filter, setFilter] = useState<'all' | 'completed' | 'failed' | 'pending'>('all');
   const [stats, setStats] = useState({ total: 0, monthly: 0, successful: 0, failed: 0 });
@@ -571,7 +386,6 @@ function PaymentsTable() {
     const allPayments = data || [];
     setPayments(allPayments);
     
-    // Calculate stats
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     
@@ -610,81 +424,84 @@ function PaymentsTable() {
   });
 
   return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="p-4 border rounded-lg text-center bg-green-500/10">
-          <p className="text-2xl font-bold text-green-600">₹{stats.total.toLocaleString()}</p>
-          <p className="text-sm text-muted-foreground">Total Revenue</p>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CreditCard className="h-5 w-5 text-accent" />
+          Payment History
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-4 border rounded-xl text-center bg-emerald-500/10">
+            <p className="text-2xl font-bold text-emerald-600">₹{stats.total.toLocaleString()}</p>
+            <p className="text-sm text-muted-foreground">Total Revenue</p>
+          </div>
+          <div className="p-4 border rounded-xl text-center bg-blue-500/10">
+            <p className="text-2xl font-bold text-blue-600">₹{stats.monthly.toLocaleString()}</p>
+            <p className="text-sm text-muted-foreground">This Month</p>
+          </div>
+          <div className="p-4 border rounded-xl text-center bg-success/10">
+            <p className="text-2xl font-bold text-success">{stats.successful}</p>
+            <p className="text-sm text-muted-foreground">Successful</p>
+          </div>
+          <div className="p-4 border rounded-xl text-center bg-destructive/10">
+            <p className="text-2xl font-bold text-destructive">{stats.failed}</p>
+            <p className="text-sm text-muted-foreground">Failed</p>
+          </div>
         </div>
-        <div className="p-4 border rounded-lg text-center bg-blue-500/10">
-          <p className="text-2xl font-bold text-blue-600">₹{stats.monthly.toLocaleString()}</p>
-          <p className="text-sm text-muted-foreground">This Month</p>
-        </div>
-        <div className="p-4 border rounded-lg text-center bg-success/10">
-          <p className="text-2xl font-bold text-success">{stats.successful}</p>
-          <p className="text-sm text-muted-foreground">Successful</p>
-        </div>
-        <div className="p-4 border rounded-lg text-center bg-destructive/10">
-          <p className="text-2xl font-bold text-destructive">{stats.failed}</p>
-          <p className="text-sm text-muted-foreground">Failed</p>
-        </div>
-      </div>
 
-      {/* Filters */}
-      <div className="flex gap-2">
-        {(['all', 'completed', 'failed', 'pending'] as const).map(status => (
-          <Button
-            key={status}
-            variant={filter === status ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setFilter(status)}
-          >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-          </Button>
-        ))}
-      </div>
-
-      {/* Payments List */}
-      {filteredPayments.length === 0 ? (
-        <p className="text-muted-foreground text-center py-8">No payments found.</p>
-      ) : (
-        <div className="space-y-2">
-          {filteredPayments.map(payment => (
-            <div key={payment.id} className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex-1">
-                <div className="flex items-center gap-3">
-                  <p className="font-medium">₹{payment.amount}</p>
-                  <Badge variant={payment.status === 'completed' ? "default" : payment.status === 'failed' ? "destructive" : "secondary"}>
-                    {payment.status}
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {payment.payment_gateway} • {new Date(payment.created_at).toLocaleString()}
-                </p>
-                {payment.gateway_order_id && (
-                  <p className="text-xs text-muted-foreground font-mono">
-                    Order: {payment.gateway_order_id}
-                  </p>
-                )}
-              </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => handleDelete(payment.id)}
-                disabled={deleting === payment.id}
-              >
-                {deleting === payment.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                )}
-              </Button>
-            </div>
+        {/* Filters */}
+        <div className="flex gap-2">
+          {(['all', 'completed', 'failed', 'pending'] as const).map(status => (
+            <Button
+              key={status}
+              variant={filter === status ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setFilter(status)}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Button>
           ))}
         </div>
-      )}
-    </div>
+
+        {/* Payments List */}
+        {filteredPayments.length === 0 ? (
+          <p className="text-muted-foreground text-center py-8">No payments found.</p>
+        ) : (
+          <div className="space-y-2">
+            {filteredPayments.map(payment => (
+              <div key={payment.id} className="flex items-center justify-between p-4 border rounded-xl">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <p className="font-bold text-lg">₹{payment.amount}</p>
+                    <Badge variant={payment.status === 'completed' ? "default" : payment.status === 'failed' ? "destructive" : "secondary"}>
+                      {payment.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {payment.payment_gateway || 'Unknown'} • {new Date(payment.created_at).toLocaleString()}
+                  </p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => handleDelete(payment.id)}
+                  disabled={deleting === payment.id}
+                >
+                  {deleting === payment.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  )}
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -705,14 +522,10 @@ function AnalyticsPanel() {
         .limit(100);
 
       if (events) {
-        const pageViews = events.filter(e => e.event_type === 'page_view').length;
-        const signups = events.filter(e => e.event_type === 'signup').length;
-        const conversions = events.filter(e => e.event_type === 'purchase').length;
-
         setAnalytics({
-          pageViews,
-          signups,
-          conversions,
+          pageViews: events.filter(e => e.event_type === 'page_view').length,
+          signups: events.filter(e => e.event_type === 'signup').length,
+          conversions: events.filter(e => e.event_type === 'purchase').length,
           recentEvents: events.slice(0, 20),
         });
       }
@@ -722,42 +535,181 @@ function AnalyticsPanel() {
   }, []);
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
-        <div className="p-4 border rounded-lg text-center">
-          <p className="text-2xl font-bold">{analytics.pageViews}</p>
-          <p className="text-sm text-muted-foreground">Page Views</p>
-        </div>
-        <div className="p-4 border rounded-lg text-center">
-          <p className="text-2xl font-bold">{analytics.signups}</p>
-          <p className="text-sm text-muted-foreground">Sign Ups</p>
-        </div>
-        <div className="p-4 border rounded-lg text-center">
-          <p className="text-2xl font-bold">{analytics.conversions}</p>
-          <p className="text-sm text-muted-foreground">Purchases</p>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="font-semibold mb-3">Recent Events</h3>
-        {analytics.recentEvents.length === 0 ? (
-          <p className="text-muted-foreground text-center py-4">No analytics events yet.</p>
-        ) : (
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {analytics.recentEvents.map(event => (
-              <div key={event.id} className="flex items-center justify-between p-2 border rounded text-sm">
-                <div>
-                  <Badge variant="outline">{event.event_type}</Badge>
-                  <span className="ml-2 text-muted-foreground">{event.page_url}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {new Date(event.created_at).toLocaleString()}
-                </span>
-              </div>
-            ))}
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-accent" />
+          Analytics Dashboard
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid grid-cols-3 gap-4">
+          <div className="p-6 border rounded-xl text-center">
+            <p className="text-3xl font-bold">{analytics.pageViews}</p>
+            <p className="text-sm text-muted-foreground">Page Views</p>
           </div>
-        )}
-      </div>
+          <div className="p-6 border rounded-xl text-center">
+            <p className="text-3xl font-bold">{analytics.signups}</p>
+            <p className="text-sm text-muted-foreground">Sign Ups</p>
+          </div>
+          <div className="p-6 border rounded-xl text-center">
+            <p className="text-3xl font-bold">{analytics.conversions}</p>
+            <p className="text-sm text-muted-foreground">Purchases</p>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="font-semibold mb-3">Recent Events</h3>
+          {analytics.recentEvents.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">No analytics events yet.</p>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {analytics.recentEvents.map(event => (
+                <div key={event.id} className="flex items-center justify-between p-3 border rounded-lg text-sm">
+                  <div>
+                    <Badge variant="outline">{event.event_type}</Badge>
+                    <span className="ml-2 text-muted-foreground">{event.page_url}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(event.created_at).toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SupportPanel() {
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [response, setResponse] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const fetchTickets = async () => {
+    const { data } = await supabase
+      .from('support_tickets')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+    setTickets(data || []);
+  };
+
+  useEffect(() => {
+    fetchTickets();
+  }, []);
+
+  const handleRespond = async () => {
+    if (!selectedTicket || !response) return;
+    setSending(true);
+    try {
+      await supabase
+        .from('support_tickets')
+        .update({ 
+          admin_response: response, 
+          status: 'resolved',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedTicket.id);
+      
+      toast.success('Response sent!');
+      setResponse('');
+      setSelectedTicket(null);
+      fetchTickets();
+    } catch (error) {
+      toast.error('Failed to send response');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="grid lg:grid-cols-2 gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-accent" />
+            Support Tickets
+          </CardTitle>
+          <CardDescription>{tickets.filter(t => t.status === 'open').length} open tickets</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {tickets.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No support tickets yet.</p>
+          ) : (
+            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              {tickets.map(ticket => (
+                <div
+                  key={ticket.id}
+                  className={cn(
+                    "p-4 border rounded-xl cursor-pointer transition-colors",
+                    selectedTicket?.id === ticket.id ? "border-accent bg-accent/5" : "hover:bg-muted/50"
+                  )}
+                  onClick={() => setSelectedTicket(ticket)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-medium">{ticket.subject}</p>
+                      <p className="text-sm text-muted-foreground line-clamp-2">{ticket.message}</p>
+                    </div>
+                    <Badge variant={ticket.status === 'open' ? "destructive" : "default"}>
+                      {ticket.status}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {new Date(ticket.created_at).toLocaleString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Respond to Ticket</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {selectedTicket ? (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted/50 rounded-xl">
+                <p className="font-medium">{selectedTicket.subject}</p>
+                <p className="text-sm text-muted-foreground mt-2">{selectedTicket.message}</p>
+              </div>
+              
+              {selectedTicket.admin_response && (
+                <div className="p-4 bg-accent/10 rounded-xl">
+                  <p className="text-sm font-medium">Previous Response:</p>
+                  <p className="text-sm text-muted-foreground mt-1">{selectedTicket.admin_response}</p>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Your Response</Label>
+                <textarea
+                  className="w-full min-h-[150px] p-3 border rounded-xl resize-none bg-background"
+                  placeholder="Type your response..."
+                  value={response}
+                  onChange={(e) => setResponse(e.target.value)}
+                />
+              </div>
+
+              <Button onClick={handleRespond} disabled={sending || !response} className="w-full gap-2">
+                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Send Response
+              </Button>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-12">
+              Select a ticket to respond
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -769,6 +721,7 @@ function SiteSettingsPanel() {
     twitter_url: '',
     youtube_url: '',
     linkedin_url: '',
+    telegram_url: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -794,10 +747,18 @@ function SiteSettingsPanel() {
     setSaving(true);
     try {
       for (const [key, value] of Object.entries(settings)) {
-        await supabase
+        // Try update first, then insert if doesn't exist
+        const { error: updateError } = await supabase
           .from('site_settings')
           .update({ value, updated_at: new Date().toISOString() })
           .eq('key', key);
+        
+        if (updateError) {
+          // Insert if update failed
+          await supabase
+            .from('site_settings')
+            .insert({ key, value, description: `${key} setting` });
+        }
       }
       toast.success('Settings saved successfully');
     } catch (error) {
@@ -807,93 +768,47 @@ function SiteSettingsPanel() {
     }
   };
 
+  const settingsFields = [
+    { key: 'instagram_url', label: 'Instagram URL', placeholder: 'https://instagram.com/yourusername', icon: Instagram },
+    { key: 'telegram_url', label: 'Telegram URL', placeholder: 'https://t.me/yourchannel', icon: TelegramIcon },
+    { key: 'facebook_url', label: 'Facebook URL', placeholder: 'https://facebook.com/yourpage' },
+    { key: 'twitter_url', label: 'Twitter/X URL', placeholder: 'https://twitter.com/yourusername' },
+    { key: 'youtube_url', label: 'YouTube URL', placeholder: 'https://youtube.com/@yourchannel' },
+    { key: 'linkedin_url', label: 'LinkedIn URL', placeholder: 'https://linkedin.com/in/yourprofile' },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="font-semibold mb-4 flex items-center gap-2">
-          <Instagram className="h-4 w-4" />
-          Social Media Links
-        </h3>
-        <div className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="instagram">Instagram URL</Label>
-            <Input
-              id="instagram"
-              placeholder="https://instagram.com/yourusername"
-              value={settings.instagram_url}
-              onChange={(e) => setSettings(prev => ({ ...prev, instagram_url: e.target.value }))}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="facebook">Facebook URL</Label>
-            <Input
-              id="facebook"
-              placeholder="https://facebook.com/yourpage"
-              value={settings.facebook_url}
-              onChange={(e) => setSettings(prev => ({ ...prev, facebook_url: e.target.value }))}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="twitter">Twitter/X URL</Label>
-            <Input
-              id="twitter"
-              placeholder="https://twitter.com/yourusername"
-              value={settings.twitter_url}
-              onChange={(e) => setSettings(prev => ({ ...prev, twitter_url: e.target.value }))}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="youtube">YouTube URL</Label>
-            <Input
-              id="youtube"
-              placeholder="https://youtube.com/@yourchannel"
-              value={settings.youtube_url}
-              onChange={(e) => setSettings(prev => ({ ...prev, youtube_url: e.target.value }))}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="linkedin">LinkedIn URL</Label>
-            <Input
-              id="linkedin"
-              placeholder="https://linkedin.com/in/yourprofile"
-              value={settings.linkedin_url}
-              onChange={(e) => setSettings(prev => ({ ...prev, linkedin_url: e.target.value }))}
-            />
-          </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Settings className="h-5 w-5 text-accent" />
+          Site Settings
+        </CardTitle>
+        <CardDescription>Configure social media links and site settings. Students can contact you via these links.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          {settingsFields.map(field => (
+            <div key={field.key} className="space-y-2">
+              <Label htmlFor={field.key} className="flex items-center gap-2">
+                {field.icon && <field.icon className="h-4 w-4" />}
+                {field.label}
+              </Label>
+              <Input
+                id={field.key}
+                placeholder={field.placeholder}
+                value={settings[field.key as keyof typeof settings]}
+                onChange={(e) => setSettings(prev => ({ ...prev, [field.key]: e.target.value }))}
+              />
+            </div>
+          ))}
         </div>
-      </div>
 
-      <Button onClick={handleSave} disabled={saving} className="gap-2">
-        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-        Save Settings
-      </Button>
-    </div>
-  );
-}
-
-function SupportTable() {
-  const [tickets, setTickets] = useState<any[]>([]);
-  useEffect(() => {
-    supabase.from('support_tickets').select('*').order('created_at', { ascending: false }).limit(20).then(({ data }) => {
-      setTickets(data || []);
-    });
-  }, []);
-
-  return tickets.length === 0 ? (
-    <p className="text-muted-foreground text-center py-8">No support tickets yet.</p>
-  ) : (
-    <div className="space-y-2">
-      {tickets.map(ticket => (
-        <div key={ticket.id} className="flex items-center justify-between p-3 border rounded-lg">
-          <div>
-            <p className="font-medium">{ticket.subject}</p>
-            <p className="text-sm text-muted-foreground">{ticket.message.substring(0, 50)}...</p>
-          </div>
-          <Badge variant={ticket.status === 'open' ? "destructive" : "default"}>
-            {ticket.status}
-          </Badge>
-        </div>
-      ))}
-    </div>
+        <Button onClick={handleSave} disabled={saving} className="gap-2">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Save Settings
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
