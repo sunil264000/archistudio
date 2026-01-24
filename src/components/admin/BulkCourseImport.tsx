@@ -101,8 +101,8 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
   const [sortBy, setSortBy] = useState<'confidence' | 'name' | 'videos'>('confidence');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
-  // Courses with content info
-  const [coursesWithContent, setCoursesWithContent] = useState<Record<string, { lessons: number; hours: number }>>({});
+  // Courses with content info (modules, lessons, hours)
+  const [coursesWithContent, setCoursesWithContent] = useState<Record<string, { modules: number; lessons: number; hours: number }>>({});
 
   // Advanced fuzzy matching with multiple algorithms
   const findBestMatch = (folderName: string): { course: Course | null; confidence: 'high' | 'medium' | 'low' | 'none'; score: number } => {
@@ -169,22 +169,35 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
   };
 
   const fetchCoursesContent = async () => {
+    // Fetch modules with course_id
     const { data: modulesData } = await supabase
       .from('modules')
-      .select('course_id');
+      .select('id, course_id');
     
+    // Fetch lessons with duration
     const { data: lessonsData } = await supabase
       .from('lessons')
       .select('module_id, duration_minutes, modules!inner(course_id)')
       .returns<{ module_id: string; duration_minutes: number; modules: { course_id: string } }[]>();
     
-    const contentMap: Record<string, { lessons: number; hours: number }> = {};
+    const contentMap: Record<string, { modules: number; lessons: number; hours: number }> = {};
     
+    // Count modules per course
+    if (modulesData) {
+      for (const mod of modulesData) {
+        if (!contentMap[mod.course_id]) {
+          contentMap[mod.course_id] = { modules: 0, lessons: 0, hours: 0 };
+        }
+        contentMap[mod.course_id].modules++;
+      }
+    }
+    
+    // Count lessons and hours per course
     if (lessonsData) {
       for (const lesson of lessonsData) {
         const courseId = lesson.modules.course_id;
         if (!contentMap[courseId]) {
-          contentMap[courseId] = { lessons: 0, hours: 0 };
+          contentMap[courseId] = { modules: 0, lessons: 0, hours: 0 };
         }
         contentMap[courseId].lessons++;
         contentMap[courseId].hours += (lesson.duration_minutes || 0) / 60;
@@ -651,13 +664,14 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
                                 </SelectItem>
                                 {courses.map(c => {
                                   const content = coursesWithContent[c.id];
+                                  const hasContent = content && (content.modules > 0 || content.lessons > 0);
                                   return (
                                     <SelectItem key={c.id} value={c.id}>
                                       <span className="flex items-center gap-2">
                                         {c.title}
-                                        {content?.lessons > 0 && (
+                                        {hasContent && (
                                           <Badge variant="outline" className="text-xs ml-auto">
-                                            {content.lessons} lessons
+                                            {content.modules}M / {content.lessons}L
                                           </Badge>
                                         )}
                                       </span>
@@ -669,14 +683,14 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
                             {/* Show existing content count badge next to select */}
                             {hasExistingContent && (
                               <Badge variant="secondary" className="shrink-0 bg-accent text-accent-foreground">
-                                {courseContent.lessons} lessons
+                                {courseContent.modules}M / {courseContent.lessons}L
                               </Badge>
                             )}
                           </div>
                           {hasExistingContent && (
                             <p className="text-xs text-destructive mt-1 flex items-center gap-1 font-medium">
                               <AlertCircle className="h-3 w-3" />
-                              ⚠️ Already has {courseContent.lessons} lessons ({Math.round(courseContent.hours * 10) / 10}h) - will be replaced on import
+                              ⚠️ Already has {courseContent.modules} modules, {courseContent.lessons} lessons ({Math.round(courseContent.hours * 10) / 10}h) - will be replaced on import
                             </p>
                           )}
                         </div>
