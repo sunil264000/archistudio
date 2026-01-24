@@ -1,4 +1,14 @@
 import { AlertTriangle } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { 
+  AnimatedSection, 
+  fadeInUp, 
+  fadeInLeft, 
+  fadeInRight,
+  staggerContainer,
+  GlowCard,
+  AnimatedUnderline
+} from '@/components/animations/AnimatedSection';
 
 export function ProblemSection() {
   const problems = [
@@ -9,44 +19,112 @@ export function ProblemSection() {
   ];
 
   return (
-    <section className="section-padding bg-secondary/30">
-      <div className="container-wide">
-        <div className="max-w-4xl mx-auto">
+    <section className="section-padding bg-secondary/30 relative overflow-hidden">
+      {/* Subtle background pattern */}
+      <div className="absolute inset-0 opacity-30">
+        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="problem-dots" width="40" height="40" patternUnits="userSpaceOnUse">
+              <circle cx="2" cy="2" r="1" fill="currentColor" opacity="0.3" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#problem-dots)" />
+        </svg>
+      </div>
+      
+      <div className="container-wide relative">
+        <div className="max-w-5xl mx-auto">
           {/* Section label */}
-          <div className="text-technical mb-4">The Reality</div>
+          <AnimatedSection>
+            <motion.div 
+              className="text-technical mb-4"
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+            >
+              The Reality
+            </motion.div>
+          </AnimatedSection>
           
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <h2 className="text-3xl md:text-4xl font-display font-bold leading-tight">
+            <motion.div 
+              className="space-y-6"
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+            >
+              <motion.h2 
+                variants={fadeInLeft}
+                className="text-3xl md:text-4xl font-display font-bold leading-tight"
+              >
                 Architecture College Taught You Theory.{' '}
-                <span className="text-muted-foreground">But Not How to Practice.</span>
-              </h2>
-              <p className="text-lg text-muted-foreground">
+                <span className="relative inline-block">
+                  <span className="text-muted-foreground">But Not How to Practice.</span>
+                  <AnimatedUnderline delay={0.5} color="hsl(var(--muted-foreground) / 0.4)" />
+                </span>
+              </motion.h2>
+              <motion.p 
+                variants={fadeInLeft}
+                className="text-lg text-muted-foreground"
+              >
                 Five years of education, countless studio projects, dozens of reviews — 
                 and yet most graduates walk into their first job feeling completely unprepared. 
                 This isn't your fault. The curriculum was never designed for practice.
-              </p>
-            </div>
+              </motion.p>
+            </motion.div>
 
-            <div className="space-y-4">
+            <motion.div 
+              className="space-y-4"
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+            >
               {problems.map((problem, i) => (
-                <div 
+                <motion.div 
                   key={i}
-                  className="flex items-start gap-4 p-4 rounded-lg bg-background border border-border"
+                  variants={fadeInRight}
+                  whileHover={{ 
+                    scale: 1.02, 
+                    x: 5,
+                    boxShadow: '0 10px 30px -10px hsl(var(--warning) / 0.15)'
+                  }}
+                  className="flex items-start gap-4 p-4 rounded-lg bg-background border border-border hover:border-warning/30 transition-all duration-300 cursor-default"
                 >
-                  <AlertTriangle className="h-5 w-5 text-warning mt-0.5 shrink-0" />
+                  <motion.div
+                    initial={{ rotate: 0 }}
+                    whileHover={{ rotate: [0, -10, 10, 0] }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <AlertTriangle className="h-5 w-5 text-warning mt-0.5 shrink-0" />
+                  </motion.div>
                   <p className="text-sm text-muted-foreground">{problem}</p>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
 
           {/* Transition statement */}
-          <div className="mt-16 text-center">
+          <motion.div 
+            className="mt-16 text-center"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
             <p className="text-xl font-medium">
-              We're here to bridge that gap. <span className="text-accent">Permanently.</span>
+              We're here to bridge that gap.{' '}
+              <motion.span 
+                className="text-accent inline-block"
+                whileHover={{ scale: 1.1 }}
+                transition={{ type: "spring", stiffness: 400 }}
+              >
+                Permanently.
+              </motion.span>
             </p>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>
