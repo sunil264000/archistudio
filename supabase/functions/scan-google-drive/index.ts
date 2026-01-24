@@ -74,15 +74,15 @@ serve(async (req) => {
       });
     }
 
-    if (action === "import" && courseId) {
-      // Import the structure into the database
+    // FAST IMPORT - optimized for bulk operations (parallel DB inserts)
+    if ((action === "import" || action === "import-fast") && courseId) {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, supabaseKey);
 
-      // First scan the folder
-      const structure = await scanFolder(extractedFolderId, GOOGLE_API_KEY, 0, false);
-      const importResult = await importStructure(supabase, courseId, structure);
+      // Fast parallel scan
+      const structure = await scanFolderFast(extractedFolderId, GOOGLE_API_KEY);
+      const importResult = await importStructureFast(supabase, courseId, structure);
 
       return new Response(JSON.stringify({ success: true, ...importResult }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -152,6 +152,92 @@ async function scanFolderShallow(
   folders.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
   return { folders, rootVideos, totalFolders: folders.length };
+}
+
+// FAST parallel scan - scans all subfolders in parallel for speed
+async function scanFolderFast(
+  folderId: string,
+  apiKey: string
+): Promise<any> {
+  const files = await listFilesInFolder(folderId, apiKey);
+
+  const folderFiles = files.filter(f => f.mimeType === "application/vnd.google-apps.folder");
+  const videoFiles = files.filter(f => isVideoFile(f));
+  const resourceFiles = files.filter(f => !isVideoFile(f) && f.mimeType !== "application/vnd.google-apps.folder");
+
+  // Scan all subfolders in PARALLEL
+  const subFolderResults = await Promise.all(
+    folderFiles.map(async (folder) => {
+      const subFiles = await listFilesInFolder(folder.id, apiKey);
+      const videos = subFiles.filter(f => isVideoFile(f)).map(v => ({
+        id: v.id,
+        name: v.name,
+        type: "video",
+        mimeType: v.mimeType,
+        durationMinutes: 0,
+        driveUrl: `https://drive.google.com/file/d/${v.id}/view`,
+        embedUrl: `https://drive.google.com/file/d/${v.id}/preview`,
+      }));
+      const resources = subFiles.filter(f => !isVideoFile(f) && f.mimeType !== "application/vnd.google-apps.folder").map(r => ({
+        id: r.id,
+        name: r.name,
+        type: "resource",
+        mimeType: r.mimeType,
+        downloadUrl: `https://drive.google.com/uc?export=download&id=${r.id}`,
+      }));
+      
+      // Also check nested folders (one level deep for speed)
+      const nestedFolders = subFiles.filter(f => f.mimeType === "application/vnd.google-apps.folder");
+      const nestedResults = await Promise.all(
+        nestedFolders.map(async (nf) => {
+          const nestedFiles = await listFilesInFolder(nf.id, apiKey);
+          return {
+            name: nf.name,
+            videos: nestedFiles.filter(f => isVideoFile(f)).map(v => ({
+              id: v.id,
+              name: v.name,
+              type: "video",
+              embedUrl: `https://drive.google.com/file/d/${v.id}/preview`,
+              durationMinutes: 0,
+            })),
+          };
+        })
+      );
+
+      return {
+        id: folder.id,
+        name: folder.name,
+        type: "folder",
+        videos: videos.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })),
+        resources,
+        folders: nestedResults.filter(n => n.videos.length > 0),
+      };
+    })
+  );
+
+  const videos = videoFiles.map(v => ({
+    id: v.id,
+    name: v.name,
+    type: "video",
+    mimeType: v.mimeType,
+    durationMinutes: 0,
+    driveUrl: `https://drive.google.com/file/d/${v.id}/view`,
+    embedUrl: `https://drive.google.com/file/d/${v.id}/preview`,
+  }));
+
+  const resources = resourceFiles.map(r => ({
+    id: r.id,
+    name: r.name,
+    type: "resource",
+    mimeType: r.mimeType,
+    downloadUrl: `https://drive.google.com/uc?export=download&id=${r.id}`,
+  }));
+
+  // Sort folders by name
+  subFolderResults.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  videos.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
+  return { folders: subFolderResults, videos, resources };
 }
 
 // Full recursive scan with optional video metadata
@@ -256,6 +342,122 @@ async function listFilesInFolder(
   } while (pageToken);
 
   return allFiles;
+}
+
+// FAST import - uses batch inserts for maximum speed
+async function importStructureFast(
+  supabase: any,
+  courseId: string,
+  structure: any
+): Promise<{ modulesCreated: number; lessonsCreated: number; resourcesCreated: number }> {
+  let modulesCreated = 0;
+  let lessonsCreated = 0;
+  let resourcesCreated = 0;
+
+  // Get existing max order_index for modules
+  const { data: existingModules } = await supabase
+    .from("modules")
+    .select("order_index")
+    .eq("course_id", courseId)
+    .order("order_index", { ascending: false })
+    .limit(1);
+
+  let moduleOrderIndex = existingModules?.[0]?.order_index ?? -1;
+
+  // Prepare all modules for batch insert
+  const modulesToInsert = structure.folders.map((folder: any, idx: number) => ({
+    course_id: courseId,
+    title: folder.name,
+    order_index: moduleOrderIndex + 1 + idx,
+    _videos: folder.videos || [],
+    _resources: folder.resources || [],
+    _subFolders: folder.folders || [],
+  }));
+
+  // Add root videos module if needed
+  if (structure.videos?.length > 0) {
+    modulesToInsert.push({
+      course_id: courseId,
+      title: "Course Content",
+      order_index: moduleOrderIndex + 1 + structure.folders.length,
+      _videos: structure.videos,
+      _resources: structure.resources || [],
+      _subFolders: [],
+    });
+  }
+
+  // Batch insert all modules at once
+  if (modulesToInsert.length > 0) {
+    const moduleInsertData = modulesToInsert.map((m: any) => ({
+      course_id: m.course_id,
+      title: m.title,
+      order_index: m.order_index,
+    }));
+
+    const { data: insertedModules, error: modulesError } = await supabase
+      .from("modules")
+      .insert(moduleInsertData)
+      .select();
+
+    if (modulesError) {
+      console.error("Batch module insert error:", modulesError);
+      return { modulesCreated: 0, lessonsCreated: 0, resourcesCreated: 0 };
+    }
+
+    modulesCreated = insertedModules.length;
+
+    // Now batch insert all lessons
+    const allLessons: any[] = [];
+    const lessonToModule: Map<number, string> = new Map();
+
+    for (let i = 0; i < insertedModules.length; i++) {
+      const module = insertedModules[i];
+      const moduleData = modulesToInsert[i];
+      let lessonIdx = 0;
+
+      // Direct videos
+      for (const video of moduleData._videos || []) {
+        allLessons.push({
+          module_id: module.id,
+          title: cleanVideoTitle(video.name),
+          video_url: video.embedUrl,
+          order_index: lessonIdx++,
+          duration_minutes: 0,
+          is_free_preview: false,
+        });
+      }
+
+      // Nested folder videos
+      for (const subFolder of moduleData._subFolders || []) {
+        for (const video of subFolder.videos || []) {
+          allLessons.push({
+            module_id: module.id,
+            title: `${subFolder.name} - ${cleanVideoTitle(video.name)}`,
+            video_url: video.embedUrl,
+            order_index: lessonIdx++,
+            duration_minutes: 0,
+            is_free_preview: false,
+          });
+        }
+      }
+    }
+
+    // Batch insert all lessons at once (chunks of 100 for safety)
+    const LESSON_BATCH_SIZE = 100;
+    for (let i = 0; i < allLessons.length; i += LESSON_BATCH_SIZE) {
+      const batch = allLessons.slice(i, i + LESSON_BATCH_SIZE);
+      const { data: insertedLessons, error: lessonsError } = await supabase
+        .from("lessons")
+        .insert(batch)
+        .select();
+
+      if (!lessonsError && insertedLessons) {
+        lessonsCreated += insertedLessons.length;
+      }
+    }
+  }
+
+  return { modulesCreated, lessonsCreated, resourcesCreated };
 }
 
 async function importStructure(

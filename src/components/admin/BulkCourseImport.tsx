@@ -291,44 +291,54 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
     setIsImporting(true);
     setImportProgress({ current: 0, total: toImport.length });
 
+    // PARALLEL IMPORT - Much faster! Process in batches of 10
+    const BATCH_SIZE = 10;
     let successCount = 0;
     let totalLessons = 0;
     let failedCourses: string[] = [];
+    let completed = 0;
 
-    for (let i = 0; i < toImport.length; i++) {
-      const match = toImport[i];
-      setImportProgress({ current: i + 1, total: toImport.length });
+    const processBatch = async (batch: typeof toImport) => {
+      const results = await Promise.allSettled(
+        batch.map(async (match) => {
+          const { data, error } = await supabase.functions.invoke("scan-google-drive", {
+            body: { 
+              folderId: match.folderId,
+              courseId: match.matchedCourse!.id,
+              action: "import-fast" // Use fast import mode
+            },
+          });
 
-      try {
-        // Use the folder ID directly for import
-        const { data, error } = await supabase.functions.invoke("scan-google-drive", {
-          body: { 
-            folderId: match.folderId, // Use folder ID, not URL
-            courseId: match.matchedCourse!.id,
-            action: "import" 
-          },
-        });
+          if (error || !data?.success) {
+            throw new Error(match.folderName);
+          }
+          return { lessons: data.lessonsCreated || 0, name: match.folderName };
+        })
+      );
 
-        if (error) {
-          console.error(`Import error for ${match.folderName}:`, error);
-          failedCourses.push(match.folderName);
-        } else if (!data.success) {
-          console.error(`Import failed for ${match.folderName}:`, data.error);
-          failedCourses.push(match.folderName);
-        } else {
+      for (const result of results) {
+        completed++;
+        setImportProgress({ current: completed, total: toImport.length });
+        
+        if (result.status === 'fulfilled') {
           successCount++;
-          totalLessons += data.lessonsCreated || 0;
+          totalLessons += result.value.lessons;
+        } else {
+          failedCourses.push(result.reason?.message || 'Unknown');
         }
-      } catch (err) {
-        console.error(`Failed to import ${match.folderName}:`, err);
-        failedCourses.push(match.folderName);
       }
+    };
+
+    // Process in parallel batches
+    for (let i = 0; i < toImport.length; i += BATCH_SIZE) {
+      const batch = toImport.slice(i, i + BATCH_SIZE);
+      await processBatch(batch);
     }
 
     if (failedCourses.length > 0) {
       toast.warning(`Imported ${successCount} courses (${totalLessons} lessons). Failed: ${failedCourses.length}`);
     } else {
-      toast.success(`Successfully imported ${successCount} courses with ${totalLessons} lessons!`);
+      toast.success(`⚡ Imported ${successCount} courses with ${totalLessons} lessons!`);
     }
     
     setFolderMatches([]);
