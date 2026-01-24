@@ -77,7 +77,7 @@ const handler = async (req: Request): Promise<Response> => {
                   <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 14px; padding: 22px; margin-bottom: 28px;">
                     <div style="display: flex; align-items: center; margin-bottom: 14px;">
                       <span style="color: #818cf8; margin-right: 12px; font-size: 18px;">📚</span>
-                      <span style="color: #a5b4fc;">Industry-leading architectural visualization courses</span>
+                      <span style="color: #a5b4fc;">Industry-leading architectural visualization studios</span>
                     </div>
                     <div style="display: flex; align-items: center; margin-bottom: 14px;">
                       <span style="color: #818cf8; margin-right: 12px; font-size: 18px;">👨‍🏫</span>
@@ -89,13 +89,13 @@ const handler = async (req: Request): Promise<Response> => {
                     </div>
                     <div style="display: flex; align-items: center;">
                       <span style="color: #818cf8; margin-right: 12px; font-size: 18px;">🏆</span>
-                      <span style="color: #a5b4fc;">Certificates upon course completion</span>
+                      <span style="color: #a5b4fc;">Proof of Completion upon finishing</span>
                     </div>
                   </div>
                   
                   <div style="text-align: center; margin: 35px 0;">
                     <a href="https://archistudio.lovable.app/courses" style="display: inline-block; background: linear-gradient(90deg, #6366f1, #a855f7); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 10px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);">
-                      Explore Courses →
+                      Explore Studios →
                     </a>
                   </div>
                   

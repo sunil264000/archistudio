@@ -4,18 +4,18 @@ import { Check, ArrowRight, Sparkles } from 'lucide-react';
 
 const plans = [
   {
-    name: 'Single Course',
+    name: 'Single Studio',
     description: 'Perfect for specific skill gaps',
     priceINR: '₹349',
     period: 'one-time',
     features: [
-      'Access to one course of your choice',
-      'All lessons and resources',
-      'Certificate on completion',
+      'Access to one studio of your choice',
+      'All sessions and resources',
+      'Proof of Completion included',
       'Community forum access',
       'Lifetime access',
     ],
-    cta: 'Choose Course',
+    cta: 'Choose Studio',
     popular: false,
   },
   {
@@ -24,15 +24,15 @@ const plans = [
     priceINR: '₹1,499',
     period: '/year',
     features: [
-      'Access to ALL courses',
-      'New courses as they release',
+      'Access to ALL studio programs',
+      'New studios as they release',
       'Priority support',
       'AI tutor (50 questions/day)',
       'Downloadable resources',
-      'Certificate on each completion',
+      'Proof of Completion for each',
       '1 year access',
     ],
-    cta: 'Start Learning',
+    cta: 'Begin Practice',
     popular: true,
   },
   {
@@ -43,7 +43,7 @@ const plans = [
     features: [
       'Everything in All Access',
       'Lifetime access',
-      'All future courses included',
+      'All future studios included',
       'AI tutor (unlimited)',
       '1-on-1 session (1 hour)',
       'Private community access',

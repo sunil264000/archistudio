@@ -115,8 +115,8 @@ export default function Courses() {
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       <SEOHead 
-        title="All Courses - Archistudio"
-        description="Browse our complete catalog of architecture and 3D visualization courses. Learn 3ds Max, AutoCAD, Revit, SketchUp and more."
+        title="All Studios - Archistudio"
+        description="Browse our complete catalog of architecture and 3D visualization studio programs. Learn 3ds Max, AutoCAD, Revit, SketchUp and more."
         url="https://archistudio.lovable.app/courses"
       />
       
@@ -146,7 +146,7 @@ export default function Courses() {
                 icon={<GraduationCap className="h-4 w-4 text-accent" />}
                 className="shadow-[0_0_40px_-10px_hsl(var(--accent)/0.4)]"
               >
-                {totalCourseCount}+ Professional Courses
+                {totalCourseCount}+ Studio Programs
               </FloatingBadge>
             </motion.div>
             
@@ -167,7 +167,7 @@ export default function Courses() {
               variants={fadeInUp}
               className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8"
             >
-              Professional courses covering 3ds Max, Revit, SketchUp, AutoCAD, and more
+              Professional studio programs covering 3ds Max, Revit, SketchUp, AutoCAD, and more
             </motion.p>
           </motion.div>
           
@@ -180,7 +180,7 @@ export default function Courses() {
           >
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
-              placeholder="Search courses..."
+              placeholder="Search studios..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-12 h-14 text-lg border-2 border-border/50 focus:border-accent transition-all duration-300 bg-background/80 backdrop-blur-sm shadow-lg"
@@ -194,7 +194,7 @@ export default function Courses() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
           >
-            Confused about which course to pick? 
+            Confused about which studio to pick? 
             <motion.span 
               className="text-accent font-medium ml-1"
               animate={{ opacity: [1, 0.6, 1] }}
@@ -220,7 +220,7 @@ export default function Courses() {
               onClick={() => setSelectedCategory(null)}
               className="transition-all duration-300 hover:scale-105"
             >
-              All Courses
+              All Studios
             </Button>
             {courseCategories.map((cat, index) => (
               <Button
@@ -244,7 +244,7 @@ export default function Courses() {
           <div className="container mx-auto px-4">
             <div className="flex items-center gap-2 mb-4">
               <Star className="h-6 w-6 text-warning fill-warning" />
-              <h2 className="text-2xl font-bold">Featured Courses</h2>
+              <h2 className="text-2xl font-bold">Featured Studios</h2>
             </div>
             <motion.div 
               className="grid md:grid-cols-2 lg:grid-cols-3 gap-4"
@@ -281,12 +281,12 @@ export default function Courses() {
               ? courseCategories.find(c => c.id === selectedCategory)?.name 
               : searchQuery 
                 ? `Search Results (${filteredCourses.length})`
-                : 'All Courses'}
+                : 'All Studios'}
           </h2>
           
           {sortedCourses.length === 0 ? (
             <div className="text-center py-12 animate-fade-in">
-              <p className="text-muted-foreground text-lg">No courses found matching your criteria.</p>
+              <p className="text-muted-foreground text-lg">No studios found matching your criteria.</p>
               <Button variant="outline" className="mt-4" onClick={() => { setSelectedCategory(null); setSearchQuery(''); }}>
                 Clear Filters
               </Button>
@@ -526,7 +526,7 @@ function CourseCard({
             <Clock className="h-4 w-4" /> {displayDuration > 0 ? `${displayDuration}h` : 'Self-paced'}
           </span>
           <span className="flex items-center gap-1">
-            <BookOpen className="h-4 w-4" /> {displayLessons} lessons
+            <BookOpen className="h-4 w-4" /> {displayLessons} sessions
           </span>
         </div>
         <div className="flex items-center justify-between">

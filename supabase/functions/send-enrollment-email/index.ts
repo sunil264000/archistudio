@@ -236,14 +236,14 @@ const handler = async (req: Request): Promise<Response> => {
                   
                   <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 14px; padding: 22px; margin-bottom: 28px;">
                     <h2 style="color: #818cf8; font-size: 19px; margin: 0 0 8px 0; font-weight: 600;">${displayCourseName}</h2>
-                    <p style="color: #9ca3af; margin: 0; font-size: 14px;">All lessons • Downloadable resources • Certificate upon completion</p>
+                    <p style="color: #9ca3af; margin: 0; font-size: 14px;">All sessions • Downloadable resources • Proof of Completion upon finishing</p>
                   </div>
                   
                   <p style="margin-bottom: 18px; color: #d1d5db;">Here's what you can do next:</p>
                   <div style="margin-bottom: 28px; padding-left: 5px;">
                     <div style="display: flex; align-items: center; margin-bottom: 12px;">
                       <span style="color: #22c55e; margin-right: 12px;">✓</span>
-                      <span style="color: #a5b4fc;">Start learning at your own pace</span>
+                      <span style="color: #a5b4fc;">Start practicing at your own pace</span>
                     </div>
                     <div style="display: flex; align-items: center; margin-bottom: 12px;">
                       <span style="color: #22c55e; margin-right: 12px;">✓</span>
@@ -251,17 +251,17 @@ const handler = async (req: Request): Promise<Response> => {
                     </div>
                     <div style="display: flex; align-items: center; margin-bottom: 12px;">
                       <span style="color: #22c55e; margin-right: 12px;">✓</span>
-                      <span style="color: #a5b4fc;">Download course resources</span>
+                      <span style="color: #a5b4fc;">Download studio resources</span>
                     </div>
                     <div style="display: flex; align-items: center;">
                       <span style="color: #22c55e; margin-right: 12px;">✓</span>
-                      <span style="color: #a5b4fc;">Earn your certificate upon completion</span>
+                      <span style="color: #a5b4fc;">Receive your proof of completion</span>
                     </div>
                   </div>
                   
                   <div style="text-align: center; margin: 35px 0;">
                     <a href="https://archistudio.lovable.app/course-player/${courseSlug}" style="display: inline-block; background: linear-gradient(90deg, #22c55e, #10b981); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 10px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(34, 197, 94, 0.4);">
-                      Start Learning Now →
+                      Begin Your Practice →
                     </a>
                   </div>
                   

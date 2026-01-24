@@ -163,19 +163,19 @@ export function EnrolledCourses() {
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-primary" />
-              Enrolled Courses
+              Active Studios
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{stats.totalCourses}</div>
-            <p className="text-sm text-muted-foreground">courses in progress</p>
+            <p className="text-sm text-muted-foreground">programs in progress</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
               <Clock className="h-5 w-5 text-primary" />
-              Learning Time
+              Practice Time
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -187,30 +187,30 @@ export function EnrolledCourses() {
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
               <Award className="h-5 w-5 text-primary" />
-              Certificates
+              Completions
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{stats.certificates}</div>
-            <p className="text-sm text-muted-foreground">earned certificates</p>
+            <p className="text-sm text-muted-foreground">programs completed</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Enrolled Courses */}
+      {/* Active Studios */}
       <Card>
         <CardHeader>
-          <CardTitle>My Courses</CardTitle>
-          <CardDescription>Continue learning where you left off</CardDescription>
+          <CardTitle>My Studios</CardTitle>
+          <CardDescription>Continue your practice where you left off</CardDescription>
         </CardHeader>
         <CardContent>
           {enrolledCourses.length === 0 ? (
             <div className="text-center py-12">
               <BookOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No courses yet</h3>
-              <p className="text-muted-foreground mb-4">Start your learning journey today!</p>
+              <h3 className="text-lg font-medium mb-2">No studios yet</h3>
+              <p className="text-muted-foreground mb-4">Start your practice journey today!</p>
               <Link to="/courses">
-                <Button>Browse Courses</Button>
+                <Button>Explore Studios</Button>
               </Link>
             </div>
           ) : (
@@ -243,7 +243,7 @@ export function EnrolledCourses() {
                     <h3 className="font-semibold mb-2 line-clamp-1">{enrollment.course.title}</h3>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>{enrollment.completedLessons}/{enrollment.totalLessons} lessons</span>
+                        <span>{enrollment.completedLessons}/{enrollment.totalLessons} sessions</span>
                         <span>{Math.round(enrollment.progress)}%</span>
                       </div>
                       <Progress value={enrollment.progress} className="h-2" />
@@ -251,7 +251,7 @@ export function EnrolledCourses() {
                     <Link to={`/learn/${enrollment.course.slug}`}>
                       <Button className="w-full mt-4 gap-2">
                         <Play className="h-4 w-4" />
-                        {enrollment.progress > 0 ? 'Continue' : 'Start Learning'}
+                        {enrollment.progress > 0 ? 'Continue' : 'Begin Practice'}
                       </Button>
                     </Link>
                   </CardContent>

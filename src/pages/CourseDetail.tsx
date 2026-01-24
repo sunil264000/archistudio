@@ -432,7 +432,7 @@ export default function CourseDetail() {
         <div className="container mx-auto px-4">
            <Link to="/courses" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-4 transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Courses
+            Back to Studios
           </Link>
 
           <div className="grid lg:grid-cols-3 gap-8">
@@ -470,7 +470,7 @@ export default function CourseDetail() {
                 </span>
                 <span className="flex items-center gap-1.5">
                   <BookOpen className="h-4 w-4" />
-                  {displayTotalLessons} lessons
+                  {displayTotalLessons} sessions
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Users className="h-4 w-4" />
@@ -478,7 +478,7 @@ export default function CourseDetail() {
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Award className="h-4 w-4" />
-                  Certificate included
+                  Proof of Completion included
                 </span>
               </div>
             </div>
@@ -505,7 +505,7 @@ export default function CourseDetail() {
                       onClick={() => navigate(`/learn/${course.slug}`)}
                     >
                       <Play className="h-5 w-5 fill-current" />
-                      Preview Course
+                      Preview Studio
                     </Button>
                   </div>
                 </div>
@@ -568,7 +568,7 @@ export default function CourseDetail() {
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle className="h-4 w-4 text-success" />
-                      Certificate of completion
+                      Proof of Completion included
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle className="h-4 w-4 text-success" />
@@ -590,7 +590,7 @@ export default function CourseDetail() {
               {/* About */}
               <Card>
                 <CardHeader>
-                  <CardTitle>About This Course</CardTitle>
+                  <CardTitle>About This Studio</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">

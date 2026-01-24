@@ -37,10 +37,10 @@ const cities = [
 
 const actionTypes = [
   { action: 'purchased', icon: 'cart' },
-  { action: 'enrolled in', icon: 'cart' },
-  { action: 'started learning', icon: 'play' },
-  { action: 'completed a lesson in', icon: 'check' },
-  { action: 'earned a certificate for', icon: 'award' },
+  { action: 'joined', icon: 'cart' },
+  { action: 'started practicing', icon: 'play' },
+  { action: 'finished a session in', icon: 'check' },
+  { action: 'completed', icon: 'award' },
 ];
 
 const getRandomTime = () => {

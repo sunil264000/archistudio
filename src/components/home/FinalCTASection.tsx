@@ -112,7 +112,7 @@ export function FinalCTASection() {
                     transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}
                   />
                   <span className="relative z-10">
-                    {user ? "Browse Courses" : "Start Your Free Account"}
+                    {user ? "Explore Studios" : "Start Your Free Account"}
                   </span>
                   <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1 relative z-10" />
                 </Button>
@@ -124,7 +124,7 @@ export function FinalCTASection() {
             variants={fadeInUp}
             className="text-sm opacity-60"
           >
-            {user ? "Explore 70+ professional courses" : "Free preview lessons available. No credit card required."}
+            {user ? "Explore 70+ studio programs" : "Free preview sessions available. No credit card required."}
           </motion.p>
         </motion.div>
       </div>
