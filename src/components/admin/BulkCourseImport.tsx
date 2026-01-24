@@ -642,11 +642,17 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
                                 })}
                               </SelectContent>
                             </Select>
+                            {/* Show existing content count badge next to select */}
+                            {hasExistingContent && (
+                              <Badge variant="secondary" className="shrink-0 bg-accent text-accent-foreground">
+                                {courseContent.lessons} lessons
+                              </Badge>
+                            )}
                           </div>
                           {hasExistingContent && (
-                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                            <p className="text-xs text-destructive mt-1 flex items-center gap-1 font-medium">
                               <AlertCircle className="h-3 w-3" />
-                              Already has {courseContent.lessons} lessons ({Math.round(courseContent.hours * 10) / 10}h)
+                              ⚠️ Already has {courseContent.lessons} lessons ({Math.round(courseContent.hours * 10) / 10}h) - will be replaced on import
                             </p>
                           )}
                         </div>
