@@ -310,8 +310,32 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
           });
 
           if (error || !data?.success) {
+            // Log failed import
+            await supabase.from('import_activity_log').insert({
+              course_id: match.matchedCourse!.id,
+              course_title: match.matchedCourse!.title,
+              folder_id: match.folderId,
+              folder_name: match.folderName,
+              action: 'import',
+              status: 'error',
+              error_message: error?.message || data?.error || 'Import failed'
+            });
             throw new Error(match.folderName);
           }
+          
+          // Log successful import
+          await supabase.from('import_activity_log').insert({
+            course_id: match.matchedCourse!.id,
+            course_title: match.matchedCourse!.title,
+            folder_id: match.folderId,
+            folder_name: match.folderName,
+            action: 'import',
+            modules_count: data.modulesCreated || 0,
+            lessons_count: data.lessonsCreated || 0,
+            resources_count: data.resourcesCreated || 0,
+            status: 'success'
+          });
+          
           return { lessons: data.lessonsCreated || 0, name: match.folderName };
         })
       );
