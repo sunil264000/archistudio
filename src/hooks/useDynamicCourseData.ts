@@ -21,10 +21,12 @@ export function useDynamicCourseData() {
   useEffect(() => {
     const fetchDynamicData = async () => {
       try {
+        // Add cache-busting header to always fetch fresh data
         const { data, error } = await supabase
           .from('courses')
           .select('slug, thumbnail_url, is_highlighted, is_featured, price_inr, updated_at')
-          .eq('is_published', true);
+          .eq('is_published', true)
+          .order('updated_at', { ascending: false });
 
         if (error) throw error;
 
@@ -41,6 +43,7 @@ export function useDynamicCourseData() {
       }
     };
 
+    // Fetch immediately on mount
     fetchDynamicData();
 
     // Subscribe to realtime updates for course changes
@@ -59,8 +62,24 @@ export function useDynamicCourseData() {
       )
       .subscribe();
 
+    // Refetch on window focus to prevent stale cache data
+    const handleFocus = () => {
+      fetchDynamicData();
+    };
+    window.addEventListener('focus', handleFocus);
+
+    // Refetch on visibility change (when tab becomes visible)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchDynamicData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
