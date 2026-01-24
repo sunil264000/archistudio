@@ -80,21 +80,21 @@ function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview,
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
-        <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer">
+        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors cursor-pointer">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
+            <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-sm font-medium text-accent">
               {index + 1}
             </div>
             <div>
-              <p className="font-medium">{title}</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="font-medium text-sm">{title}</p>
+              <p className="text-xs text-muted-foreground">
                 {lessonCount} lessons{duration && ` • ${duration}`}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {hasFreePreview && (
-              <Badge variant="outline" className="text-xs gap-1">
+              <Badge variant="outline" className="text-xs gap-1 border-success/30 text-success">
                 <Eye className="h-3 w-3" /> Free Preview
               </Badge>
             )}
@@ -103,20 +103,20 @@ function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview,
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="ml-11 mt-1 space-y-1 pb-2">
+        <div className="ml-10 mt-1 space-y-0.5 pb-2">
           {lessons.map((lesson, lessonIdx) => (
             <div 
               key={lesson.id}
               onClick={() => handleLessonClick(lesson)}
               className={`flex items-center justify-between py-2 px-3 rounded text-sm transition-colors ${
                 lesson.is_free_preview 
-                  ? 'cursor-pointer hover:bg-primary/10 hover:text-primary' 
+                  ? 'cursor-pointer hover:bg-accent/10 hover:text-accent' 
                   : 'hover:bg-muted/30'
               }`}
             >
               <div className="flex items-center gap-2">
                 {lesson.video_url ? (
-                  <Video className="h-3.5 w-3.5 text-primary" />
+                  <Video className="h-3.5 w-3.5 text-accent" />
                 ) : (
                   <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                 )}
@@ -131,7 +131,7 @@ function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview,
                   </span>
                 )}
                 {lesson.is_free_preview ? (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 flex items-center gap-1">
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 flex items-center gap-1 bg-success/10 text-success border-0">
                     <Play className="h-2.5 w-2.5" />
                     Free
                   </Badge>
@@ -395,19 +395,24 @@ export default function CourseDetail() {
 
             {/* Purchase Card */}
             <div className="lg:col-span-1">
-              <Card className="sticky top-24 overflow-hidden">
-                <div className="aspect-video relative">
+              <Card className="sticky top-24 overflow-hidden border-accent/20 shadow-lg">
+                <div className="aspect-video relative group">
                   <img 
                     src={getThumbnail(course.slug, categoryImages[course.category] || '/placeholder.svg')} 
                     alt={course.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     onError={(e) => {
                       e.currentTarget.src = categoryImages[course.category] || '/placeholder.svg';
                     }}
                   />
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                    <Button size="lg" variant="secondary" className="gap-2">
-                      <Play className="h-5 w-5" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent flex items-center justify-center">
+                    <Button 
+                      size="lg" 
+                      variant="secondary" 
+                      className="gap-2 shadow-xl hover:scale-105 transition-transform"
+                      onClick={() => navigate(`/learn/${course.slug}`)}
+                    >
+                      <Play className="h-5 w-5 fill-current" />
                       Preview Course
                     </Button>
                   </div>
@@ -535,14 +540,16 @@ export default function CourseDetail() {
               </Card>
 
               {/* Curriculum */}
-              <Card>
+              <Card className="border-accent/20">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
+                    <FileText className="h-5 w-5 text-accent" />
                     Course Curriculum
                   </CardTitle>
-                  <CardDescription>
-                    {displayTotalLessons} lessons{displayTotalHours > 0 && ` • ${displayTotalHours} hours total`}
+                  <CardDescription className="flex items-center gap-4">
+                    <span>{displayTotalLessons} lessons</span>
+                    {displayTotalHours > 0 && <span>•</span>}
+                    {displayTotalHours > 0 && <span>{displayTotalHours} hours total</span>}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -581,22 +588,22 @@ export default function CourseDetail() {
                     ].map((module, i) => (
                       <div 
                         key={i}
-                        className="flex items-center justify-between p-4 rounded-lg bg-muted/50"
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
+                          <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-sm font-medium text-accent">
                             {i + 1}
                           </div>
                           <div>
-                            <p className="font-medium">{module.title}</p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="font-medium text-sm">{module.title}</p>
+                            <p className="text-xs text-muted-foreground">
                               {module.lessons} lessons • {module.duration}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           {module.freePreview ? (
-                            <Badge variant="outline" className="text-xs gap-1">
+                            <Badge variant="outline" className="text-xs gap-1 border-success/30 text-success">
                               <Eye className="h-3 w-3" /> Free Preview
                             </Badge>
                           ) : (

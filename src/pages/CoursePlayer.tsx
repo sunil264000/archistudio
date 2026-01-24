@@ -64,11 +64,7 @@ export default function CoursePlayer() {
   const lessonIdFromUrl = searchParams.get('lesson');
 
   useEffect(() => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    
+    // Allow non-logged-in users to view free preview lessons
     // Prevent re-fetching if we already have the data for this course
     if (hasFetchedRef.current && courseSlugRef.current === slug && course) {
       return;
@@ -78,7 +74,7 @@ export default function CoursePlayer() {
   }, [slug, user]);
 
   const fetchCourseData = async () => {
-    if (!slug || !user) return;
+    if (!slug) return;
 
     setLoading(true);
     try {
@@ -97,16 +93,20 @@ export default function CoursePlayer() {
 
       setCourse(courseData);
 
-      // Check enrollment
-      const { data: enrollment } = await supabase
-        .from('enrollments')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('course_id', courseData.id)
-        .eq('status', 'active')
-        .maybeSingle();
+      // Check enrollment (only if logged in)
+      let isUserEnrolled = false;
+      if (user) {
+        const { data: enrollment } = await supabase
+          .from('enrollments')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('course_id', courseData.id)
+          .eq('status', 'active')
+          .maybeSingle();
+        isUserEnrolled = !!enrollment;
+      }
 
-      setIsEnrolled(!!enrollment);
+      setIsEnrolled(isUserEnrolled);
 
       // Fetch modules with lessons
       const { data: modulesData } = await supabase
@@ -130,11 +130,11 @@ export default function CoursePlayer() {
 
       setModules(sortedModules);
 
-      // Fetch user progress
+      // Fetch user progress (only if logged in)
       const allLessonIds = sortedModules.flatMap(m => m.lessons.map(l => l.id));
       let progressMap: Record<string, LessonProgress> = {};
       
-      if (allLessonIds.length > 0) {
+      if (user && allLessonIds.length > 0) {
         const { data: progressData } = await supabase
           .from('progress')
           .select('lesson_id, completed, last_position_seconds')
@@ -147,7 +147,7 @@ export default function CoursePlayer() {
         setProgress(progressMap);
       }
 
-      // Set initial lesson - prioritize URL param, then find first incomplete, then first lesson
+      // Set initial lesson - prioritize URL param, then find first free preview
       const allLessonsFlat = sortedModules.flatMap(m => m.lessons);
       
       let initialLesson: Lesson | null = null;
@@ -157,8 +157,13 @@ export default function CoursePlayer() {
         initialLesson = allLessonsFlat.find(l => l.id === lessonIdFromUrl) || null;
       }
       
-      // 2. If no URL param or not found, find first incomplete lesson (auto-continue)
-      if (!initialLesson && Object.keys(progressMap).length > 0) {
+      // 2. If not logged in, find first free preview lesson
+      if (!initialLesson && !user) {
+        initialLesson = allLessonsFlat.find(l => l.is_free_preview) || null;
+      }
+      
+      // 3. If logged in, find first incomplete lesson (auto-continue)
+      if (!initialLesson && user && Object.keys(progressMap).length > 0) {
         const completedIds = new Set(
           Object.entries(progressMap)
             .filter(([_, p]) => p.completed)
@@ -167,7 +172,7 @@ export default function CoursePlayer() {
         initialLesson = allLessonsFlat.find(l => !completedIds.has(l.id)) || null;
       }
       
-      // 3. Fallback to first lesson
+      // 4. Fallback to first lesson
       if (!initialLesson && allLessonsFlat.length > 0) {
         initialLesson = allLessonsFlat[0];
       }
@@ -309,13 +314,27 @@ export default function CoursePlayer() {
               </Button>
             </Link>
             <h2 className="font-semibold truncate">{course?.title}</h2>
-            <div className="mt-2">
-              <div className="flex justify-between text-sm mb-1">
-                <span>Progress</span>
-                <span>{Math.round(overallProgress)}%</span>
+            
+            {/* Signup prompt for non-logged-in users */}
+            {!user && (
+              <div className="mt-3 p-3 rounded-lg bg-accent/10 border border-accent/30 text-sm">
+                <p className="font-medium text-accent mb-2">🎓 Like what you see?</p>
+                <p className="text-muted-foreground text-xs mb-2">Sign up to access all lessons and track your progress!</p>
+                <Button size="sm" onClick={() => navigate('/auth')} className="w-full">
+                  Sign Up Free
+                </Button>
               </div>
-              <Progress value={overallProgress} className="h-2" />
-            </div>
+            )}
+            
+            {user && (
+              <div className="mt-2">
+                <div className="flex justify-between text-sm mb-1">
+                  <span>Progress</span>
+                  <span>{Math.round(overallProgress)}%</span>
+                </div>
+                <Progress value={overallProgress} className="h-2" />
+              </div>
+            )}
           </div>
 
           <ScrollArea className="flex-1">
@@ -351,7 +370,7 @@ export default function CoursePlayer() {
                               {isLocked ? (
                                 <Lock className="h-3 w-3" />
                               ) : isCompleted ? (
-                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <CheckCircle className="h-4 w-4 text-success" />
                               ) : (
                                 <Play className="h-3 w-3" />
                               )}
