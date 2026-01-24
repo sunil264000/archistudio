@@ -18,6 +18,20 @@ interface DriveListResponse {
   nextPageToken?: string;
 }
 
+// Video file extensions to identify
+const VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.mpeg', '.mpg', '.3gp'];
+const VIDEO_MIMETYPES = ['video/mp4', 'video/avi', 'video/mkv', 'video/quicktime', 'video/x-ms-wmv', 'video/x-flv', 'video/webm', 'video/x-m4v', 'video/mpeg', 'video/3gpp'];
+
+function isVideoFile(file: DriveFile): boolean {
+  // Check by mimeType
+  if (file.mimeType.startsWith("video/") || VIDEO_MIMETYPES.includes(file.mimeType)) {
+    return true;
+  }
+  // Check by extension
+  const lowerName = file.name.toLowerCase();
+  return VIDEO_EXTENSIONS.some(ext => lowerName.endsWith(ext));
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -106,8 +120,8 @@ async function scanFolder(
         type: "folder",
         ...subContent,
       });
-    } else if (file.mimeType.startsWith("video/")) {
-      // It's a video file (lesson)
+    } else if (isVideoFile(file)) {
+      // It's a video file (lesson) - use improved detection
       videos.push({
         id: file.id,
         name: file.name,
@@ -117,13 +131,14 @@ async function scanFolder(
         embedUrl: `https://drive.google.com/file/d/${file.id}/preview`,
       });
     } else {
-      // Other files (resources like PDFs, images, etc.)
+      // Other files (resources like PDFs, images, etc.) - these can be downloaded
       resources.push({
         id: file.id,
         name: file.name,
         type: "resource",
         mimeType: file.mimeType,
         downloadUrl: `https://drive.google.com/uc?export=download&id=${file.id}`,
+        canDownload: true, // Mark as downloadable
       });
     }
   }
@@ -131,6 +146,7 @@ async function scanFolder(
   // Sort by name to maintain order
   folders.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   videos.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  resources.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
   return { folders, videos, resources };
 }
@@ -172,9 +188,10 @@ async function importStructure(
   supabase: any,
   courseId: string,
   structure: any
-): Promise<{ modulesCreated: number; lessonsCreated: number }> {
+): Promise<{ modulesCreated: number; lessonsCreated: number; resourcesCreated: number }> {
   let modulesCreated = 0;
   let lessonsCreated = 0;
+  let resourcesCreated = 0;
 
   // Get existing max order_index for modules
   const { data: existingModules } = await supabase
@@ -208,19 +225,32 @@ async function importStructure(
 
     modulesCreated++;
 
-    // Create lessons from videos in this folder
+    // Create lessons from videos in this folder - NO free preview by default
     let lessonOrderIndex = 0;
     for (const video of folder.videos || []) {
-      const { error: lessonError } = await supabase.from("lessons").insert({
+      const { data: newLesson, error: lessonError } = await supabase.from("lessons").insert({
         module_id: newModule.id,
         title: cleanVideoTitle(video.name),
         video_url: video.embedUrl,
         order_index: lessonOrderIndex,
-        is_free_preview: lessonOrderIndex === 0, // First lesson is free preview
-      });
+        is_free_preview: false, // NO FREE PREVIEW BY DEFAULT
+      }).select().single();
 
-      if (!lessonError) {
+      if (!lessonError && newLesson) {
         lessonsCreated++;
+        
+        // Import resources for this folder's lessons (attach to first lesson)
+        if (lessonOrderIndex === 0 && folder.resources?.length > 0) {
+          for (const resource of folder.resources) {
+            await supabase.from("lesson_resources").insert({
+              lesson_id: newLesson.id,
+              title: resource.name,
+              file_url: resource.downloadUrl,
+              file_type: resource.mimeType,
+            });
+            resourcesCreated++;
+          }
+        }
       }
       lessonOrderIndex++;
     }
@@ -233,6 +263,7 @@ async function importStructure(
           title: `${subFolder.name} - ${cleanVideoTitle(video.name)}`,
           video_url: video.embedUrl,
           order_index: lessonOrderIndex,
+          is_free_preview: false, // NO FREE PREVIEW BY DEFAULT
         });
 
         if (!lessonError) {
@@ -262,23 +293,36 @@ async function importStructure(
 
       let lessonOrderIndex = 0;
       for (const video of structure.videos) {
-        const { error: lessonError } = await supabase.from("lessons").insert({
+        const { data: newLesson, error: lessonError } = await supabase.from("lessons").insert({
           module_id: mainModule.id,
           title: cleanVideoTitle(video.name),
           video_url: video.embedUrl,
           order_index: lessonOrderIndex,
-          is_free_preview: lessonOrderIndex === 0,
-        });
+          is_free_preview: false, // NO FREE PREVIEW BY DEFAULT
+        }).select().single();
 
-        if (!lessonError) {
+        if (!lessonError && newLesson) {
           lessonsCreated++;
+          
+          // Attach resources to first lesson
+          if (lessonOrderIndex === 0 && structure.resources?.length > 0) {
+            for (const resource of structure.resources) {
+              await supabase.from("lesson_resources").insert({
+                lesson_id: newLesson.id,
+                title: resource.name,
+                file_url: resource.downloadUrl,
+                file_type: resource.mimeType,
+              });
+              resourcesCreated++;
+            }
+          }
         }
         lessonOrderIndex++;
       }
     }
   }
 
-  return { modulesCreated, lessonsCreated };
+  return { modulesCreated, lessonsCreated, resourcesCreated };
 }
 
 function cleanVideoTitle(filename: string): string {
