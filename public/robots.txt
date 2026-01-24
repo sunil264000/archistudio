@@ -1,4 +1,4 @@
-# Archistudio - Robots.txt
+# Archistudio - Architecture Education Platform
 # https://archistudio.lovable.app
 
 User-agent: Googlebot
@@ -28,5 +28,5 @@ Disallow: /payment-failed
 Disallow: /reset-password
 Disallow: /update-password
 
-# Sitemap location
-Sitemap: https://ddvfcymvhnlvqcbhozpc.supabase.co/functions/v1/generate-sitemap
+# Static sitemap for Google Search Console (on same domain)
+Sitemap: https://archistudio.lovable.app/sitemap.xml
