@@ -1,24 +1,15 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, BookOpen, CheckCircle, Sparkles } from 'lucide-react';
+import { ArrowRight, CheckCircle, Sparkles, Star } from 'lucide-react';
 import { Background3D } from '@/components/3d/Background3D';
 import { motion } from 'framer-motion';
-
-const fadeInUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0 }
-};
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.15,
-      delayChildren: 0.2
-    }
-  }
-};
+import { 
+  FloatingBadge, 
+  AnimatedUnderline, 
+  FloatingElement,
+  staggerContainer,
+  fadeInUp 
+} from '@/components/animations/AnimatedSection';
 
 export function HeroSection() {
   return (
@@ -27,15 +18,39 @@ export function HeroSection() {
       <Background3D intensity="medium" />
       
       {/* Enhanced gradient overlays */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-transparent to-background pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-r from-background/30 via-transparent to-background/30 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-transparent to-background pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-r from-background/40 via-transparent to-background/40 pointer-events-none" />
       
-      {/* Animated accent orbs */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent/20 rounded-full blur-[120px] animate-pulse" />
-      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-primary/15 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
+      {/* Animated accent orbs with better glow */}
+      <motion.div 
+        className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-accent/15 rounded-full blur-[150px]"
+        animate={{ 
+          scale: [1, 1.2, 1],
+          opacity: [0.15, 0.25, 0.15]
+        }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div 
+        className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[120px]"
+        animate={{ 
+          scale: [1.2, 1, 1.2],
+          opacity: [0.1, 0.2, 0.1]
+        }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+      />
       
-      {/* Grid pattern background */}
-      <div className="absolute inset-0 grid-pattern opacity-20" />
+      {/* Animated grid pattern */}
+      <div className="absolute inset-0 grid-pattern opacity-30" />
+      
+      {/* Architectural grid lines */}
+      <svg className="absolute inset-0 w-full h-full opacity-[0.08]" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="hero-grid" width="80" height="80" patternUnits="userSpaceOnUse">
+            <path d="M 80 0 L 0 0 0 80" fill="none" stroke="currentColor" strokeWidth="0.5" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#hero-grid)" />
+      </svg>
       
       <div className="relative section-padding w-full">
         <div className="container-wide">
@@ -45,65 +60,91 @@ export function HeroSection() {
             initial="hidden"
             animate="visible"
           >
-            {/* Badge */}
-            <motion.div 
-              variants={fadeInUp}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r from-accent/20 to-primary/20 backdrop-blur-md text-foreground text-sm font-medium border border-accent/30 shadow-lg"
-            >
-              <Sparkles className="h-4 w-4 text-accent" />
-              For Students & Fresh Architects
+            {/* Floating Badge with glow */}
+            <motion.div variants={fadeInUp}>
+              <FloatingBadge 
+                icon={<Sparkles className="h-4 w-4 text-accent" />}
+                className="shadow-[0_0_40px_-10px_hsl(var(--accent)/0.4)]"
+              >
+                For Students & Fresh Architects
+              </FloatingBadge>
             </motion.div>
             
-            {/* Headline */}
+            {/* Headline with animated underline */}
             <motion.h1 
               variants={fadeInUp}
               className="text-4xl md:text-5xl lg:text-7xl font-display font-bold tracking-tight leading-[1.1]"
             >
-              Learn Architecture the Way{' '}
-              <span className="relative inline-block">
-                <span className="bg-gradient-to-r from-accent via-primary to-accent bg-[length:200%_auto] bg-clip-text text-transparent animate-shimmer">
+              <motion.span
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+              >
+                Learn Architecture the Way
+              </motion.span>{' '}
+              <span className="relative inline-block mt-2">
+                <motion.span 
+                  className="bg-gradient-to-r from-accent via-primary to-accent bg-[length:200%_auto] bg-clip-text text-transparent"
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ 
+                    opacity: 1, 
+                    y: 0,
+                    backgroundPosition: ['0% center', '200% center']
+                  }}
+                  transition={{ 
+                    opacity: { duration: 0.6, delay: 0.5 },
+                    y: { duration: 0.6, delay: 0.5 },
+                    backgroundPosition: { duration: 8, repeat: Infinity, ease: "linear" }
+                  }}
+                >
                   It Is Actually Practiced
-                </span>
-                <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none">
-                  <motion.path 
-                    d="M2 10C50 4 100 2 150 6C200 10 250 4 298 8" 
-                    stroke="hsl(var(--accent))" 
-                    strokeWidth="3" 
-                    strokeLinecap="round"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
-                    transition={{ duration: 1.5, delay: 0.8 }}
-                  />
-                </svg>
+                </motion.span>
+                <AnimatedUnderline delay={1} />
               </span>
             </motion.h1>
             
-            {/* Subheadline */}
+            {/* Subheadline with word highlighting */}
             <motion.p 
               variants={fadeInUp}
               className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
             >
               From site analysis to working drawings, construction logic to sustainability — 
-              <span className="text-foreground font-medium"> practical skills that colleges don't teach</span> but the industry demands.
+              <motion.span 
+                className="text-foreground font-medium"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.2, duration: 0.5 }}
+              > practical skills that colleges don't teach</motion.span> but the industry demands.
             </motion.p>
 
-            {/* CTAs */}
+            {/* CTAs with enhanced hover */}
             <motion.div 
               variants={fadeInUp}
               className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
             >
               <Link to="/auth?mode=signup">
-                <Button variant="glow" size="xl" className="gap-3 text-base group">
-                  Start Learning Today
-                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </Button>
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Button variant="glow" size="xl" className="gap-3 text-base group relative overflow-hidden">
+                    <motion.span
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                      initial={{ x: '-100%' }}
+                      animate={{ x: '200%' }}
+                      transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                    />
+                    Start Learning Today
+                    <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  </Button>
+                </motion.div>
               </Link>
             </motion.div>
 
-            {/* Trust indicators */}
+            {/* Trust indicators with staggered animation */}
             <motion.div 
               variants={fadeInUp}
-              className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 pt-10"
+              className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4 pt-10"
             >
               {[
                 "No prior CAD knowledge needed",
@@ -112,10 +153,11 @@ export function HeroSection() {
               ].map((text, i) => (
                 <motion.div 
                   key={text}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 backdrop-blur-sm border border-border/50"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 1 + i * 0.1 }}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-secondary/60 backdrop-blur-sm border border-border/50 hover:border-accent/30 transition-colors"
+                  initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ delay: 1.2 + i * 0.15, duration: 0.5 }}
+                  whileHover={{ scale: 1.05, y: -2 }}
                 >
                   <CheckCircle className="h-5 w-5 text-success" />
                   <span className="text-sm text-muted-foreground">{text}</span>
@@ -127,33 +169,69 @@ export function HeroSection() {
       </div>
 
       {/* Decorative architectural element */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent" />
+      <motion.div 
+        className="absolute bottom-0 left-0 right-0 h-px"
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: 1 }}
+        transition={{ duration: 1.5, delay: 0.5 }}
+        style={{ background: 'linear-gradient(to right, transparent, hsl(var(--accent) / 0.6), transparent)' }}
+      />
       
-      {/* Floating shapes */}
-      <motion.div 
-        className="absolute top-20 right-10 w-20 h-20 border border-accent/30 rotate-45"
-        animate={{ 
-          y: [0, -20, 0],
-          rotate: [45, 50, 45]
-        }}
-        transition={{ 
-          duration: 5,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      />
-      <motion.div 
-        className="absolute bottom-40 left-10 w-16 h-16 bg-gradient-to-br from-accent/20 to-transparent rounded-full"
-        animate={{ 
-          y: [0, 20, 0],
-          scale: [1, 1.1, 1]
-        }}
-        transition={{ 
-          duration: 4,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      />
+      {/* Floating decorative shapes */}
+      <FloatingElement className="absolute top-20 right-[10%] hidden lg:block" yOffset={25} duration={6}>
+        <motion.div 
+          className="w-20 h-20 border border-accent/30 rotate-45"
+          animate={{ rotate: [45, 55, 45] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </FloatingElement>
+      
+      <FloatingElement className="absolute bottom-40 left-[8%] hidden lg:block" yOffset={20} duration={5} delay={1}>
+        <div className="w-16 h-16 bg-gradient-to-br from-accent/20 to-transparent rounded-full" />
+      </FloatingElement>
+      
+      <FloatingElement className="absolute top-1/3 right-[5%] hidden xl:block" yOffset={15} duration={7} delay={2}>
+        <Star className="h-8 w-8 text-accent/30" />
+      </FloatingElement>
+      
+      {/* Corner accent lines */}
+      <motion.div
+        className="absolute top-0 left-0 w-40 h-40 hidden lg:block"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5 }}
+      >
+        <svg className="w-full h-full" viewBox="0 0 160 160">
+          <motion.path
+            d="M0 80 L0 0 L80 0"
+            stroke="hsl(var(--accent) / 0.3)"
+            strokeWidth="1"
+            fill="none"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 1.5, delay: 1.5 }}
+          />
+        </svg>
+      </motion.div>
+      
+      <motion.div
+        className="absolute bottom-0 right-0 w-40 h-40 hidden lg:block"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5 }}
+      >
+        <svg className="w-full h-full" viewBox="0 0 160 160">
+          <motion.path
+            d="M160 80 L160 160 L80 160"
+            stroke="hsl(var(--accent) / 0.3)"
+            strokeWidth="1"
+            fill="none"
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 1.5, delay: 1.7 }}
+          />
+        </svg>
+      </motion.div>
     </section>
   );
 }

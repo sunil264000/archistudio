@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { courses, courseCategories, getFeaturedCourses, categoryImages } from '@/data/courses';
@@ -17,6 +18,13 @@ import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { ContactSupportWidget } from '@/components/support/ContactSupportWidget';
 import { supabase } from '@/integrations/supabase/client';
+import { 
+  staggerContainer, 
+  staggerContainerFast, 
+  fadeInUp,
+  FloatingBadge,
+  AnimatedUnderline
+} from '@/components/animations/AnimatedSection';
 
 export default function Courses() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -116,41 +124,84 @@ export default function Courses() {
       {/* Animated Background */}
       <AnimatedBackground intensity="light" />
       
-      {/* Hero Section with Animation */}
-      <section className="pt-24 pb-12 relative">
-        <div className="container mx-auto px-4 text-center">
-          <div className="animate-fade-in">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-foreground via-accent to-foreground bg-clip-text text-transparent">
-              Master Architecture & Design
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-4">
-              Professional courses covering 3ds Max, Revit, SketchUp, AutoCAD, and more
-            </p>
+      {/* Hero Section with Advanced Animation */}
+      <section className="pt-24 pb-12 relative overflow-hidden">
+        {/* Background gradient orbs */}
+        <motion.div 
+          className="absolute top-0 left-1/4 w-96 h-96 bg-accent/10 rounded-full blur-[120px]"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.2, 0.1] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        />
+        
+        <div className="container mx-auto px-4 text-center relative">
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+          >
+            {/* Floating Badge */}
+            <motion.div variants={fadeInUp} className="mb-6">
+              <FloatingBadge 
+                icon={<GraduationCap className="h-4 w-4 text-accent" />}
+                className="shadow-[0_0_40px_-10px_hsl(var(--accent)/0.4)]"
+              >
+                {totalCourseCount}+ Professional Courses
+              </FloatingBadge>
+            </motion.div>
             
-            {/* Course Count Badge */}
-            <div className="inline-flex items-center gap-3 px-6 py-3 bg-accent/10 border border-accent/30 rounded-full mb-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-              <GraduationCap className="h-6 w-6 text-accent" />
-              <span className="text-2xl font-bold text-accent">{totalCourseCount}+</span>
-              <span className="text-muted-foreground">Courses Available</span>
-            </div>
-          </div>
+            <motion.h1 
+              variants={fadeInUp}
+              className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4"
+            >
+              <motion.span
+                className="bg-gradient-to-r from-foreground via-accent to-foreground bg-[length:200%_auto] bg-clip-text text-transparent"
+                animate={{ backgroundPosition: ['0% center', '200% center'] }}
+                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              >
+                Master Architecture & Design
+              </motion.span>
+            </motion.h1>
+            
+            <motion.p 
+              variants={fadeInUp}
+              className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8"
+            >
+              Professional courses covering 3ds Max, Revit, SketchUp, AutoCAD, and more
+            </motion.p>
+          </motion.div>
           
           {/* Animated Search Bar */}
-          <div className="max-w-xl mx-auto relative animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <motion.div 
+            className="max-w-xl mx-auto relative"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               placeholder="Search courses..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 h-14 text-lg border-2 border-border/50 focus:border-accent transition-all duration-300 bg-background/80 backdrop-blur-sm"
+              className="pl-12 h-14 text-lg border-2 border-border/50 focus:border-accent transition-all duration-300 bg-background/80 backdrop-blur-sm shadow-lg"
             />
-          </div>
+          </motion.div>
           
           {/* Confused? Help Banner */}
-          <p className="text-sm text-muted-foreground mt-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <motion.p 
+            className="text-sm text-muted-foreground mt-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+          >
             Confused about which course to pick? 
-            <span className="text-accent font-medium ml-1">Click the chat button below for help!</span>
-          </p>
+            <motion.span 
+              className="text-accent font-medium ml-1"
+              animate={{ opacity: [1, 0.6, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              Click the chat button below for help!
+            </motion.span>
+          </motion.p>
         </div>
       </section>
 
@@ -194,7 +245,13 @@ export default function Courses() {
               <Star className="h-6 w-6 text-warning fill-warning" />
               <h2 className="text-2xl font-bold">Featured Courses</h2>
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 stagger-children">
+            <motion.div 
+              className="grid md:grid-cols-2 lg:grid-cols-3 gap-4"
+              variants={staggerContainerFast}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+            >
               {featuredCourses.slice(0, 6).map((course, index) => (
                 <CourseCard 
                   key={course.id} 
@@ -209,7 +266,7 @@ export default function Courses() {
                   realStats={dbCourseStats[course.slug]}
                 />
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
       )}
@@ -233,7 +290,13 @@ export default function Courses() {
               </Button>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <motion.div 
+              className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+              variants={staggerContainerFast}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+            >
               {sortedCourses.map((course, index) => (
                 <CourseCard 
                   key={course.id}
@@ -247,7 +310,7 @@ export default function Courses() {
                   realStats={dbCourseStats[course.slug]}
                 />
               ))}
-            </div>
+            </motion.div>
           )}
         </div>
       </section>
