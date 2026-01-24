@@ -80,7 +80,7 @@ function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview,
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
-        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors cursor-pointer">
+        <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors cursor-pointer">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-sm font-medium text-accent">
               {index + 1}
@@ -103,7 +103,7 @@ function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview,
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="ml-10 mt-1 space-y-0.5 pb-2">
+        <div className="ml-10 mt-0.5 space-y-0 pb-1.5">
           {lessons.map((lesson, lessonIdx) => (
             <div 
               key={lesson.id}
@@ -552,7 +552,7 @@ export default function CourseDetail() {
                     {displayTotalHours > 0 && <span>{displayTotalHours} hours total</span>}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-1.5">
                   {modulesLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

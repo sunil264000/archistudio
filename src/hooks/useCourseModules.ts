@@ -34,62 +34,77 @@ export function useCourseModules(courseSlug: string | undefined) {
     const fetchModules = async () => {
       setLoading(true);
       
-      // First get the course ID from slug
-      const { data: course } = await supabase
-        .from('courses')
-        .select('id')
-        .eq('slug', courseSlug)
-        .single();
+      try {
+        // First get the course ID from slug
+        const { data: course, error: courseError } = await supabase
+          .from('courses')
+          .select('id')
+          .eq('slug', courseSlug)
+          .single();
 
-      if (!course) {
-        setLoading(false);
-        return;
-      }
+        if (courseError || !course) {
+          console.log('Course not found:', courseSlug);
+          setModules([]);
+          setLoading(false);
+          return;
+        }
 
-      // Fetch modules with lessons
-      const { data: modulesData } = await supabase
-        .from('modules')
-        .select('id, title, description, order_index')
-        .eq('course_id', course.id)
-        .order('order_index');
+        // Fetch modules for this course
+        const { data: modulesData, error: modulesError } = await supabase
+          .from('modules')
+          .select('id, title, description, order_index')
+          .eq('course_id', course.id)
+          .order('order_index');
 
-      if (!modulesData || modulesData.length === 0) {
+        if (modulesError || !modulesData || modulesData.length === 0) {
+          console.log('No modules found for course:', courseSlug);
+          setModules([]);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch all lessons for these modules
+        const moduleIds = modulesData.map(m => m.id);
+        const { data: lessonsData, error: lessonsError } = await supabase
+          .from('lessons')
+          .select('id, title, description, video_url, duration_minutes, order_index, is_free_preview, module_id')
+          .in('module_id', moduleIds)
+          .order('order_index');
+
+        if (lessonsError) {
+          console.error('Error fetching lessons:', lessonsError);
+        }
+
+        // Map lessons to modules
+        const modulesWithLessons: Module[] = modulesData.map(mod => ({
+          ...mod,
+          order_index: mod.order_index ?? 0,
+          lessons: (lessonsData || [])
+            .filter(l => l.module_id === mod.id)
+            .map(l => ({
+              id: l.id,
+              title: l.title,
+              description: l.description,
+              video_url: l.video_url,
+              duration_minutes: l.duration_minutes,
+              order_index: l.order_index ?? 0,
+              is_free_preview: l.is_free_preview ?? false,
+            }))
+            .sort((a, b) => a.order_index - b.order_index),
+        }));
+
+        // Calculate totals
+        const allLessons = lessonsData || [];
+        setTotalLessons(allLessons.length);
+        setTotalDuration(allLessons.reduce((sum, l) => sum + (l.duration_minutes || 0), 0));
+        
+        setModules(modulesWithLessons);
+      } catch (error) {
+        console.error('Error in fetchModules:', error);
         setModules([]);
+      } finally {
         setLoading(false);
-        return;
       }
-
-      // Fetch all lessons for these modules
-      const moduleIds = modulesData.map(m => m.id);
-      const { data: lessonsData } = await supabase
-        .from('lessons')
-        .select('id, title, description, video_url, duration_minutes, order_index, is_free_preview, module_id')
-        .in('module_id', moduleIds)
-        .order('order_index');
-
-      // Map lessons to modules
-      const modulesWithLessons: Module[] = modulesData.map(mod => ({
-        ...mod,
-        lessons: (lessonsData || [])
-          .filter(l => l.module_id === mod.id)
-          .map(l => ({
-            id: l.id,
-            title: l.title,
-            description: l.description,
-            video_url: l.video_url,
-            duration_minutes: l.duration_minutes,
-            order_index: l.order_index || 0,
-            is_free_preview: l.is_free_preview || false,
-          })),
-      }));
-
-      // Calculate totals
-      const allLessons = lessonsData || [];
-      setTotalLessons(allLessons.length);
-      setTotalDuration(allLessons.reduce((sum, l) => sum + (l.duration_minutes || 0), 0));
-      
-      setModules(modulesWithLessons);
-      setLoading(false);
     };
 
     fetchModules();
