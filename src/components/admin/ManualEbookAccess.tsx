@@ -136,9 +136,31 @@ export function ManualEbookAccess() {
         if (error) throw error;
       }
 
+      // Get book titles for the email
+      const selectedBookTitles = ebooks
+        .filter(e => selectedEbooks.has(e.id))
+        .map(e => e.title);
+
+      // Send gift email notification (fire and forget)
+      supabase.functions.invoke('send-ebook-gift-email', {
+        body: {
+          email: selectedUser.email,
+          name: selectedUser.full_name || '',
+          bookCount: selectedEbooks.size,
+          bookTitles: selectedBookTitles,
+          isFullBundle: selectedEbooks.size === ebooks.length,
+        }
+      }).then((res) => {
+        if (res.error) {
+          console.error('Gift email error:', res.error);
+        } else {
+          console.log('Gift email sent successfully');
+        }
+      }).catch(err => console.error('Gift email error:', err));
+
       toast({
-        title: "Access Granted!",
-        description: `${selectedEbooks.size} eBook(s) access granted to ${selectedUser.email}`,
+        title: "Access Granted & Email Sent!",
+        description: `${selectedEbooks.size} eBook(s) access granted to ${selectedUser.email}. Notification email sent.`,
       });
 
       // Reset form
