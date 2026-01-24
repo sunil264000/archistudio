@@ -23,6 +23,8 @@ serve(async (req) => {
       throw new Error("eBook ID is required");
     }
 
+    console.log(`Preview request for eBook: ${ebookId}`);
+
     // Get ebook details including cached preview URL
     const { data: ebook, error: ebookError } = await supabaseClient
       .from("ebooks")
@@ -41,32 +43,32 @@ serve(async (req) => {
     if (ebook.preview_url && ebook.preview_generated_at) {
       const generatedAt = new Date(ebook.preview_generated_at);
       if (generatedAt > sevenDaysAgo) {
-        // Redirect to cached preview URL for fast loading
         console.log(`Serving cached preview for ${ebookId}`);
         
-        // Fetch from cache and return
+        // Fetch from cache and return with optimized headers
         const cachedResponse = await fetch(ebook.preview_url);
         if (cachedResponse.ok) {
           const fileBuffer = await cachedResponse.arrayBuffer();
+          
           return new Response(fileBuffer, {
             status: 200,
             headers: {
               ...corsHeaders,
               "Content-Type": "application/pdf",
-              "Cache-Control": "public, max-age=86400", // 24 hours browser cache
+              "Cache-Control": "public, max-age=604800", // 7 days browser cache
               "Content-Disposition": "inline",
+              "X-Content-Type-Options": "nosniff",
             },
           });
         }
-        // If cache fetch failed, continue to fetch from source
         console.log("Cache fetch failed, fetching from source");
       }
     }
 
-    // Fetch from source
+    // Fetch from source with optimized settings
     let fileBuffer: ArrayBuffer;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout (reduced)
 
     try {
       if (ebook.drive_file_id) {
@@ -75,6 +77,8 @@ serve(async (req) => {
           throw new Error("Google API key not configured");
         }
 
+        console.log(`Fetching from Google Drive: ${ebook.drive_file_id}`);
+        
         const driveResponse = await fetch(
           `https://www.googleapis.com/drive/v3/files/${ebook.drive_file_id}?alt=media&key=${googleApiKey}`,
           {
@@ -92,7 +96,10 @@ serve(async (req) => {
         }
 
         fileBuffer = await driveResponse.arrayBuffer();
+        console.log(`Downloaded ${fileBuffer.byteLength} bytes from Drive`);
       } else if (ebook.file_url) {
+        console.log(`Fetching from storage: ${ebook.file_url}`);
+        
         if (ebook.file_url.startsWith('http')) {
           const response = await fetch(ebook.file_url, {
             signal: controller.signal,
@@ -112,6 +119,7 @@ serve(async (req) => {
           }
           fileBuffer = await fileData.arrayBuffer();
         }
+        console.log(`Downloaded ${fileBuffer.byteLength} bytes from storage`);
       } else {
         throw new Error("No file available for this eBook");
       }
@@ -119,23 +127,27 @@ serve(async (req) => {
       clearTimeout(timeoutId);
     }
 
-    // Cache the preview in storage (async, don't wait)
+    // Cache the preview in storage (async, don't block response)
     const previewFileName = `preview-${ebookId}.pdf`;
-    supabaseClient
-      .storage
-      .from("ebook-previews")
-      .upload(previewFileName, new Blob([fileBuffer], { type: "application/pdf" }), {
-        upsert: true,
-        contentType: "application/pdf",
-      })
-      .then(async ({ data, error }) => {
+    
+    // Start caching in background
+    (async () => {
+      try {
+        const { data, error } = await supabaseClient
+          .storage
+          .from("ebook-previews")
+          .upload(previewFileName, new Blob([fileBuffer], { type: "application/pdf" }), {
+            upsert: true,
+            contentType: "application/pdf",
+            cacheControl: "604800", // 7 days
+          });
+        
         if (!error && data) {
           const { data: urlData } = supabaseClient
             .storage
             .from("ebook-previews")
             .getPublicUrl(previewFileName);
           
-          // Update ebook with cached preview URL
           await supabaseClient
             .from("ebooks")
             .update({
@@ -148,17 +160,20 @@ serve(async (req) => {
         } else if (error) {
           console.error("Failed to cache preview:", error);
         }
-      })
-      .catch((err) => console.error("Preview caching error:", err));
+      } catch (err) {
+        console.error("Preview caching error:", err);
+      }
+    })();
 
-    // Return the PDF immediately
+    // Return the PDF immediately with optimized headers
     return new Response(fileBuffer, {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/pdf",
-        "Cache-Control": "public, max-age=7200", // 2 hours
+        "Cache-Control": "public, max-age=86400", // 24 hours
         "Content-Disposition": "inline",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (error: any) {

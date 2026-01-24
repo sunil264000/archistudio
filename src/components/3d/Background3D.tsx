@@ -1,7 +1,27 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Stars } from '@react-three/drei';
-import { useRef, useMemo, Suspense } from 'react';
+import { useRef, useMemo, Suspense, useEffect, useState } from 'react';
 import * as THREE from 'three';
+
+// Detect mobile for performance optimization
+function useIsMobileDevice() {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      // Check screen width and touch capability
+      const isMobileScreen = window.innerWidth < 768;
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      setIsMobile(isMobileScreen || isTouchDevice);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  return isMobile;
+}
 
 function FloatingCube({ position, scale, speed }: { position: [number, number, number]; scale: number; speed: number }) {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -151,7 +171,13 @@ interface Background3DProps {
 }
 
 export function Background3D({ className = '', intensity = 'medium' }: Background3DProps) {
+  const isMobile = useIsMobileDevice();
   const opacity = intensity === 'light' ? 0.3 : intensity === 'medium' ? 0.5 : 0.8;
+  
+  // Skip 3D rendering on mobile for performance
+  if (isMobile) {
+    return null;
+  }
   
   return (
     <div 

@@ -1,7 +1,23 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 
 // Lazy load Background3D to avoid blocking page render
 const Background3D = lazy(() => import('@/components/3d/Background3D').then(m => ({ default: m.Background3D })));
+
+// Detect mobile for reduced animations
+function useIsMobileDevice() {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  return isMobile;
+}
 
 interface AnimatedBackgroundProps {
   intensity?: 'light' | 'medium' | 'full';
@@ -14,20 +30,28 @@ export function AnimatedBackground({
   showOrbs = true, 
   showGrid = true 
 }: AnimatedBackgroundProps) {
+  const isMobile = useIsMobileDevice();
+  
+  // Reduced effects on mobile
+  const mobileShowOrbs = !isMobile && showOrbs;
+  const mobileShowGrid = showGrid; // Keep grid, it's lightweight
+  
   return (
     <>
-      {/* 3D Background - positioned behind all content */}
-      <div className="fixed inset-0 -z-10 pointer-events-none">
-        <Suspense fallback={null}>
-          <Background3D intensity={intensity} />
-        </Suspense>
-      </div>
+      {/* 3D Background - only on desktop */}
+      {!isMobile && (
+        <div className="fixed inset-0 -z-10 pointer-events-none">
+          <Suspense fallback={null}>
+            <Background3D intensity={intensity} />
+          </Suspense>
+        </div>
+      )}
       
-      {/* Enhanced animated background effects */}
+      {/* Enhanced animated background effects - reduced on mobile */}
       <div className="fixed inset-0 -z-5 pointer-events-none overflow-hidden">
-        {showOrbs && (
+        {mobileShowOrbs && (
           <>
-            {/* Animated gradient orbs */}
+            {/* Animated gradient orbs - only on desktop */}
             <div 
               className="absolute top-0 left-1/4 w-96 h-96 bg-accent/15 rounded-full blur-3xl animate-pulse" 
               style={{ animationDuration: '4s' }} 
@@ -47,21 +71,28 @@ export function AnimatedBackground({
           </>
         )}
         
-        {showGrid && (
+        {/* Mobile gets a simple gradient instead */}
+        {isMobile && (
+          <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-primary/5" />
+        )}
+        
+        {mobileShowGrid && (
           <>
             {/* Grid pattern overlay */}
             <div className="absolute inset-0 grid-pattern opacity-20" />
             
-            {/* Perspective lines for 3D effect */}
-            <svg className="absolute inset-0 w-full h-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <pattern id="perspective-grid-global" width="100" height="100" patternUnits="userSpaceOnUse">
-                  <path d="M 100 0 L 0 100" stroke="currentColor" strokeWidth="0.5" fill="none" />
-                  <path d="M 0 0 L 100 100" stroke="currentColor" strokeWidth="0.5" fill="none" />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#perspective-grid-global)" />
-            </svg>
+            {/* Perspective lines for 3D effect - only on desktop */}
+            {!isMobile && (
+              <svg className="absolute inset-0 w-full h-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <pattern id="perspective-grid-global" width="100" height="100" patternUnits="userSpaceOnUse">
+                    <path d="M 100 0 L 0 100" stroke="currentColor" strokeWidth="0.5" fill="none" />
+                    <path d="M 0 0 L 100 100" stroke="currentColor" strokeWidth="0.5" fill="none" />
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#perspective-grid-global)" />
+              </svg>
+            )}
           </>
         )}
       </div>
