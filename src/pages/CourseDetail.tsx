@@ -400,6 +400,8 @@ export default function CourseDetail() {
                   <img 
                     src={getThumbnail(course.slug, categoryImages[course.category] || '/placeholder.svg')} 
                     alt={course.title}
+                    loading="eager"
+                    decoding="async"
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     onError={(e) => {
                       e.currentTarget.src = categoryImages[course.category] || '/placeholder.svg';
@@ -653,8 +655,10 @@ export default function CourseDetail() {
                       >
                         <div className="flex gap-3">
                           <img 
-                            src={categoryImages[relatedCourse.category] || '/placeholder.svg'}
+                            src={getThumbnail(relatedCourse.slug, categoryImages[relatedCourse.category] || '/placeholder.svg')}
                             alt={relatedCourse.title}
+                            loading="lazy"
+                            decoding="async"
                             className="w-20 h-14 object-cover rounded"
                           />
                           <div className="flex-1 min-w-0">

@@ -48,6 +48,9 @@ export function SecureVideoPlayer({
   const [watermarkPosition, setWatermarkPosition] = useState({ x: 50, y: 50 });
   const [qualityMode, setQualityMode] = useState<QualityMode>('auto');
   const [hasAppliedInitialPosition, setHasAppliedInitialPosition] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [seekPreviewTime, setSeekPreviewTime] = useState(0);
+  const isSeekingRef = useRef(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
   const watermarkIntervalRef = useRef<NodeJS.Timeout>();
   const urlFetchedRef = useRef<string | null>(null); // Track fetched URL to prevent re-fetching
@@ -326,6 +329,8 @@ export function SecureVideoPlayer({
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
+      // While user drags the seek bar, don't fight their UI position.
+      if (isSeekingRef.current) return;
       const current = videoRef.current.currentTime;
       const total = videoRef.current.duration;
       setCurrentTime(current);
@@ -459,15 +464,15 @@ export function SecureVideoPlayer({
 
   if (error) {
     return (
-      <div className="aspect-video bg-black rounded-lg flex items-center justify-center">
-        <div className="text-center text-white px-4">
-          <p className="text-red-400 mb-2 text-lg font-medium">Video Not Available</p>
-          <p className="text-sm text-gray-400 mb-4 max-w-md">
+      <div className="aspect-video bg-background rounded-lg flex items-center justify-center border">
+        <div className="text-center text-foreground px-4">
+          <p className="text-destructive mb-2 text-lg font-medium">Video Not Available</p>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md">
             {error.includes('Object not found') || error.includes('404') 
               ? 'The video file has not been uploaded yet. Please contact the administrator.' 
               : error}
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             If you're the admin, please upload the video in the Admin Panel → Lessons section.
           </p>
         </div>
@@ -542,16 +547,26 @@ export function SecureVideoPlayer({
           {/* Progress Bar - Enhanced for better seeking */}
           <div className="relative group/seek">
             <Slider
-              value={[currentTime]}
+              value={[isSeeking ? seekPreviewTime : currentTime]}
               min={0}
               max={duration || 100}
               step={0.01}
               onValueChange={(value) => {
+                if (!duration || duration <= 0) return;
+                const newTime = value[0];
+                setIsSeeking(true);
+                isSeekingRef.current = true;
+                setSeekPreviewTime(newTime);
+                // Only update UI while dragging (commit seek on release)
+              }}
+              onValueCommit={(value) => {
                 if (videoRef.current && duration > 0) {
                   const newTime = value[0];
                   videoRef.current.currentTime = newTime;
                   setCurrentTime(newTime);
                 }
+                setIsSeeking(false);
+                isSeekingRef.current = false;
               }}
               className="cursor-pointer [&>span:first-child]:h-2 [&>span:first-child]:hover:h-3 [&>span:first-child]:transition-all [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:opacity-0 [&_[role=slider]]:group-hover/seek:opacity-100 [&_[role=slider]]:transition-opacity"
             />
@@ -679,9 +694,11 @@ export function SecureVideoPlayer({
       {/* Quality indicator badge */}
       {isGoogleDriveUrl(videoPath) && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs pointer-events-none select-none">
-          <span className={`px-2 py-0.5 rounded ${useProxyForGDrive ? 'bg-green-500/80 text-white' : 'bg-yellow-500/80 text-black'}`}>
-            {useProxyForGDrive ? 'HD' : 'SD 360p'}
-          </span>
+                  <span
+                    className={`px-2 py-0.5 rounded ${useProxyForGDrive ? 'bg-success/80 text-success-foreground' : 'bg-warning/80 text-warning-foreground'}`}
+                  >
+                    {useProxyForGDrive ? 'HD' : 'SD 360p'}
+                  </span>
         </div>
       )}
       

@@ -315,6 +315,8 @@ function CourseCard({
         <img 
           src={getThumbnail(course.slug, categoryImages[course.category] || '/placeholder.svg')} 
           alt={course.title}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           onError={(e) => {
             e.currentTarget.src = categoryImages[course.category] || '/placeholder.svg';
