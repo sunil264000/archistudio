@@ -395,6 +395,8 @@ function PaymentsPanel() {
   const [filter, setFilter] = useState<'all' | 'completed' | 'failed' | 'pending'>('all');
   const [stats, setStats] = useState({ total: 0, monthly: 0, successful: 0, failed: 0 });
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [selectedPayments, setSelectedPayments] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const fetchPayments = async () => {
     const { data } = await supabase
@@ -405,6 +407,7 @@ function PaymentsPanel() {
     
     const allPayments = data || [];
     setPayments(allPayments);
+    setSelectedPayments(new Set());
     
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -438,6 +441,47 @@ function PaymentsPanel() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedPayments.size === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedPayments.size} payment records?`)) return;
+    
+    setBulkDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('payments')
+        .delete()
+        .in('id', Array.from(selectedPayments));
+      
+      if (error) throw error;
+      toast.success(`Deleted ${selectedPayments.size} payment records`);
+      fetchPayments();
+    } catch (error) {
+      toast.error('Failed to delete payments');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const toggleSelectPayment = (id: string) => {
+    setSelectedPayments(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedPayments.size === filteredPayments.length) {
+      setSelectedPayments(new Set());
+    } else {
+      setSelectedPayments(new Set(filteredPayments.map(p => p.id)));
+    }
+  };
+
   const filteredPayments = payments.filter(p => {
     if (filter === 'all') return true;
     return p.status === filter;
@@ -446,10 +490,27 @@ function PaymentsPanel() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CreditCard className="h-5 w-5 text-accent" />
-          Payment History
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5 text-accent" />
+            Payment History
+          </CardTitle>
+          {selectedPayments.size > 0 && (
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+            >
+              {bulkDeleting ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Delete {selectedPayments.size} Selected
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Stats Cards */}
@@ -473,7 +534,7 @@ function PaymentsPanel() {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {(['all', 'completed', 'failed', 'pending'] as const).map(status => (
             <Button
               key={status}
@@ -491,8 +552,27 @@ function PaymentsPanel() {
           <p className="text-muted-foreground text-center py-8">No payments found.</p>
         ) : (
           <div className="space-y-2">
+            {/* Select All */}
+            <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
+              <input
+                type="checkbox"
+                checked={selectedPayments.size === filteredPayments.length && filteredPayments.length > 0}
+                onChange={toggleSelectAll}
+                className="h-4 w-4 rounded border-input"
+              />
+              <span className="text-sm text-muted-foreground">
+                Select All ({filteredPayments.length})
+              </span>
+            </div>
+            
             {filteredPayments.map(payment => (
-              <div key={payment.id} className="flex items-center justify-between p-4 border rounded-xl">
+              <div key={payment.id} className="flex items-center gap-3 p-4 border rounded-xl">
+                <input
+                  type="checkbox"
+                  checked={selectedPayments.has(payment.id)}
+                  onChange={() => toggleSelectPayment(payment.id)}
+                  className="h-4 w-4 rounded border-input"
+                />
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
                     <p className="font-bold text-lg">₹{payment.amount}</p>
