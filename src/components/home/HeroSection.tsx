@@ -10,8 +10,11 @@ import {
   staggerContainer,
   fadeInUp 
 } from '@/components/animations/AnimatedSection';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function HeroSection() {
+  const { user } = useAuth();
+  
   return (
     <section className="relative overflow-hidden min-h-[90vh] flex items-center">
       {/* 3D Background */}
@@ -122,7 +125,7 @@ export function HeroSection() {
               variants={fadeInUp}
               className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
             >
-              <Link to="/auth?mode=signup">
+              <Link to={user ? "/courses" : "/auth?mode=signup"}>
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -134,7 +137,7 @@ export function HeroSection() {
                       animate={{ x: '200%' }}
                       transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
                     />
-                    Start Learning Today
+                    {user ? "Browse Courses" : "Start Learning Today"}
                     <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                   </Button>
                 </motion.div>
