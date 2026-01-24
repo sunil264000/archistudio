@@ -24,6 +24,7 @@ import { AmbientAudioSettings } from '@/components/admin/AmbientAudioSettings';
 import { EmailTesting } from '@/components/admin/EmailTesting';
 import { EmailBroadcast } from '@/components/admin/EmailBroadcast';
 import { EbookPricingSettings } from '@/components/admin/EbookPricingSettings';
+import { EbookManagement } from '@/components/admin/EbookManagement';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
@@ -122,6 +123,8 @@ export default function Admin() {
         return <EmailBroadcast />;
       case 'ebooks':
         return <EbookPricingSettings />;
+      case 'ebook-library':
+        return <EbookManagement />;
       case 'analytics':
         return <AnalyticsPanel />;
       case 'support':

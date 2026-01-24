@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Sparkles, Library } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { CartSheet } from '@/components/cart/CartSheet';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -74,6 +74,14 @@ export function Navbar() {
               className="relative text-muted-foreground hover:text-foreground transition-colors group"
             >
               <span>Studios</span>
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
+            </Link>
+            <Link 
+              to="/ebooks" 
+              className="relative text-muted-foreground hover:text-foreground transition-colors group flex items-center gap-1.5"
+            >
+              <Library className="h-4 w-4" />
+              <span>eBooks</span>
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
             </Link>
             <Link 
@@ -180,6 +188,14 @@ export function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   Studios
+                </Link>
+                <Link 
+                  to="/ebooks" 
+                  className="text-muted-foreground hover:text-foreground transition-colors py-3 px-4 rounded-lg hover:bg-muted flex items-center gap-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <Library className="h-4 w-4" />
+                  eBooks Bundle
                 </Link>
                 <a 
                   href="/#pricing" 
