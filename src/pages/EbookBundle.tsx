@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BookOpen, 
@@ -25,9 +26,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useEbookPayment } from '@/hooks/useEbookPayment';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
+import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
 
 interface Ebook {
   id: string;
@@ -67,13 +70,15 @@ const categoryColors: Record<string, string> = {
 };
 
 export default function EbookBundle() {
+  const navigate = useNavigate();
   const [ebooks, setEbooks] = useState<Ebook[]>([]);
   const [pricingSettings, setPricingSettings] = useState<PricingSettings | null>(null);
   const [selectedBooks, setSelectedBooks] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [purchasing, setPurchasing] = useState(false);
+  const [phoneDialogOpen, setPhoneDialogOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { initiatePayment, isLoading: purchasing } = useEbookPayment();
 
   useEffect(() => {
     fetchData();
@@ -159,13 +164,14 @@ export default function EbookBundle() {
   const finalPrice = isFullBundle ? fullBundlePrice : pricing.total;
   const fullBundleSavings = (totalBooks * basePrice) - fullBundlePrice;
 
-  const handlePurchase = async () => {
+  const handlePurchase = async (phone?: string) => {
     if (!user) {
       toast({
         title: "Login Required",
         description: "Please login to purchase eBooks",
         variant: "destructive"
       });
+      navigate('/auth');
       return;
     }
 
@@ -178,13 +184,33 @@ export default function EbookBundle() {
       return;
     }
 
-    setPurchasing(true);
-    // TODO: Integrate with payment gateway
-    toast({
-      title: "Coming Soon!",
-      description: "Payment integration will be added. Contact admin for purchase.",
+    // Get user profile for phone number
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('phone, full_name, email')
+      .eq('user_id', user.id)
+      .single();
+
+    const userPhone = phone || profile?.phone;
+    
+    // Check if phone number is available
+    if (!userPhone || userPhone.length < 10) {
+      setPhoneDialogOpen(true);
+      return;
+    }
+
+    // Initiate payment
+    await initiatePayment({
+      ebookIds: Array.from(selectedBooks),
+      customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
+      customerEmail: profile?.email || user.email || '',
+      customerPhone: userPhone,
     });
-    setPurchasing(false);
+  };
+
+  const handlePhoneSubmit = (phone: string) => {
+    setPhoneDialogOpen(false);
+    handlePurchase(phone);
   };
 
   if (loading) {
@@ -413,7 +439,7 @@ export default function EbookBundle() {
                     <Button 
                       size="lg" 
                       className="bg-primary hover:bg-primary/90 px-8"
-                      onClick={handlePurchase}
+                      onClick={() => handlePurchase()}
                       disabled={purchasing}
                     >
                       {purchasing ? 'Processing...' : 'Buy Now'}
@@ -428,6 +454,12 @@ export default function EbookBundle() {
       </main>
       
       <Footer />
+      
+      <PhoneNumberDialog
+        open={phoneDialogOpen}
+        onOpenChange={setPhoneDialogOpen}
+        onSubmit={handlePhoneSubmit}
+      />
     </div>
   );
 }
