@@ -162,16 +162,23 @@ export default function CourseDetail() {
   // Fetch real modules from database
   const { modules: dbModules, loading: modulesLoading, totalLessons: dbTotalLessons, totalDuration } = useCourseModules(slug);
   
-  // Fetch database course ID for reviews
+  // Fetch database course ID + public meta for correct stats display (even for guests)
   const [dbCourseId, setDbCourseId] = useState<string | null>(null);
+  const [dbCourseMeta, setDbCourseMeta] = useState<{ total_lessons: number | null; duration_hours: number | null } | null>(null);
   useEffect(() => {
     if (slug) {
       supabase
         .from('courses')
-        .select('id')
+        .select('id, total_lessons, duration_hours')
         .eq('slug', slug)
         .single()
-        .then(({ data }) => setDbCourseId(data?.id || null));
+        .then(({ data }) => {
+          setDbCourseId(data?.id || null);
+          setDbCourseMeta({
+            total_lessons: (data as any)?.total_lessons ?? null,
+            duration_hours: (data as any)?.duration_hours ?? null,
+          });
+        });
     }
   }, [slug]);
 
@@ -311,10 +318,14 @@ export default function CourseDetail() {
     advanced: 'bg-destructive/10 text-destructive border-destructive/30',
   };
 
-  // Use database modules if available, otherwise show placeholder
+  // Use correct totals:
+  // - For guests, RLS restricts lesson reads to free previews, so totals must come from the course meta.
+  // - For enrolled users, totals can be calculated from lessons.
   const hasRealContent = dbModules.length > 0;
-  const displayTotalLessons = hasRealContent ? dbTotalLessons : course.totalLessons;
-  const displayTotalHours = hasRealContent ? Math.round(totalDuration / 60) : course.durationHours;
+  const displayTotalLessons = (dbCourseMeta?.total_lessons ?? null) ?? (hasRealContent ? dbTotalLessons : course.totalLessons);
+  const displayTotalHours = user
+    ? (hasRealContent ? Math.round(totalDuration / 60) : (dbCourseMeta?.duration_hours ?? course.durationHours))
+    : (dbCourseMeta?.duration_hours ?? 0);
   
   // Format duration for display - hide if 0
   const formatDuration = (minutes: number) => {
@@ -357,10 +368,10 @@ export default function CourseDetail() {
       {/* Animated Background */}
       <AnimatedBackground intensity="light" />
       
-      {/* Hero Section */}
-      <section className="pt-24 pb-8 relative">
+       {/* Hero Section */}
+       <section className="pt-20 pb-6 relative">
         <div className="container mx-auto px-4">
-          <Link to="/courses" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-6 transition-colors">
+           <Link to="/courses" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-4 transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Courses
           </Link>
@@ -396,7 +407,7 @@ export default function CourseDetail() {
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <Clock className="h-4 w-4" />
-                  {displayTotalHours > 0 ? `${displayTotalHours} hours` : 'Self-paced'}
+                  {displayTotalHours > 0 ? `${displayTotalHours} hours` : 'Self-paced (learn anytime)'}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <BookOpen className="h-4 w-4" />
