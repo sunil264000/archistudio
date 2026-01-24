@@ -43,15 +43,20 @@ export function SecureVideoPlayer({
   const { user } = useAuth();
 
   const isExternalUrl = (url: string) => /^https?:\/\//i.test(url);
+  const isGoogleDriveUrl = (url: string) =>
+    /drive\.google\.com|docs\.google\.com/i.test(url);
   const isGoogleDrivePreview = (url: string) =>
     /drive\.google\.com\/file\/d\/.+\/preview/i.test(url);
   const isGoogleDriveView = (url: string) =>
     /drive\.google\.com\/file\/d\/.+\/view/i.test(url);
 
-  // Convert Google Drive view URL to preview URL
+  // Convert Google Drive view URL to preview URL (for fallback iframe)
   const convertToPreviewUrl = (url: string): string => {
     return url.replace('/view', '/preview');
   };
+
+  // Flag to track if we're using proxy streaming for Google Drive
+  const [useProxyForGDrive, setUseProxyForGDrive] = useState(true);
 
   // Move watermark randomly to make it harder to crop out
   useEffect(() => {
@@ -127,9 +132,55 @@ export function SecureVideoPlayer({
   }, []);
 
   useEffect(() => {
-    // Handle external URLs (e.g., Google Drive).
-    // NOTE: external hosts can always be captured by download extensions.
-    if (videoPath && isExternalUrl(videoPath)) {
+    // For Google Drive URLs, route through our streaming proxy for full quality
+    if (videoPath && isGoogleDriveUrl(videoPath)) {
+      const fetchGoogleDriveStream = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          
+          // Generate proxy streaming URL that will fetch from Google Drive at full quality
+          const streamUrl = await generateStreamingUrl(videoPath);
+          
+          if (streamUrl) {
+            setVideoUrl(streamUrl);
+            setUseProxyForGDrive(true);
+          } else {
+            // Fallback to iframe embed if proxy fails (lower quality)
+            console.warn('Proxy streaming unavailable, falling back to iframe embed');
+            setUseProxyForGDrive(false);
+            let finalUrl = videoPath;
+            if (isGoogleDriveView(videoPath)) {
+              finalUrl = convertToPreviewUrl(videoPath);
+            } else if (!isGoogleDrivePreview(videoPath)) {
+              // Convert to preview URL format
+              const fileIdMatch = videoPath.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+              if (fileIdMatch) {
+                finalUrl = `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
+              }
+            }
+            setVideoUrl(finalUrl);
+          }
+        } catch (err: any) {
+          console.error('Error setting up Google Drive stream:', err);
+          // Fallback to iframe
+          setUseProxyForGDrive(false);
+          let finalUrl = videoPath;
+          if (isGoogleDriveView(videoPath)) {
+            finalUrl = convertToPreviewUrl(videoPath);
+          }
+          setVideoUrl(finalUrl);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchGoogleDriveStream();
+      return;
+    }
+
+    // Handle other external URLs (non-Google Drive)
+    if (videoPath && isExternalUrl(videoPath) && !isGoogleDriveUrl(videoPath)) {
       if (!allowExternal) {
         setError(
           'This lesson video is hosted externally and cannot be fully protected. Please upload it to secure storage to disable download extensions.'
@@ -139,15 +190,8 @@ export function SecureVideoPlayer({
         return;
       }
 
-      let finalUrl = videoPath;
-
-      // Convert view URL to preview URL for Google Drive
-      if (isGoogleDriveView(videoPath)) {
-        finalUrl = convertToPreviewUrl(videoPath);
-      }
-
       setError(null);
-      setVideoUrl(finalUrl);
+      setVideoUrl(videoPath);
       setLoading(false);
       return;
     }
@@ -184,7 +228,7 @@ export function SecureVideoPlayer({
     if (videoPath) {
       fetchStreamingUrl();
     }
-  }, [lessonId, videoPath]);
+  }, [lessonId, videoPath, allowExternal]);
 
   useEffect(() => {
     if (videoRef.current && videoUrl && initialPosition > 0) {
@@ -304,8 +348,9 @@ export function SecureVideoPlayer({
     return '';
   };
 
-  // External embeds (Google Drive preview) with user watermark
-  if (!loading && !error && videoUrl && isGoogleDrivePreview(videoUrl)) {
+  // External embeds (Google Drive preview iframe) - ONLY used as fallback when proxy fails
+  // The proxy streaming gives full 720p/1080p quality, iframe gives 360p
+  if (!loading && !error && videoUrl && isGoogleDrivePreview(videoUrl) && !useProxyForGDrive) {
     return (
       <div 
         ref={containerRef} 
@@ -349,10 +394,10 @@ export function SecureVideoPlayer({
           Concrete Logic
         </div>
 
-        {/* Notice for embedded videos */}
+        {/* Notice for embedded videos - lower quality */}
         <div className="absolute bottom-12 left-0 right-0 text-center">
           <span className="text-[10px] text-white/40 bg-black/40 px-2 py-1 rounded">
-            Embedded video (progress tracking limited)
+            Embedded video (360p quality - progress tracking limited)
           </span>
         </div>
       </div>

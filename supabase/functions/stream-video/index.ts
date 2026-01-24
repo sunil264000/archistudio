@@ -5,8 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * Secure Video Streaming Proxy
  * 
  * This function streams video content directly without exposing the source URL.
- * It serves video as chunked transfer, making it harder for download managers
- * to capture the full file URL.
+ * Supports both Supabase storage and Google Drive direct streaming at full quality.
  */
 
 const corsHeaders = {
@@ -15,6 +14,52 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Expose-Headers": "Content-Range, Accept-Ranges, Content-Length",
 };
+
+// Extract Google Drive file ID from various URL formats
+function extractGoogleDriveFileId(url: string): string | null {
+  // Match patterns like:
+  // https://drive.google.com/file/d/FILE_ID/view
+  // https://drive.google.com/file/d/FILE_ID/preview
+  // https://drive.google.com/open?id=FILE_ID
+  const patterns = [
+    /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/,
+    /drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/,
+    /docs\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  return null;
+}
+
+// Check if URL is a Google Drive URL
+function isGoogleDriveUrl(url: string): boolean {
+  return /drive\.google\.com|docs\.google\.com/i.test(url);
+}
+
+// Get Google Drive direct download URL using API
+async function getGoogleDriveStream(fileId: string, apiKey: string, rangeHeader?: string | null): Promise<Response> {
+  // Use the Google Drive API to get file metadata and download URL
+  const metadataUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${apiKey}`;
+  
+  const headers: HeadersInit = {};
+  if (rangeHeader) {
+    headers['Range'] = rangeHeader;
+  }
+
+  const response = await fetch(metadataUrl, { headers });
+  
+  if (!response.ok) {
+    console.error(`Google Drive API error: ${response.status} ${response.statusText}`);
+    throw new Error(`Failed to fetch from Google Drive: ${response.status}`);
+  }
+
+  return response;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -79,7 +124,7 @@ serve(async (req) => {
     if (!isAdmin) {
       const { data: lesson } = await supabaseClient
         .from("lessons")
-        .select(`id, modules!inner (course_id)`)
+        .select(`id, is_free_preview, modules!inner (course_id)`)
         .eq("id", lessonId)
         .single();
 
@@ -90,25 +135,91 @@ serve(async (req) => {
         );
       }
 
-      const courseId = (lesson.modules as any).course_id;
+      // Allow free preview lessons without enrollment check
+      if (!lesson.is_free_preview) {
+        const courseId = (lesson.modules as any).course_id;
 
-      const { data: enrollment } = await supabaseClient
-        .from("enrollments")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("course_id", courseId)
-        .eq("status", "active")
-        .maybeSingle();
+        const { data: enrollment } = await supabaseClient
+          .from("enrollments")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("course_id", courseId)
+          .eq("status", "active")
+          .maybeSingle();
 
-      if (!enrollment) {
+        if (!enrollment) {
+          return new Response(
+            JSON.stringify({ error: "Not enrolled" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
+
+    const rangeHeader = req.headers.get("range");
+
+    // Check if this is a Google Drive URL
+    if (isGoogleDriveUrl(videoPath)) {
+      const fileId = extractGoogleDriveFileId(videoPath);
+      
+      if (!fileId) {
         return new Response(
-          JSON.stringify({ error: "Not enrolled" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: "Invalid Google Drive URL" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const googleApiKey = Deno.env.get("GOOGLE_API_KEY");
+      if (!googleApiKey) {
+        return new Response(
+          JSON.stringify({ error: "Google API key not configured" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      try {
+        const driveResponse = await getGoogleDriveStream(fileId, googleApiKey, rangeHeader);
+        
+        // Get content info from Drive response
+        const contentType = driveResponse.headers.get("Content-Type") || "video/mp4";
+        const contentLength = driveResponse.headers.get("Content-Length");
+        const contentRange = driveResponse.headers.get("Content-Range");
+        const acceptRanges = driveResponse.headers.get("Accept-Ranges");
+
+        const responseHeaders: HeadersInit = {
+          ...corsHeaders,
+          "Content-Type": contentType,
+          "Cache-Control": "no-store, no-cache, must-revalidate, private",
+          "Pragma": "no-cache",
+          "X-Content-Type-Options": "nosniff",
+          "Content-Disposition": "inline",
+        };
+
+        if (contentLength) {
+          responseHeaders["Content-Length"] = contentLength;
+        }
+        if (contentRange) {
+          responseHeaders["Content-Range"] = contentRange;
+        }
+        if (acceptRanges) {
+          responseHeaders["Accept-Ranges"] = acceptRanges;
+        }
+
+        // Stream the response from Google Drive
+        return new Response(driveResponse.body, {
+          status: driveResponse.status,
+          headers: responseHeaders,
+        });
+      } catch (driveError: any) {
+        console.error("Google Drive streaming error:", driveError);
+        return new Response(
+          JSON.stringify({ error: "Failed to stream from Google Drive", details: driveError.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
 
-    // Get the video from storage
+    // Handle internal storage videos (existing logic)
     const { data: fileData, error: fileError } = await supabaseClient
       .storage
       .from("course-videos")
@@ -124,7 +235,6 @@ serve(async (req) => {
 
     // Get file size for range requests
     const fileSize = fileData.size;
-    const rangeHeader = req.headers.get("range");
 
     // Handle range requests for seeking
     if (rangeHeader) {
