@@ -74,17 +74,28 @@ serve(async (req) => {
       });
     }
 
-    // FAST IMPORT - optimized for bulk operations (parallel DB inserts)
-    if ((action === "import" || action === "import-fast") && courseId) {
+    // SMART SYNC IMPORT - replaces existing content, no duplicates
+    if ((action === "import" || action === "import-fast" || action === "sync") && courseId) {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, supabaseKey);
 
       // Fast parallel scan
       const structure = await scanFolderFast(extractedFolderId, GOOGLE_API_KEY);
+      
+      // SMART SYNC: Delete existing modules and lessons for this course first
+      const deleteResult = await deleteExistingContent(supabase, courseId);
+      console.log("Deleted existing content:", deleteResult);
+      
       const importResult = await importStructureFast(supabase, courseId, structure);
 
-      return new Response(JSON.stringify({ success: true, ...importResult }), {
+      return new Response(JSON.stringify({ 
+        success: true, 
+        ...importResult,
+        deletedModules: deleteResult.modulesDeleted,
+        deletedLessons: deleteResult.lessonsDeleted,
+        synced: true 
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -395,6 +406,41 @@ async function listFilesInFolder(
   } while (pageToken);
 
   return allFiles;
+}
+
+// Delete all existing modules/lessons for a course (for clean sync)
+async function deleteExistingContent(
+  supabase: any,
+  courseId: string
+): Promise<{ modulesDeleted: number; lessonsDeleted: number }> {
+  // Get all modules for this course
+  const { data: modules } = await supabase
+    .from("modules")
+    .select("id")
+    .eq("course_id", courseId);
+  
+  if (!modules || modules.length === 0) {
+    return { modulesDeleted: 0, lessonsDeleted: 0 };
+  }
+  
+  const moduleIds = modules.map((m: any) => m.id);
+  
+  // Delete all lessons for these modules first (foreign key constraint)
+  const { count: lessonsDeleted } = await supabase
+    .from("lessons")
+    .delete({ count: 'exact' })
+    .in("module_id", moduleIds);
+  
+  // Delete all modules
+  const { count: modulesDeleted } = await supabase
+    .from("modules")
+    .delete({ count: 'exact' })
+    .eq("course_id", courseId);
+  
+  return { 
+    modulesDeleted: modulesDeleted || 0, 
+    lessonsDeleted: lessonsDeleted || 0 
+  };
 }
 
 // FAST import - uses batch inserts for maximum speed
