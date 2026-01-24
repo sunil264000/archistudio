@@ -25,6 +25,7 @@ import { EmailTesting } from '@/components/admin/EmailTesting';
 import { EmailBroadcast } from '@/components/admin/EmailBroadcast';
 import { EbookPricingSettings } from '@/components/admin/EbookPricingSettings';
 import { EbookManagement } from '@/components/admin/EbookManagement';
+import { ManualEbookAccess } from '@/components/admin/ManualEbookAccess';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
@@ -125,6 +126,8 @@ export default function Admin() {
         return <EbookPricingSettings />;
       case 'ebook-library':
         return <EbookManagement />;
+      case 'ebook-access':
+        return <ManualEbookAccess />;
       case 'analytics':
         return <AnalyticsPanel />;
       case 'support':

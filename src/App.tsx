@@ -24,6 +24,8 @@ import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentFailed from "./pages/PaymentFailed";
+import EbookPaymentSuccess from "./pages/EbookPaymentSuccess";
+import EbookPaymentFailed from "./pages/EbookPaymentFailed";
 import ResetPassword from "./pages/ResetPassword";
 import UpdatePassword from "./pages/UpdatePassword";
 import Contact from "./pages/Contact";
@@ -83,6 +85,8 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/ebooks" element={<EbookBundle />} />
+              <Route path="/ebook-payment-success" element={<EbookPaymentSuccess />} />
+              <Route path="/ebook-payment-failed" element={<EbookPaymentFailed />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
