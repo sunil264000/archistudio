@@ -13,7 +13,7 @@ import {
   FolderX, CheckSquare, Square, ArrowUpDown, Filter,
   BookOpen, Layers, Clock, AlertCircle, CheckCircle2,
   Package, X, Link2, Unlink, FolderSync, ExternalLink,
-  ChevronRight, Video, FileText
+  ChevronRight, Video, FileText, Plus
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -140,6 +140,12 @@ export function CourseManagement() {
   const [expandedModules, setExpandedModules] = useState<ModuleWithLessons[]>([]);
   const [loadingExpanded, setLoadingExpanded] = useState(false);
   
+  // Create course dialog state
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [newCourseTitle, setNewCourseTitle] = useState('');
+  const [newCourseSlug, setNewCourseSlug] = useState('');
+  const [creatingCourse, setCreatingCourse] = useState(false);
+  
   // Thumbnail editing state (local only, saves on button click)
   const [thumbnailEdits, setThumbnailEdits] = useState<Record<string, string>>({});
   const [savingThumbnail, setSavingThumbnail] = useState<string | null>(null);
@@ -213,6 +219,47 @@ export function CourseManagement() {
       toast.error('Failed to save thumbnail: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setSavingThumbnail(null);
+    }
+  };
+
+  const handleCreateCourse = async () => {
+    if (!newCourseTitle.trim()) {
+      toast.error('Please enter a course title');
+      return;
+    }
+    
+    const slug = newCourseSlug.trim() || newCourseTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    
+    setCreatingCourse(true);
+    try {
+      const maxOrderIndex = courses.reduce((max, c) => Math.max(max, c.order_index || 0), 0);
+      
+      const { data, error } = await supabase
+        .from('courses')
+        .insert({
+          title: newCourseTitle.trim(),
+          slug,
+          order_index: maxOrderIndex + 1,
+          is_published: false,
+          is_featured: false,
+          price_inr: 0,
+          price_usd: 0,
+          level: 'beginner',
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      toast.success(`Course "${data.title}" created!`);
+      setCreateDialogOpen(false);
+      setNewCourseTitle('');
+      setNewCourseSlug('');
+      fetchCourses();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create course');
+    } finally {
+      setCreatingCourse(false);
     }
   };
 
@@ -1298,24 +1345,77 @@ export function CourseManagement() {
             Courses ({processedCourses.length})
             {loadingContent && <Loader2 className="inline h-4 w-4 ml-2 animate-spin" />}
           </CardTitle>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={toggleSelectAll}
-            className="gap-2"
-          >
-            {selectedCourses.size === processedCourses.length && processedCourses.length > 0 ? (
-              <>
-                <CheckSquare className="h-4 w-4" />
-                Deselect
-              </>
-            ) : (
-              <>
-                <Square className="h-4 w-4" />
-                Select All
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <Button 
+                variant="default" 
+                size="sm"
+                onClick={() => setCreateDialogOpen(true)}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Create Course
+              </Button>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create New Course</DialogTitle>
+                  <DialogDescription>
+                    Add a new course to your catalog. You can add content and configure settings after creation.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="course-title">Course Title *</Label>
+                    <Input
+                      id="course-title"
+                      placeholder="e.g., Complete 3D Visualization Masterclass"
+                      value={newCourseTitle}
+                      onChange={(e) => setNewCourseTitle(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="course-slug">URL Slug (optional)</Label>
+                    <Input
+                      id="course-slug"
+                      placeholder="Auto-generated from title if empty"
+                      value={newCourseSlug}
+                      onChange={(e) => setNewCourseSlug(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {newCourseSlug.trim() || newCourseTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'course-slug'}
+                    </p>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateCourse} disabled={creatingCourse || !newCourseTitle.trim()}>
+                    {creatingCourse ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                    Create Course
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={toggleSelectAll}
+              className="gap-2"
+            >
+              {selectedCourses.size === processedCourses.length && processedCourses.length > 0 ? (
+                <>
+                  <CheckSquare className="h-4 w-4" />
+                  Deselect
+                </>
+              ) : (
+                <>
+                  <Square className="h-4 w-4" />
+                  Select All
+                </>
+              )}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y divide-border">
