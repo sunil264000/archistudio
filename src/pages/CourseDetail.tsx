@@ -338,7 +338,7 @@ export default function CourseDetail() {
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
-  const courseUrl = `https://concrete-logic.lovable.app/courses/${course.slug}`;
+  const courseUrl = `https://archistudio.lovable.app/courses/${course.slug}`;
   const courseSchema = generateCourseSchema({
     title: course.title,
     description: course.description,
@@ -353,7 +353,7 @@ export default function CourseDetail() {
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       <SEOHead 
-        title={`${course.title} - Concrete Logic`}
+        title={`${course.title} - Archistudio`}
         description={course.shortDescription}
         type="product"
         price={course.priceInr}

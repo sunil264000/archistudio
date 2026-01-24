@@ -79,12 +79,12 @@ export function ReferralSection() {
     if (!referral) return;
     
     const shareUrl = `${window.location.origin}/auth?mode=signup&ref=${referral.referral_code}`;
-    const shareText = `Join me on Concrete Logic and learn practical architecture skills! Use my referral code for 10% off: ${referral.referral_code}`;
+    const shareText = `Join me on Archistudio and learn practical architecture skills! Use my referral code for 10% off: ${referral.referral_code}`;
     
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Learn Architecture with Concrete Logic',
+          title: 'Learn Architecture with Archistudio',
           text: shareText,
           url: shareUrl,
         });
