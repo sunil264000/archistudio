@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   BookOpen, Package, Video, Users, UserPlus, HelpCircle, Bell, 
   CreditCard, Sparkles, Award, BarChart3, MessageSquare, Settings,
-  ChevronLeft, ChevronRight, LayoutDashboard, Timer, Mail, Send, Library
+  ChevronLeft, ChevronRight, LayoutDashboard, Timer, Mail, Send, Library, FileText
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logo from '@/assets/logo.png';
@@ -32,6 +32,7 @@ const menuItems = [
   { id: 'email-testing', label: 'Email Testing', icon: Mail, color: 'text-violet-500' },
   { id: 'email-broadcast', label: 'Email Broadcast', icon: Send, color: 'text-rose-500' },
   { id: 'ebooks', label: 'eBooks Pricing', icon: Library, color: 'text-sky-500' },
+  { id: 'ebook-library', label: 'eBook Library', icon: FileText, color: 'text-cyan-500' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-indigo-500' },
   { id: 'support', label: 'Support', icon: MessageSquare, color: 'text-teal-500' },
   { id: 'settings', label: 'Settings', icon: Settings, color: 'text-gray-500' },
