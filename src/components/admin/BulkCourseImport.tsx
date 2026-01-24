@@ -6,14 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
   FolderOpen, Loader2, CheckCircle2, XCircle, ArrowRight, 
-  Sparkles, Upload, RefreshCw, Link2, Unlink, Search,
-  ArrowUpDown, Filter, Database, CloudIcon, Check, X,
-  AlertCircle, FolderSync, RotateCcw, Trash2
+  Sparkles, Upload, RefreshCw, Search, ArrowUpDown, Filter, 
+  Database, CloudIcon, Check, X, AlertCircle, FolderSync, Trash2,
+  Link2, RotateCcw, Unlink
 } from "lucide-react";
 
 interface Course {
@@ -101,6 +101,8 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
   const [sortBy, setSortBy] = useState<'confidence' | 'name' | 'videos'>('confidence');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [cleaningCourseId, setCleaningCourseId] = useState<string | null>(null);
+  const [isBulkCleaning, setIsBulkCleaning] = useState(false);
+  const [selectedForClean, setSelectedForClean] = useState<Set<string>>(new Set());
   
   // Courses with content info (modules, lessons, hours)
   const [coursesWithContent, setCoursesWithContent] = useState<Record<string, { modules: number; lessons: number; hours: number }>>({});
@@ -359,6 +361,100 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
     } finally {
       setCleaningCourseId(null);
     }
+  };
+
+  // Toggle selection for cleaning
+  const toggleCleanSelection = (courseId: string) => {
+    setSelectedForClean(prev => {
+      const next = new Set(prev);
+      if (next.has(courseId)) {
+        next.delete(courseId);
+      } else {
+        next.add(courseId);
+      }
+      return next;
+    });
+  };
+
+  // Get courses with content that can be cleaned
+  const coursesWithContentToClean = useMemo(() => {
+    return folderMatches
+      .filter(m => m.matchedCourse && coursesWithContent[m.matchedCourse.id]?.lessons > 0)
+      .map(m => ({ id: m.matchedCourse!.id, title: m.matchedCourse!.title }));
+  }, [folderMatches, coursesWithContent]);
+
+  // Select/deselect all for cleaning
+  const toggleSelectAllForClean = () => {
+    if (selectedForClean.size === coursesWithContentToClean.length) {
+      setSelectedForClean(new Set());
+    } else {
+      setSelectedForClean(new Set(coursesWithContentToClean.map(c => c.id)));
+    }
+  };
+
+  // Bulk clean selected courses
+  const handleBulkClean = async () => {
+    if (selectedForClean.size === 0) return;
+    
+    const coursesToClean = coursesWithContentToClean.filter(c => selectedForClean.has(c.id));
+    if (!confirm(`Clean ALL content from ${coursesToClean.length} courses? This cannot be undone.`)) {
+      return;
+    }
+    
+    setIsBulkCleaning(true);
+    let cleaned = 0;
+    
+    for (const course of coursesToClean) {
+      try {
+        const { data: modules } = await supabase
+          .from('modules')
+          .select('id')
+          .eq('course_id', course.id);
+        
+        if (modules && modules.length > 0) {
+          const moduleIds = modules.map(m => m.id);
+          const { data: lessons } = await supabase
+            .from('lessons')
+            .select('id')
+            .in('module_id', moduleIds);
+          
+          if (lessons && lessons.length > 0) {
+            const lessonIds = lessons.map(l => l.id);
+            await supabase.from('lesson_resources').delete().in('lesson_id', lessonIds);
+            await supabase.from('lessons').delete().in('module_id', moduleIds);
+          }
+          await supabase.from('modules').delete().eq('course_id', course.id);
+        }
+        
+        await supabase.from('courses').update({ total_lessons: 0, duration_hours: null }).eq('id', course.id);
+        
+        await supabase.from('import_activity_log').insert({
+          course_id: course.id,
+          course_title: course.title,
+          folder_id: 'bulk-clean',
+          folder_name: 'Bulk Clean',
+          action: 'clean',
+          status: 'success'
+        });
+        
+        cleaned++;
+      } catch (err) {
+        console.error(`Failed to clean ${course.title}:`, err);
+      }
+    }
+    
+    // Update local state
+    setCoursesWithContent(prev => {
+      const updated = { ...prev };
+      for (const id of selectedForClean) {
+        delete updated[id];
+      }
+      return updated;
+    });
+    
+    setSelectedForClean(new Set());
+    setIsBulkCleaning(false);
+    toast.success(`Cleaned ${cleaned} courses successfully`);
   };
 
   const handleImportAll = async () => {
@@ -673,136 +769,129 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
               </Button>
             </div>
 
+            {/* Bulk Clean Bar - shows when courses have content */}
+            {alreadyHasContentCount > 0 && (
+              <div className="flex items-center justify-between p-3 bg-destructive/5 border border-destructive/20 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={selectedForClean.size === coursesWithContentToClean.length && coursesWithContentToClean.length > 0}
+                    onCheckedChange={toggleSelectAllForClean}
+                    disabled={isBulkCleaning}
+                  />
+                  <span className="text-sm">
+                    {selectedForClean.size > 0 
+                      ? `${selectedForClean.size} of ${alreadyHasContentCount} courses selected`
+                      : `${alreadyHasContentCount} courses have existing content`
+                    }
+                  </span>
+                </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleBulkClean}
+                  disabled={selectedForClean.size === 0 || isBulkCleaning}
+                >
+                  {isBulkCleaning ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Cleaning...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Clean {selectedForClean.size > 0 ? selectedForClean.size : ''} Selected
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
             {/* Folder Matches List */}
-            <ScrollArea className="h-[500px] border rounded-lg">
-              <div className="p-3 space-y-2">
+            <ScrollArea className="h-[450px] border rounded-lg">
+              <div className="divide-y">
                 {filteredMatches.map((match) => {
                   const courseContent = match.matchedCourse ? coursesWithContent[match.matchedCourse.id] : null;
                   const hasExistingContent = courseContent && courseContent.lessons > 0;
+                  const isSelected = match.matchedCourse && selectedForClean.has(match.matchedCourse.id);
                   
                   return (
                     <div 
                       key={match.folderId} 
-                      className={`p-4 rounded-lg border transition-colors ${
-                        match.matchedCourse 
-                          ? hasExistingContent 
-                            ? 'bg-accent/10 border-accent/40' 
-                            : 'bg-primary/5 border-primary/30'
-                          : 'bg-muted/30 border-muted'
+                      className={`px-4 py-3 transition-colors ${
+                        isSelected ? 'bg-destructive/10' : 
+                        hasExistingContent ? 'bg-accent/5' : 
+                        match.matchedCourse ? 'bg-primary/5' : ''
                       }`}
                     >
-                      {/* Mapping Row */}
-                      <div className="flex items-center gap-3">
-                        {/* Google Drive Folder */}
+                      <div className="flex items-center gap-4">
+                        {/* Checkbox for cleaning */}
+                        {hasExistingContent && match.matchedCourse && (
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleCleanSelection(match.matchedCourse!.id)}
+                            disabled={isBulkCleaning}
+                            className="shrink-0"
+                          />
+                        )}
+                        {!hasExistingContent && <div className="w-4 shrink-0" />}
+
+                        {/* Drive Folder Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <CloudIcon className="h-5 w-5 text-primary shrink-0" />
-                            <div className="min-w-0">
-                              <p className="font-medium truncate">{match.folderName}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Badge variant="outline" className="text-xs shrink-0">
-                                  {match.videoCount} videos
-                                </Badge>
-                                {getConfidenceBadge(match)}
-                              </div>
-                            </div>
+                            <CloudIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <span className="font-medium truncate text-sm">{match.folderName}</span>
+                            <Badge variant="outline" className="text-xs shrink-0">
+                              {match.videoCount} videos
+                            </Badge>
+                            {getConfidenceBadge(match)}
                           </div>
                         </div>
 
-                        {/* Arrow */}
-                        <div className="shrink-0 px-2">
-                          <ArrowRight className={`h-5 w-5 ${match.matchedCourse ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+
+                        {/* Course Select */}
+                        <div className="w-[320px] shrink-0">
+                          <Select
+                            value={match.matchedCourse?.id || "none"} 
+                            onValueChange={(val) => val === 'none' ? unlinkMatch(match.folderId) : updateMatch(match.folderId, val)}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Select course..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">
+                                <span className="text-muted-foreground">-- Not Linked --</span>
+                              </SelectItem>
+                              {courses.map(c => {
+                                const content = coursesWithContent[c.id];
+                                const hasContent = content && (content.modules > 0 || content.lessons > 0);
+                                return (
+                                  <SelectItem key={c.id} value={c.id}>
+                                    <span className="flex items-center gap-2">
+                                      <span className="truncate">{c.title}</span>
+                                      {hasContent && (
+                                        <Badge variant="outline" className="text-xs">
+                                          {content.modules}M / {content.lessons}L
+                                        </Badge>
+                                      )}
+                                    </span>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
                         </div>
 
-                        {/* Database Course */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <Database className={`h-5 w-5 shrink-0 ${match.matchedCourse ? 'text-primary' : 'text-muted-foreground'}`} />
-                            <Select
-                              value={match.matchedCourse?.id || "none"} 
-                              onValueChange={(val) => val === 'none' ? unlinkMatch(match.folderId) : updateMatch(match.folderId, val)}
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Select course..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">
-                                  <span className="text-muted-foreground">-- Not Linked --</span>
-                                </SelectItem>
-                                {courses.map(c => {
-                                  const content = coursesWithContent[c.id];
-                                  const hasContent = content && (content.modules > 0 || content.lessons > 0);
-                                  return (
-                                    <SelectItem key={c.id} value={c.id}>
-                                      <span className="flex items-center gap-2">
-                                        {c.title}
-                                        {hasContent && (
-                                          <Badge variant="outline" className="text-xs ml-auto">
-                                            {content.modules}M / {content.lessons}L
-                                          </Badge>
-                                        )}
-                                      </span>
-                                    </SelectItem>
-                                  );
-                                })}
-                              </SelectContent>
-                            </Select>
-                            {/* Show existing content count badge next to select */}
-                            {hasExistingContent && (
-                              <Badge variant="secondary" className="shrink-0 bg-accent text-accent-foreground">
-                                {courseContent.modules}M / {courseContent.lessons}L
-                              </Badge>
-                            )}
-                          </div>
-                          {hasExistingContent && (
-                            <p className="text-xs text-destructive mt-1 flex items-center gap-1 font-medium">
-                              <AlertCircle className="h-3 w-3" />
-                              ⚠️ Already has {courseContent.modules} modules, {courseContent.lessons} lessons ({Math.round(courseContent.hours * 10) / 10}h) - will be replaced on import
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-1 shrink-0">
-                          {/* Clean button for courses with existing content */}
-                          {hasExistingContent && match.matchedCourse && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => handleCleanCourse(match.matchedCourse!.id, match.matchedCourse!.title)}
-                              disabled={cleaningCourseId === match.matchedCourse.id}
-                              title="Clean all content from this course"
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              {cleaningCourseId === match.matchedCourse.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </Button>
-                          )}
-                          {match.isManuallyLinked && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => resetToAutoMatch(match.folderId)}
-                              title="Reset to auto-match"
-                            >
-                              <RotateCcw className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {match.matchedCourse && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => unlinkMatch(match.folderId)}
-                              title="Unlink"
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Unlink className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
+                        {/* Content Badge */}
+                        {hasExistingContent ? (
+                          <Badge variant="secondary" className="shrink-0 bg-accent/50 text-accent-foreground font-medium">
+                            {courseContent.modules}M / {courseContent.lessons}L
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="shrink-0 text-muted-foreground">
+                            Empty
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   );
@@ -816,35 +905,36 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
               </div>
             </ScrollArea>
 
-            {/* Actions */}
-            <div className="flex items-center justify-between pt-2 border-t">
-              <Button variant="outline" onClick={() => setFolderMatches([])}>
+            {/* Actions Footer */}
+            <div className="flex items-center justify-between pt-3 border-t">
+              <Button variant="ghost" size="sm" onClick={() => setFolderMatches([])}>
                 Clear All
               </Button>
               
               <div className="flex gap-2">
                 <Button 
                   variant="outline"
+                  size="sm"
                   onClick={handleScanDurations}
                   disabled={isImporting}
                 >
-                  <RefreshCw className="h-4 w-4 mr-2" />
+                  <RefreshCw className="h-4 w-4 mr-1" />
                   Sync Durations
                 </Button>
                 
                 <Button 
                   onClick={handleImportAll}
                   disabled={isImporting || matchedCount === 0}
-                  className="gap-2"
+                  size="sm"
                 >
                   {isImporting ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Importing {importProgress.current}/{importProgress.total}...
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      {importProgress.current}/{importProgress.total}
                     </>
                   ) : (
                     <>
-                      <Upload className="h-4 w-4" />
+                      <Upload className="h-4 w-4 mr-1" />
                       Import {matchedCount} Courses
                     </>
                   )}
