@@ -93,6 +93,31 @@ export default function EbookBundle() {
     setViewerOpen(true);
   };
 
+  // Handle purchase request from PDF viewer - auto-select book and scroll to cart
+  const handlePurchaseFromViewer = (ebookId: string, ebookTitle: string) => {
+    // Add this book to selection if not already selected
+    if (!ownedEbookIds.has(ebookId)) {
+      setSelectedBooks(prev => {
+        const newSet = new Set(prev);
+        newSet.add(ebookId);
+        return newSet;
+      });
+      
+      toast({
+        title: "Added to Selection",
+        description: `"${ebookTitle}" has been added. Complete your purchase below!`,
+      });
+
+      // Scroll to the cart section after a short delay
+      setTimeout(() => {
+        const cartSection = document.getElementById('ebook-cart-section');
+        if (cartSection) {
+          cartSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, [user]);
@@ -595,7 +620,7 @@ export default function EbookBundle() {
               exit={{ y: 100, opacity: 0 }}
               className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-background/95 backdrop-blur-xl border-t border-border"
             >
-              <div className="container mx-auto max-w-4xl">
+              <div id="ebook-cart-section" className="container mx-auto max-w-4xl">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center">
@@ -666,6 +691,7 @@ export default function EbookBundle() {
           ebookTitle={selectedViewBook.title}
           hasAccess={selectedViewBook.hasAccess}
           previewPages={15}
+          onPurchaseRequest={handlePurchaseFromViewer}
         />
       )}
     </div>
