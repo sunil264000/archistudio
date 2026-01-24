@@ -33,7 +33,7 @@ serve(async (req) => {
       // Get all lessons with Google Drive video URLs
       const { data: allLessons, error: lessonsError } = await supabase
         .from('lessons')
-        .select('id, video_url, duration_minutes')
+        .select('id, video_url, duration_minutes, module_id')
         .like('video_url', '%drive.google.com%');
       
       if (lessonsError) throw lessonsError;
@@ -64,15 +64,19 @@ serve(async (req) => {
         }
       }
 
-      console.log(`Refresh complete: ${validLinks} valid, ${brokenLinks} broken, ${durationsUpdated} durations updated`);
+      // Update course-level statistics for ALL courses
+      const coursesUpdated = await updateAllCourseStats(supabase);
+
+      console.log(`Refresh complete: ${validLinks} valid, ${brokenLinks} broken, ${durationsUpdated} durations, ${coursesUpdated} courses updated`);
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: `Scanned ${allLessons?.length || 0} lessons`,
+          message: `Scanned ${allLessons?.length || 0} lessons across all courses`,
           validLinks,
           brokenLinks,
-          durationsUpdated
+          durationsUpdated,
+          coursesUpdated
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -175,4 +179,47 @@ async function checkAndGetDuration(fileId: string, apiKey: string): Promise<{ va
   } catch {
     return { valid: false, duration: 0 };
   }
+}
+
+// Update all course statistics (total_lessons, duration_hours)
+async function updateAllCourseStats(supabase: any): Promise<number> {
+  let coursesUpdated = 0;
+  
+  // Get all courses
+  const { data: courses } = await supabase.from('courses').select('id');
+  
+  for (const course of courses || []) {
+    // Get all modules for this course
+    const { data: modules } = await supabase
+      .from('modules')
+      .select('id')
+      .eq('course_id', course.id);
+    
+    const moduleIds = modules?.map((m: any) => m.id) || [];
+    
+    if (moduleIds.length === 0) continue;
+    
+    // Get all lessons for these modules
+    const { data: lessons } = await supabase
+      .from('lessons')
+      .select('id, duration_minutes')
+      .in('module_id', moduleIds);
+    
+    const totalLessons = lessons?.length || 0;
+    const totalMinutes = lessons?.reduce((sum: number, l: any) => sum + (l.duration_minutes || 0), 0) || 0;
+    const durationHours = Math.round(totalMinutes / 60 * 10) / 10; // Round to 1 decimal
+    
+    // Update course statistics
+    const { error } = await supabase
+      .from('courses')
+      .update({ 
+        total_lessons: totalLessons,
+        duration_hours: durationHours > 0 ? durationHours : null
+      })
+      .eq('id', course.id);
+    
+    if (!error) coursesUpdated++;
+  }
+  
+  return coursesUpdated;
 }
