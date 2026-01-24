@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { courses as websiteCourseCatalog } from '@/data/courses';
+import { useDynamicCourseData } from '@/hooks/useDynamicCourseData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -95,7 +97,19 @@ interface ModuleWithLessons {
 type SortOption = 'order' | 'website-order' | 'name' | 'price' | 'content' | 'empty-first' | 'content-first' | 'published' | 'draft' | 'featured' | 'linked' | 'unlinked';
 type FilterOption = 'all' | 'published' | 'draft' | 'featured' | 'highlighted' | 'empty' | 'has-content' | 'no-thumbnail' | 'linked' | 'unlinked';
 
+const normalizeKey = (v: string) => v.trim().toLowerCase();
+
+// /courses shows only the static catalog items (and only those with isPublished=true)
+const WEBSITE_PUBLISHED_CATALOG = websiteCourseCatalog.filter((c) => c.isPublished);
+const WEBSITE_ORDER_INDEX_BY_SLUG = new Map<string, number>(
+  WEBSITE_PUBLISHED_CATALOG.map((c, idx) => [normalizeKey(c.slug), idx])
+);
+const WEBSITE_ORDER_INDEX_BY_TITLE = new Map<string, number>(
+  WEBSITE_PUBLISHED_CATALOG.map((c, idx) => [normalizeKey(c.title), idx])
+);
+
 export function CourseManagement() {
+  const { isHighlighted: isWebsiteHighlighted } = useDynamicCourseData();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -738,6 +752,16 @@ export function CourseManagement() {
   const processedCourses = useMemo(() => {
     let result = [...courses];
 
+    // Exact match with /courses: only show items that exist in the website catalog
+    // (Admin can still use other sorts to see DB-only items.)
+    if (sortBy === 'website-order') {
+      result = result.filter((c) => {
+        const slugIdx = WEBSITE_ORDER_INDEX_BY_SLUG.get(normalizeKey(c.slug));
+        const titleIdx = WEBSITE_ORDER_INDEX_BY_TITLE.get(normalizeKey(c.title));
+        return slugIdx !== undefined || titleIdx !== undefined;
+      });
+    }
+
     // Apply hide empty toggle first
     if (hideEmpty) {
       result = result.filter(course => {
@@ -782,10 +806,28 @@ export function CourseManagement() {
 
       switch (sortBy) {
         case 'website-order':
-          // Match exact Courses page order: highlighted first, then by order_index
-          if (a.is_highlighted && !b.is_highlighted) return -1;
-          if (!a.is_highlighted && b.is_highlighted) return 1;
-          return (a.order_index || 0) - (b.order_index || 0);
+          // Match exact /courses order:
+          // 1) highlighted first (from dynamic DB field via same hook)
+          // 2) then keep website catalog sequence (src/data/courses.ts)
+          {
+            const aHighlighted = isWebsiteHighlighted(a.slug);
+            const bHighlighted = isWebsiteHighlighted(b.slug);
+            if (aHighlighted && !bHighlighted) return -1;
+            if (!aHighlighted && bHighlighted) return 1;
+
+            const aIdx =
+              WEBSITE_ORDER_INDEX_BY_SLUG.get(normalizeKey(a.slug)) ??
+              WEBSITE_ORDER_INDEX_BY_TITLE.get(normalizeKey(a.title)) ??
+              Number.POSITIVE_INFINITY;
+            const bIdx =
+              WEBSITE_ORDER_INDEX_BY_SLUG.get(normalizeKey(b.slug)) ??
+              WEBSITE_ORDER_INDEX_BY_TITLE.get(normalizeKey(b.title)) ??
+              Number.POSITIVE_INFINITY;
+
+            if (aIdx !== bIdx) return aIdx - bIdx;
+            // last fallback
+            return (a.order_index || 0) - (b.order_index || 0);
+          }
         case 'name':
           return a.title.localeCompare(b.title);
         case 'price':
@@ -823,7 +865,7 @@ export function CourseManagement() {
     });
 
     return result;
-  }, [courses, searchTerm, sortBy, activeFilters, courseContent, hideEmpty]);
+  }, [courses, searchTerm, sortBy, activeFilters, courseContent, hideEmpty, isWebsiteHighlighted]);
 
   const stats = useMemo(() => {
     const emptyCourses = courses.filter(c => {
@@ -1265,7 +1307,9 @@ export function CourseManagement() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium truncate max-w-[200px]">{course.title}</span>
+                        <span className="font-medium whitespace-normal break-words leading-snug">
+                          {course.title}
+                        </span>
                         {course.is_featured && (
                           <Star className="h-3 w-3 text-amber-600 fill-amber-600 shrink-0" />
                         )}
