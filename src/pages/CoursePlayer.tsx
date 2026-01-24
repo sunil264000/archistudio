@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -55,6 +55,10 @@ export default function CoursePlayer() {
   const [loading, setLoading] = useState(true);
   const [watchProgress, setWatchProgress] = useState(0);
   const [showFinishButton, setShowFinishButton] = useState(false);
+  
+  // Refs to prevent re-fetching on tab switch or re-renders
+  const hasFetchedRef = useRef(false);
+  const courseSlugRef = useRef<string | null>(null);
 
   // Get lesson ID from URL query param if present
   const lessonIdFromUrl = searchParams.get('lesson');
@@ -64,6 +68,12 @@ export default function CoursePlayer() {
       navigate('/auth');
       return;
     }
+    
+    // Prevent re-fetching if we already have the data for this course
+    if (hasFetchedRef.current && courseSlugRef.current === slug && course) {
+      return;
+    }
+    
     fetchCourseData();
   }, [slug, user]);
 
@@ -165,6 +175,10 @@ export default function CoursePlayer() {
       if (initialLesson) {
         setCurrentLesson(initialLesson);
       }
+      
+      // Mark as fetched to prevent refetching on tab switch
+      hasFetchedRef.current = true;
+      courseSlugRef.current = slug || null;
     } catch (error) {
       console.error('Error fetching course:', error);
     } finally {
