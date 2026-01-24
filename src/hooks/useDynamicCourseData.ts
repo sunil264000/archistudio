@@ -7,7 +7,6 @@ interface DynamicCourseData {
   is_highlighted: boolean;
   is_featured: boolean;
   price_inr: number | null;
-  price_usd: number | null;
   updated_at?: string | null;
 }
 
@@ -24,7 +23,7 @@ export function useDynamicCourseData() {
       try {
         const { data, error } = await supabase
           .from('courses')
-          .select('slug, thumbnail_url, is_highlighted, is_featured, price_inr, price_usd, updated_at')
+          .select('slug, thumbnail_url, is_highlighted, is_featured, price_inr, updated_at')
           .eq('is_published', true);
 
         if (error) throw error;
@@ -98,11 +97,31 @@ export function useDynamicCourseData() {
     return dynamicData[courseSlug]?.is_featured || false;
   };
 
+  /**
+   * Get normalized INR price for a course.
+   * - Prefer backend price_inr when available.
+   * - Fallback: normalize any static/high price into ₹300–₹600 so UI stays consistent.
+   */
+  const getPriceInr = (courseSlug: string, fallbackPrice: number): number => {
+    const dynamic = dynamicData[courseSlug];
+    if (typeof dynamic?.price_inr === 'number' && !Number.isNaN(dynamic.price_inr)) {
+      return Math.round(dynamic.price_inr);
+    }
+
+    // Deterministic clamp into [300, 600] even if fallback is old (e.g. 7499)
+    const min = 300;
+    const max = 600;
+    const range = max - min + 1;
+    const n = Math.abs(Math.round(fallbackPrice || 0));
+    return min + (n % range);
+  };
+
   return {
     dynamicData,
     loading,
     getThumbnail,
     isHighlighted,
     isFeatured,
+    getPriceInr,
   };
 }

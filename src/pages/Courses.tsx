@@ -31,7 +31,7 @@ export default function Courses() {
   const [searchQuery, setSearchQuery] = useState('');
   const [dbCourseCount, setDbCourseCount] = useState<number | null>(null);
   const [dbCourseStats, setDbCourseStats] = useState<Record<string, { totalLessons: number; totalDuration: number }>>({});
-  const { getThumbnail, isHighlighted, isFeatured } = useDynamicCourseData();
+  const { getThumbnail, getPriceInr, isHighlighted, isFeatured } = useDynamicCourseData();
   const { isActive: saleActive, discountPercent, calculateDiscountedPrice } = useSaleDiscount();
 
   // Fetch actual course count and stats from database
@@ -259,6 +259,7 @@ export default function Courses() {
                   featured 
                   index={index} 
                   getThumbnail={getThumbnail}
+                  getPriceInr={getPriceInr}
                   isHighlighted={isHighlighted(course.slug)}
                   saleActive={saleActive}
                   discountPercent={discountPercent}
@@ -303,6 +304,7 @@ export default function Courses() {
                   course={course} 
                   index={index} 
                   getThumbnail={getThumbnail}
+                  getPriceInr={getPriceInr}
                   isHighlighted={isHighlighted(course.slug)}
                   saleActive={saleActive}
                   discountPercent={discountPercent}
@@ -328,6 +330,7 @@ interface CourseCardProps {
   featured?: boolean;
   index?: number;
   getThumbnail: (slug: string, fallback: string) => string;
+  getPriceInr: (slug: string, fallbackPrice: number) => number;
   isHighlighted?: boolean;
   saleActive?: boolean;
   discountPercent?: number;
@@ -340,6 +343,7 @@ function CourseCard({
   featured = false, 
   index = 0, 
   getThumbnail, 
+  getPriceInr,
   isHighlighted = false,
   saleActive = false,
   discountPercent = 0,
@@ -352,7 +356,8 @@ function CourseCard({
   const { toast } = useToast();
   const [isHovered, setIsHovered] = useState(false);
 
-  const discountedPrice = calculateDiscountedPrice(course.priceInr);
+  const effectivePriceInr = getPriceInr(course.slug, course.priceInr);
+  const discountedPrice = calculateDiscountedPrice(effectivePriceInr);
   
   // Use real stats if available, otherwise fallback to static data
   const displayLessons = realStats?.totalLessons || course.totalLessons;
@@ -448,7 +453,7 @@ function CourseCard({
               ) : (
                 <>
                   <CreditCard className="h-4 w-4 mr-2" />
-                  Buy Now - ₹{course.priceInr.toLocaleString()}
+                  Buy Now - ₹{effectivePriceInr.toLocaleString()}
                 </>
               )}
             </Button>
@@ -491,7 +496,7 @@ function CourseCard({
               <>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-xl text-success">₹{discountedPrice.toLocaleString()}</span>
-                  <span className="text-sm line-through text-muted-foreground">₹{course.priceInr.toLocaleString()}</span>
+                  <span className="text-sm line-through text-muted-foreground">₹{effectivePriceInr.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center gap-1 text-xs">
                   <Flame className="h-3 w-3 text-destructive" />
@@ -500,7 +505,7 @@ function CourseCard({
               </>
             ) : (
               <div className="font-bold text-xl text-foreground">
-                ₹{course.priceInr.toLocaleString()}
+                ₹{effectivePriceInr.toLocaleString()}
               </div>
             )}
           </div>

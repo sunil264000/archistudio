@@ -156,7 +156,7 @@ export default function CourseDetail() {
   const { user, profile } = useAuth();
   const { initiatePayment, isLoading } = useCashfreePayment();
   const { toast } = useToast();
-  const { getThumbnail } = useDynamicCourseData();
+  const { getThumbnail, getPriceInr } = useDynamicCourseData();
   const { isActive: saleActive, discountPercent, calculateDiscountedPrice } = useSaleDiscount();
   
   // Fetch real modules from database
@@ -203,6 +203,8 @@ export default function CourseDetail() {
 
   const category = courseCategories.find(c => c.id === course.category);
 
+  const effectivePriceInr = getPriceInr(course.slug, course.priceInr);
+
   const handleBuyNow = async () => {
     if (!user) {
       toast({
@@ -215,14 +217,14 @@ export default function CourseDetail() {
     }
 
     // Handle free courses
-    if (course.priceInr === 0) {
+    if (effectivePriceInr === 0) {
       await handleFreeEnrollment();
       return;
     }
 
     await initiatePayment({
       courseId: course.slug,
-      amount: course.priceInr,
+      amount: effectivePriceInr,
       customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
       customerEmail: user.email || '',
       customerPhone: profile?.phone || '9999999999',
@@ -254,7 +256,7 @@ export default function CourseDetail() {
             short_description: course.shortDescription,
             level: course.level,
             price_inr: 0,
-            price_usd: 0,
+            price_usd: null,
             is_published: true,
           })
           .select('id')
@@ -342,7 +344,7 @@ export default function CourseDetail() {
   const courseSchema = generateCourseSchema({
     title: course.title,
     description: course.description,
-    price: course.priceInr,
+    price: effectivePriceInr,
     currency: 'INR',
     image: categoryImages[course.category],
     url: courseUrl,
@@ -454,18 +456,18 @@ export default function CourseDetail() {
                 </div>
                 <CardContent className="p-6 space-y-4">
                   <div className="flex items-baseline gap-2">
-                    {course.priceInr === 0 ? (
+                    {effectivePriceInr === 0 ? (
                       <span className="text-3xl font-bold text-success">Free</span>
                     ) : saleActive && discountPercent > 0 ? (
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-3xl font-bold text-success">₹{calculateDiscountedPrice(course.priceInr).toLocaleString()}</span>
-                          <span className="text-lg line-through text-muted-foreground">₹{course.priceInr.toLocaleString()}</span>
+                          <span className="text-3xl font-bold text-success">₹{calculateDiscountedPrice(effectivePriceInr).toLocaleString()}</span>
+                          <span className="text-lg line-through text-muted-foreground">₹{effectivePriceInr.toLocaleString()}</span>
                         </div>
                         <span className="inline-block px-2 py-0.5 bg-destructive text-destructive-foreground text-xs font-bold rounded">{discountPercent}% OFF</span>
                       </div>
                     ) : (
-                      <span className="text-3xl font-bold">₹{course.priceInr.toLocaleString()}</span>
+                      <span className="text-3xl font-bold">₹{effectivePriceInr.toLocaleString()}</span>
                     )}
                   </div>
                   
@@ -480,7 +482,7 @@ export default function CourseDetail() {
                         <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                         Processing...
                       </>
-                    ) : course.priceInr === 0 ? (
+                    ) : effectivePriceInr === 0 ? (
                       <>
                         <BookOpen className="h-5 w-5 mr-2" />
                         Enroll for Free
@@ -493,8 +495,8 @@ export default function CourseDetail() {
                     )}
                   </Button>
 
-                  {course.priceInr > 0 && (
-                    <AddToCartButton course={course} />
+                  {effectivePriceInr > 0 && (
+                    <AddToCartButton course={{ ...course, priceInr: effectivePriceInr }} />
                   )}
 
                   <p className="text-center text-sm text-muted-foreground">
