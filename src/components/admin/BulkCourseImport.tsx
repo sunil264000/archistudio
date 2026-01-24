@@ -13,7 +13,7 @@ import {
   FolderOpen, Loader2, CheckCircle2, XCircle, ArrowRight, 
   Sparkles, Upload, RefreshCw, Link2, Unlink, Search,
   ArrowUpDown, Filter, Database, CloudIcon, Check, X,
-  AlertCircle, FolderSync, RotateCcw
+  AlertCircle, FolderSync, RotateCcw, Trash2
 } from "lucide-react";
 
 interface Course {
@@ -100,6 +100,7 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
   const [contentFilter, setContentFilter] = useState<'all' | 'has-content' | 'empty'>('all');
   const [sortBy, setSortBy] = useState<'confidence' | 'name' | 'videos'>('confidence');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [cleaningCourseId, setCleaningCourseId] = useState<string | null>(null);
   
   // Courses with content info (modules, lessons, hours)
   const [coursesWithContent, setCoursesWithContent] = useState<Record<string, { modules: number; lessons: number; hours: number }>>({});
@@ -291,6 +292,72 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
           ? { ...m, matchedCourse: match.course, matchConfidence: match.confidence, matchScore: match.score, isManuallyLinked: false }
           : m
       ));
+    }
+  };
+
+  // Clean course content (delete all modules/lessons/resources)
+  const handleCleanCourse = async (courseId: string, courseTitle: string) => {
+    if (!confirm(`Are you sure you want to delete ALL content from "${courseTitle}"? This cannot be undone.`)) {
+      return;
+    }
+    
+    setCleaningCourseId(courseId);
+    try {
+      // Get all modules for this course
+      const { data: modules } = await supabase
+        .from('modules')
+        .select('id')
+        .eq('course_id', courseId);
+      
+      if (modules && modules.length > 0) {
+        const moduleIds = modules.map(m => m.id);
+        
+        // Get all lessons for these modules
+        const { data: lessons } = await supabase
+          .from('lessons')
+          .select('id')
+          .in('module_id', moduleIds);
+        
+        if (lessons && lessons.length > 0) {
+          const lessonIds = lessons.map(l => l.id);
+          // Delete resources first
+          await supabase.from('lesson_resources').delete().in('lesson_id', lessonIds);
+          // Delete lessons
+          await supabase.from('lessons').delete().in('module_id', moduleIds);
+        }
+        
+        // Delete modules
+        await supabase.from('modules').delete().eq('course_id', courseId);
+      }
+      
+      // Reset course stats
+      await supabase.from('courses').update({ 
+        total_lessons: 0, 
+        duration_hours: null 
+      }).eq('id', courseId);
+      
+      // Update local state
+      setCoursesWithContent(prev => {
+        const updated = { ...prev };
+        delete updated[courseId];
+        return updated;
+      });
+      
+      // Log the clean action
+      await supabase.from('import_activity_log').insert({
+        course_id: courseId,
+        course_title: courseTitle,
+        folder_id: 'manual-clean',
+        folder_name: 'Manual Clean',
+        action: 'clean',
+        status: 'success'
+      });
+      
+      toast.success(`Cleaned all content from "${courseTitle}"`);
+    } catch (err: any) {
+      toast.error(`Failed to clean course: ${err.message}`);
+    } finally {
+      setCleaningCourseId(null);
     }
   };
 
@@ -697,6 +764,23 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
 
                         {/* Actions */}
                         <div className="flex items-center gap-1 shrink-0">
+                          {/* Clean button for courses with existing content */}
+                          {hasExistingContent && match.matchedCourse && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => handleCleanCourse(match.matchedCourse!.id, match.matchedCourse!.title)}
+                              disabled={cleaningCourseId === match.matchedCourse.id}
+                              title="Clean all content from this course"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              {cleaningCourseId === match.matchedCourse.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
                           {match.isManuallyLinked && (
                             <Button 
                               variant="ghost" 
