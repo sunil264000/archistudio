@@ -1,14 +1,24 @@
+import { lazy, Suspense } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { HeroSection } from '@/components/home/HeroSection';
-import { ProblemSection } from '@/components/home/ProblemSection';
-import { WhatYouLearnSection } from '@/components/home/WhatYouLearnSection';
-import { CourseStructureSection } from '@/components/home/CourseStructureSection';
-import { ComparisonSection } from '@/components/home/ComparisonSection';
-import { TestimonialsSection } from '@/components/home/TestimonialsSection';
-import { FinalCTASection } from '@/components/home/FinalCTASection';
 import { SEOHead, generateOrganizationSchema } from '@/components/seo/SEOHead';
-import { LiveViewerCounter } from '@/components/social-proof/LiveViewerCounter';
+
+// Lazy load below-the-fold sections for faster initial load
+const ProblemSection = lazy(() => import('@/components/home/ProblemSection').then(m => ({ default: m.ProblemSection })));
+const WhatYouLearnSection = lazy(() => import('@/components/home/WhatYouLearnSection').then(m => ({ default: m.WhatYouLearnSection })));
+const CourseStructureSection = lazy(() => import('@/components/home/CourseStructureSection').then(m => ({ default: m.CourseStructureSection })));
+const ComparisonSection = lazy(() => import('@/components/home/ComparisonSection').then(m => ({ default: m.ComparisonSection })));
+const TestimonialsSection = lazy(() => import('@/components/home/TestimonialsSection').then(m => ({ default: m.TestimonialsSection })));
+const FinalCTASection = lazy(() => import('@/components/home/FinalCTASection').then(m => ({ default: m.FinalCTASection })));
+const LiveViewerCounter = lazy(() => import('@/components/social-proof/LiveViewerCounter').then(m => ({ default: m.LiveViewerCounter })));
+
+// Minimal loading fallback
+const SectionLoader = () => (
+  <div className="w-full py-12 flex items-center justify-center">
+    <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 export default function Index() {
   return (
@@ -25,31 +35,40 @@ export default function Index() {
       
       <Navbar />
       
-      {/* Live users indicator */}
-      <div className="fixed top-20 right-4 z-40 bg-card/95 backdrop-blur-sm border border-border rounded-lg px-3 py-2 shadow-lg">
-        <LiveViewerCounter variant="site" />
-      </div>
+      {/* Live users indicator - lazy loaded */}
+      <Suspense fallback={null}>
+        <div className="fixed top-20 right-4 z-40 bg-card/95 backdrop-blur-sm border border-border rounded-lg px-3 py-2 shadow-lg">
+          <LiveViewerCounter variant="site" />
+        </div>
+      </Suspense>
       
-      {/* Section 1: Hero */}
+      {/* Section 1: Hero - loaded immediately for fast LCP */}
       <HeroSection />
       
-      {/* Section 2: Problem Statement */}
-      <ProblemSection />
+      {/* Below-the-fold sections - lazy loaded */}
+      <Suspense fallback={<SectionLoader />}>
+        <ProblemSection />
+      </Suspense>
       
-      {/* Section 3: What You'll Learn (8 modules) */}
-      <WhatYouLearnSection />
+      <Suspense fallback={<SectionLoader />}>
+        <WhatYouLearnSection />
+      </Suspense>
       
-      {/* Section 4: Course Structure (Beginner → Advanced) */}
-      <CourseStructureSection />
+      <Suspense fallback={<SectionLoader />}>
+        <CourseStructureSection />
+      </Suspense>
       
-      {/* Section 5: Why Different (Comparison Table) */}
-      <ComparisonSection />
+      <Suspense fallback={<SectionLoader />}>
+        <ComparisonSection />
+      </Suspense>
       
-      {/* Section 6: Testimonials */}
-      <TestimonialsSection />
+      <Suspense fallback={<SectionLoader />}>
+        <TestimonialsSection />
+      </Suspense>
       
-      {/* Section 7: Final CTA */}
-      <FinalCTASection />
+      <Suspense fallback={<SectionLoader />}>
+        <FinalCTASection />
+      </Suspense>
       
       <Footer />
     </div>
