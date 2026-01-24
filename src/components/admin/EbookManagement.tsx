@@ -8,8 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { EbookDriveSync } from './EbookDriveSync';
+import { CourseEbookLinking } from './CourseEbookLinking';
 import { 
   Plus, 
   Edit2, 
@@ -22,7 +25,9 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  FolderSync,
+  Link2
 } from 'lucide-react';
 
 interface Ebook {
@@ -243,6 +248,23 @@ export function EbookManagement() {
   }
 
   return (
+    <Tabs defaultValue="library" className="space-y-6">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="library" className="gap-2">
+          <BookOpen className="h-4 w-4" />
+          Library
+        </TabsTrigger>
+        <TabsTrigger value="sync" className="gap-2">
+          <FolderSync className="h-4 w-4" />
+          Drive Sync
+        </TabsTrigger>
+        <TabsTrigger value="linking" className="gap-2">
+          <Link2 className="h-4 w-4" />
+          Course Linking
+        </TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="library">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -468,5 +490,15 @@ export function EbookManagement() {
         </Card>
       )}
     </div>
+      </TabsContent>
+      
+      <TabsContent value="sync">
+        <EbookDriveSync onSyncComplete={fetchEbooks} />
+      </TabsContent>
+      
+      <TabsContent value="linking">
+        <CourseEbookLinking />
+      </TabsContent>
+    </Tabs>
   );
 }

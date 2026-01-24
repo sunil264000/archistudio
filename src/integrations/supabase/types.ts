@@ -337,6 +337,45 @@ export type Database = {
         }
         Relationships: []
       }
+      course_ebook_links: {
+        Row: {
+          course_id: string
+          created_at: string
+          created_by: string | null
+          ebook_id: string
+          id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          created_by?: string | null
+          ebook_id: string
+          id?: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          created_by?: string | null
+          ebook_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_ebook_links_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_ebook_links_ebook_id_fkey"
+            columns: ["ebook_id"]
+            isOneToOne: false
+            referencedRelation: "ebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_questions: {
         Row: {
           answer: string | null
@@ -513,6 +552,7 @@ export type Database = {
           payment_id: string | null
           status: string | null
           total_amount: number
+          updated_at: string | null
           user_id: string
         }
         Insert: {
@@ -524,6 +564,7 @@ export type Database = {
           payment_id?: string | null
           status?: string | null
           total_amount: number
+          updated_at?: string | null
           user_id: string
         }
         Update: {
@@ -535,6 +576,7 @@ export type Database = {
           payment_id?: string | null
           status?: string | null
           total_amount?: number
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -545,6 +587,8 @@ export type Database = {
           cover_image_url: string | null
           created_at: string
           description: string | null
+          drive_file_id: string | null
+          drive_folder_url: string | null
           file_url: string | null
           id: string
           is_published: boolean | null
@@ -558,6 +602,8 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           description?: string | null
+          drive_file_id?: string | null
+          drive_folder_url?: string | null
           file_url?: string | null
           id?: string
           is_published?: boolean | null
@@ -571,6 +617,8 @@ export type Database = {
           cover_image_url?: string | null
           created_at?: string
           description?: string | null
+          drive_file_id?: string | null
+          drive_folder_url?: string | null
           file_url?: string | null
           id?: string
           is_published?: boolean | null
