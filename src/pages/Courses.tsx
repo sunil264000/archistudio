@@ -18,6 +18,7 @@ import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { ContactSupportWidget } from '@/components/support/ContactSupportWidget';
 import { supabase } from '@/integrations/supabase/client';
+import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
 import { 
   staggerContainer, 
   staggerContainerFast, 
@@ -355,6 +356,8 @@ function CourseCard({
   const { initiatePayment, isLoading } = useCashfreePayment();
   const { toast } = useToast();
   const [isHovered, setIsHovered] = useState(false);
+  const [showPhoneDialog, setShowPhoneDialog] = useState(false);
+  const [pendingPaymentData, setPendingPaymentData] = useState<any>(null);
 
   const effectivePriceInr = getPriceInr(course.slug, course.priceInr);
   const discountedPrice = calculateDiscountedPrice(effectivePriceInr);
@@ -380,17 +383,53 @@ function CourseCard({
       return;
     }
 
-     await initiatePayment({
-       courseId: course.slug,
-       amount: discountedPrice,
-       customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
-       customerEmail: user.email || '',
-       customerPhone: profile?.phone || '9999999999',
-       courseTitle: course.title,
-       courseShortDescription: course.shortDescription,
-       courseDescription: course.description,
-       courseLevel: course.level,
-     });
+    const customerPhone = profile?.phone?.replace(/[\s-]/g, '');
+    const hasValidPhone = customerPhone && customerPhone.length >= 10;
+
+    if (!hasValidPhone) {
+      setPendingPaymentData({
+        courseId: course.slug,
+        amount: discountedPrice,
+        customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
+        customerEmail: user.email || '',
+        courseTitle: course.title,
+        courseShortDescription: course.shortDescription,
+        courseDescription: course.description,
+        courseLevel: course.level,
+      });
+      setShowPhoneDialog(true);
+      return;
+    }
+
+    await initiatePayment({
+      courseId: course.slug,
+      amount: discountedPrice,
+      customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
+      customerEmail: user.email || '',
+      customerPhone: customerPhone,
+      courseTitle: course.title,
+      courseShortDescription: course.shortDescription,
+      courseDescription: course.description,
+      courseLevel: course.level,
+    });
+  };
+
+  const handlePhoneSubmit = async (phone: string) => {
+    if (!pendingPaymentData) return;
+    
+    if (user) {
+      await supabase
+        .from('profiles')
+        .update({ phone: phone })
+        .eq('user_id', user.id);
+    }
+    
+    setShowPhoneDialog(false);
+    await initiatePayment({
+      ...pendingPaymentData,
+      customerPhone: phone,
+    });
+    setPendingPaymentData(null);
   };
 
   return (
@@ -520,6 +559,13 @@ function CourseCard({
           </Button>
         </div>
       </CardContent>
+      
+      <PhoneNumberDialog
+        open={showPhoneDialog}
+        onOpenChange={setShowPhoneDialog}
+        onSubmit={handlePhoneSubmit}
+        isLoading={isLoading}
+      />
     </Card>
   );
 }
