@@ -20,6 +20,7 @@ import { NotificationManagement } from '@/components/admin/NotificationManagemen
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { AdminOverview } from '@/components/admin/AdminOverview';
 import { SalesManagement } from '@/components/admin/SalesManagement';
+import { AmbientAudioSettings } from '@/components/admin/AmbientAudioSettings';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
@@ -782,37 +783,42 @@ function SiteSettingsPanel() {
   ];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Settings className="h-5 w-5 text-accent" />
-          Site Settings
-        </CardTitle>
-        <CardDescription>Configure social media links and site settings. Students can contact you via these links.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2">
-          {settingsFields.map(field => (
-            <div key={field.key} className="space-y-2">
-              <Label htmlFor={field.key} className="flex items-center gap-2">
-                {field.icon && <field.icon className="h-4 w-4" />}
-                {field.label}
-              </Label>
-              <Input
-                id={field.key}
-                placeholder={field.placeholder}
-                value={settings[field.key as keyof typeof settings]}
-                onChange={(e) => setSettings(prev => ({ ...prev, [field.key]: e.target.value }))}
-              />
-            </div>
-          ))}
-        </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5 text-accent" />
+            Site Settings
+          </CardTitle>
+          <CardDescription>Configure social media links and site settings. Students can contact you via these links.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            {settingsFields.map(field => (
+              <div key={field.key} className="space-y-2">
+                <Label htmlFor={field.key} className="flex items-center gap-2">
+                  {field.icon && <field.icon className="h-4 w-4" />}
+                  {field.label}
+                </Label>
+                <Input
+                  id={field.key}
+                  placeholder={field.placeholder}
+                  value={settings[field.key as keyof typeof settings]}
+                  onChange={(e) => setSettings(prev => ({ ...prev, [field.key]: e.target.value }))}
+                />
+              </div>
+            ))}
+          </div>
 
-        <Button onClick={handleSave} disabled={saving} className="gap-2">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Save Settings
-        </Button>
-      </CardContent>
-    </Card>
+          <Button onClick={handleSave} disabled={saving} className="gap-2">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save Settings
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Ambient Audio Settings */}
+      <AmbientAudioSettings />
+    </div>
   );
 }
