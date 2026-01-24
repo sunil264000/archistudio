@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { GoogleDriveImport } from './GoogleDriveImport';
 import { QuickLessonAdd } from './QuickLessonAdd';
+import { BulkCourseImport } from './BulkCourseImport';
 
 interface Course {
   id: string;
@@ -321,10 +322,19 @@ export function LessonManagement() {
 
   return (
     <div className="space-y-6">
+      {/* Bulk Course Import - Import multiple courses at once */}
+      <BulkCourseImport 
+        courses={courses}
+        onImportComplete={() => {
+          fetchCourses();
+          if (selectedCourse) fetchModules(selectedCourse);
+        }}
+      />
+
       {/* Course Selector */}
       <div className="flex items-center gap-4">
         <div className="flex-1">
-          <Label>Select Course</Label>
+          <Label>Select Course (for single course management)</Label>
           <Select value={selectedCourse || ''} onValueChange={(val) => {
             setSelectedCourse(val);
             setPendingFreePreviewChanges({}); // Clear pending when switching course
