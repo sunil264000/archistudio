@@ -33,7 +33,7 @@ const handler = async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Archistudio <onboarding@resend.dev>",
+        from: "Archistudio <hello@archistudio.shop>",
         to: [email],
         subject: "Welcome to Archistudio! 🎉",
         html: `
@@ -63,7 +63,7 @@ const handler = async (req: Request): Promise<Response> => {
                     <li style="margin-bottom: 10px; color: #a5b4fc;">Certificates upon course completion</li>
                   </ul>
                   <div style="text-align: center; margin: 30px 0;">
-                    <a href="https://concrete-logic.lovable.app/courses" style="display: inline-block; background: linear-gradient(90deg, #3b82f6, #8b5cf6); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                    <a href="https://archistudio.lovable.app/courses" style="display: inline-block; background: linear-gradient(90deg, #3b82f6, #8b5cf6); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
                       Explore Courses
                     </a>
                   </div>
