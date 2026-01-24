@@ -72,20 +72,33 @@ export function AmbientAudio() {
 
   return (
     <div 
-      className="fixed bottom-20 left-4 z-50"
+      className="fixed bottom-6 right-6 z-[9999]"
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => setShowControls(false)}
     >
       <div className="flex items-center gap-2">
+        {showControls && isPlaying && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-card/95 backdrop-blur-md rounded-full border shadow-xl animate-fade-in">
+            <Slider
+              value={[volume]}
+              onValueChange={([v]) => setVolume(v)}
+              max={100}
+              step={1}
+              className="w-24"
+            />
+            <span className="text-xs text-muted-foreground font-medium w-8">{volume}%</span>
+          </div>
+        )}
+        
         <Button
           variant="outline"
           size="icon"
           onClick={togglePlay}
           disabled={!isLoaded}
-          className={`h-11 w-11 rounded-full shadow-xl transition-all duration-300 ${
+          className={`h-12 w-12 rounded-full shadow-2xl transition-all duration-300 border-2 ${
             isPlaying 
-              ? 'bg-accent text-accent-foreground border-accent hover:bg-accent/90' 
-              : 'bg-foreground text-background border-foreground/20 hover:bg-foreground/90'
+              ? 'bg-accent text-accent-foreground border-accent hover:bg-accent/90 animate-pulse' 
+              : 'bg-card text-foreground border-border hover:bg-muted hover:scale-110'
           } ${!isLoaded ? 'opacity-50' : ''}`}
           title={isPlaying ? 'Pause ambient music' : 'Play ambient music'}
         >
@@ -95,19 +108,6 @@ export function AmbientAudio() {
             <Music className="h-5 w-5" />
           )}
         </Button>
-        
-        {showControls && isPlaying && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-foreground/90 backdrop-blur-sm rounded-full border border-foreground/20 shadow-xl animate-fade-in">
-            <Slider
-              value={[volume]}
-              onValueChange={([v]) => setVolume(v)}
-              max={100}
-              step={1}
-              className="w-24"
-            />
-            <span className="text-xs text-background font-medium w-8">{volume}%</span>
-          </div>
-        )}
       </div>
       
       {!isLoaded && !hasError && (
@@ -117,7 +117,7 @@ export function AmbientAudio() {
       )}
       
       {isPlaying && (
-        <p className="text-[10px] font-medium text-foreground mt-1 text-center animate-pulse bg-background/80 rounded-full px-2 py-0.5">
+        <p className="text-[10px] font-medium text-accent mt-1 text-center">
           🎵 Ambient
         </p>
       )}

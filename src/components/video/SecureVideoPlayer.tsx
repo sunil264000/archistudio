@@ -445,12 +445,6 @@ export function SecureVideoPlayer({
           Concrete Logic
         </div>
 
-        {/* Notice for embedded videos - lower quality */}
-        <div className="absolute bottom-12 left-0 right-0 text-center">
-          <span className="text-[10px] text-white/40 bg-black/40 px-2 py-1 rounded">
-            Embedded video (360p quality - progress tracking limited)
-          </span>
-        </div>
       </div>
     );
   }
@@ -545,14 +539,23 @@ export function SecureVideoPlayer({
 
         {/* Bottom Controls */}
         <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2">
-          {/* Progress Bar */}
-          <Slider
-            value={[currentTime]}
-            max={duration || 100}
-            step={0.1}
-            onValueChange={handleSeek}
-            className="cursor-pointer"
-          />
+          {/* Progress Bar - Enhanced for better seeking */}
+          <div className="relative group/seek">
+            <Slider
+              value={[currentTime]}
+              min={0}
+              max={duration || 100}
+              step={0.01}
+              onValueChange={(value) => {
+                if (videoRef.current && duration > 0) {
+                  const newTime = value[0];
+                  videoRef.current.currentTime = newTime;
+                  setCurrentTime(newTime);
+                }
+              }}
+              className="cursor-pointer [&>span:first-child]:h-2 [&>span:first-child]:hover:h-3 [&>span:first-child]:transition-all [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:opacity-0 [&_[role=slider]]:group-hover/seek:opacity-100 [&_[role=slider]]:transition-opacity"
+            />
+          </div>
 
           {/* Control Buttons */}
           <div className="flex items-center justify-between">
