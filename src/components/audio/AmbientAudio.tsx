@@ -1,25 +1,44 @@
 import { useState, useRef, useEffect } from 'react';
-import { Volume2, VolumeX } from 'lucide-react';
+import { Volume2, VolumeX, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 
-const AMBIENT_AUDIO_URL = "https://assets.mixkit.co/music/preview/mixkit-serene-view-443.mp3";
+// Royalty-free ambient music from Pixabay
+const AMBIENT_AUDIO_URL = "https://cdn.pixabay.com/audio/2022/03/10/audio_50a3d1f86b.mp3";
 
 export function AmbientAudio() {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(20);
+  const [volume, setVolume] = useState(30);
   const [showControls, setShowControls] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     // Create audio element
-    audioRef.current = new Audio(AMBIENT_AUDIO_URL);
-    audioRef.current.loop = true;
-    audioRef.current.volume = volume / 100;
+    const audio = new Audio();
+    audio.src = AMBIENT_AUDIO_URL;
+    audio.loop = true;
+    audio.volume = volume / 100;
+    audio.preload = 'auto';
+    
+    audio.oncanplaythrough = () => {
+      setIsLoaded(true);
+      setHasError(false);
+    };
+    
+    audio.onerror = () => {
+      console.error('Audio failed to load');
+      setHasError(true);
+      setIsLoaded(false);
+    };
+    
+    audioRef.current = audio;
 
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
+        audioRef.current.src = '';
         audioRef.current = null;
       }
     };
@@ -32,19 +51,24 @@ export function AmbientAudio() {
   }, [volume]);
 
   const togglePlay = async () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || hasError) return;
     
     try {
       if (isPlaying) {
         audioRef.current.pause();
+        setIsPlaying(false);
       } else {
         await audioRef.current.play();
+        setIsPlaying(true);
       }
-      setIsPlaying(!isPlaying);
     } catch (err) {
-      console.log('Audio playback failed:', err);
+      console.error('Audio playback failed:', err);
+      setHasError(true);
     }
   };
+
+  // Don't show if audio failed to load
+  if (hasError) return null;
 
   return (
     <div 
@@ -57,34 +81,43 @@ export function AmbientAudio() {
           variant="outline"
           size="icon"
           onClick={togglePlay}
-          className={`h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm border-border/50 shadow-lg transition-all duration-300 ${
-            isPlaying ? 'text-accent border-accent/50' : 'text-muted-foreground'
-          }`}
+          disabled={!isLoaded}
+          className={`h-11 w-11 rounded-full shadow-xl transition-all duration-300 ${
+            isPlaying 
+              ? 'bg-accent text-accent-foreground border-accent hover:bg-accent/90' 
+              : 'bg-foreground text-background border-foreground/20 hover:bg-foreground/90'
+          } ${!isLoaded ? 'opacity-50' : ''}`}
           title={isPlaying ? 'Pause ambient music' : 'Play ambient music'}
         >
           {isPlaying ? (
-            <Volume2 className="h-4 w-4" />
+            <Volume2 className="h-5 w-5" />
           ) : (
-            <VolumeX className="h-4 w-4" />
+            <Music className="h-5 w-5" />
           )}
         </Button>
         
         {showControls && isPlaying && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-background/90 backdrop-blur-sm rounded-full border border-border/50 shadow-lg animate-fade-in">
+          <div className="flex items-center gap-2 px-3 py-2 bg-foreground/90 backdrop-blur-sm rounded-full border border-foreground/20 shadow-xl animate-fade-in">
             <Slider
               value={[volume]}
               onValueChange={([v]) => setVolume(v)}
               max={100}
               step={1}
-              className="w-20"
+              className="w-24"
             />
-            <span className="text-xs text-muted-foreground w-8">{volume}%</span>
+            <span className="text-xs text-background font-medium w-8">{volume}%</span>
           </div>
         )}
       </div>
       
+      {!isLoaded && !hasError && (
+        <p className="text-[10px] text-muted-foreground mt-1 text-center">
+          Loading...
+        </p>
+      )}
+      
       {isPlaying && (
-        <p className="text-[10px] text-muted-foreground mt-1 text-center animate-pulse">
+        <p className="text-[10px] font-medium text-foreground mt-1 text-center animate-pulse bg-background/80 rounded-full px-2 py-0.5">
           🎵 Ambient
         </p>
       )}
