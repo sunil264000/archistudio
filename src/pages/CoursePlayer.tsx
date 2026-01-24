@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navbar } from '@/components/layout/Navbar';
@@ -43,6 +43,7 @@ interface LessonProgress {
 
 export default function CoursePlayer() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -54,6 +55,9 @@ export default function CoursePlayer() {
   const [loading, setLoading] = useState(true);
   const [watchProgress, setWatchProgress] = useState(0);
   const [showFinishButton, setShowFinishButton] = useState(false);
+
+  // Get lesson ID from URL query param if present
+  const lessonIdFromUrl = searchParams.get('lesson');
 
   useEffect(() => {
     if (!user) {
@@ -118,6 +122,8 @@ export default function CoursePlayer() {
 
       // Fetch user progress
       const allLessonIds = sortedModules.flatMap(m => m.lessons.map(l => l.id));
+      let progressMap: Record<string, LessonProgress> = {};
+      
       if (allLessonIds.length > 0) {
         const { data: progressData } = await supabase
           .from('progress')
@@ -125,16 +131,39 @@ export default function CoursePlayer() {
           .eq('user_id', user.id)
           .in('lesson_id', allLessonIds);
 
-        const progressMap: Record<string, LessonProgress> = {};
         (progressData || []).forEach(p => {
           progressMap[p.lesson_id] = p;
         });
         setProgress(progressMap);
       }
 
-      // Set initial lesson
-      if (sortedModules.length > 0 && sortedModules[0].lessons.length > 0) {
-        setCurrentLesson(sortedModules[0].lessons[0]);
+      // Set initial lesson - prioritize URL param, then find first incomplete, then first lesson
+      const allLessonsFlat = sortedModules.flatMap(m => m.lessons);
+      
+      let initialLesson: Lesson | null = null;
+      
+      // 1. Check URL param
+      if (lessonIdFromUrl) {
+        initialLesson = allLessonsFlat.find(l => l.id === lessonIdFromUrl) || null;
+      }
+      
+      // 2. If no URL param or not found, find first incomplete lesson (auto-continue)
+      if (!initialLesson && Object.keys(progressMap).length > 0) {
+        const completedIds = new Set(
+          Object.entries(progressMap)
+            .filter(([_, p]) => p.completed)
+            .map(([id]) => id)
+        );
+        initialLesson = allLessonsFlat.find(l => !completedIds.has(l.id)) || null;
+      }
+      
+      // 3. Fallback to first lesson
+      if (!initialLesson && allLessonsFlat.length > 0) {
+        initialLesson = allLessonsFlat[0];
+      }
+      
+      if (initialLesson) {
+        setCurrentLesson(initialLesson);
       }
     } catch (error) {
       console.error('Error fetching course:', error);
