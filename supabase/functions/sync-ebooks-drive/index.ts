@@ -89,13 +89,70 @@ async function scanFolderForPdfs(folderId: string, apiKey: string): Promise<Driv
   return allFiles;
 }
 
-// Clean book title from filename
+// Clean and optimize book title from filename
 function cleanBookTitle(filename: string): string {
-  return filename
+  let title = filename
     .replace(/\.pdf$/i, '')
-    .replace(/[-_]/g, ' ')
+    // Remove common prefixes/suffixes
+    .replace(/^[\d\s._-]+/, '') // Leading numbers
+    .replace(/[-_]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+  
+  // Capitalize properly (Title Case)
+  title = title.split(' ').map(word => {
+    if (word.length <= 2 && !['3d', '2d', 'bim', 'cad'].includes(word.toLowerCase())) {
+      return word.toLowerCase();
+    }
+    // Keep acronyms uppercase
+    if (word.toUpperCase() === word && word.length <= 4) {
+      return word;
+    }
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(' ');
+  
+  // Fix common architecture terms
+  const termFixes: Record<string, string> = {
+    'neufert': 'Neufert',
+    'autocad': 'AutoCAD',
+    'revit': 'Revit',
+    '3ds max': '3ds Max',
+    'sketchup': 'SketchUp',
+    'vray': 'V-Ray',
+    'corona': 'Corona',
+    'photoshop': 'Photoshop',
+    'illustrator': 'Illustrator',
+    'archicad': 'ArchiCAD',
+    'rhino': 'Rhino',
+    'grasshopper': 'Grasshopper',
+    'lumion': 'Lumion',
+    'enscape': 'Enscape',
+    'twinmotion': 'Twinmotion',
+    'bim': 'BIM',
+    'cad': 'CAD',
+    'pdf': '',
+    'ebook': '',
+    'e-book': '',
+  };
+  
+  for (const [find, replace] of Object.entries(termFixes)) {
+    const regex = new RegExp(`\\b${find}\\b`, 'gi');
+    title = title.replace(regex, replace);
+  }
+  
+  // Clean up any double spaces or trailing content
+  title = title.replace(/\s+/g, ' ').trim();
+  
+  // Remove empty brackets/parentheses
+  title = title.replace(/\(\s*\)/g, '').replace(/\[\s*\]/g, '').trim();
+  
+  return title || filename.replace(/\.pdf$/i, '');
+}
+
+// Generate Google Drive direct download/view URL
+function getDriveFileUrl(fileId: string): string {
+  // Use the export/view link that works for public files
+  return `https://drive.google.com/file/d/${fileId}/view`;
 }
 
 // Detect category from folder name or file name
@@ -179,50 +236,77 @@ serve(async (req) => {
 
       let imported = 0;
       let skipped = 0;
+      let updated = 0;
 
       for (const file of pdfFiles) {
         const title = cleanBookTitle(file.name);
+        const driveViewUrl = getDriveFileUrl(file.id);
         
-        // Check if ebook with same title or drive_file_id exists
-        const { data: existing } = await supabase
+        // Check if ebook with same drive_file_id exists
+        const { data: existingById } = await supabase
           .from('ebooks')
           .select('id')
-          .or(`title.eq.${title},drive_file_id.eq.${file.id}`)
+          .eq('drive_file_id', file.id)
           .limit(1);
 
-        if (existing && existing.length > 0) {
-          // Update existing with drive info
+        if (existingById && existingById.length > 0) {
+          // Update existing with latest info and file URL
           await supabase
             .from('ebooks')
             .update({ 
-              drive_file_id: file.id,
+              title, // Update with optimized title
               drive_folder_url: folderUrl,
+              file_url: driveViewUrl, // Auto-link the Drive file
               updated_at: new Date().toISOString(),
             })
-            .eq('id', existing[0].id);
-          skipped++;
+            .eq('id', existingById[0].id);
+          updated++;
         } else {
-          // Create new ebook
-          const { error } = await supabase
+          // Check by similar title
+          const { data: existingByTitle } = await supabase
             .from('ebooks')
-            .insert({
-              title,
-              category: detectCategory(file.name),
-              drive_file_id: file.id,
-              drive_folder_url: folderUrl,
-              price_single: 50,
-              is_published: true,
-              order_index: imported,
-            });
+            .select('id')
+            .ilike('title', `%${title.slice(0, 20)}%`)
+            .limit(1);
+          
+          if (existingByTitle && existingByTitle.length > 0) {
+            // Update existing
+            await supabase
+              .from('ebooks')
+              .update({ 
+                title,
+                drive_file_id: file.id,
+                drive_folder_url: folderUrl,
+                file_url: driveViewUrl,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', existingByTitle[0].id);
+            updated++;
+          } else {
+            // Create new ebook with auto-linked Drive URL
+            const { error } = await supabase
+              .from('ebooks')
+              .insert({
+                title,
+                category: detectCategory(file.name),
+                drive_file_id: file.id,
+                drive_folder_url: folderUrl,
+                file_url: driveViewUrl, // Auto-link Drive file
+                price_single: 50,
+                is_published: true,
+                order_index: imported,
+              });
 
-          if (!error) imported++;
+            if (!error) imported++;
+          }
         }
       }
 
       return new Response(JSON.stringify({ 
         success: true, 
         imported,
-        skipped,
+        updated,
+        skipped: pdfFiles.length - imported - updated,
         totalScanned: pdfFiles.length,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -80,7 +80,7 @@ export function EbookDriveSync({ onSyncComplete }: { onSyncComplete?: () => void
 
       toast({ 
         title: "Import Complete! 🎉", 
-        description: `Imported ${data.imported} new eBooks, ${data.skipped} already existed` 
+        description: `Imported ${data.imported} new, updated ${data.updated || 0} existing eBooks. All files auto-linked!` 
       });
 
       setScannedFiles([]);

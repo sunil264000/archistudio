@@ -27,8 +27,21 @@ import {
   AlertCircle,
   ExternalLink,
   FolderSync,
-  Link2
+  Link2,
+  Trash,
+  AlertTriangle
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Ebook {
   id: string;
@@ -58,6 +71,7 @@ export function EbookManagement() {
   const [editingBook, setEditingBook] = useState<Ebook | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -179,6 +193,30 @@ export function EbookManagement() {
     }
   };
 
+  const handleDeleteAll = async () => {
+    setDeletingAll(true);
+    
+    try {
+      const { error } = await supabase.from('ebooks').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      
+      if (error) throw error;
+      
+      toast({ 
+        title: "All Deleted", 
+        description: `Successfully deleted ${ebooks.length} eBooks` 
+      });
+      fetchEbooks();
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to delete all eBooks", 
+        variant: "destructive" 
+      });
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
   const handleFileUpload = async (ebookId: string, file: File) => {
     if (!file.type.includes('pdf')) {
       toast({ title: "Error", description: "Only PDF files are allowed", variant: "destructive" });
@@ -273,17 +311,51 @@ export function EbookManagement() {
           <p className="text-muted-foreground">{ebooks.length} books in library</p>
         </div>
         
-        <Dialog open={dialogOpen} onOpenChange={(open) => {
-          setDialogOpen(open);
-          if (!open) resetForm();
-        }}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add eBook
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-lg">
+        <div className="flex items-center gap-3">
+          {/* Delete All Button */}
+          {ebooks.length > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="gap-2" disabled={deletingAll}>
+                  {deletingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash className="h-4 w-4" />}
+                  Delete All ({ebooks.length})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    Delete All eBooks?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete all {ebooks.length} eBooks from the library. 
+                    This action cannot be undone. You can re-import them from Google Drive later.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleDeleteAll}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Yes, Delete All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) resetForm();
+          }}>
+            <DialogTrigger asChild>
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add eBook
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>{editingBook ? 'Edit eBook' : 'Add New eBook'}</DialogTitle>
             </DialogHeader>
@@ -358,6 +430,7 @@ export function EbookManagement() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* eBooks by Category */}
