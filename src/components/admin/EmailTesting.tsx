@@ -177,8 +177,8 @@ export function EmailTesting() {
                 value={testEmail}
                 onChange={(e) => setTestEmail(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
-                ⚠️ Sandbox mode: Only works for p27373872827@gmail.com until domain verified
+              <p className="text-xs text-green-500">
+                ✓ Domain verified: Emails sent from hello@archistudio.shop
               </p>
             </div>
             <div className="space-y-2">
@@ -260,27 +260,24 @@ export function EmailTesting() {
         </CardContent>
       </Card>
 
-      {/* Domain Setup Notice */}
-      <Card className="border-amber-500/30 bg-amber-500/5">
+      {/* Domain Status */}
+      <Card className="border-green-500/30 bg-green-500/5">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <AlertCircle className="h-5 w-5 text-amber-500" />
-            Production Email Setup Required
+            <CheckCircle className="h-5 w-5 text-green-500" />
+            Production Email Ready
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <p className="text-muted-foreground">
-            Currently using Resend sandbox mode. To send emails to all users:
+            Your domain is verified and ready to send emails to all users.
           </p>
-          <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-            <li>Go to <a href="https://resend.com/domains" target="_blank" rel="noopener noreferrer" className="text-primary underline">resend.com/domains</a></li>
-            <li>Add your business domain (e.g., archistudio.in)</li>
-            <li>Add the DNS records they provide</li>
-            <li>Update the "from" address in edge functions to use your domain</li>
-          </ol>
-          <div className="pt-2">
-            <Badge variant="outline" className="text-amber-600">
-              Current: onboarding@resend.dev (sandbox)
+          <div className="pt-2 flex gap-2 flex-wrap">
+            <Badge variant="outline" className="text-green-600 border-green-500/30">
+              ✓ Domain: archistudio.shop
+            </Badge>
+            <Badge variant="outline" className="text-green-600 border-green-500/30">
+              ✓ From: hello@archistudio.shop
             </Badge>
           </div>
         </CardContent>
