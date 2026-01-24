@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   BookOpen, Package, Video, Users, UserPlus, HelpCircle, Bell, 
   CreditCard, Sparkles, Award, BarChart3, MessageSquare, Settings,
-  ChevronLeft, ChevronRight, LayoutDashboard
+  ChevronLeft, ChevronRight, LayoutDashboard, Timer
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logo from '@/assets/logo.png';
@@ -27,6 +27,7 @@ const menuItems = [
   { id: 'notifications', label: 'Notifications', icon: Bell, color: 'text-red-500' },
   { id: 'payments', label: 'Payments', icon: CreditCard, color: 'text-emerald-500' },
   { id: 'coupons', label: 'Coupons', icon: Sparkles, color: 'text-pink-500' },
+  { id: 'sales', label: 'Flash Sales', icon: Timer, color: 'text-destructive' },
   { id: 'certificates', label: 'Certificates', icon: Award, color: 'text-amber-500' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-indigo-500' },
   { id: 'support', label: 'Support', icon: MessageSquare, color: 'text-teal-500' },

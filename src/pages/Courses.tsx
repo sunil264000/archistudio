@@ -4,11 +4,12 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { courses, courseCategories, getFeaturedCourses, categoryImages } from '@/data/courses';
 import { useDynamicCourseData } from '@/hooks/useDynamicCourseData';
+import { useSaleDiscount } from '@/hooks/useSaleDiscount';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Clock, BookOpen, Search, Star, Filter, ShoppingCart, CreditCard, Loader2, Sparkles, GraduationCap } from 'lucide-react';
+import { Clock, BookOpen, Search, Star, Filter, ShoppingCart, CreditCard, Loader2, Sparkles, GraduationCap, Flame } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
 import { useToast } from '@/hooks/use-toast';
@@ -22,6 +23,7 @@ export default function Courses() {
   const [searchQuery, setSearchQuery] = useState('');
   const [dbCourseCount, setDbCourseCount] = useState<number | null>(null);
   const { getThumbnail, isHighlighted, isFeatured } = useDynamicCourseData();
+  const { isActive: saleActive, discountPercent, calculateDiscountedPrice } = useSaleDiscount();
 
   // Fetch actual course count from database
   useEffect(() => {
@@ -173,7 +175,7 @@ export default function Courses() {
               <Star className="h-6 w-6 text-warning fill-warning" />
               <h2 className="text-2xl font-bold">Featured Courses</h2>
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
               {featuredCourses.slice(0, 6).map((course, index) => (
                 <CourseCard 
                   key={course.id} 
@@ -182,6 +184,9 @@ export default function Courses() {
                   index={index} 
                   getThumbnail={getThumbnail}
                   isHighlighted={isHighlighted(course.slug)}
+                  saleActive={saleActive}
+                  discountPercent={discountPercent}
+                  calculateDiscountedPrice={calculateDiscountedPrice}
                 />
               ))}
             </div>
@@ -208,7 +213,7 @@ export default function Courses() {
               </Button>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {sortedCourses.map((course, index) => (
                 <CourseCard 
                   key={course.id} 
@@ -216,6 +221,9 @@ export default function Courses() {
                   index={index} 
                   getThumbnail={getThumbnail}
                   isHighlighted={isHighlighted(course.slug)}
+                  saleActive={saleActive}
+                  discountPercent={discountPercent}
+                  calculateDiscountedPrice={calculateDiscountedPrice}
                 />
               ))}
             </div>
@@ -237,14 +245,29 @@ interface CourseCardProps {
   index?: number;
   getThumbnail: (slug: string, fallback: string) => string;
   isHighlighted?: boolean;
+  saleActive?: boolean;
+  discountPercent?: number;
+  calculateDiscountedPrice?: (price: number) => number;
 }
 
-function CourseCard({ course, featured = false, index = 0, getThumbnail, isHighlighted = false }: CourseCardProps) {
+function CourseCard({ 
+  course, 
+  featured = false, 
+  index = 0, 
+  getThumbnail, 
+  isHighlighted = false,
+  saleActive = false,
+  discountPercent = 0,
+  calculateDiscountedPrice = (p) => p
+}: CourseCardProps) {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { initiatePayment, isLoading } = useCashfreePayment();
   const { toast } = useToast();
   const [isHovered, setIsHovered] = useState(false);
+
+  const discountedPrice = calculateDiscountedPrice(course.priceInr);
+  const discountedPriceUSD = calculateDiscountedPrice(course.priceUsd);
 
   const levelColors: Record<string, string> = {
     beginner: 'bg-success/10 text-success border-success/30',
@@ -265,7 +288,7 @@ function CourseCard({ course, featured = false, index = 0, getThumbnail, isHighl
 
      await initiatePayment({
        courseId: course.slug,
-       amount: course.priceInr,
+       amount: discountedPrice,
        customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
        customerEmail: user.email || '',
        customerPhone: profile?.phone || '9999999999',
@@ -373,12 +396,27 @@ function CourseCard({ course, featured = false, index = 0, getThumbnail, isHighl
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <div className="font-bold text-xl text-foreground">
-              ₹{course.priceInr.toLocaleString()}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              ${course.priceUsd}
-            </div>
+            {saleActive && discountPercent > 0 ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-xl text-success">₹{discountedPrice.toLocaleString()}</span>
+                  <span className="text-sm line-through text-muted-foreground">₹{course.priceInr.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center gap-1 text-xs">
+                  <Flame className="h-3 w-3 text-destructive" />
+                  <span className="text-destructive font-medium">{discountPercent}% OFF</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="font-bold text-xl text-foreground">
+                  ₹{course.priceInr.toLocaleString()}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  ${course.priceUsd}
+                </div>
+              </>
+            )}
           </div>
           <Button 
             size="sm" 
