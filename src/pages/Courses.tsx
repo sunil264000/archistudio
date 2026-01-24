@@ -114,9 +114,9 @@ export default function Courses() {
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       <SEOHead 
-        title="All Courses - Concrete Logic"
+        title="All Courses - Archistudio"
         description="Browse our complete catalog of architecture and 3D visualization courses. Learn 3ds Max, AutoCAD, Revit, SketchUp and more."
-        url="https://concrete-logic.lovable.app/courses"
+        url="https://archistudio.lovable.app/courses"
       />
       
       <Navbar />

@@ -15,7 +15,7 @@ interface SEOHeadProps {
 }
 
 export function SEOHead({
-  title = 'Concrete Logic - Master Architectural Visualization',
+  title = 'Archistudio - Master Architectural Visualization',
   description = 'Learn 3ds Max, AutoCAD, Revit, SketchUp and more with industry-leading courses. Transform your architectural design skills with hands-on training.',
   keywords = 'architectural visualization, 3ds max, autocad, revit, sketchup, corona rendering, interior design, architecture courses, BIM, 3D modeling',
   image = '/og-image.jpg',
@@ -23,13 +23,13 @@ export function SEOHead({
   type = 'website',
   price,
   currency = 'INR',
-  author = 'Concrete Logic',
+  author = 'Archistudio',
   publishedTime,
   noIndex = false,
 }: SEOHeadProps) {
   useEffect(() => {
     // Update document title
-    document.title = title.includes('Concrete Logic') ? title : `${title} | Concrete Logic`;
+    document.title = title.includes('Archistudio') ? title : `${title} | Archistudio`;
     
     // Helper to update or create meta tag
     const setMeta = (name: string, content: string, isProperty = false) => {
@@ -57,7 +57,7 @@ export function SEOHead({
     setMeta('og:type', type, true);
     setMeta('og:image', image, true);
     if (url) setMeta('og:url', url, true);
-    setMeta('og:site_name', 'Concrete Logic', true);
+    setMeta('og:site_name', 'Archistudio', true);
     setMeta('og:locale', 'en_IN', true);
     
     // Twitter Card
@@ -113,8 +113,8 @@ export function generateCourseSchema(course: {
     description: course.description,
     provider: {
       '@type': 'Organization',
-      name: 'Concrete Logic',
-      sameAs: 'https://concrete-logic.lovable.app',
+      name: 'Archistudio',
+      sameAs: 'https://archistudio.lovable.app',
     },
     offers: {
       '@type': 'Offer',
@@ -137,15 +137,19 @@ export function generateOrganizationSchema() {
   return {
     '@context': 'https://schema.org',
     '@type': 'EducationalOrganization',
-    name: 'Concrete Logic',
-    url: 'https://concrete-logic.lovable.app',
-    logo: 'https://concrete-logic.lovable.app/logo.png',
-    description: 'Premier architectural visualization and design education platform',
-    sameAs: [],
+    name: 'Archistudio',
+    url: 'https://archistudio.lovable.app',
+    logo: 'https://archistudio.lovable.app/logo.png',
+    description: 'Online architecture education platform teaching practical skills for the industry.',
+    sameAs: [
+      'https://twitter.com/Archistudio',
+      'https://instagram.com/Archistudio',
+      'https://linkedin.com/company/archistudio',
+    ],
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer service',
-      availableLanguage: ['English', 'Hindi'],
+      email: 'support@archistudio.com',
     },
   };
 }

@@ -25,9 +25,9 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       <SEOHead 
-        title="Concrete Logic - Master Architectural Visualization"
+        title="Archistudio - Master Architectural Visualization"
         description="Learn 3ds Max, AutoCAD, Revit, SketchUp and more. Transform your architectural design skills with industry-leading courses."
-        url="https://concrete-logic.lovable.app"
+        url="https://archistudio.lovable.app"
       />
       <script
         type="application/ld+json"

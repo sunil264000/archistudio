@@ -18,7 +18,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are a helpful AI learning assistant for Concrete Logic, an online architecture education platform. You help students with:
+    const systemPrompt = `You are a helpful AI learning assistant for Archistudio, an online architecture education platform. You help students with:
 
 1. Understanding architectural concepts and terminology
 2. Questions about courses (3D modeling, rendering, CAD, BIM, etc.)

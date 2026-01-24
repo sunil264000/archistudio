@@ -447,7 +447,7 @@ export function SecureVideoPlayer({
           Protected Content
         </div>
         <div className="absolute top-2 right-2 text-white/15 text-xs pointer-events-none select-none z-20">
-          Concrete Logic
+          Archistudio
         </div>
 
       </div>
@@ -703,7 +703,7 @@ export function SecureVideoPlayer({
       )}
       
       <div className="absolute top-2 right-2 text-white/10 text-xs pointer-events-none select-none">
-        Concrete Logic
+        Archistudio
       </div>
     </div>
   );
