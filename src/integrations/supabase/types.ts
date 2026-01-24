@@ -461,6 +461,48 @@ export type Database = {
           },
         ]
       }
+      ebook_pricing_settings: {
+        Row: {
+          full_bundle_price: number
+          id: string
+          tier_1_max_books: number
+          tier_1_price: number
+          tier_2_max_books: number
+          tier_2_price: number
+          tier_3_max_books: number
+          tier_3_price: number
+          tier_4_price: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          full_bundle_price?: number
+          id?: string
+          tier_1_max_books?: number
+          tier_1_price?: number
+          tier_2_max_books?: number
+          tier_2_price?: number
+          tier_3_max_books?: number
+          tier_3_price?: number
+          tier_4_price?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          full_bundle_price?: number
+          id?: string
+          tier_1_max_books?: number
+          tier_1_price?: number
+          tier_2_max_books?: number
+          tier_2_price?: number
+          tier_3_max_books?: number
+          tier_3_price?: number
+          tier_4_price?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ebook_purchases: {
         Row: {
           created_at: string

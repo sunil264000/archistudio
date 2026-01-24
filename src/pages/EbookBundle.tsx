@@ -37,6 +37,17 @@ interface Ebook {
   order_index: number;
 }
 
+interface PricingSettings {
+  full_bundle_price: number;
+  tier_1_max_books: number;
+  tier_1_price: number;
+  tier_2_max_books: number;
+  tier_2_price: number;
+  tier_3_max_books: number;
+  tier_3_price: number;
+  tier_4_price: number;
+}
+
 const categoryIcons: Record<string, React.ReactNode> = {
   'Fundamentals of Design': <Library className="h-5 w-5" />,
   'Construction & Detailing': <Building2 className="h-5 w-5" />,
@@ -55,40 +66,9 @@ const categoryColors: Record<string, string> = {
   'History & Reference': 'from-amber-500/20 to-amber-600/10 border-amber-500/30',
 };
 
-// Tiered pricing logic
-const calculatePrice = (bookCount: number): { total: number; perBook: number; savings: number } => {
-  if (bookCount === 0) return { total: 0, perBook: 0, savings: 0 };
-  
-  let total = 0;
-  const basePrice = 50;
-  
-  for (let i = 1; i <= bookCount; i++) {
-    if (i <= 5) {
-      total += 50; // First 5 books: ₹50 each
-    } else if (i <= 12) {
-      total += 40; // Books 6-12: ₹40 each
-    } else if (i <= 30) {
-      total += 35; // Books 13-30: ₹35 each
-    } else {
-      total += 27; // Books 31+: ₹27 each
-    }
-  }
-  
-  const fullPrice = bookCount * basePrice;
-  const savings = fullPrice - total;
-  const perBook = Math.round(total / bookCount);
-  
-  return { total, perBook, savings };
-};
-
-// Full bundle special price
-const getFullBundlePrice = (totalBooks: number): number => {
-  // Special bundle price: ~₹22 per book
-  return Math.round(totalBooks * 22);
-};
-
 export default function EbookBundle() {
   const [ebooks, setEbooks] = useState<Ebook[]>([]);
+  const [pricingSettings, setPricingSettings] = useState<PricingSettings | null>(null);
   const [selectedBooks, setSelectedBooks] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
@@ -96,18 +76,44 @@ export default function EbookBundle() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchEbooks();
+    fetchData();
   }, []);
 
-  const fetchEbooks = async () => {
-    const { data, error } = await supabase
-      .from('ebooks')
-      .select('*')
-      .eq('is_published', true)
-      .order('order_index');
+  const fetchData = async () => {
+    const [ebooksRes, pricingRes] = await Promise.all([
+      supabase.from('ebooks').select('*').eq('is_published', true).order('order_index'),
+      supabase.from('ebook_pricing_settings').select('*').single()
+    ]);
     
-    if (data) setEbooks(data);
+    if (ebooksRes.data) setEbooks(ebooksRes.data);
+    if (pricingRes.data) setPricingSettings(pricingRes.data);
     setLoading(false);
+  };
+
+  // Dynamic tiered pricing based on admin settings
+  const calculatePrice = (bookCount: number): { total: number; perBook: number; savings: number } => {
+    if (bookCount === 0 || !pricingSettings) return { total: 0, perBook: 0, savings: 0 };
+    
+    let total = 0;
+    const basePrice = pricingSettings.tier_1_price;
+    
+    for (let i = 1; i <= bookCount; i++) {
+      if (i <= pricingSettings.tier_1_max_books) {
+        total += pricingSettings.tier_1_price;
+      } else if (i <= pricingSettings.tier_2_max_books) {
+        total += pricingSettings.tier_2_price;
+      } else if (i <= pricingSettings.tier_3_max_books) {
+        total += pricingSettings.tier_3_price;
+      } else {
+        total += pricingSettings.tier_4_price;
+      }
+    }
+    
+    const fullPrice = bookCount * basePrice;
+    const savings = fullPrice - total;
+    const perBook = Math.round(total / bookCount);
+    
+    return { total, perBook, savings };
   };
 
   const categories = [...new Set(ebooks.map(e => e.category))];
@@ -147,10 +153,11 @@ export default function EbookBundle() {
   };
 
   const pricing = calculatePrice(selectedBooks.size);
-  const fullBundlePrice = getFullBundlePrice(totalBooks);
-  const isFullBundle = selectedBooks.size === totalBooks;
+  const fullBundlePrice = pricingSettings?.full_bundle_price || 1034;
+  const basePrice = pricingSettings?.tier_1_price || 50;
+  const isFullBundle = selectedBooks.size === totalBooks && totalBooks > 0;
   const finalPrice = isFullBundle ? fullBundlePrice : pricing.total;
-  const fullBundleSavings = (totalBooks * 50) - fullBundlePrice;
+  const fullBundleSavings = (totalBooks * basePrice) - fullBundlePrice;
 
   const handlePurchase = async () => {
     if (!user) {
@@ -257,19 +264,21 @@ export default function EbookBundle() {
             </motion.div>
 
             {/* Pricing Tiers Info */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto mb-8">
-            {[
-              { range: '1-5 books', price: '₹50/book' },
-              { range: '6-12 books', price: '₹40/book' },
-              { range: '13-30 books', price: '₹35/book' },
-              { range: '30+ books', price: '₹27/book' },
-            ].map((tier, i) => (
-              <div key={i} className="bg-card/50 rounded-lg p-3 border border-border/50">
-                  <p className="text-xs text-muted-foreground">{tier.range}</p>
-                  <p className="font-semibold text-foreground">{tier.price}</p>
-                </div>
-              ))}
-            </div>
+            {pricingSettings && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto mb-8">
+                {[
+                  { range: `1-${pricingSettings.tier_1_max_books} books`, price: `₹${pricingSettings.tier_1_price}/book` },
+                  { range: `${pricingSettings.tier_1_max_books + 1}-${pricingSettings.tier_2_max_books} books`, price: `₹${pricingSettings.tier_2_price}/book` },
+                  { range: `${pricingSettings.tier_2_max_books + 1}-${pricingSettings.tier_3_max_books} books`, price: `₹${pricingSettings.tier_3_price}/book` },
+                  { range: `${pricingSettings.tier_3_max_books}+ books`, price: `₹${pricingSettings.tier_4_price}/book` },
+                ].map((tier, i) => (
+                  <div key={i} className="bg-card/50 rounded-lg p-3 border border-border/50">
+                    <p className="text-xs text-muted-foreground">{tier.range}</p>
+                    <p className="font-semibold text-foreground">{tier.price}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </motion.div>
         </section>
 
