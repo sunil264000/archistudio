@@ -4,7 +4,7 @@
   
   <!-- Homepage -->
   <url>
-    <loc>https://archistudio.lovable.app</loc>
+    <loc>https://archistudio.shop</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
@@ -12,7 +12,7 @@
   
   <!-- Studios Listing -->
   <url>
-    <loc>https://archistudio.lovable.app/courses</loc>
+    <loc>https://archistudio.shop/courses</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
@@ -20,7 +20,7 @@
   
   <!-- Blog Listing -->
   <url>
-    <loc>https://archistudio.lovable.app/blog</loc>
+    <loc>https://archistudio.shop/blog</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -28,7 +28,7 @@
   
   <!-- Contact -->
   <url>
-    <loc>https://archistudio.lovable.app/contact</loc>
+    <loc>https://archistudio.shop/contact</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
@@ -36,7 +36,7 @@
   
   <!-- Terms -->
   <url>
-    <loc>https://archistudio.lovable.app/terms</loc>
+    <loc>https://archistudio.shop/terms</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
@@ -44,121 +44,121 @@
 
   <!-- Studio Programs -->
   <url>
-    <loc>https://archistudio.lovable.app/course/architectural-autocad-drafting</loc>
+    <loc>https://archistudio.shop/course/architectural-autocad-drafting</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/master-interior-visualization-sketchup-vray</loc>
+    <loc>https://archistudio.shop/course/master-interior-visualization-sketchup-vray</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/frank-gehry-teaches-design-architecture</loc>
+    <loc>https://archistudio.shop/course/frank-gehry-teaches-design-architecture</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/introduction-architectural-sketching</loc>
+    <loc>https://archistudio.shop/course/introduction-architectural-sketching</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/revit-architecture-structure-interior-2024</loc>
+    <loc>https://archistudio.shop/course/revit-architecture-structure-interior-2024</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/revit-2026-interior-design-modeling-rendering</loc>
+    <loc>https://archistudio.shop/course/revit-2026-interior-design-modeling-rendering</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/complete-autocad-structural-detailing</loc>
+    <loc>https://archistudio.shop/course/complete-autocad-structural-detailing</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/realistic-interior-rendering-sketchup-vray7</loc>
+    <loc>https://archistudio.shop/course/realistic-interior-rendering-sketchup-vray7</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/master-autocad-landscape-architects</loc>
+    <loc>https://archistudio.shop/course/master-autocad-landscape-architects</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/space-planning-interior-design-essentials</loc>
+    <loc>https://archistudio.shop/course/space-planning-interior-design-essentials</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/revit-mep-electrical-plumbing-hvac-fire</loc>
+    <loc>https://archistudio.shop/course/revit-mep-electrical-plumbing-hvac-fire</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/complete-photoshop-post-production-architects</loc>
+    <loc>https://archistudio.shop/course/complete-photoshop-post-production-architects</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/3ds-max-architecture-visualization-2024</loc>
+    <loc>https://archistudio.shop/course/3ds-max-architecture-visualization-2024</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/complete-rhino-3d-architecture-masterclass</loc>
+    <loc>https://archistudio.shop/course/complete-rhino-3d-architecture-masterclass</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/corona-renderer-photorealistic-visualization</loc>
+    <loc>https://archistudio.shop/course/corona-renderer-photorealistic-visualization</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/lumion-beginner-advanced-photorealistic</loc>
+    <loc>https://archistudio.shop/course/lumion-beginner-advanced-photorealistic</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/enscape-real-time-rendering-architecture</loc>
+    <loc>https://archistudio.shop/course/enscape-real-time-rendering-architecture</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/v-ray-sketchup-beginner-advanced</loc>
+    <loc>https://archistudio.shop/course/v-ray-sketchup-beginner-advanced</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/bim-revit-coordination-workflows</loc>
+    <loc>https://archistudio.shop/course/bim-revit-coordination-workflows</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://archistudio.lovable.app/course/advanced-grasshopper-parametric-architecture</loc>
+    <loc>https://archistudio.shop/course/advanced-grasshopper-parametric-architecture</loc>
     <lastmod>2026-01-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
