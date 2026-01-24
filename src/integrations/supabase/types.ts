@@ -593,6 +593,8 @@ export type Database = {
           id: string
           is_published: boolean | null
           order_index: number | null
+          preview_generated_at: string | null
+          preview_url: string | null
           price_single: number
           title: string
           updated_at: string
@@ -608,6 +610,8 @@ export type Database = {
           id?: string
           is_published?: boolean | null
           order_index?: number | null
+          preview_generated_at?: string | null
+          preview_url?: string | null
           price_single?: number
           title: string
           updated_at?: string
@@ -623,6 +627,8 @@ export type Database = {
           id?: string
           is_published?: boolean | null
           order_index?: number | null
+          preview_generated_at?: string | null
+          preview_url?: string | null
           price_single?: number
           title?: string
           updated_at?: string

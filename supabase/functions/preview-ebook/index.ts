@@ -23,10 +23,10 @@ serve(async (req) => {
       throw new Error("eBook ID is required");
     }
 
-    // Get ebook details
+    // Get ebook details including cached preview URL
     const { data: ebook, error: ebookError } = await supabaseClient
       .from("ebooks")
-      .select("title, file_url, drive_file_id")
+      .select("title, file_url, drive_file_id, preview_url, preview_generated_at")
       .eq("id", ebookId)
       .single();
 
@@ -34,20 +34,47 @@ serve(async (req) => {
       throw new Error("eBook not found");
     }
 
-    // Get the file - either from Supabase storage or Google Drive
+    // Check if we have a cached preview that's less than 7 days old
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    if (ebook.preview_url && ebook.preview_generated_at) {
+      const generatedAt = new Date(ebook.preview_generated_at);
+      if (generatedAt > sevenDaysAgo) {
+        // Redirect to cached preview URL for fast loading
+        console.log(`Serving cached preview for ${ebookId}`);
+        
+        // Fetch from cache and return
+        const cachedResponse = await fetch(ebook.preview_url);
+        if (cachedResponse.ok) {
+          const fileBuffer = await cachedResponse.arrayBuffer();
+          return new Response(fileBuffer, {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              "Content-Type": "application/pdf",
+              "Cache-Control": "public, max-age=86400", // 24 hours browser cache
+              "Content-Disposition": "inline",
+            },
+          });
+        }
+        // If cache fetch failed, continue to fetch from source
+        console.log("Cache fetch failed, fetching from source");
+      }
+    }
+
+    // Fetch from source
     let fileBuffer: ArrayBuffer;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
 
     try {
       if (ebook.drive_file_id) {
-        // Fetch from Google Drive using direct download link
         const googleApiKey = Deno.env.get("GOOGLE_API_KEY");
         if (!googleApiKey) {
           throw new Error("Google API key not configured");
         }
 
-        // Try the direct download approach first (faster)
         const driveResponse = await fetch(
           `https://www.googleapis.com/drive/v3/files/${ebook.drive_file_id}?alt=media&key=${googleApiKey}`,
           {
@@ -92,20 +119,51 @@ serve(async (req) => {
       clearTimeout(timeoutId);
     }
 
-    // Return the PDF with proper caching headers
+    // Cache the preview in storage (async, don't wait)
+    const previewFileName = `preview-${ebookId}.pdf`;
+    supabaseClient
+      .storage
+      .from("ebook-previews")
+      .upload(previewFileName, new Blob([fileBuffer], { type: "application/pdf" }), {
+        upsert: true,
+        contentType: "application/pdf",
+      })
+      .then(async ({ data, error }) => {
+        if (!error && data) {
+          const { data: urlData } = supabaseClient
+            .storage
+            .from("ebook-previews")
+            .getPublicUrl(previewFileName);
+          
+          // Update ebook with cached preview URL
+          await supabaseClient
+            .from("ebooks")
+            .update({
+              preview_url: urlData.publicUrl,
+              preview_generated_at: new Date().toISOString(),
+            })
+            .eq("id", ebookId);
+          
+          console.log(`Cached preview for ${ebookId}: ${urlData.publicUrl}`);
+        } else if (error) {
+          console.error("Failed to cache preview:", error);
+        }
+      })
+      .catch((err) => console.error("Preview caching error:", err));
+
+    // Return the PDF immediately
     return new Response(fileBuffer, {
       status: 200,
       headers: {
         ...corsHeaders,
         "Content-Type": "application/pdf",
-        "Cache-Control": "public, max-age=7200", // Cache for 2 hours
+        "Cache-Control": "public, max-age=7200", // 2 hours
         "Content-Disposition": "inline",
       },
     });
   } catch (error: any) {
     console.error("Preview error:", error);
     
-    // Handle timeout separately
     if (error.name === 'AbortError') {
       return new Response(
         JSON.stringify({ error: "Request timeout - please try again" }),

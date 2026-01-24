@@ -92,16 +92,29 @@ export function EbookPDFViewer({
     try {
       const functionName = hasAccess ? 'download-ebook' : 'preview-ebook';
       
-      const response = await supabase.functions.invoke(functionName, {
-        body: { ebookId, previewPages },
+      // Use fetch directly for binary data - supabase.functions.invoke doesn't handle binary well
+      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': session?.access_token ? `Bearer ${session.access_token}` : `Bearer ${anonKey}`,
+          'apikey': anonKey,
+        },
+        body: JSON.stringify({ ebookId, previewPages }),
       });
 
-      if (response.error) {
-        throw new Error(response.error.message || 'Failed to load PDF');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to load PDF');
       }
 
-      // Create blob URL for the PDF
-      const blob = new Blob([response.data], { type: 'application/pdf' });
+      // Get the PDF as arraybuffer and create blob URL
+      const arrayBuffer = await response.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       setPdfUrl(url);
       setLoadingProgress(100);
@@ -149,13 +162,31 @@ export function EbookPDFViewer({
 
     setDownloading(true);
     try {
-      const response = await supabase.functions.invoke('download-ebook', {
-        body: { ebookId },
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Please login to download');
+      }
+      
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/download-ebook`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': anonKey,
+        },
+        body: JSON.stringify({ ebookId }),
       });
 
-      if (response.error) throw response.error;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to download PDF');
+      }
 
-      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const arrayBuffer = await response.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

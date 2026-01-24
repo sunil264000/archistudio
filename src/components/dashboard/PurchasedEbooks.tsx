@@ -78,18 +78,31 @@ export function PurchasedEbooks() {
   const handleDownload = async (ebookId: string, title: string) => {
     setDownloading(ebookId);
     try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session.session) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
         throw new Error('Please login to download');
       }
 
-      const response = await supabase.functions.invoke('download-ebook', {
-        body: { ebookId },
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/download-ebook`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': anonKey,
+        },
+        body: JSON.stringify({ ebookId }),
       });
 
-      if (response.error) throw response.error;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to download PDF');
+      }
 
-      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const arrayBuffer = await response.arrayBuffer();
+      const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
