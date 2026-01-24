@@ -223,9 +223,9 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
       // Fetch course content info
       await fetchCoursesContent();
       
-      // Use bulk-parent mode with deep scanning (6 levels) for complete video discovery
+      // Use bulk-parent mode with ultra-deep scanning (12 levels) for complete video discovery
       const { data, error } = await supabase.functions.invoke("scan-google-drive", {
-        body: { folderId: parentFolderUrl, scanMode: "bulk-parent", maxDepth: 6 },
+        body: { folderId: parentFolderUrl, scanMode: "bulk-parent", maxDepth: 12 },
       });
 
       if (error) {
@@ -482,7 +482,7 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
               folderId: match.folderId,
               courseId: match.matchedCourse!.id,
               action: "import-fast", // Use fast import mode
-              maxDepth: 6 // Deep scan 6 levels for nested content
+              maxDepth: 12 // Ultra-deep scan 12 levels for complex nested content
             },
           });
 
