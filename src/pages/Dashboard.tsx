@@ -10,6 +10,7 @@ import { EnrolledCourses } from '@/components/dashboard/EnrolledCourses';
 import { Certificates } from '@/components/dashboard/Certificates';
 import { ProgressAnalytics } from '@/components/dashboard/ProgressAnalytics';
 import { ReferralSection } from '@/components/dashboard/ReferralSection';
+import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 
 export default function Dashboard() {
   const { user, profile, loading, isAdmin } = useAuth();
@@ -30,8 +31,11 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background overflow-hidden">
       <Navbar />
+      
+      {/* Animated Background */}
+      <AnimatedBackground intensity="light" showOrbs={true} showGrid={false} />
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 space-y-8">
           <div className="flex items-center justify-between">

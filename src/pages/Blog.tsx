@@ -6,7 +6,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Background3D } from '@/components/3d/Background3D';
+import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { Calendar, Clock, Search, ArrowRight } from 'lucide-react';
 
 interface BlogPost {
@@ -60,12 +60,12 @@ export default function Blog() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-hidden">
       <Navbar />
       
       {/* Hero */}
       <section className="relative py-20 overflow-hidden">
-        <Background3D intensity="light" />
+        <AnimatedBackground intensity="light" />
         <div className="absolute inset-0 grid-pattern opacity-30" />
         
         <div className="relative container-wide text-center space-y-6">

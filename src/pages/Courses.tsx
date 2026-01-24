@@ -13,7 +13,7 @@ import { Clock, BookOpen, Search, Star, Filter, ShoppingCart, CreditCard, Loader
 import { useAuth } from '@/contexts/AuthContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
 import { useToast } from '@/hooks/use-toast';
-import { Background3D } from '@/components/3d/Background3D';
+import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { ContactSupportWidget } from '@/components/support/ContactSupportWidget';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,19 +22,63 @@ export default function Courses() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [dbCourseCount, setDbCourseCount] = useState<number | null>(null);
+  const [dbCourseStats, setDbCourseStats] = useState<Record<string, { totalLessons: number; totalDuration: number }>>({});
   const { getThumbnail, isHighlighted, isFeatured } = useDynamicCourseData();
   const { isActive: saleActive, discountPercent, calculateDiscountedPrice } = useSaleDiscount();
 
-  // Fetch actual course count from database
+  // Fetch actual course count and stats from database
   useEffect(() => {
-    const fetchCourseCount = async () => {
+    const fetchCourseData = async () => {
+      // Get course count
       const { count } = await supabase
         .from('courses')
         .select('*', { count: 'exact', head: true })
         .eq('is_published', true);
       setDbCourseCount(count);
+
+      // Get course stats (lessons and duration) for all courses
+      const { data: coursesData } = await supabase
+        .from('courses')
+        .select('slug')
+        .eq('is_published', true);
+
+      if (coursesData) {
+        const stats: Record<string, { totalLessons: number; totalDuration: number }> = {};
+        
+        for (const course of coursesData) {
+          // Get modules for this course
+          const { data: courseWithId } = await supabase
+            .from('courses')
+            .select('id')
+            .eq('slug', course.slug)
+            .single();
+            
+          if (courseWithId) {
+            const { data: modules } = await supabase
+              .from('modules')
+              .select('id')
+              .eq('course_id', courseWithId.id);
+              
+            if (modules && modules.length > 0) {
+              const moduleIds = modules.map(m => m.id);
+              const { data: lessons } = await supabase
+                .from('lessons')
+                .select('duration_minutes')
+                .in('module_id', moduleIds);
+                
+              if (lessons) {
+                stats[course.slug] = {
+                  totalLessons: lessons.length,
+                  totalDuration: lessons.reduce((sum, l) => sum + (l.duration_minutes || 0), 0)
+                };
+              }
+            }
+          }
+        }
+        setDbCourseStats(stats);
+      }
     };
-    fetchCourseCount();
+    fetchCourseData();
   }, []);
 
   const totalCourseCount = dbCourseCount ?? courses.length;
@@ -69,33 +113,8 @@ export default function Courses() {
       
       <Navbar />
       
-      {/* Live 3D Background */}
-      <Background3D intensity="light" />
-      
-      {/* Enhanced 3D Background with Grid Pattern */}
-      <div className="fixed inset-0 -z-5 pointer-events-none">
-        {/* Animated gradient orbs */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-pulse" 
-             style={{ animationDuration: '4s' }} />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse" 
-             style={{ animationDuration: '6s', animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-blueprint/10 rounded-full blur-3xl animate-pulse" 
-             style={{ animationDuration: '5s', animationDelay: '1s' }} />
-        
-        {/* Grid pattern overlay */}
-        <div className="absolute inset-0 grid-pattern opacity-30" />
-        
-        {/* Perspective lines for 3D effect */}
-        <svg className="absolute inset-0 w-full h-full opacity-10" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="perspective-grid" width="100" height="100" patternUnits="userSpaceOnUse">
-              <path d="M 100 0 L 0 100" stroke="currentColor" strokeWidth="0.5" fill="none" />
-              <path d="M 0 0 L 100 100" stroke="currentColor" strokeWidth="0.5" fill="none" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#perspective-grid)" />
-        </svg>
-      </div>
+      {/* Animated Background */}
+      <AnimatedBackground intensity="light" />
       
       {/* Hero Section with Animation */}
       <section className="pt-24 pb-12 relative">
@@ -187,6 +206,7 @@ export default function Courses() {
                   saleActive={saleActive}
                   discountPercent={discountPercent}
                   calculateDiscountedPrice={calculateDiscountedPrice}
+                  realStats={dbCourseStats[course.slug]}
                 />
               ))}
             </div>
@@ -224,6 +244,7 @@ export default function Courses() {
                   saleActive={saleActive}
                   discountPercent={discountPercent}
                   calculateDiscountedPrice={calculateDiscountedPrice}
+                  realStats={dbCourseStats[course.slug]}
                 />
               ))}
             </div>
@@ -248,6 +269,7 @@ interface CourseCardProps {
   saleActive?: boolean;
   discountPercent?: number;
   calculateDiscountedPrice?: (price: number) => number;
+  realStats?: { totalLessons: number; totalDuration: number };
 }
 
 function CourseCard({ 
@@ -258,7 +280,8 @@ function CourseCard({
   isHighlighted = false,
   saleActive = false,
   discountPercent = 0,
-  calculateDiscountedPrice = (p) => p
+  calculateDiscountedPrice = (p) => p,
+  realStats
 }: CourseCardProps) {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
@@ -268,6 +291,10 @@ function CourseCard({
 
   const discountedPrice = calculateDiscountedPrice(course.priceInr);
   const discountedPriceUSD = calculateDiscountedPrice(course.priceUsd);
+  
+  // Use real stats if available, otherwise fallback to static data
+  const displayLessons = realStats?.totalLessons || course.totalLessons;
+  const displayDuration = realStats ? Math.round(realStats.totalDuration / 60) : course.durationHours;
 
   const levelColors: Record<string, string> = {
     beginner: 'bg-success/10 text-success border-success/30',
@@ -390,10 +417,10 @@ function CourseCard({
       <CardContent>
         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
           <span className="flex items-center gap-1">
-            <Clock className="h-4 w-4" /> {course.durationHours}h
+            <Clock className="h-4 w-4" /> {displayDuration > 0 ? `${displayDuration}h` : 'Self-paced'}
           </span>
           <span className="flex items-center gap-1">
-            <BookOpen className="h-4 w-4" /> {course.totalLessons} lessons
+            <BookOpen className="h-4 w-4" /> {displayLessons} lessons
           </span>
         </div>
         <div className="flex items-center justify-between">
