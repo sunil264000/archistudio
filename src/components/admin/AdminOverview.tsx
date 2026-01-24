@@ -1,3 +1,4 @@
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -12,9 +13,9 @@ interface AdminOverviewProps {
     totalRevenue: number;
     totalEnrollments: number;
   };
+  onNavigate?: (tab: string) => void;
 }
-
-export function AdminOverview({ stats }: AdminOverviewProps) {
+export function AdminOverview({ stats, onNavigate }: AdminOverviewProps) {
   const statCards = [
     {
       title: 'Total Users',
@@ -136,24 +137,28 @@ export function AdminOverview({ stats }: AdminOverviewProps) {
                 label="Add New Course"
                 description="Create a new course"
                 color="bg-accent/10 text-accent"
+                onClick={() => onNavigate?.('courses')}
               />
               <QuickActionButton
                 icon={Users}
                 label="View Users"
                 description="Manage students"
                 color="bg-blue-500/10 text-blue-500"
+                onClick={() => onNavigate?.('users')}
               />
               <QuickActionButton
                 icon={DollarSign}
                 label="Revenue Report"
                 description="View analytics"
-                color="bg-emerald-500/10 text-emerald-500"
+                color="bg-success/10 text-success"
+                onClick={() => onNavigate?.('payments')}
               />
               <QuickActionButton
                 icon={TrendingUp}
                 label="Course Analytics"
                 description="Performance data"
                 color="bg-purple-500/10 text-purple-500"
+                onClick={() => onNavigate?.('analytics')}
               />
             </div>
           </CardContent>
@@ -167,15 +172,20 @@ function QuickActionButton({
   icon: Icon, 
   label, 
   description, 
-  color 
+  color,
+  onClick
 }: { 
-  icon: any; 
+  icon: React.ComponentType<{ className?: string }>; 
   label: string; 
   description: string; 
   color: string;
+  onClick?: () => void;
 }) {
   return (
-    <button className="flex items-center gap-3 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left w-full">
+    <button 
+      onClick={onClick}
+      className="flex items-center gap-3 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left w-full cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+    >
       <div className={`h-10 w-10 rounded-lg ${color} flex items-center justify-center`}>
         <Icon className="h-5 w-5" />
       </div>

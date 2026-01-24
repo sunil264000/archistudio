@@ -92,7 +92,7 @@ export default function Admin() {
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <AdminOverview stats={stats} />;
+        return <AdminOverview stats={stats} onNavigate={setActiveTab} />;
       case 'courses':
         return <CourseManagement />;
       case 'bundles':
@@ -126,7 +126,7 @@ export default function Admin() {
       case 'settings':
         return <SiteSettingsPanel />;
       default:
-        return <AdminOverview stats={stats} />;
+        return <AdminOverview stats={stats} onNavigate={setActiveTab} />;
     }
   };
 
