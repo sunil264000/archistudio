@@ -150,6 +150,21 @@ export function ManualEnrollment() {
 
       if (error) throw error;
 
+      // Get the course title for the email
+      const grantedCourse = courses.find(c => c.id === selectedCourse);
+      
+      // Send beautiful gift enrollment email (fire and forget)
+      supabase.functions.invoke('send-enrollment-email', {
+        body: {
+          email: selectedUser.email,
+          name: selectedUser.full_name || selectedUser.email?.split('@')[0],
+          courseName: grantedCourse?.title || 'Course',
+          courseSlug: grantedCourse?.slug || '',
+          isFree: true,
+          isGift: true, // Special flag for admin-granted access
+        }
+      }).catch(err => console.error('Gift enrollment email error:', err));
+
       toast.success(`Access granted to ${selectedUser.full_name || selectedUser.email}`);
       setSelectedUser(null);
       setSelectedCourse('');
