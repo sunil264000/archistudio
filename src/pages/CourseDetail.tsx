@@ -56,6 +56,7 @@ interface ExpandableModuleProps {
   lessonCount: number;
   duration: string;
   hasFreePreview: boolean;
+  courseSlug: string;
   lessons: {
     id: string;
     title: string;
@@ -65,9 +66,15 @@ interface ExpandableModuleProps {
   }[];
 }
 
-function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview, lessons }: ExpandableModuleProps) {
+function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview, courseSlug, lessons }: ExpandableModuleProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
   
+  const handleLessonClick = (lesson: typeof lessons[0]) => {
+    if (lesson.is_free_preview) {
+      navigate(`/learn/${courseSlug}?lesson=${lesson.id}`);
+    }
+  };
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
@@ -98,7 +105,12 @@ function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview,
           {lessons.map((lesson, lessonIdx) => (
             <div 
               key={lesson.id}
-              className="flex items-center justify-between py-2 px-3 rounded text-sm hover:bg-muted/30 transition-colors"
+              onClick={() => handleLessonClick(lesson)}
+              className={`flex items-center justify-between py-2 px-3 rounded text-sm transition-colors ${
+                lesson.is_free_preview 
+                  ? 'cursor-pointer hover:bg-primary/10 hover:text-primary' 
+                  : 'hover:bg-muted/30'
+              }`}
             >
               <div className="flex items-center gap-2">
                 {lesson.video_url ? (
@@ -117,7 +129,8 @@ function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview,
                   </span>
                 )}
                 {lesson.is_free_preview ? (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 flex items-center gap-1">
+                    <Play className="h-2.5 w-2.5" />
                     Free
                   </Badge>
                 ) : (
@@ -541,6 +554,7 @@ export default function CourseDetail() {
                           lessonCount={module.lessons.length}
                           duration={formatDuration(moduleDuration)}
                           hasFreePreview={hasFreePreview}
+                          courseSlug={course.slug}
                           lessons={module.lessons}
                         />
                       );
