@@ -492,6 +492,7 @@ export function SecureVideoPlayer({
         ref={videoRef}
         src={videoUrl || undefined}
         className="w-full h-full"
+        preload="auto"
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
         onTimeUpdate={handleTimeUpdate}
@@ -524,17 +525,18 @@ export function SecureVideoPlayer({
       {/* Custom Controls Overlay */}
       <div 
         className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20 transition-opacity duration-300 ${
-          showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          showControls ? 'opacity-100' : 'opacity-0'
         }`}
+        style={{ pointerEvents: showControls ? 'auto' : 'none' }}
       >
         {/* Center Play Button */}
         {!isPlaying && (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center" style={{ pointerEvents: 'auto' }}>
             <Button
               variant="ghost"
               size="icon"
               className="h-20 w-20 rounded-full bg-white/20 hover:bg-white/30 text-white"
-              onClick={togglePlay}
+              onClick={(e) => { e.stopPropagation(); togglePlay(); }}
             >
               <Play className="h-10 w-10 fill-current" />
             </Button>
@@ -559,7 +561,7 @@ export function SecureVideoPlayer({
                 variant="ghost"
                 size="icon"
                 className="text-white hover:bg-white/20"
-                onClick={togglePlay}
+                onClick={(e) => { e.stopPropagation(); togglePlay(); }}
               >
                 {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
               </Button>
@@ -568,7 +570,7 @@ export function SecureVideoPlayer({
                 variant="ghost"
                 size="icon"
                 className="text-white hover:bg-white/20"
-                onClick={() => skip(-10)}
+                onClick={(e) => { e.stopPropagation(); skip(-5); }}
               >
                 <SkipBack className="h-5 w-5" />
               </Button>
@@ -577,7 +579,7 @@ export function SecureVideoPlayer({
                 variant="ghost"
                 size="icon"
                 className="text-white hover:bg-white/20"
-                onClick={() => skip(10)}
+                onClick={(e) => { e.stopPropagation(); skip(5); }}
               >
                 <SkipForward className="h-5 w-5" />
               </Button>
@@ -587,7 +589,7 @@ export function SecureVideoPlayer({
                   variant="ghost"
                   size="icon"
                   className="text-white hover:bg-white/20"
-                  onClick={toggleMute}
+                  onClick={(e) => { e.stopPropagation(); toggleMute(); }}
                 >
                   {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
                 </Button>
@@ -656,7 +658,7 @@ export function SecureVideoPlayer({
                 variant="ghost"
                 size="icon"
                 className="text-white hover:bg-white/20"
-                onClick={toggleFullscreen}
+                onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
               >
                 <Maximize className="h-5 w-5" />
               </Button>
