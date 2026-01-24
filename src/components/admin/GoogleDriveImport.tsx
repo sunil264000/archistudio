@@ -46,9 +46,9 @@ export function GoogleDriveImport({ courseId, courseName, onImportComplete }: Go
     setStructure(null);
 
     try {
-      // Deep scan up to 6 levels of subfolders for complete content discovery
+      // Ultra-deep scan up to 12 levels of subfolders for complete content discovery
       const { data, error } = await supabase.functions.invoke("scan-google-drive", {
-        body: { folderId: folderUrl, action: "scan", maxDepth: 6 },
+        body: { folderId: folderUrl, action: "scan", maxDepth: 12 },
       });
 
       if (error) throw error;
@@ -75,9 +75,9 @@ export function GoogleDriveImport({ courseId, courseName, onImportComplete }: Go
     setIsImporting(true);
 
     try {
-      // Import with deep scanning (6 levels) for nested subfolder structures
+      // Import with ultra-deep scanning (12 levels) for nested subfolder structures
       const { data, error } = await supabase.functions.invoke("scan-google-drive", {
-        body: { folderId: folderUrl, courseId, action: "import", maxDepth: 6 },
+        body: { folderId: folderUrl, courseId, action: "import", maxDepth: 12 },
       });
 
       if (error) throw error;

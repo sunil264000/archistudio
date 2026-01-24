@@ -18,8 +18,8 @@ interface DriveListResponse {
   nextPageToken?: string;
 }
 
-// Maximum recursion depth for scanning - INCREASED TO 6 for deep folder structures
-const MAX_SCAN_DEPTH = 6;
+// Maximum recursion depth for scanning - DEEP 12 levels for complex nested structures
+const MAX_SCAN_DEPTH = 12;
 
 // Video file extensions to identify
 const VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.mpeg', '.mpg', '.3gp'];
@@ -59,7 +59,7 @@ serve(async (req) => {
       }
     }
 
-    // Allow custom depth override (1-6), default to MAX_SCAN_DEPTH
+    // Allow custom depth override (1-12), default to MAX_SCAN_DEPTH
     const scanDepth = Math.min(Math.max(maxDepth || MAX_SCAN_DEPTH, 1), MAX_SCAN_DEPTH);
 
     console.log(`Scanning folder: ${extractedFolderId}, Action: ${action}, Mode: ${scanMode}, Depth: ${scanDepth}`);

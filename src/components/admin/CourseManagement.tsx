@@ -300,7 +300,7 @@ export function CourseManagement() {
         body: {
           folderId: course.drive_folder_id,
           action: 'quick-scan',
-          maxDepth: 6,
+          maxDepth: 12, // Ultra-deep scan for complete content discovery
         },
       });
 
@@ -393,7 +393,7 @@ export function CourseManagement() {
           folderId: course.drive_folder_id,
           courseId: course.id,
           action: 'sync',
-          maxDepth: 6 // Deep scan up to 6 levels
+          maxDepth: 12 // Ultra-deep scan up to 12 levels
         }
       });
       
