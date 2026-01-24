@@ -79,6 +79,7 @@ export function EmailTesting() {
           body: {
             email: testEmail,
             name: testName,
+            isTest: true,
           }
         });
       } else {
@@ -86,14 +87,15 @@ export function EmailTesting() {
         const emailData: any = {
           email: testEmail,
           name: testName,
-          courseName: '3ds Max Complete Masterclass (TEST)',
-          courseSlug: '3ds-max',
+          courseName: 'Corona Rendering Masterclass',
+          courseSlug: 'corona-rendering',
+          isTest: true, // Mark as test email
         };
 
         if (selectedType === 'paid') {
           emailData.isFree = false;
-          emailData.amount = 599;
-          emailData.orderId = `TEST_ORDER_${Date.now()}`;
+          emailData.amount = 1999;
+          emailData.orderId = `ARCH${Date.now().toString().slice(-8)}`;
           emailData.paymentDate = new Date().toISOString();
         } else if (selectedType === 'free') {
           emailData.isFree = true;
@@ -201,20 +203,20 @@ export function EmailTesting() {
               <div className="text-sm text-muted-foreground space-y-1">
                 {selectedType === 'paid' && (
                   <>
-                    <p>📧 Subject: Payment Confirmed - Invoice for 3ds Max Complete Masterclass (TEST) 🎉</p>
-                    <p>💰 Amount: ₹599</p>
-                    <p>🆔 Order ID: TEST_ORDER_[timestamp]</p>
+                    <p>📧 Subject: Payment Confirmed - Invoice for Corona Rendering Masterclass 🎉</p>
+                    <p>💰 Amount: ₹1,999</p>
+                    <p>🆔 Order ID: ARCH[timestamp]</p>
                   </>
                 )}
                 {selectedType === 'free' && (
                   <>
-                    <p>📧 Subject: You're enrolled in 3ds Max Complete Masterclass (TEST)! 🎓</p>
+                    <p>📧 Subject: You're enrolled in Corona Rendering Masterclass! 🎓</p>
                     <p>💰 Price: FREE</p>
                   </>
                 )}
                 {selectedType === 'gift' && (
                   <>
-                    <p>📧 Subject: 🎁 You've Received a Gift! Free Access to 3ds Max Complete Masterclass (TEST)</p>
+                    <p>📧 Subject: 🎁 You've Received a Gift! Free Access to Corona Rendering Masterclass</p>
                     <p>🎉 Complimentary Access by Admin</p>
                   </>
                 )}
