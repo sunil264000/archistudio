@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { toast } from 'sonner';
-import { Star, Loader2, MessageSquare } from 'lucide-react';
+import { Star, Loader2, MessageSquare, Sparkles, Quote } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface Review {
   id: string;
@@ -22,25 +19,16 @@ interface CourseReviewsProps {
 }
 
 export function CourseReviews({ courseId }: CourseReviewsProps) {
-  const { user } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [myReview, setMyReview] = useState<Review | null>(null);
-  const [rating, setRating] = useState(5);
-  const [reviewText, setReviewText] = useState('');
-  const [hoveredStar, setHoveredStar] = useState(0);
-  const [isEnrolled, setIsEnrolled] = useState(false);
 
   useEffect(() => {
     fetchReviews();
-    if (user) checkEnrollment();
-  }, [courseId, user]);
+  }, [courseId]);
 
   const fetchReviews = async () => {
     setLoading(true);
     
-    // Fetch reviews
     const { data: reviewsData } = await supabase
       .from('reviews')
       .select('*')
@@ -48,7 +36,6 @@ export function CourseReviews({ courseId }: CourseReviewsProps) {
       .order('created_at', { ascending: false });
 
     if (reviewsData && reviewsData.length > 0) {
-      // Fetch user names for reviews
       const userIds = reviewsData.map(r => r.user_id);
       const { data: profiles } = await supabase
         .from('profiles')
@@ -59,20 +46,10 @@ export function CourseReviews({ courseId }: CourseReviewsProps) {
       
       const enrichedReviews = reviewsData.map(r => ({
         ...r,
-        user_name: profileMap.get(r.user_id) || 'Anonymous',
+        user_name: profileMap.get(r.user_id) || 'Verified Student',
       }));
 
       setReviews(enrichedReviews);
-
-      // Check if current user has reviewed
-      if (user) {
-        const existing = enrichedReviews.find(r => r.user_id === user.id);
-        if (existing) {
-          setMyReview(existing);
-          setRating(existing.rating);
-          setReviewText(existing.review || '');
-        }
-      }
     } else {
       setReviews([]);
     }
@@ -80,185 +57,118 @@ export function CourseReviews({ courseId }: CourseReviewsProps) {
     setLoading(false);
   };
 
-  const checkEnrollment = async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from('enrollments')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('course_id', courseId)
-      .eq('status', 'active')
-      .maybeSingle();
-    setIsEnrolled(!!data);
-  };
-
-  const handleSubmit = async () => {
-    if (!user) {
-      toast.error('Please login to submit a review');
-      return;
-    }
-
-    if (!isEnrolled) {
-      toast.error('You must be enrolled in this course to submit a review');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      if (myReview) {
-        // Update existing review
-        await supabase
-          .from('reviews')
-          .update({ rating, review: reviewText.trim() || null, updated_at: new Date().toISOString() })
-          .eq('id', myReview.id);
-        toast.success('Review updated');
-      } else {
-        // Create new review
-        await supabase.from('reviews').insert({
-          user_id: user.id,
-          course_id: courseId,
-          rating,
-          review: reviewText.trim() || null,
-        });
-        toast.success('Review submitted');
-      }
-      fetchReviews();
-    } catch (error) {
-      toast.error('Failed to submit review');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const averageRating = reviews.length > 0
     ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
     : 0;
 
-  const renderStars = (count: number, size: 'sm' | 'lg' = 'sm', interactive = false) => {
+  const renderStars = (count: number, size: 'sm' | 'lg' = 'sm') => {
     return (
       <div className="flex gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => (
-          <button
+          <motion.div
             key={star}
-            type="button"
-            disabled={!interactive}
-            className={interactive ? 'cursor-pointer' : 'cursor-default'}
-            onClick={() => interactive && setRating(star)}
-            onMouseEnter={() => interactive && setHoveredStar(star)}
-            onMouseLeave={() => interactive && setHoveredStar(0)}
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: star * 0.1, type: 'spring', stiffness: 200 }}
           >
             <Star
               className={`${size === 'lg' ? 'h-6 w-6' : 'h-4 w-4'} ${
-                star <= (hoveredStar || count)
-                  ? 'fill-yellow-400 text-yellow-400'
-                  : 'text-muted-foreground'
+                star <= count
+                  ? 'fill-yellow-400 text-yellow-400 drop-shadow-[0_0_4px_rgba(250,204,21,0.5)]'
+                  : 'text-muted-foreground/30'
               } transition-colors`}
             />
-          </button>
+          </motion.div>
         ))}
       </div>
     );
   };
 
+  if (loading) {
+    return (
+      <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-accent" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (reviews.length === 0) {
+    return null; // Don't show empty reviews section - DemoReviews will handle it
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5" />
-          Reviews
-        </CardTitle>
-        <CardDescription className="flex items-center gap-2">
-          {reviews.length > 0 ? (
-            <>
-              {renderStars(Math.round(averageRating))}
-              <span className="font-medium">{averageRating.toFixed(1)}</span>
-              <span className="text-muted-foreground">({reviews.length} reviews)</span>
-            </>
-          ) : (
-            'No reviews yet'
-          )}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Review Form - Only for enrolled users */}
-        {user && isEnrolled && (
-          <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
-            <div>
-              <p className="text-sm font-medium mb-2">
-                {myReview ? 'Update your review' : 'Write a review'}
-              </p>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Your rating:</span>
-                {renderStars(rating, 'lg', true)}
-              </div>
-            </div>
-            <Textarea
-              value={reviewText}
-              onChange={(e) => setReviewText(e.target.value)}
-              placeholder="Share your experience with this course (optional)..."
-              rows={3}
-            />
-            <Button onClick={handleSubmit} disabled={submitting}>
-              {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {myReview ? 'Update Review' : 'Submit Review'}
-            </Button>
-          </div>
-        )}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Card className="border-border/50 bg-gradient-to-br from-card via-card to-accent/5 backdrop-blur-sm overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        
+        <CardHeader className="relative">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+            >
+              <Sparkles className="h-5 w-5 text-accent" />
+            </motion.div>
+            Verified Student Reviews
+          </CardTitle>
+          <CardDescription className="flex items-center gap-3 mt-2">
+            {renderStars(Math.round(averageRating), 'lg')}
+            <span className="text-lg font-bold text-foreground">{averageRating.toFixed(1)}</span>
+            <span className="text-muted-foreground">from {reviews.length} verified students</span>
+          </CardDescription>
+        </CardHeader>
 
-        {!user && (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            Login and enroll in this course to leave a review
-          </p>
-        )}
-
-        {user && !isEnrolled && (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            Enroll in this course to leave a review
-          </p>
-        )}
-
-        {/* Reviews List */}
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin" />
-          </div>
-        ) : reviews.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">
-            Be the first to review this course!
-          </p>
-        ) : (
+        <CardContent className="relative">
           <div className="space-y-4">
-            {reviews.map((review) => (
-              <div key={review.id} className="flex gap-4 p-4 border rounded-lg">
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback>
-                    {review.user_name?.charAt(0).toUpperCase() || '?'}
+            {reviews.map((review, index) => (
+              <motion.div
+                key={review.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1, duration: 0.4 }}
+                className="group relative flex gap-4 p-5 rounded-xl bg-background/50 border border-border/50 hover:border-accent/30 hover:bg-accent/5 transition-all duration-300"
+              >
+                <Quote className="absolute top-4 right-4 h-8 w-8 text-accent/10 group-hover:text-accent/20 transition-colors" />
+                
+                <Avatar className="h-12 w-12 ring-2 ring-accent/20 group-hover:ring-accent/40 transition-all">
+                  <AvatarFallback className="bg-gradient-to-br from-accent/20 to-primary/20 text-foreground font-semibold">
+                    {review.user_name?.charAt(0).toUpperCase() || 'S'}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <div>
-                      <p className="font-medium">{review.user_name}</p>
-                      <div className="flex items-center gap-2">
+                      <p className="font-semibold text-foreground">{review.user_name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
                         {renderStars(review.rating)}
                         <span className="text-xs text-muted-foreground">
-                          {new Date(review.created_at).toLocaleDateString()}
+                          {new Date(review.created_at).toLocaleDateString('en-IN', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
                         </span>
                       </div>
                     </div>
-                    {user && review.user_id === user.id && (
-                      <span className="text-xs text-muted-foreground">(Your review)</span>
-                    )}
                   </div>
                   {review.review && (
-                    <p className="mt-2 text-sm text-muted-foreground">{review.review}</p>
+                    <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+                      "{review.review}"
+                    </p>
                   )}
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
