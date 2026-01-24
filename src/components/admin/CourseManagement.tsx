@@ -1151,7 +1151,7 @@ export function CourseManagement() {
                         </span>
                         <div className="max-h-32 overflow-y-auto bg-muted/50 rounded-md p-2 text-xs">
                           {emptyCourses.slice(0, 10).map(c => (
-                            <div key={c.id} className="py-0.5 truncate">{c.title}</div>
+                            <div key={c.id} className="py-0.5 whitespace-normal break-words">{c.title}</div>
                           ))}
                           {emptyCourses.length > 10 && (
                             <div className="py-0.5 text-muted-foreground">...and {emptyCourses.length - 10} more</div>
@@ -1567,7 +1567,7 @@ export function CourseManagement() {
                                 <Badge variant="outline" className="shrink-0 bg-primary/10 text-primary border-primary/30">
                                   M{modIndex + 1}
                                 </Badge>
-                                <span className="font-medium text-sm flex-1 truncate">{module.title}</span>
+                                <span className="font-medium text-sm flex-1 whitespace-normal break-words leading-snug">{module.title}</span>
                                 <Badge variant="secondary" className="text-xs">
                                   {module.lessons.length} lessons
                                 </Badge>
@@ -1586,7 +1586,7 @@ export function CourseManagement() {
                                           <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                                         )}
                                       </div>
-                                      <span className="flex-1 truncate">{lesson.title}</span>
+                                      <span className="flex-1 whitespace-normal break-words leading-snug">{lesson.title}</span>
                                       <span className="text-xs text-muted-foreground shrink-0">
                                         {lesson.duration_minutes ? `${lesson.duration_minutes} min` : '-'}
                                       </span>
