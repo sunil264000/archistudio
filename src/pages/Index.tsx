@@ -1,9 +1,12 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { HeroSection } from '@/components/home/HeroSection';
-import { SEOHead, generateOrganizationSchema } from '@/components/seo/SEOHead';
+import { SEOHead, generateOrganizationSchema, generateWebsiteSchema } from '@/components/seo/SEOHead';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
+import { useGoogleAnalytics, analytics, initializeGA4 } from '@/hooks/useGoogleAnalytics';
+
+// Lazy load below-the-fold sections for faster initial load
 
 // Lazy load below-the-fold sections for faster initial load
 const ProblemSection = lazy(() => import('@/components/home/ProblemSection').then(m => ({ default: m.ProblemSection })));
@@ -22,16 +25,31 @@ const SectionLoader = () => (
 );
 
 export default function Index() {
+  // Initialize Google Analytics (GA4 ID will be initialized via index.html or dynamically)
+  useGoogleAnalytics();
+
+  // Track homepage view
+  useEffect(() => {
+    analytics.ctaClick('homepage_view', 'landing');
+  }, []);
+
+  // Combined JSON-LD schemas
+  const combinedSchema = [
+    generateOrganizationSchema(),
+    generateWebsiteSchema(),
+  ];
+
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       <SEOHead 
-        title="Archistudio - Master Architectural Visualization"
-        description="Learn 3ds Max, AutoCAD, Revit, SketchUp and more. Transform your architectural design skills with industry-leading courses."
+        title="Archistudio - Professional Architecture Training"
+        description="This platform teaches what architecture colleges and CAD institutes don't: how real buildings are designed, detailed, and executed in offices. Master 3ds Max, AutoCAD, Revit, SketchUp and more."
+        keywords="archistudio, architectural visualization course, 3ds max tutorial, autocad training india, revit course online, sketchup lessons, corona rendering tutorial, interior design course, architecture education, BIM training, 3D modeling course, learn architecture online"
         url="https://archistudio.lovable.app"
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(generateOrganizationSchema()) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(combinedSchema) }}
       />
       
       <Navbar />

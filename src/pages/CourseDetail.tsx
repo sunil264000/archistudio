@@ -17,12 +17,13 @@ import { useCourseModules } from '@/hooks/useCourseModules';
 import { useToast } from '@/hooks/use-toast';
 import { CourseReviews } from '@/components/course/CourseReviews';
 import { DemoReviews } from '@/components/course/DemoReviews';
-import { SEOHead, generateCourseSchema } from '@/components/seo/SEOHead';
+import { SEOHead, generateCourseSchema, generateBreadcrumbSchema } from '@/components/seo/SEOHead';
 import { LiveViewerCounter } from '@/components/social-proof/LiveViewerCounter';
 import { useSaleDiscount } from '@/hooks/useSaleDiscount';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { supabase } from '@/integrations/supabase/client';
 import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
+import { analytics } from '@/hooks/useGoogleAnalytics';
 
 // Add to Cart Button Component
 function AddToCartButton({ course }: { course: any }) {
@@ -194,6 +195,13 @@ export default function CourseDetail() {
             duration_hours: (data as any)?.duration_hours ?? null,
           });
         });
+    }
+  }, [slug]);
+
+  // Track studio view in analytics
+  useEffect(() => {
+    if (slug && course) {
+      analytics.viewStudio(slug, course.title, effectivePriceInr);
     }
   }, [slug]);
 

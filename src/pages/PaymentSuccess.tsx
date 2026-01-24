@@ -11,6 +11,7 @@ import { Footer } from "@/components/layout/Footer";
 import { courses } from "@/data/courses";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
+import { analytics } from "@/hooks/useGoogleAnalytics";
 
 const MAX_RETRY_COUNT = 15; // Max 30 seconds (15 * 2 seconds)
 const REDIRECT_DELAY = 8; // seconds
@@ -69,6 +70,14 @@ const PaymentSuccess = () => {
             customerName: metadata.customer_name || "Customer",
             customerEmail: metadata.customer_email || "",
           });
+          
+          // Track purchase event in GA4
+          analytics.purchase(
+            orderId,
+            slug || payment.course_id || '',
+            dbTitle || localTitle || 'Unknown Course',
+            Number(payment.amount) || 0
+          );
         } else if (payment?.status === "failed") {
           setStatus("failed");
         } else {
