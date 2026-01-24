@@ -139,6 +139,46 @@ export function CourseManagement() {
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const [expandedModules, setExpandedModules] = useState<ModuleWithLessons[]>([]);
   const [loadingExpanded, setLoadingExpanded] = useState(false);
+  
+  // Thumbnail editing state (local only, saves on button click)
+  const [thumbnailEdits, setThumbnailEdits] = useState<Record<string, string>>({});
+  const [savingThumbnail, setSavingThumbnail] = useState<string | null>(null);
+
+  const handleThumbnailChange = (courseId: string, url: string) => {
+    setThumbnailEdits(prev => ({ ...prev, [courseId]: url }));
+  };
+
+  const handleSaveThumbnail = async (courseId: string) => {
+    const url = thumbnailEdits[courseId];
+    if (url === undefined) return;
+    
+    setSavingThumbnail(courseId);
+    try {
+      const { error } = await supabase
+        .from('courses')
+        .update({ thumbnail_url: url || null })
+        .eq('id', courseId);
+      
+      if (error) throw error;
+      
+      // Update local state without refetching
+      setCourses(prev => prev.map(c => 
+        c.id === courseId ? { ...c, thumbnail_url: url || null } : c
+      ));
+      
+      // Clear the edit state for this course
+      setThumbnailEdits(prev => {
+        const { [courseId]: _, ...rest } = prev;
+        return rest;
+      });
+      
+      toast.success('Thumbnail updated');
+    } catch (err) {
+      toast.error('Failed to update thumbnail');
+    } finally {
+      setSavingThumbnail(null);
+    }
+  };
 
   useEffect(() => {
     fetchCourses();
@@ -1297,12 +1337,42 @@ export function CourseManagement() {
                       )}
                     </Button>
 
-                    <div className="w-14 h-10 rounded bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border">
-                      {course.thumbnail_url ? (
-                        <img src={course.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                      )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="w-14 h-10 rounded bg-muted flex items-center justify-center overflow-hidden border border-border">
+                        {(thumbnailEdits[course.id] !== undefined ? thumbnailEdits[course.id] : course.thumbnail_url) ? (
+                          <img 
+                            src={thumbnailEdits[course.id] !== undefined ? thumbnailEdits[course.id] : course.thumbnail_url || ''} 
+                            alt="" 
+                            className="w-full h-full object-cover" 
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        ) : (
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          placeholder="Thumbnail URL"
+                          value={thumbnailEdits[course.id] !== undefined ? thumbnailEdits[course.id] : (course.thumbnail_url || '')}
+                          onChange={(e) => handleThumbnailChange(course.id, e.target.value)}
+                          className="h-8 w-40 text-xs"
+                        />
+                        {thumbnailEdits[course.id] !== undefined && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="h-8 px-2"
+                            onClick={() => handleSaveThumbnail(course.id)}
+                            disabled={savingThumbnail === course.id}
+                          >
+                            {savingThumbnail === course.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="h-3 w-3" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex-1 min-w-0">
