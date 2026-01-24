@@ -1,9 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, Shield } from 'lucide-react';
+import { Loader2, Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, Shield, Settings } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface SecureVideoPlayerProps {
   lessonId: string;
@@ -17,6 +23,8 @@ interface SecureVideoPlayerProps {
    */
   allowExternal?: boolean;
 }
+
+type QualityMode = 'auto' | 'hd' | 'sd';
 
 export function SecureVideoPlayer({ 
   lessonId, 
@@ -38,8 +46,11 @@ export function SecureVideoPlayer({
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [watermarkPosition, setWatermarkPosition] = useState({ x: 50, y: 50 });
+  const [qualityMode, setQualityMode] = useState<QualityMode>('auto');
+  const [hasAppliedInitialPosition, setHasAppliedInitialPosition] = useState(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
   const watermarkIntervalRef = useRef<NodeJS.Timeout>();
+  const urlFetchedRef = useRef<string | null>(null); // Track fetched URL to prevent re-fetching
   const { user } = useAuth();
 
   const isExternalUrl = (url: string) => /^https?:\/\//i.test(url);
@@ -54,6 +65,20 @@ export function SecureVideoPlayer({
   const convertToPreviewUrl = (url: string): string => {
     return url.replace('/view', '/preview');
   };
+
+  // Get iframe URL for SD mode
+  const getIframeUrl = useCallback((path: string): string => {
+    if (isGoogleDriveView(path)) {
+      return convertToPreviewUrl(path);
+    } else if (isGoogleDrivePreview(path)) {
+      return path;
+    }
+    const fileIdMatch = path.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (fileIdMatch) {
+      return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
+    }
+    return path;
+  }, []);
 
   // Flag to track if we're using proxy streaming for Google Drive
   const [useProxyForGDrive, setUseProxyForGDrive] = useState(true);
@@ -132,8 +157,24 @@ export function SecureVideoPlayer({
   }, []);
 
   useEffect(() => {
-    // For Google Drive URLs, route through our streaming proxy for full quality
+    // Prevent re-fetching if we already have the URL for this videoPath
+    // This fixes the tab-switch refresh issue
+    if (urlFetchedRef.current === videoPath && videoUrl) {
+      setLoading(false);
+      return;
+    }
+
+    // Handle quality mode changes for Google Drive
     if (videoPath && isGoogleDriveUrl(videoPath)) {
+      // If user selected SD mode, use iframe directly
+      if (qualityMode === 'sd') {
+        setUseProxyForGDrive(false);
+        setVideoUrl(getIframeUrl(videoPath));
+        setLoading(false);
+        urlFetchedRef.current = videoPath;
+        return;
+      }
+
       const fetchGoogleDriveStream = async () => {
         try {
           setLoading(true);
@@ -145,31 +186,20 @@ export function SecureVideoPlayer({
           if (streamUrl) {
             setVideoUrl(streamUrl);
             setUseProxyForGDrive(true);
+            urlFetchedRef.current = videoPath;
           } else {
             // Fallback to iframe embed if proxy fails (lower quality)
             console.warn('Proxy streaming unavailable, falling back to iframe embed');
             setUseProxyForGDrive(false);
-            let finalUrl = videoPath;
-            if (isGoogleDriveView(videoPath)) {
-              finalUrl = convertToPreviewUrl(videoPath);
-            } else if (!isGoogleDrivePreview(videoPath)) {
-              // Convert to preview URL format
-              const fileIdMatch = videoPath.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-              if (fileIdMatch) {
-                finalUrl = `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
-              }
-            }
-            setVideoUrl(finalUrl);
+            setVideoUrl(getIframeUrl(videoPath));
+            urlFetchedRef.current = videoPath;
           }
         } catch (err: any) {
           console.error('Error setting up Google Drive stream:', err);
           // Fallback to iframe
           setUseProxyForGDrive(false);
-          let finalUrl = videoPath;
-          if (isGoogleDriveView(videoPath)) {
-            finalUrl = convertToPreviewUrl(videoPath);
-          }
-          setVideoUrl(finalUrl);
+          setVideoUrl(getIframeUrl(videoPath));
+          urlFetchedRef.current = videoPath;
         } finally {
           setLoading(false);
         }
@@ -193,6 +223,7 @@ export function SecureVideoPlayer({
       setError(null);
       setVideoUrl(videoPath);
       setLoading(false);
+      urlFetchedRef.current = videoPath;
       return;
     }
 
@@ -217,6 +248,7 @@ export function SecureVideoPlayer({
         } else {
           setVideoUrl(streamUrl);
         }
+        urlFetchedRef.current = videoPath;
       } catch (err: any) {
         console.error('Error fetching video URL:', err);
         setError(err.message || 'Failed to load video');
@@ -228,13 +260,32 @@ export function SecureVideoPlayer({
     if (videoPath) {
       fetchStreamingUrl();
     }
-  }, [lessonId, videoPath, allowExternal]);
+  }, [lessonId, videoPath, allowExternal, qualityMode, getIframeUrl]);
 
+  // Apply initial position when video is ready - only once
   useEffect(() => {
-    if (videoRef.current && videoUrl && initialPosition > 0) {
-      videoRef.current.currentTime = initialPosition;
+    if (videoRef.current && videoUrl && initialPosition > 0 && !hasAppliedInitialPosition) {
+      const applyInitialPosition = () => {
+        if (videoRef.current && videoRef.current.readyState >= 1) {
+          videoRef.current.currentTime = initialPosition;
+          setHasAppliedInitialPosition(true);
+        }
+      };
+      
+      // Try immediately if ready
+      applyInitialPosition();
+      
+      // Also listen for loadedmetadata in case video isn't ready yet
+      const video = videoRef.current;
+      video.addEventListener('loadedmetadata', applyInitialPosition);
+      return () => video.removeEventListener('loadedmetadata', applyInitialPosition);
     }
-  }, [videoUrl, initialPosition]);
+  }, [videoUrl, initialPosition, hasAppliedInitialPosition]);
+
+  // Reset applied position flag when lesson changes
+  useEffect(() => {
+    setHasAppliedInitialPosition(false);
+  }, [lessonId]);
 
   // Disable right-click
   useEffect(() => {
@@ -554,14 +605,62 @@ export function SecureVideoPlayer({
               </span>
             </div>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/20"
-              onClick={toggleFullscreen}
-            >
-              <Maximize className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Quality Selector - Only show for Google Drive videos */}
+              {isGoogleDriveUrl(videoPath) && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-white hover:bg-white/20 text-xs gap-1"
+                    >
+                      <Settings className="h-4 w-4" />
+                      {qualityMode === 'sd' ? 'SD' : 'HD'}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-[120px]">
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        if (qualityMode !== 'auto' && qualityMode !== 'hd') {
+                          urlFetchedRef.current = null; // Reset to refetch
+                          setQualityMode('auto');
+                        }
+                      }}
+                      className={qualityMode === 'auto' || qualityMode === 'hd' ? 'bg-muted' : ''}
+                    >
+                      <span className="flex items-center gap-2">
+                        HD (Original)
+                        {(qualityMode === 'auto' || qualityMode === 'hd') && <span className="text-xs">✓</span>}
+                      </span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        if (qualityMode !== 'sd') {
+                          urlFetchedRef.current = null; // Reset to refetch
+                          setQualityMode('sd');
+                        }
+                      }}
+                      className={qualityMode === 'sd' ? 'bg-muted' : ''}
+                    >
+                      <span className="flex items-center gap-2">
+                        SD (360p)
+                        {qualityMode === 'sd' && <span className="text-xs">✓</span>}
+                      </span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/20"
+                onClick={toggleFullscreen}
+              >
+                <Maximize className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -571,6 +670,16 @@ export function SecureVideoPlayer({
         <Shield className="h-3 w-3" />
         Protected
       </div>
+      
+      {/* Quality indicator badge */}
+      {isGoogleDriveUrl(videoPath) && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs pointer-events-none select-none">
+          <span className={`px-2 py-0.5 rounded ${useProxyForGDrive ? 'bg-green-500/80 text-white' : 'bg-yellow-500/80 text-black'}`}>
+            {useProxyForGDrive ? 'HD' : 'SD 360p'}
+          </span>
+        </div>
+      )}
+      
       <div className="absolute top-2 right-2 text-white/10 text-xs pointer-events-none select-none">
         Concrete Logic
       </div>
