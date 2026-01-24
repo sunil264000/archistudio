@@ -154,27 +154,63 @@ export function CourseManagement() {
     
     setSavingThumbnail(courseId);
     try {
-      const { error } = await supabase
-        .from('courses')
-        .update({ thumbnail_url: url || null })
-        .eq('id', courseId);
-      
-      if (error) throw error;
-      
-      // Update local state without refetching
-      setCourses(prev => prev.map(c => 
-        c.id === courseId ? { ...c, thumbnail_url: url || null } : c
-      ));
+      // If URL is empty, just clear the thumbnail
+      if (!url) {
+        const { error } = await supabase
+          .from('courses')
+          .update({ thumbnail_url: null })
+          .eq('id', courseId);
+        
+        if (error) throw error;
+        
+        setCourses(prev => prev.map(c => 
+          c.id === courseId ? { ...c, thumbnail_url: null } : c
+        ));
+        toast.success('Thumbnail cleared');
+      } else {
+        // Check if URL is already from our storage
+        const isStorageUrl = url.includes('/storage/v1/object/public/course-thumbnails/');
+        
+        if (isStorageUrl) {
+          // Just update the URL directly
+          const { error } = await supabase
+            .from('courses')
+            .update({ thumbnail_url: url })
+            .eq('id', courseId);
+          
+          if (error) throw error;
+          
+          setCourses(prev => prev.map(c => 
+            c.id === courseId ? { ...c, thumbnail_url: url } : c
+          ));
+          toast.success('Thumbnail updated');
+        } else {
+          // Download and store the image permanently
+          toast.info('Downloading and storing image permanently...');
+          
+          const { data, error } = await supabase.functions.invoke('upload-thumbnail', {
+            body: { courseId, imageUrl: url }
+          });
+          
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+          
+          // Update local state with the new storage URL
+          setCourses(prev => prev.map(c => 
+            c.id === courseId ? { ...c, thumbnail_url: data.thumbnailUrl } : c
+          ));
+          toast.success('Thumbnail saved permanently!');
+        }
+      }
       
       // Clear the edit state for this course
       setThumbnailEdits(prev => {
         const { [courseId]: _, ...rest } = prev;
         return rest;
       });
-      
-      toast.success('Thumbnail updated');
     } catch (err) {
-      toast.error('Failed to update thumbnail');
+      console.error('Thumbnail save error:', err);
+      toast.error('Failed to save thumbnail: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setSavingThumbnail(null);
     }

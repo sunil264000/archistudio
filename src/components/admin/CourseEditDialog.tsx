@@ -44,13 +44,33 @@ export function CourseEditDialog({ course, open, onOpenChange, onSave }: CourseE
     
     setSaving(true);
     try {
+      let thumbnailUrl = currentCourse.thumbnail_url;
+      
+      // If thumbnail URL changed and is external, download and store it permanently
+      if (
+        thumbnailUrl && 
+        thumbnailUrl !== course.thumbnail_url &&
+        !thumbnailUrl.includes('/storage/v1/object/public/course-thumbnails/')
+      ) {
+        toast.info('Downloading and storing thumbnail permanently...');
+        
+        const { data, error: uploadError } = await supabase.functions.invoke('upload-thumbnail', {
+          body: { courseId: course.id, imageUrl: thumbnailUrl }
+        });
+        
+        if (uploadError) throw uploadError;
+        if (data?.error) throw new Error(data.error);
+        
+        thumbnailUrl = data.thumbnailUrl;
+      }
+      
       const { error } = await supabase
         .from("courses")
         .update({
           title: currentCourse.title,
           description: currentCourse.description,
           short_description: currentCourse.short_description,
-          thumbnail_url: currentCourse.thumbnail_url,
+          thumbnail_url: thumbnailUrl,
           level: currentCourse.level,
           price_inr: currentCourse.price_inr,
           price_usd: currentCourse.price_usd,
@@ -67,14 +87,15 @@ export function CourseEditDialog({ course, open, onOpenChange, onSave }: CourseE
       setFormData({});
       onSave();
       onOpenChange(false);
-    } catch (error: any) {
-      toast.error("Failed to update course: " + error.message);
+    } catch (error: unknown) {
+      const errMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error("Failed to update course: " + errMessage);
     } finally {
       setSaving(false);
     }
   };
 
-  const updateField = (field: keyof Course, value: any) => {
+  const updateField = (field: keyof Course, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 

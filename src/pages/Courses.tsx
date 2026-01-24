@@ -331,7 +331,7 @@ interface CourseCardProps {
   featured?: boolean;
   index?: number;
   getThumbnail: (slug: string, fallback: string) => string;
-  getPriceInr: (slug: string, fallbackPrice: number) => number;
+  getPriceInr: (slug: string, fallbackPrice: number, durationHours?: number, totalLessons?: number) => number;
   isHighlighted?: boolean;
   saleActive?: boolean;
   discountPercent?: number;
@@ -359,12 +359,12 @@ function CourseCard({
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
   const [pendingPaymentData, setPendingPaymentData] = useState<any>(null);
 
-  const effectivePriceInr = getPriceInr(course.slug, course.priceInr);
-  const discountedPrice = calculateDiscountedPrice(effectivePriceInr);
-  
   // Use real stats if available, otherwise fallback to static data
   const displayLessons = realStats?.totalLessons || course.totalLessons;
   const displayDuration = realStats ? Math.round(realStats.totalDuration / 60) : course.durationHours;
+
+  const effectivePriceInr = getPriceInr(course.slug, course.priceInr, displayDuration, displayLessons);
+  const discountedPrice = calculateDiscountedPrice(effectivePriceInr);
 
   const levelColors: Record<string, string> = {
     beginner: 'bg-success/10 text-success border-success/30',
