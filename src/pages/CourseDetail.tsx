@@ -322,7 +322,9 @@ export default function CourseDetail() {
   // - For guests, RLS restricts lesson reads to free previews, so totals must come from the course meta.
   // - For enrolled users, totals can be calculated from lessons.
   const hasRealContent = dbModules.length > 0;
-  const displayTotalLessons = (dbCourseMeta?.total_lessons ?? null) ?? (hasRealContent ? dbTotalLessons : course.totalLessons);
+  const displayTotalLessons = dbCourseMeta?.total_lessons 
+    ? dbCourseMeta.total_lessons 
+    : (hasRealContent ? dbTotalLessons : course.totalLessons);
   const displayTotalHours = user
     ? (hasRealContent ? Math.round(totalDuration / 60) : (dbCourseMeta?.duration_hours ?? course.durationHours))
     : (dbCourseMeta?.duration_hours ?? 0);
