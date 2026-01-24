@@ -12,9 +12,11 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { 
   ChevronLeft, Play, CheckCircle, Lock, Clock, 
-  BookOpen, Award, ChevronRight, CheckCircle2, MessageCircle, Download
+  BookOpen, Award, ChevronRight, CheckCircle2, MessageCircle, Download,
+  Menu, X, List
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -55,6 +57,7 @@ export default function CoursePlayer() {
   const [loading, setLoading] = useState(true);
   const [watchProgress, setWatchProgress] = useState(0);
   const [showFinishButton, setShowFinishButton] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Refs to prevent re-fetching on tab switch or re-renders
   const hasFetchedRef = useRef(false);
@@ -197,6 +200,7 @@ export default function CoursePlayer() {
       return;
     }
     setCurrentLesson(lesson);
+    setSidebarOpen(false); // Close sidebar on mobile after selection
   };
 
   const handleProgress = useCallback(async (progressPercent: number, currentTime: number) => {
@@ -299,107 +303,134 @@ export default function CoursePlayer() {
     );
   }
 
+  // Sidebar content component (reused in both desktop and mobile)
+  const SidebarContent = () => (
+    <>
+      <div className="p-4 border-b">
+        <Link to={`/course/${slug}`}>
+          <Button variant="ghost" size="sm" className="gap-2 mb-2">
+            <ChevronLeft className="h-4 w-4" />
+            Back to Studio
+          </Button>
+        </Link>
+        <h2 className="font-semibold truncate text-sm md:text-base">{course?.title}</h2>
+        
+        {/* Signup prompt for non-logged-in users */}
+        {!user && (
+          <div className="mt-3 p-3 rounded-lg bg-accent/10 border border-accent/30 text-sm">
+            <p className="font-medium text-accent mb-2">🎓 Like what you see?</p>
+            <p className="text-muted-foreground text-xs mb-2">Sign up to access all lessons and track your progress!</p>
+            <Button size="sm" onClick={() => navigate('/auth')} className="w-full">
+              Sign Up Free
+            </Button>
+          </div>
+        )}
+        
+        {user && (
+          <div className="mt-2">
+            <div className="flex justify-between text-sm mb-1">
+              <span>Progress</span>
+              <span>{Math.round(overallProgress)}%</span>
+            </div>
+            <Progress value={overallProgress} className="h-2" />
+          </div>
+        )}
+      </div>
+
+      <ScrollArea className="flex-1">
+        <Accordion type="multiple" defaultValue={modules.map(m => m.id)} className="p-2">
+          {modules.map((module, modIdx) => (
+            <AccordionItem key={module.id} value={module.id} className="border-b-0">
+              <AccordionTrigger className="hover:no-underline px-2 py-3">
+                <span className="text-sm font-medium text-left">
+                  Module {modIdx + 1}: {module.title}
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="pb-2">
+                <div className="space-y-1">
+                  {module.lessons.map((lesson) => {
+                    const isCompleted = progress[lesson.id]?.completed;
+                    const isLocked = !isEnrolled && !lesson.is_free_preview;
+                    const isCurrent = currentLesson?.id === lesson.id;
+
+                    return (
+                      <button
+                        key={lesson.id}
+                        onClick={() => handleLessonSelect(lesson)}
+                        disabled={isLocked}
+                        className={`w-full flex items-center gap-2 p-2 rounded text-left text-sm transition-colors ${
+                          isCurrent 
+                            ? 'bg-primary text-primary-foreground' 
+                            : isLocked 
+                              ? 'text-muted-foreground cursor-not-allowed'
+                              : 'hover:bg-muted'
+                        }`}
+                      >
+                        <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                          {isLocked ? (
+                            <Lock className="h-3 w-3" />
+                          ) : isCompleted ? (
+                            <CheckCircle className="h-4 w-4 text-success" />
+                          ) : (
+                            <Play className="h-3 w-3" />
+                          )}
+                        </span>
+                        <span className="flex-1 truncate">{lesson.title}</span>
+                        {lesson.is_free_preview && !isEnrolled && (
+                          <Badge variant="secondary" className="text-xs shrink-0">Free</Badge>
+                        )}
+                        {lesson.duration_minutes && lesson.duration_minutes > 0 && (
+                          <span className="text-xs opacity-60 shrink-0">
+                            {lesson.duration_minutes}m
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </ScrollArea>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <div className="flex h-[calc(100vh-4rem)]">
-        {/* Sidebar - Course Content */}
-        <aside className="w-80 border-r bg-card flex flex-col">
-          <div className="p-4 border-b">
-            <Link to={`/course/${slug}`}>
-              <Button variant="ghost" size="sm" className="gap-2 mb-2">
-                <ChevronLeft className="h-4 w-4" />
-                Back to Studio
-              </Button>
-            </Link>
-            <h2 className="font-semibold truncate">{course?.title}</h2>
-            
-            {/* Signup prompt for non-logged-in users */}
-            {!user && (
-              <div className="mt-3 p-3 rounded-lg bg-accent/10 border border-accent/30 text-sm">
-                <p className="font-medium text-accent mb-2">🎓 Like what you see?</p>
-                <p className="text-muted-foreground text-xs mb-2">Sign up to access all lessons and track your progress!</p>
-                <Button size="sm" onClick={() => navigate('/auth')} className="w-full">
-                  Sign Up Free
-                </Button>
-              </div>
-            )}
-            
-            {user && (
-              <div className="mt-2">
-                <div className="flex justify-between text-sm mb-1">
-                  <span>Progress</span>
-                  <span>{Math.round(overallProgress)}%</span>
-                </div>
-                <Progress value={overallProgress} className="h-2" />
-              </div>
-            )}
-          </div>
+      {/* Mobile Header with Lesson Toggle */}
+      <div className="md:hidden sticky top-16 z-40 bg-background/95 backdrop-blur-sm border-b p-2 flex items-center gap-2">
+        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <List className="h-4 w-4" />
+              Lessons
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-[85vw] max-w-sm p-0 flex flex-col">
+            <SidebarContent />
+          </SheetContent>
+        </Sheet>
+        
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{currentLesson?.title || 'Select a lesson'}</p>
+        </div>
+      </div>
 
-          <ScrollArea className="flex-1">
-            <Accordion type="multiple" defaultValue={modules.map(m => m.id)} className="p-2">
-              {modules.map((module, modIdx) => (
-                <AccordionItem key={module.id} value={module.id} className="border-b-0">
-                  <AccordionTrigger className="hover:no-underline px-2 py-3">
-                    <span className="text-sm font-medium text-left">
-                      Module {modIdx + 1}: {module.title}
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-2">
-                    <div className="space-y-1">
-                      {module.lessons.map((lesson, lessonIdx) => {
-                        const isCompleted = progress[lesson.id]?.completed;
-                        const isLocked = !isEnrolled && !lesson.is_free_preview;
-                        const isCurrent = currentLesson?.id === lesson.id;
-
-                        return (
-                          <button
-                            key={lesson.id}
-                            onClick={() => handleLessonSelect(lesson)}
-                            disabled={isLocked}
-                            className={`w-full flex items-center gap-2 p-2 rounded text-left text-sm transition-colors ${
-                              isCurrent 
-                                ? 'bg-primary text-primary-foreground' 
-                                : isLocked 
-                                  ? 'text-muted-foreground cursor-not-allowed'
-                                  : 'hover:bg-muted'
-                            }`}
-                          >
-                            <span className="w-5 h-5 flex items-center justify-center shrink-0">
-                              {isLocked ? (
-                                <Lock className="h-3 w-3" />
-                              ) : isCompleted ? (
-                                <CheckCircle className="h-4 w-4 text-success" />
-                              ) : (
-                                <Play className="h-3 w-3" />
-                              )}
-                            </span>
-                            <span className="flex-1 truncate">{lesson.title}</span>
-                            {lesson.is_free_preview && !isEnrolled && (
-                              <Badge variant="secondary" className="text-xs">Free</Badge>
-                            )}
-                            {lesson.duration_minutes && lesson.duration_minutes > 0 && (
-                              <span className="text-xs opacity-60">
-                                {lesson.duration_minutes}m
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </ScrollArea>
+      <div className="flex flex-col md:flex-row md:h-[calc(100vh-4rem)]">
+        {/* Sidebar - Hidden on mobile, shown via Sheet */}
+        <aside className="hidden md:flex w-80 border-r bg-card flex-col shrink-0">
+          <SidebarContent />
         </aside>
 
         {/* Main Content - Video Player */}
         <main className="flex-1 flex flex-col overflow-auto">
           {currentLesson ? (
             <ScrollArea className="flex-1">
-              <div className="bg-black flex items-center justify-center p-4">
+              {/* Video Container - Full width on mobile */}
+              <div className="bg-black flex items-center justify-center p-2 md:p-4">
                 {currentLesson.video_url ? (
                   <div className="w-full max-w-5xl">
                     <SecureVideoPlayer
@@ -412,11 +443,11 @@ export default function CoursePlayer() {
                     />
                   </div>
                 ) : (
-                  <div className="text-center text-white py-16">
-                    <BookOpen className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                  <div className="text-center text-white py-8 md:py-16">
+                    <BookOpen className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-4 opacity-50" />
                     <p>No video available for this lesson</p>
                     {currentLesson.description && (
-                      <p className="mt-4 text-sm opacity-75 max-w-md">
+                      <p className="mt-4 text-sm opacity-75 max-w-md px-4">
                         {currentLesson.description}
                       </p>
                     )}
@@ -425,28 +456,30 @@ export default function CoursePlayer() {
               </div>
 
               {/* Lesson Info Bar */}
-              <div className="border-t p-4 bg-card">
-                <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="border-t p-3 md:p-4 bg-card">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold truncate">{currentLesson.title}</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-sm md:text-base truncate">{currentLesson.title}</h3>
                       {progress[currentLesson.id]?.completed && (
-                        <Badge variant="secondary" className="bg-success/10 text-success shrink-0">
+                        <Badge variant="secondary" className="bg-success/10 text-success shrink-0 text-xs">
                           <CheckCircle2 className="h-3 w-3 mr-1" />
                           Completed
                         </Badge>
                       )}
                     </div>
                     {currentLesson.description && (
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                      <p className="text-xs md:text-sm text-muted-foreground mt-1 line-clamp-2">
                         {currentLesson.description}
                       </p>
                     )}
                   </div>
-                  <div className="flex gap-2 shrink-0">
-                    <Button variant="outline" size="sm" onClick={goToPrevLesson}>
+                  
+                  {/* Navigation Buttons */}
+                  <div className="flex gap-2 shrink-0 flex-wrap">
+                    <Button variant="outline" size="sm" onClick={goToPrevLesson} className="text-xs md:text-sm">
                       <ChevronLeft className="h-4 w-4" />
-                      Previous
+                      <span className="hidden sm:inline">Previous</span>
                     </Button>
                     
                     {/* Finish Lesson Button - Shows at 95%+ watch time */}
@@ -454,15 +487,16 @@ export default function CoursePlayer() {
                       <Button 
                         size="sm" 
                         onClick={handleFinishLesson}
-                        className="bg-success hover:bg-success/90 text-success-foreground animate-pulse"
+                        className="bg-success hover:bg-success/90 text-success-foreground animate-pulse text-xs md:text-sm"
                       >
                         <CheckCircle2 className="h-4 w-4 mr-1" />
-                        Finish Session
+                        <span className="hidden sm:inline">Finish Session</span>
+                        <span className="sm:hidden">Finish</span>
                       </Button>
                     )}
                     
-                    <Button size="sm" onClick={goToNextLesson}>
-                      Next
+                    <Button size="sm" onClick={goToNextLesson} className="text-xs md:text-sm">
+                      <span className="hidden sm:inline">Next</span>
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>
@@ -471,15 +505,16 @@ export default function CoursePlayer() {
 
               {/* Resources & Q&A Section Below Video */}
               {course && currentLesson && (
-                <div className="p-4 border-t">
+                <div className="p-3 md:p-4 border-t">
                   {/* Downloadable Resources */}
                   <LessonResources lessonId={currentLesson.id} isEnrolled={isEnrolled} />
                   
                   <Tabs defaultValue="qa" className="w-full mt-4">
                     <TabsList className="mb-4">
-                      <TabsTrigger value="qa" className="gap-2">
+                      <TabsTrigger value="qa" className="gap-2 text-xs md:text-sm">
                         <MessageCircle className="h-4 w-4" />
-                        Questions & Answers
+                        <span className="hidden sm:inline">Questions & Answers</span>
+                        <span className="sm:hidden">Q&A</span>
                       </TabsTrigger>
                     </TabsList>
                     <TabsContent value="qa">
@@ -490,8 +525,19 @@ export default function CoursePlayer() {
               )}
             </ScrollArea>
           ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <p className="text-muted-foreground">Select a lesson to start learning</p>
+            <div className="flex-1 flex items-center justify-center p-8">
+              <div className="text-center">
+                <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Select a lesson to start learning</p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4 md:hidden"
+                  onClick={() => setSidebarOpen(true)}
+                >
+                  <List className="h-4 w-4 mr-2" />
+                  View Lessons
+                </Button>
+              </div>
             </div>
           )}
         </main>
