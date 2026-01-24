@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, BookOpen, CheckCircle, Sparkles, Play } from 'lucide-react';
+import { ArrowRight, BookOpen, CheckCircle, Sparkles } from 'lucide-react';
 import { Background3D } from '@/components/3d/Background3D';
 import { motion } from 'framer-motion';
 
@@ -98,12 +98,6 @@ export function HeroSection() {
                   <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Button>
               </Link>
-              <a href="#courses">
-                <Button variant="outline" size="xl" className="gap-3 text-base backdrop-blur-sm bg-background/50 group">
-                  <Play className="h-5 w-5 transition-transform group-hover:scale-110" />
-                  See Course Curriculum
-                </Button>
-              </a>
             </motion.div>
 
             {/* Trust indicators */}

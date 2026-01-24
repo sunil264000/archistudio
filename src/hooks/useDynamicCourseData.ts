@@ -8,6 +8,7 @@ interface DynamicCourseData {
   is_featured: boolean;
   price_inr: number | null;
   price_usd: number | null;
+  updated_at?: string | null;
 }
 
 /**
@@ -23,7 +24,7 @@ export function useDynamicCourseData() {
       try {
         const { data, error } = await supabase
           .from('courses')
-          .select('slug, thumbnail_url, is_highlighted, is_featured, price_inr, price_usd')
+          .select('slug, thumbnail_url, is_highlighted, is_featured, price_inr, price_usd, updated_at')
           .eq('is_published', true);
 
         if (error) throw error;
@@ -70,7 +71,15 @@ export function useDynamicCourseData() {
   const getThumbnail = (courseSlug: string, fallbackImage: string): string => {
     const dynamic = dynamicData[courseSlug];
     if (dynamic?.thumbnail_url) {
-      return dynamic.thumbnail_url;
+      // Cache-bust when admin updates thumbnail URL so users see it instantly.
+      // Uses updated_at if available; falls back to a short-lived cache key.
+      const rawUrl = dynamic.thumbnail_url;
+      const v = dynamic.updated_at
+        ? String(new Date(dynamic.updated_at).getTime())
+        : String(Math.floor(Date.now() / 60_000)); // 1-minute rolling cache
+
+      const joiner = rawUrl.includes('?') ? '&' : '?';
+      return `${rawUrl}${joiner}v=${encodeURIComponent(v)}`;
     }
     return fallbackImage;
   };
