@@ -7,9 +7,20 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { 
-  Search, Pencil, Trash2, GripVertical, ChevronUp, ChevronDown, 
-  Loader2, RefreshCw, Eye, EyeOff, Star, Image as ImageIcon
+  Search, Pencil, Trash2, ChevronUp, ChevronDown, 
+  Loader2, RefreshCw, Eye, EyeOff, Star, Image as ImageIcon, FolderX
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { CourseEditDialog } from './CourseEditDialog';
 
 interface Course {
@@ -35,6 +46,7 @@ export function CourseManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [refreshingAll, setRefreshingAll] = useState(false);
+  const [deletingContent, setDeletingContent] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCourses();
@@ -141,15 +153,27 @@ export function CourseManagement() {
   const handleDeleteCourse = async (courseId: string) => {
     if (!confirm('Are you sure you want to delete this course? This will also delete all modules and lessons.')) return;
     
-    // Delete in order: lessons -> modules -> course
+    // Delete in order: resources -> lessons -> modules -> course (batch delete for speed)
     const { data: modules } = await supabase
       .from('modules')
       .select('id')
       .eq('course_id', courseId);
     
-    if (modules) {
-      for (const mod of modules) {
-        await supabase.from('lessons').delete().eq('module_id', mod.id);
+    const moduleIds = modules?.map(m => m.id) || [];
+    
+    if (moduleIds.length > 0) {
+      // Get all lesson IDs first
+      const { data: lessons } = await supabase
+        .from('lessons')
+        .select('id')
+        .in('module_id', moduleIds);
+      
+      const lessonIds = lessons?.map(l => l.id) || [];
+      
+      // Batch delete: resources -> lessons -> modules
+      if (lessonIds.length > 0) {
+        await supabase.from('lesson_resources').delete().in('lesson_id', lessonIds);
+        await supabase.from('lessons').delete().in('module_id', moduleIds);
       }
       await supabase.from('modules').delete().eq('course_id', courseId);
     }
@@ -161,6 +185,52 @@ export function CourseManagement() {
     } else {
       setCourses(prev => prev.filter(c => c.id !== courseId));
       toast.success('Course deleted');
+    }
+  };
+
+  const handleDeleteAllContent = async (courseId: string) => {
+    setDeletingContent(courseId);
+    try {
+      // Get all modules for this course
+      const { data: modules } = await supabase
+        .from('modules')
+        .select('id')
+        .eq('course_id', courseId);
+      
+      const moduleIds = modules?.map(m => m.id) || [];
+      
+      if (moduleIds.length === 0) {
+        toast.info('Course has no content to delete');
+        return;
+      }
+
+      // Get all lesson IDs
+      const { data: lessons } = await supabase
+        .from('lessons')
+        .select('id')
+        .in('module_id', moduleIds);
+      
+      const lessonIds = lessons?.map(l => l.id) || [];
+      
+      // Batch delete: resources -> lessons -> modules (keep the course)
+      if (lessonIds.length > 0) {
+        await supabase.from('lesson_resources').delete().in('lesson_id', lessonIds);
+        await supabase.from('lessons').delete().in('module_id', moduleIds);
+      }
+      await supabase.from('modules').delete().eq('course_id', courseId);
+      
+      // Reset course stats
+      await supabase.from('courses').update({
+        total_lessons: 0,
+        duration_hours: null
+      }).eq('id', courseId);
+      
+      toast.success(`Deleted ${moduleIds.length} modules and ${lessonIds.length} lessons`);
+      fetchCourses();
+    } catch (err: any) {
+      toast.error('Failed to delete content');
+    } finally {
+      setDeletingContent(null);
     }
   };
 
@@ -282,7 +352,7 @@ export function CourseManagement() {
                   <div className="flex items-center gap-2">
                     <span className="font-medium truncate">{course.title}</span>
                     {course.is_featured && (
-                      <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 shrink-0" />
+                      <Star className="h-3 w-3 text-primary fill-primary shrink-0" />
                     )}
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -317,7 +387,7 @@ export function CourseManagement() {
                     onClick={() => handleToggleFeatured(course)}
                     title={course.is_featured ? 'Remove from featured' : 'Add to featured'}
                   >
-                    <Star className={`h-4 w-4 ${course.is_featured ? 'text-yellow-500 fill-yellow-500' : ''}`} />
+                    <Star className={`h-4 w-4 ${course.is_featured ? 'text-primary fill-primary' : ''}`} />
                   </Button>
                   
                   <Button 
@@ -328,11 +398,46 @@ export function CourseManagement() {
                     <Pencil className="h-4 w-4" />
                   </Button>
                   
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        title="Delete all content (keep course)"
+                        disabled={deletingContent === course.id}
+                      >
+                        {deletingContent === course.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <FolderX className="h-4 w-4 text-destructive" />
+                        )}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete All Course Content?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete all modules, lessons, and resources from "{course.title}". The course itself will remain but will be empty.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => handleDeleteAllContent(course.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete All Content
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
                   <Button 
                     variant="ghost" 
                     size="icon"
                     onClick={() => handleDeleteCourse(course.id)}
                     className="text-destructive hover:text-destructive"
+                    title="Delete entire course"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

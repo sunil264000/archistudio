@@ -6,9 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Video file extensions to identify
-const VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.mpeg', '.mpg', '.3gp'];
-const VIDEO_MIMETYPES = ['video/mp4', 'video/avi', 'video/mkv', 'video/quicktime', 'video/x-ms-wmv', 'video/x-flv', 'video/webm', 'video/x-m4v', 'video/mpeg', 'video/3gpp'];
+const BATCH_SIZE = 20; // Process 20 lessons concurrently for speed
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -28,7 +26,7 @@ serve(async (req) => {
     const { action, courseId } = await req.json();
 
     if (action === "refresh-all") {
-      console.log("Starting refresh-all scan...");
+      console.log("Starting optimized refresh-all scan...");
       
       // Get all lessons with Google Drive video URLs
       const { data: allLessons, error: lessonsError } = await supabase
@@ -42,37 +40,50 @@ serve(async (req) => {
       let brokenLinks = 0;
       let durationsUpdated = 0;
 
-      // Check each video URL and update durations
-      for (const lesson of allLessons || []) {
-        if (lesson.video_url) {
-          const fileId = extractFileId(lesson.video_url);
-          if (fileId) {
+      // Process in batches for speed
+      const lessons = allLessons || [];
+      for (let i = 0; i < lessons.length; i += BATCH_SIZE) {
+        const batch = lessons.slice(i, i + BATCH_SIZE);
+        
+        const results = await Promise.all(
+          batch.map(async (lesson) => {
+            if (!lesson.video_url) return { lesson, valid: false, duration: 0 };
+            const fileId = extractFileId(lesson.video_url);
+            if (!fileId) return { lesson, valid: false, duration: 0 };
+            
             const result = await checkAndGetDuration(fileId, GOOGLE_API_KEY);
-            if (result.valid) {
-              validLinks++;
-              // Update duration if it was 0 or different
-              if (result.duration > 0 && lesson.duration_minutes !== result.duration) {
-                await supabase.from('lessons').update({ 
-                  duration_minutes: result.duration 
-                }).eq('id', lesson.id);
-                durationsUpdated++;
-              }
-            } else {
-              brokenLinks++;
-            }
-          }
+            return { lesson, ...result };
+          })
+        );
+
+        // Batch update durations
+        const updates = results
+          .filter(r => r.valid && r.duration > 0 && r.lesson.duration_minutes !== r.duration)
+          .map(r => ({ id: r.lesson.id, duration_minutes: r.duration }));
+
+        if (updates.length > 0) {
+          // Use parallel updates for speed
+          await Promise.all(
+            updates.map(u => 
+              supabase.from('lessons').update({ duration_minutes: u.duration_minutes }).eq('id', u.id)
+            )
+          );
+          durationsUpdated += updates.length;
         }
+
+        validLinks += results.filter(r => r.valid).length;
+        brokenLinks += results.filter(r => !r.valid).length;
       }
 
-      // Update course-level statistics for ALL courses
-      const coursesUpdated = await updateAllCourseStats(supabase);
+      // Update course-level statistics for ALL courses (optimized)
+      const coursesUpdated = await updateAllCourseStatsOptimized(supabase);
 
       console.log(`Refresh complete: ${validLinks} valid, ${brokenLinks} broken, ${durationsUpdated} durations, ${coursesUpdated} courses updated`);
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: `Scanned ${allLessons?.length || 0} lessons across all courses`,
+          message: `Scanned ${lessons.length} lessons across all courses`,
           validLinks,
           brokenLinks,
           durationsUpdated,
@@ -83,39 +94,55 @@ serve(async (req) => {
     }
 
     if (action === "scan-single" && courseId) {
-      // Scan a single course's Google Drive folders
       const { data: modules } = await supabase
         .from('modules')
-        .select('id, title')
+        .select('id')
         .eq('course_id', courseId);
+
+      const moduleIds = modules?.map(m => m.id) || [];
+      if (moduleIds.length === 0) {
+        return new Response(
+          JSON.stringify({ success: true, courseId, validLinks: 0, brokenLinks: 0, durationsUpdated: 0, totalLessons: 0 }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
       const { data: lessons } = await supabase
         .from('lessons')
-        .select('id, title, video_url, module_id, duration_minutes')
-        .in('module_id', modules?.map(m => m.id) || []);
+        .select('id, video_url, duration_minutes')
+        .in('module_id', moduleIds);
 
       let validLinks = 0;
       let brokenLinks = 0;
       let durationsUpdated = 0;
       
-      for (const lesson of lessons || []) {
-        if (lesson.video_url?.includes('drive.google.com')) {
-          const fileId = extractFileId(lesson.video_url);
-          if (fileId) {
-            const result = await checkAndGetDuration(fileId, GOOGLE_API_KEY);
-            if (result.valid) {
-              validLinks++;
-              if (result.duration > 0 && lesson.duration_minutes !== result.duration) {
-                await supabase.from('lessons').update({ 
-                  duration_minutes: result.duration 
-                }).eq('id', lesson.id);
-                durationsUpdated++;
-              }
-            } else {
-              brokenLinks++;
-            }
-          }
-        }
+      // Process in parallel batches
+      const lessonsList = lessons || [];
+      for (let i = 0; i < lessonsList.length; i += BATCH_SIZE) {
+        const batch = lessonsList.slice(i, i + BATCH_SIZE);
+        
+        const results = await Promise.all(
+          batch.map(async (lesson) => {
+            if (!lesson.video_url?.includes('drive.google.com')) return { lesson, valid: false, duration: 0 };
+            const fileId = extractFileId(lesson.video_url);
+            if (!fileId) return { lesson, valid: false, duration: 0 };
+            
+            const result = await checkAndGetDuration(fileId, Deno.env.get("GOOGLE_API_KEY")!);
+            return { lesson, ...result };
+          })
+        );
+
+        const updates = results.filter(r => r.valid && r.duration > 0 && r.lesson.duration_minutes !== r.duration);
+        
+        await Promise.all(
+          updates.map(u => 
+            supabase.from('lessons').update({ duration_minutes: u.duration }).eq('id', u.lesson.id)
+          )
+        );
+        
+        durationsUpdated += updates.length;
+        validLinks += results.filter(r => r.valid).length;
+        brokenLinks += results.filter(r => !r.valid).length;
       }
 
       return new Response(
@@ -125,7 +152,7 @@ serve(async (req) => {
           validLinks,
           brokenLinks,
           durationsUpdated,
-          totalLessons: lessons?.length || 0
+          totalLessons: lessonsList.length
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -161,7 +188,7 @@ function extractFileId(url: string): string | null {
 
 async function checkAndGetDuration(fileId: string, apiKey: string): Promise<{ valid: boolean; duration: number }> {
   try {
-    const url = `https://www.googleapis.com/drive/v3/files/${fileId}?key=${apiKey}&fields=id,name,videoMediaMetadata`;
+    const url = `https://www.googleapis.com/drive/v3/files/${fileId}?key=${apiKey}&fields=id,videoMediaMetadata`;
     const response = await fetch(url);
     
     if (!response.ok) {
@@ -181,45 +208,62 @@ async function checkAndGetDuration(fileId: string, apiKey: string): Promise<{ va
   }
 }
 
-// Update all course statistics (total_lessons, duration_hours)
-async function updateAllCourseStats(supabase: any): Promise<number> {
-  let coursesUpdated = 0;
-  
-  // Get all courses
+// Optimized: Single query to get all data, then batch update
+async function updateAllCourseStatsOptimized(supabase: any): Promise<number> {
+  // Get all courses with their modules and lessons in fewer queries
   const { data: courses } = await supabase.from('courses').select('id');
+  const { data: allModules } = await supabase.from('modules').select('id, course_id');
+  const { data: allLessons } = await supabase.from('lessons').select('id, module_id, duration_minutes');
+
+  // Build lookup maps for O(1) access
+  const modulesByCourse = new Map<string, string[]>();
+  for (const m of allModules || []) {
+    if (!modulesByCourse.has(m.course_id)) modulesByCourse.set(m.course_id, []);
+    modulesByCourse.get(m.course_id)!.push(m.id);
+  }
+
+  const lessonsByModule = new Map<string, { id: string; duration_minutes: number }[]>();
+  for (const l of allLessons || []) {
+    if (!lessonsByModule.has(l.module_id)) lessonsByModule.set(l.module_id, []);
+    lessonsByModule.get(l.module_id)!.push(l);
+  }
+
+  // Calculate stats for each course
+  const updates: { id: string; total_lessons: number; duration_hours: number | null }[] = [];
   
   for (const course of courses || []) {
-    // Get all modules for this course
-    const { data: modules } = await supabase
-      .from('modules')
-      .select('id')
-      .eq('course_id', course.id);
-    
-    const moduleIds = modules?.map((m: any) => m.id) || [];
-    
-    if (moduleIds.length === 0) continue;
-    
-    // Get all lessons for these modules
-    const { data: lessons } = await supabase
-      .from('lessons')
-      .select('id, duration_minutes')
-      .in('module_id', moduleIds);
-    
-    const totalLessons = lessons?.length || 0;
-    const totalMinutes = lessons?.reduce((sum: number, l: any) => sum + (l.duration_minutes || 0), 0) || 0;
-    const durationHours = Math.round(totalMinutes / 60 * 10) / 10; // Round to 1 decimal
-    
-    // Update course statistics
-    const { error } = await supabase
-      .from('courses')
-      .update({ 
-        total_lessons: totalLessons,
-        duration_hours: durationHours > 0 ? durationHours : null
-      })
-      .eq('id', course.id);
-    
-    if (!error) coursesUpdated++;
+    const moduleIds = modulesByCourse.get(course.id) || [];
+    let totalLessons = 0;
+    let totalMinutes = 0;
+
+    for (const moduleId of moduleIds) {
+      const lessons = lessonsByModule.get(moduleId) || [];
+      totalLessons += lessons.length;
+      totalMinutes += lessons.reduce((sum, l) => sum + (l.duration_minutes || 0), 0);
+    }
+
+    const durationHours = Math.round(totalMinutes / 60 * 10) / 10;
+    updates.push({
+      id: course.id,
+      total_lessons: totalLessons,
+      duration_hours: durationHours > 0 ? durationHours : null
+    });
   }
-  
+
+  // Batch update all courses in parallel (chunks of 20)
+  let coursesUpdated = 0;
+  for (let i = 0; i < updates.length; i += 20) {
+    const batch = updates.slice(i, i + 20);
+    const results = await Promise.all(
+      batch.map(u => 
+        supabase.from('courses').update({ 
+          total_lessons: u.total_lessons, 
+          duration_hours: u.duration_hours 
+        }).eq('id', u.id)
+      )
+    );
+    coursesUpdated += results.filter(r => !r.error).length;
+  }
+
   return coursesUpdated;
 }
