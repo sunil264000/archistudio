@@ -1,5 +1,5 @@
 # Archistudio - Architecture Education Platform
-# https://archistudio.lovable.app
+# https://archistudio.shop
 
 User-agent: Googlebot
 Allow: /
@@ -28,5 +28,5 @@ Disallow: /payment-failed
 Disallow: /reset-password
 Disallow: /update-password
 
-# Static sitemap for Google Search Console (on same domain)
-Sitemap: https://archistudio.lovable.app/sitemap.xml
+# Sitemap for Google Search Console
+Sitemap: https://archistudio.shop/sitemap.xml

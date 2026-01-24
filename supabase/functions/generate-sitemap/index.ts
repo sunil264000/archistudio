@@ -7,7 +7,7 @@ const corsHeaders = {
   'Content-Type': 'application/xml',
 };
 
-const SITE_URL = 'https://archistudio.lovable.app';
+const SITE_URL = 'https://archistudio.shop';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
