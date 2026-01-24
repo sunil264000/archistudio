@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -8,17 +8,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Clock, BookOpen, Search, Star, Filter, ShoppingCart, CreditCard, Loader2, Sparkles } from 'lucide-react';
+import { Clock, BookOpen, Search, Star, Filter, ShoppingCart, CreditCard, Loader2, Sparkles, GraduationCap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
 import { useToast } from '@/hooks/use-toast';
 import { Background3D } from '@/components/3d/Background3D';
 import { SEOHead } from '@/components/seo/SEOHead';
+import { ContactSupportWidget } from '@/components/support/ContactSupportWidget';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Courses() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dbCourseCount, setDbCourseCount] = useState<number | null>(null);
   const { getThumbnail, isHighlighted, isFeatured } = useDynamicCourseData();
+
+  // Fetch actual course count from database
+  useEffect(() => {
+    const fetchCourseCount = async () => {
+      const { count } = await supabase
+        .from('courses')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_published', true);
+      setDbCourseCount(count);
+    };
+    fetchCourseCount();
+  }, []);
+
+  const totalCourseCount = dbCourseCount ?? courses.length;
 
   const filteredCourses = courses.filter(course => {
     const matchesCategory = !selectedCategory || course.category === selectedCategory;
@@ -85,9 +102,16 @@ export default function Courses() {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 bg-gradient-to-r from-foreground via-accent to-foreground bg-clip-text text-transparent">
               Master Architecture & Design
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-              {courses.length}+ professional courses covering 3ds Max, Revit, SketchUp, AutoCAD, and more
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-4">
+              Professional courses covering 3ds Max, Revit, SketchUp, AutoCAD, and more
             </p>
+            
+            {/* Course Count Badge */}
+            <div className="inline-flex items-center gap-3 px-6 py-3 bg-accent/10 border border-accent/30 rounded-full mb-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+              <GraduationCap className="h-6 w-6 text-accent" />
+              <span className="text-2xl font-bold text-accent">{totalCourseCount}+</span>
+              <span className="text-muted-foreground">Courses Available</span>
+            </div>
           </div>
           
           {/* Animated Search Bar */}
@@ -100,6 +124,12 @@ export default function Courses() {
               className="pl-12 h-14 text-lg border-2 border-border/50 focus:border-accent transition-all duration-300 bg-background/80 backdrop-blur-sm"
             />
           </div>
+          
+          {/* Confused? Help Banner */}
+          <p className="text-sm text-muted-foreground mt-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+            Confused about which course to pick? 
+            <span className="text-accent font-medium ml-1">Click the chat button below for help!</span>
+          </p>
         </div>
       </section>
 
@@ -194,6 +224,9 @@ export default function Courses() {
       </section>
 
       <Footer />
+      
+      {/* Floating Contact Widget */}
+      <ContactSupportWidget />
     </div>
   );
 }
