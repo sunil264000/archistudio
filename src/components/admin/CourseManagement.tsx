@@ -10,8 +10,10 @@ import {
   Loader2, RefreshCw, Eye, EyeOff, Star, Image as ImageIcon, 
   FolderX, CheckSquare, Square, ArrowUpDown, Filter,
   BookOpen, Layers, Clock, AlertCircle, CheckCircle2,
-  Package, X, Link2, Unlink, FolderSync, ExternalLink
+  Package, X, Link2, Unlink, FolderSync, ExternalLink, EyeIcon
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
@@ -92,6 +94,9 @@ export function CourseManagement() {
   const [activeFilters, setActiveFilters] = useState<Set<FilterOption>>(new Set(['all']));
   const [courseContent, setCourseContent] = useState<Record<string, CourseContent>>({});
   const [loadingContent, setLoadingContent] = useState(false);
+  
+  // Quick toggle to hide empty courses
+  const [hideEmpty, setHideEmpty] = useState(false);
   
   // Folder linking state
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
@@ -555,6 +560,14 @@ export function CourseManagement() {
   const processedCourses = useMemo(() => {
     let result = [...courses];
 
+    // Apply hide empty toggle first
+    if (hideEmpty) {
+      result = result.filter(course => {
+        const content = courseContent[course.id];
+        return content && (content.moduleCount > 0 || content.lessonCount > 0);
+      });
+    }
+
     if (searchTerm) {
       result = result.filter(course =>
         course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -627,7 +640,7 @@ export function CourseManagement() {
     });
 
     return result;
-  }, [courses, searchTerm, sortBy, activeFilters, courseContent]);
+  }, [courses, searchTerm, sortBy, activeFilters, courseContent, hideEmpty]);
 
   const stats = useMemo(() => {
     const emptyCourses = courses.filter(c => {
@@ -736,7 +749,22 @@ export function CourseManagement() {
               />
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Hide Empty Toggle */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 border border-border/50">
+                <Switch 
+                  id="hide-empty"
+                  checked={hideEmpty}
+                  onCheckedChange={setHideEmpty}
+                  className="scale-90"
+                />
+                <Label htmlFor="hide-empty" className="text-xs font-medium cursor-pointer whitespace-nowrap">
+                  Hide Empty ({stats.empty})
+                </Label>
+              </div>
+
+              <Separator orientation="vertical" className="h-8 hidden lg:block" />
+
               <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
                 <SelectTrigger className="w-[180px] bg-background">
                   <ArrowUpDown className="h-4 w-4 mr-2" />
