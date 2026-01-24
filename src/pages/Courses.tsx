@@ -353,7 +353,6 @@ function CourseCard({
   const [isHovered, setIsHovered] = useState(false);
 
   const discountedPrice = calculateDiscountedPrice(course.priceInr);
-  const discountedPriceUSD = calculateDiscountedPrice(course.priceUsd);
   
   // Use real stats if available, otherwise fallback to static data
   const displayLessons = realStats?.totalLessons || course.totalLessons;
@@ -500,14 +499,9 @@ function CourseCard({
                 </div>
               </>
             ) : (
-              <>
-                <div className="font-bold text-xl text-foreground">
-                  ₹{course.priceInr.toLocaleString()}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  ${course.priceUsd}
-                </div>
-              </>
+              <div className="font-bold text-xl text-foreground">
+                ₹{course.priceInr.toLocaleString()}
+              </div>
             )}
           </div>
           <Button 
