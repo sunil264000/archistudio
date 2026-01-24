@@ -8,8 +8,9 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { 
   Search, Pencil, Trash2, ChevronUp, ChevronDown, 
-  Loader2, RefreshCw, Eye, EyeOff, Star, Image as ImageIcon, FolderX
+  Loader2, RefreshCw, Eye, EyeOff, Star, Image as ImageIcon, FolderX, CheckSquare, Square
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +48,8 @@ export function CourseManagement() {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [refreshingAll, setRefreshingAll] = useState(false);
   const [deletingContent, setDeletingContent] = useState<string | null>(null);
+  const [selectedCourses, setSelectedCourses] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   useEffect(() => {
     fetchCourses();
@@ -234,6 +237,92 @@ export function CourseManagement() {
     }
   };
 
+  // Toggle single course selection
+  const toggleCourseSelection = (courseId: string) => {
+    setSelectedCourses(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(courseId)) {
+        newSet.delete(courseId);
+      } else {
+        newSet.add(courseId);
+      }
+      return newSet;
+    });
+  };
+
+  // Select/deselect all courses
+  const toggleSelectAll = () => {
+    if (selectedCourses.size === filteredCourses.length) {
+      setSelectedCourses(new Set());
+    } else {
+      setSelectedCourses(new Set(filteredCourses.map(c => c.id)));
+    }
+  };
+
+  // Bulk delete content for all selected courses
+  const handleBulkDeleteContent = async () => {
+    if (selectedCourses.size === 0) return;
+    
+    setBulkDeleting(true);
+    let totalModules = 0;
+    let totalLessons = 0;
+    
+    try {
+      // Process all selected courses in parallel
+      const results = await Promise.allSettled(
+        Array.from(selectedCourses).map(async (courseId) => {
+          // Get all modules for this course
+          const { data: modules } = await supabase
+            .from('modules')
+            .select('id')
+            .eq('course_id', courseId);
+          
+          const moduleIds = modules?.map(m => m.id) || [];
+          if (moduleIds.length === 0) return { modules: 0, lessons: 0 };
+
+          // Get all lesson IDs
+          const { data: lessons } = await supabase
+            .from('lessons')
+            .select('id')
+            .in('module_id', moduleIds);
+          
+          const lessonIds = lessons?.map(l => l.id) || [];
+          
+          // Batch delete: resources -> lessons -> modules
+          if (lessonIds.length > 0) {
+            await supabase.from('lesson_resources').delete().in('lesson_id', lessonIds);
+            await supabase.from('lessons').delete().in('module_id', moduleIds);
+          }
+          await supabase.from('modules').delete().eq('course_id', courseId);
+          
+          // Reset course stats
+          await supabase.from('courses').update({
+            total_lessons: 0,
+            duration_hours: null
+          }).eq('id', courseId);
+          
+          return { modules: moduleIds.length, lessons: lessonIds.length };
+        })
+      );
+      
+      // Sum up results
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          totalModules += result.value.modules;
+          totalLessons += result.value.lessons;
+        }
+      });
+      
+      toast.success(`Cleaned ${selectedCourses.size} courses: ${totalModules} modules, ${totalLessons} lessons deleted`);
+      setSelectedCourses(new Set());
+      fetchCourses();
+    } catch (err: any) {
+      toast.error('Failed to bulk delete content');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const filteredCourses = courses.filter(course =>
     course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     course.slug.toLowerCase().includes(searchTerm.toLowerCase())
@@ -261,6 +350,40 @@ export function CourseManagement() {
           />
         </div>
         <div className="flex gap-2">
+          {selectedCourses.size > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="destructive" 
+                  disabled={bulkDeleting}
+                >
+                  {bulkDeleting ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FolderX className="h-4 w-4 mr-2" />
+                  )}
+                  Clean {selectedCourses.size} Course{selectedCourses.size > 1 ? 's' : ''}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Bulk Delete Content?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete ALL modules, lessons, and resources from {selectedCourses.size} selected course{selectedCourses.size > 1 ? 's' : ''}. The courses themselves will remain but will be empty.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleBulkDeleteContent}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Delete All Content
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <Button 
             variant="outline" 
             onClick={handleRefreshAllLinks}
@@ -306,20 +429,49 @@ export function CourseManagement() {
 
       {/* Course List */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>All Courses ({filteredCourses.length})</CardTitle>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={toggleSelectAll}
+            className="gap-2"
+          >
+            {selectedCourses.size === filteredCourses.length && filteredCourses.length > 0 ? (
+              <>
+                <CheckSquare className="h-4 w-4" />
+                Deselect All
+              </>
+            ) : (
+              <>
+                <Square className="h-4 w-4" />
+                Select All
+              </>
+            )}
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             {filteredCourses.map((course, index) => (
               <div 
                 key={course.id} 
-                className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                  selectedCourses.has(course.id) 
+                    ? 'bg-primary/10 border-primary/30' 
+                    : 'bg-card hover:bg-muted/50'
+                }`}
               >
+                {/* Selection Checkbox */}
+                <Checkbox
+                  checked={selectedCourses.has(course.id)}
+                  onCheckedChange={() => toggleCourseSelection(course.id)}
+                  className="shrink-0"
+                />
+
                 {/* Reorder Controls */}
                 <div className="flex flex-col gap-0.5">
                   <Button 
-                    variant="ghost" 
+                    variant="ghost"
                     size="icon" 
                     className="h-6 w-6"
                     onClick={() => handleMoveUp(index)}
