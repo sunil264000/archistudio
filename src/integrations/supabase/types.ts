@@ -461,6 +461,84 @@ export type Database = {
           },
         ]
       }
+      ebook_purchases: {
+        Row: {
+          created_at: string
+          discount_applied: number | null
+          ebook_ids: string[]
+          id: string
+          is_full_bundle: boolean | null
+          payment_id: string | null
+          status: string | null
+          total_amount: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          discount_applied?: number | null
+          ebook_ids: string[]
+          id?: string
+          is_full_bundle?: boolean | null
+          payment_id?: string | null
+          status?: string | null
+          total_amount: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          discount_applied?: number | null
+          ebook_ids?: string[]
+          id?: string
+          is_full_bundle?: boolean | null
+          payment_id?: string | null
+          status?: string | null
+          total_amount?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ebooks: {
+        Row: {
+          category: string
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          file_url: string | null
+          id: string
+          is_published: boolean | null
+          order_index: number | null
+          price_single: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          file_url?: string | null
+          id?: string
+          is_published?: boolean | null
+          order_index?: number | null
+          price_single?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          file_url?: string | null
+          id?: string
+          is_published?: boolean | null
+          order_index?: number | null
+          price_single?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       enrollments: {
         Row: {
           course_id: string
