@@ -24,6 +24,7 @@ import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { supabase } from '@/integrations/supabase/client';
 import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
 import { analytics } from '@/hooks/useGoogleAnalytics';
+import { LinkedEbooksHighlight } from '@/components/course/LinkedEbooksHighlight';
 
 // Add to Cart Button Component
 function AddToCartButton({ course }: { course: any }) {
@@ -587,6 +588,13 @@ export default function CourseDetail() {
               </Card>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Linked eBooks Highlight */}
+      <section className="py-4">
+        <div className="container mx-auto px-4">
+          <LinkedEbooksHighlight courseId={dbCourseId} courseTitle={course.title} />
         </div>
       </section>
 
