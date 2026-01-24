@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { 
   Plus, Pencil, Trash2, Upload, Video, FileText, 
-  GripVertical, Loader2, ChevronRight, FolderPlus, Save, Clock, FolderSync
+  GripVertical, Loader2, ChevronRight, FolderPlus, Save, Clock, FolderSync, EyeOff
 } from 'lucide-react';
 import { GoogleDriveImport } from './GoogleDriveImport';
 import { QuickLessonAdd } from './QuickLessonAdd';
@@ -73,6 +73,9 @@ export function LessonManagement() {
   // Batch free preview changes - track locally before saving
   const [pendingFreePreviewChanges, setPendingFreePreviewChanges] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
+  
+  // Quick toggle to hide empty modules
+  const [hideEmptyModules, setHideEmptyModules] = useState(false);
 
   useEffect(() => {
     fetchCourses();
@@ -417,6 +420,24 @@ export function LessonManagement() {
         />
       )}
 
+      {/* Module Controls */}
+      {selectedCourse && modules.length > 0 && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 border border-border/50">
+            <Switch 
+              id="hide-empty-modules"
+              checked={hideEmptyModules}
+              onCheckedChange={setHideEmptyModules}
+              className="scale-90"
+            />
+            <Label htmlFor="hide-empty-modules" className="text-xs font-medium cursor-pointer whitespace-nowrap flex items-center gap-1.5">
+              <EyeOff className="h-3 w-3" />
+              Hide Empty Modules ({modules.filter(m => !lessons[m.id]?.length).length})
+            </Label>
+          </div>
+        </div>
+      )}
+
       {/* Modules & Lessons */}
       {loading ? (
         <div className="text-center py-8">
@@ -432,7 +453,9 @@ export function LessonManagement() {
         </p>
       ) : (
         <Accordion type="multiple" className="space-y-2">
-          {modules.map((module, idx) => (
+          {modules
+            .filter(module => !hideEmptyModules || (lessons[module.id]?.length || 0) > 0)
+            .map((module, idx) => (
             <AccordionItem key={module.id} value={module.id} className="border rounded-lg">
               <AccordionTrigger className="px-4 hover:no-underline">
                 <div className="flex items-center gap-3 flex-1">
