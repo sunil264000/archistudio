@@ -207,15 +207,18 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
       // Fetch course content info
       await fetchCoursesContent();
       
-      // Scan the parent folder
+      // Use bulk-parent mode for faster scanning of multiple course folders
       const { data, error } = await supabase.functions.invoke("scan-google-drive", {
-        body: { folderId: parentFolderUrl, action: "scan" },
+        body: { folderId: parentFolderUrl, scanMode: "bulk-parent" },
       });
 
-      if (error) throw error;
-      if (!data.success) throw new Error(data.error);
+      if (error) {
+        console.error("Edge function error:", error);
+        throw new Error(error.message || "Failed to connect to scan service");
+      }
+      if (!data.success) throw new Error(data.error || "Scan failed");
 
-      // Each subfolder represents a course
+      // Each subfolder represents a course - use the optimized folder data
       const matches: FolderMatch[] = [];
       
       for (const folder of data.structure.folders || []) {
@@ -223,11 +226,11 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
         matches.push({
           folderId: folder.id,
           folderName: folder.name,
-          folderUrl: `https://drive.google.com/drive/folders/${folder.id}`,
+          folderUrl: folder.url || `https://drive.google.com/drive/folders/${folder.id}`,
           matchedCourse: match.course,
           matchConfidence: match.confidence,
           matchScore: match.score,
-          videoCount: countVideos(folder),
+          videoCount: folder.videoCount || 0,
           structure: folder,
           isManuallyLinked: false,
         });
@@ -239,10 +242,11 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
       setFolderMatches(matches);
       
       const matched = matches.filter(m => m.matchedCourse).length;
-      toast.success(`Found ${matches.length} course folders, ${matched} auto-matched`);
+      const totalVideos = matches.reduce((sum, m) => sum + m.videoCount, 0);
+      toast.success(`Found ${matches.length} course folders (${totalVideos} total videos), ${matched} auto-matched`);
     } catch (err: any) {
       console.error("Scan error:", err);
-      toast.error(err.message || "Failed to scan folder");
+      toast.error(err.message || "Failed to scan folder. Check if the folder is shared publicly.");
     } finally {
       setIsScanning(false);
     }
@@ -289,30 +293,44 @@ export function BulkCourseImport({ courses, onImportComplete }: BulkCourseImport
 
     let successCount = 0;
     let totalLessons = 0;
+    let failedCourses: string[] = [];
 
     for (let i = 0; i < toImport.length; i++) {
       const match = toImport[i];
       setImportProgress({ current: i + 1, total: toImport.length });
 
       try {
+        // Use the folder ID directly for import
         const { data, error } = await supabase.functions.invoke("scan-google-drive", {
           body: { 
-            folderId: match.folderUrl,
+            folderId: match.folderId, // Use folder ID, not URL
             courseId: match.matchedCourse!.id,
             action: "import" 
           },
         });
 
-        if (!error && data.success) {
+        if (error) {
+          console.error(`Import error for ${match.folderName}:`, error);
+          failedCourses.push(match.folderName);
+        } else if (!data.success) {
+          console.error(`Import failed for ${match.folderName}:`, data.error);
+          failedCourses.push(match.folderName);
+        } else {
           successCount++;
           totalLessons += data.lessonsCreated || 0;
         }
       } catch (err) {
         console.error(`Failed to import ${match.folderName}:`, err);
+        failedCourses.push(match.folderName);
       }
     }
 
-    toast.success(`Imported ${successCount} courses with ${totalLessons} lessons!`);
+    if (failedCourses.length > 0) {
+      toast.warning(`Imported ${successCount} courses (${totalLessons} lessons). Failed: ${failedCourses.length}`);
+    } else {
+      toast.success(`Successfully imported ${successCount} courses with ${totalLessons} lessons!`);
+    }
+    
     setFolderMatches([]);
     setParentFolderUrl("");
     onImportComplete();
