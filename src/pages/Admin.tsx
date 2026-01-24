@@ -22,6 +22,7 @@ import { AdminOverview } from '@/components/admin/AdminOverview';
 import { SalesManagement } from '@/components/admin/SalesManagement';
 import { AmbientAudioSettings } from '@/components/admin/AmbientAudioSettings';
 import { EmailTesting } from '@/components/admin/EmailTesting';
+import { EmailBroadcast } from '@/components/admin/EmailBroadcast';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
@@ -116,6 +117,8 @@ export default function Admin() {
         return <CertificateTemplateSettings />;
       case 'email-testing':
         return <EmailTesting />;
+      case 'email-broadcast':
+        return <EmailBroadcast />;
       case 'analytics':
         return <AnalyticsPanel />;
       case 'support':
