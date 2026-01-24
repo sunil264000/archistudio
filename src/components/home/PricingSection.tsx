@@ -6,7 +6,8 @@ const plans = [
   {
     name: 'Single Studio',
     description: 'Perfect for specific skill gaps',
-    priceINR: '₹349',
+    priceINR: '₹499',
+    originalPrice: '₹999',
     period: 'one-time',
     features: [
       'Access to one studio of your choice',
@@ -21,7 +22,8 @@ const plans = [
   {
     name: 'All Access',
     description: 'Best value for serious learners',
-    priceINR: '₹1,499',
+    priceINR: '₹1,999',
+    originalPrice: '₹4,999',
     period: '/year',
     features: [
       'Access to ALL studio programs',
@@ -39,6 +41,7 @@ const plans = [
     name: 'Lifetime',
     description: 'Never pay again',
     priceINR: '₹2,999',
+    originalPrice: '₹7,999',
     period: 'one-time',
     features: [
       'Everything in All Access',
@@ -94,9 +97,17 @@ export function PricingSection() {
               {/* Pricing */}
               <div className="mb-6">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold">{plan.priceINR}</span>
+                  <span className="text-4xl font-bold text-primary">{plan.priceINR}</span>
                   <span className="text-muted-foreground">{plan.period}</span>
                 </div>
+                {plan.originalPrice && (
+                  <div className="mt-1">
+                    <span className="text-sm text-muted-foreground line-through">{plan.originalPrice}</span>
+                    <span className="ml-2 text-xs text-success font-medium">
+                      {Math.round((1 - parseInt(plan.priceINR.replace(/[₹,]/g, '')) / parseInt(plan.originalPrice.replace(/[₹,]/g, ''))) * 100)}% OFF
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Features */}
