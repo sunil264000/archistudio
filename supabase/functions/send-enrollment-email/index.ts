@@ -13,6 +13,7 @@ interface EnrollmentEmailRequest {
   courseName: string;
   courseSlug: string;
   isFree: boolean;
+  isGift?: boolean; // Admin-granted free access
   amount?: number;
   orderId?: string;
   paymentDate?: string;
@@ -30,6 +31,7 @@ const handler = async (req: Request): Promise<Response> => {
       courseName, 
       courseSlug, 
       isFree, 
+      isGift,
       amount,
       orderId,
       paymentDate 
@@ -56,41 +58,115 @@ const handler = async (req: Request): Promise<Response> => {
           minute: '2-digit'
         });
 
-    const subject = isFree 
-      ? `You're enrolled in ${courseName}! 🎓`
-      : `Payment Confirmed - Invoice for ${courseName} 🎉`;
+    // Determine email type: Paid, Free self-enrollment, or Admin Gift
+    let subject: string;
+    let headerEmoji: string;
+    let headerTitle: string;
+    let invoiceSection: string;
+    let enrollmentType: string;
 
-    const invoiceSection = isFree ? "" : `
-      <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 25px;">
-        <div style="display: flex; align-items: center; margin-bottom: 15px;">
-          <span style="font-size: 24px; margin-right: 10px;">🧾</span>
-          <span style="color: #22c55e; font-weight: 700; font-size: 18px;">Payment Invoice</span>
+    if (isGift) {
+      // Admin-granted free access - special gift email
+      subject = `🎁 You've Received a Gift! Free Access to ${courseName}`;
+      headerEmoji = '🎁';
+      headerTitle = "You've Received a Gift!";
+      enrollmentType = "complimentary gift";
+      invoiceSection = `
+        <div style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%); border: 2px solid rgba(168, 85, 247, 0.4); border-radius: 16px; padding: 25px; margin-bottom: 25px; text-align: center;">
+          <div style="font-size: 48px; margin-bottom: 15px;">🎁</div>
+          <h3 style="color: #a855f7; font-size: 22px; margin: 0 0 10px 0; font-weight: 700;">Complimentary Access Granted</h3>
+          <p style="color: #e5e5e5; margin: 0 0 15px 0; font-size: 15px;">
+            The Archistudio team has gifted you <strong>FREE lifetime access</strong> to this course!
+          </p>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <tr style="border-top: 1px solid rgba(168, 85, 247, 0.3);">
+              <td style="padding: 12px 0; color: #9ca3af;">Course</td>
+              <td style="padding: 12px 0; color: #e5e5e5; text-align: right; font-weight: 600;">${courseName}</td>
+            </tr>
+            <tr style="border-top: 1px solid rgba(168, 85, 247, 0.3);">
+              <td style="padding: 12px 0; color: #9ca3af;">Date Granted</td>
+              <td style="padding: 12px 0; color: #e5e5e5; text-align: right;">${formattedDate}</td>
+            </tr>
+            <tr style="border-top: 1px solid rgba(168, 85, 247, 0.3); background: rgba(168, 85, 247, 0.1);">
+              <td style="padding: 15px 0; color: #a855f7; font-weight: 700; font-size: 16px;">Amount</td>
+              <td style="padding: 15px 0; color: #22c55e; text-align: right; font-weight: 700; font-size: 22px;">FREE 🎉</td>
+            </tr>
+          </table>
+          <div style="margin-top: 20px; padding: 15px; background: rgba(34, 197, 94, 0.1); border-radius: 8px;">
+            <p style="margin: 0; color: #22c55e; font-size: 14px; font-weight: 600;">✨ No payment required - This is our gift to you!</p>
+          </div>
         </div>
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <td style="padding: 10px 0; color: #9ca3af;">Order ID</td>
-            <td style="padding: 10px 0; color: #e5e5e5; text-align: right; font-family: monospace; font-size: 12px;">${orderId || 'N/A'}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <td style="padding: 10px 0; color: #9ca3af;">Date</td>
-            <td style="padding: 10px 0; color: #e5e5e5; text-align: right;">${formattedDate}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <td style="padding: 10px 0; color: #9ca3af;">Course</td>
-            <td style="padding: 10px 0; color: #e5e5e5; text-align: right;">${courseName}</td>
-          </tr>
-          <tr>
-            <td style="padding: 15px 0; color: #9ca3af; font-weight: 600;">Amount Paid</td>
-            <td style="padding: 15px 0; color: #22c55e; text-align: right; font-weight: 700; font-size: 20px;">₹${(amount || 0).toLocaleString()}</td>
-          </tr>
-        </table>
-        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-          <p style="margin: 0; color: #9ca3af; font-size: 12px;">✓ Payment received successfully via Cashfree</p>
+      `;
+    } else if (isFree) {
+      // Self-enrolled free course
+      subject = `You're enrolled in ${courseName}! 🎓`;
+      headerEmoji = '🎓';
+      headerTitle = "You're Enrolled!";
+      enrollmentType = "free enrollment";
+      invoiceSection = `
+        <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 25px;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+              <td style="padding: 10px 0; color: #9ca3af;">Course</td>
+              <td style="padding: 10px 0; color: #e5e5e5; text-align: right; font-weight: 600;">${courseName}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+              <td style="padding: 10px 0; color: #9ca3af;">Enrolled On</td>
+              <td style="padding: 10px 0; color: #e5e5e5; text-align: right;">${formattedDate}</td>
+            </tr>
+            <tr>
+              <td style="padding: 15px 0; color: #9ca3af; font-weight: 600;">Price</td>
+              <td style="padding: 15px 0; color: #22c55e; text-align: right; font-weight: 700; font-size: 18px;">FREE</td>
+            </tr>
+          </table>
         </div>
+      `;
+    } else {
+      // Paid enrollment with invoice
+      subject = `Payment Confirmed - Invoice for ${courseName} 🎉`;
+      headerEmoji = '🎉';
+      headerTitle = "Payment Successful!";
+      enrollmentType = "purchase";
+      invoiceSection = `
+        <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 25px;">
+          <div style="display: flex; align-items: center; margin-bottom: 15px;">
+            <span style="font-size: 24px; margin-right: 10px;">🧾</span>
+            <span style="color: #22c55e; font-weight: 700; font-size: 18px;">Payment Invoice</span>
+          </div>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+              <td style="padding: 10px 0; color: #9ca3af;">Order ID</td>
+              <td style="padding: 10px 0; color: #e5e5e5; text-align: right; font-family: monospace; font-size: 12px;">${orderId || 'N/A'}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+              <td style="padding: 10px 0; color: #9ca3af;">Date</td>
+              <td style="padding: 10px 0; color: #e5e5e5; text-align: right;">${formattedDate}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+              <td style="padding: 10px 0; color: #9ca3af;">Course</td>
+              <td style="padding: 10px 0; color: #e5e5e5; text-align: right;">${courseName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 15px 0; color: #9ca3af; font-weight: 600;">Amount Paid</td>
+              <td style="padding: 15px 0; color: #22c55e; text-align: right; font-weight: 700; font-size: 20px;">₹${(amount || 0).toLocaleString()}</td>
+            </tr>
+          </table>
+          <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <p style="margin: 0; color: #9ca3af; font-size: 12px;">✓ Payment received successfully via Cashfree</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // Logo URL - using a simple text-based branding since we don't have a hosted logo URL
+    const logoSection = `
+      <div style="text-align: center; margin-bottom: 25px;">
+        <div style="display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%); border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.3);">
+          <span style="font-size: 28px; font-weight: 800; background: linear-gradient(90deg, #22c55e, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">ARCHISTUDIO</span>
+        </div>
+        <p style="color: #6b7280; font-size: 12px; margin: 10px 0 0 0;">Premium Architecture Education</p>
       </div>
     `;
-
-    const enrollmentType = isFree ? "free enrollment" : "purchase";
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -112,21 +188,29 @@ const handler = async (req: Request): Promise<Response> => {
           <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0a0a0a;">
             <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
               <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 16px; padding: 40px; border: 1px solid rgba(255,255,255,0.1);">
+                
+                ${logoSection}
+                
                 <div style="text-align: center; margin-bottom: 30px;">
-                  <div style="font-size: 48px; margin-bottom: 15px;">${isFree ? '🎓' : '🎉'}</div>
+                  <div style="font-size: 48px; margin-bottom: 15px;">${headerEmoji}</div>
                   <h1 style="color: #ffffff; font-size: 24px; margin: 0; font-weight: 700;">
-                    ${isFree ? "You're Enrolled!" : "Payment Successful!"}
+                    ${headerTitle}
                   </h1>
                   <div style="width: 60px; height: 4px; background: linear-gradient(90deg, #22c55e, #10b981); margin: 15px auto; border-radius: 2px;"></div>
                 </div>
+                
                 <div style="color: #e5e5e5; font-size: 16px; line-height: 1.6;">
                   <p style="margin-bottom: 20px;">Hi ${userName}! 👋</p>
+                  
                   ${invoiceSection}
+                  
                   <p style="margin-bottom: 20px;">Congratulations on your ${enrollmentType}! You now have full access to:</p>
+                  
                   <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 25px;">
                     <h2 style="color: #60a5fa; font-size: 20px; margin: 0 0 10px 0; font-weight: 600;">${courseName}</h2>
                     <p style="color: #9ca3af; margin: 0; font-size: 14px;">Lifetime access to all lessons, resources, and certificate upon completion.</p>
                   </div>
+                  
                   <p style="margin-bottom: 20px;">Here's what you can do next:</p>
                   <ul style="margin-bottom: 25px; padding-left: 20px;">
                     <li style="margin-bottom: 10px; color: #a5b4fc;">Start learning at your own pace</li>
@@ -134,14 +218,22 @@ const handler = async (req: Request): Promise<Response> => {
                     <li style="margin-bottom: 10px; color: #a5b4fc;">Download course resources</li>
                     <li style="margin-bottom: 10px; color: #a5b4fc;">Earn your certificate upon completion</li>
                   </ul>
+                  
                   <div style="text-align: center; margin: 30px 0;">
                     <a href="https://archistudio.lovable.app/course-player/${courseSlug}" style="display: inline-block; background: linear-gradient(90deg, #22c55e, #10b981); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
                       Start Learning Now
                     </a>
                   </div>
+                  
                   <p style="margin-top: 30px; color: #9ca3af; font-size: 14px;">Happy learning! If you have any questions, our support team is here to help.</p>
                 </div>
+                
                 <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center;">
+                  <div style="margin-bottom: 15px;">
+                    <a href="https://instagram.com/archistudio" style="color: #6b7280; text-decoration: none; margin: 0 10px; font-size: 13px;">Instagram</a>
+                    <span style="color: #4b5563;">|</span>
+                    <a href="https://t.me/archistudio" style="color: #6b7280; text-decoration: none; margin: 0 10px; font-size: 13px;">Telegram</a>
+                  </div>
                   <p style="color: #6b7280; font-size: 12px; margin: 0;">© 2024 Archistudio. All rights reserved.</p>
                   <p style="color: #6b7280; font-size: 11px; margin: 5px 0 0 0;">This is an automated email. Please do not reply.</p>
                 </div>
