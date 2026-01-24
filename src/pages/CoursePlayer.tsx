@@ -317,9 +317,11 @@ export default function CoursePlayer() {
                             {lesson.is_free_preview && !isEnrolled && (
                               <Badge variant="secondary" className="text-xs">Free</Badge>
                             )}
-                            <span className="text-xs opacity-60">
-                              {lesson.duration_minutes}m
-                            </span>
+                            {lesson.duration_minutes && lesson.duration_minutes > 0 && (
+                              <span className="text-xs opacity-60">
+                                {lesson.duration_minutes}m
+                              </span>
+                            )}
                           </button>
                         );
                       })}

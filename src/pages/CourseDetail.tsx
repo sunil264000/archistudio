@@ -79,7 +79,7 @@ function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview,
             <div>
               <p className="font-medium">{title}</p>
               <p className="text-sm text-muted-foreground">
-                {lessonCount} lessons • {duration}
+                {lessonCount} lessons{duration && ` • ${duration}`}
               </p>
             </div>
           </div>
@@ -284,8 +284,9 @@ export default function CourseDetail() {
   const displayTotalLessons = hasRealContent ? dbTotalLessons : course.totalLessons;
   const displayTotalHours = hasRealContent ? Math.round(totalDuration / 60) : course.durationHours;
   
-  // Format duration for display
+  // Format duration for display - hide if 0
   const formatDuration = (minutes: number) => {
+    if (minutes === 0) return '';
     if (minutes < 60) return `${minutes} min`;
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -518,7 +519,7 @@ export default function CourseDetail() {
                     Course Curriculum
                   </CardTitle>
                   <CardDescription>
-                    {displayTotalLessons} lessons • {displayTotalHours} hours total
+                    {displayTotalLessons} lessons{displayTotalHours > 0 && ` • ${displayTotalHours} hours total`}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
