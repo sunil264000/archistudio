@@ -19,6 +19,7 @@ import { QAManagement } from '@/components/admin/QAManagement';
 import { NotificationManagement } from '@/components/admin/NotificationManagement';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { AdminOverview } from '@/components/admin/AdminOverview';
+import { SalesManagement } from '@/components/admin/SalesManagement';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
@@ -107,6 +108,8 @@ export default function Admin() {
         return <PaymentsPanel />;
       case 'coupons':
         return <CouponManagement />;
+      case 'sales':
+        return <SalesManagement />;
       case 'certificates':
         return <CertificateTemplateSettings />;
       case 'analytics':

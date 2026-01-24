@@ -7,6 +7,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { PurchaseNotification } from "@/components/social-proof/PurchaseNotification";
 import { FestivalDecorations } from "@/components/festival/FestivalDecorations";
+import { SalesPopup } from "@/components/sales/SalesPopup";
+import { AmbientAudio } from "@/components/audio/AmbientAudio";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -44,6 +46,8 @@ const App = () => (
             <AppContent />
             <FestivalDecorations />
             <PurchaseNotification />
+            <SalesPopup />
+            <AmbientAudio />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />

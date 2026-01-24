@@ -16,8 +16,10 @@ import { useCashfreePayment } from '@/hooks/useCashfreePayment';
 import { useCourseModules } from '@/hooks/useCourseModules';
 import { useToast } from '@/hooks/use-toast';
 import { CourseReviews } from '@/components/course/CourseReviews';
+import { DemoReviews } from '@/components/course/DemoReviews';
 import { SEOHead, generateCourseSchema } from '@/components/seo/SEOHead';
 import { LiveViewerCounter } from '@/components/social-proof/LiveViewerCounter';
+import { useSaleDiscount } from '@/hooks/useSaleDiscount';
 // Add to Cart Button Component
 function AddToCartButton({ course }: { course: any }) {
   const { addToCart, isInCart, removeFromCart } = useCart();
@@ -152,7 +154,7 @@ export default function CourseDetail() {
   const { initiatePayment, isLoading } = useCashfreePayment();
   const { toast } = useToast();
   const { getThumbnail } = useDynamicCourseData();
-  
+  const { isActive: saleActive, discountPercent, calculateDiscountedPrice } = useSaleDiscount();
   // Fetch real modules from database
   const { modules: dbModules, loading: modulesLoading, totalLessons: dbTotalLessons, totalDuration } = useCourseModules(slug);
 
@@ -414,6 +416,14 @@ export default function CourseDetail() {
                   <div className="flex items-baseline gap-2">
                     {course.priceInr === 0 ? (
                       <span className="text-3xl font-bold text-success">Free</span>
+                    ) : saleActive && discountPercent > 0 ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-3xl font-bold text-success">₹{calculateDiscountedPrice(course.priceInr).toLocaleString()}</span>
+                          <span className="text-lg line-through text-muted-foreground">₹{course.priceInr.toLocaleString()}</span>
+                        </div>
+                        <span className="inline-block px-2 py-0.5 bg-destructive text-destructive-foreground text-xs font-bold rounded">{discountPercent}% OFF</span>
+                      </div>
                     ) : (
                       <>
                         <span className="text-3xl font-bold">₹{course.priceInr.toLocaleString()}</span>
@@ -598,6 +608,9 @@ export default function CourseDetail() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Demo Reviews with Indian Names */}
+              <DemoReviews courseTitle={course.title} courseSlug={course.slug} />
             </div>
 
             {/* Sidebar - Related Courses */}
