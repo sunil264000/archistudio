@@ -736,31 +736,34 @@ export default function CourseDetail() {
                   {courses
                     .filter(c => c.category === course.category && c.id !== course.id && c.isPublished)
                     .slice(0, 3)
-                    .map(relatedCourse => (
-                      <Link 
-                        key={relatedCourse.id}
-                        to={`/course/${relatedCourse.slug}`}
-                        className="block group"
-                      >
-                        <div className="flex gap-3">
-                          <img 
-                            src={getThumbnail(relatedCourse.slug, categoryImages[relatedCourse.category] || '/placeholder.svg')}
-                            alt={relatedCourse.title}
-                            loading="lazy"
-                            decoding="async"
-                            className="w-20 h-14 object-cover rounded"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm line-clamp-2 group-hover:text-accent transition-colors">
-                              {relatedCourse.title}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              ₹{relatedCourse.priceInr.toLocaleString()}
-                            </p>
+                    .map(relatedCourse => {
+                      const relatedPrice = getPriceInr(relatedCourse.slug, relatedCourse.priceInr);
+                      return (
+                        <Link 
+                          key={relatedCourse.id}
+                          to={`/course/${relatedCourse.slug}`}
+                          className="block group"
+                        >
+                          <div className="flex gap-3">
+                            <img 
+                              src={getThumbnail(relatedCourse.slug, categoryImages[relatedCourse.category] || '/placeholder.svg')}
+                              alt={relatedCourse.title}
+                              loading="lazy"
+                              decoding="async"
+                              className="w-20 h-14 object-cover rounded"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm line-clamp-2 group-hover:text-accent transition-colors">
+                                {relatedCourse.title}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                ₹{relatedPrice.toLocaleString()}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </Link>
-                    ))}
+                        </Link>
+                      );
+                    })}
                 </CardContent>
               </Card>
             </div>
