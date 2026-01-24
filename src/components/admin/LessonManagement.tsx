@@ -15,6 +15,7 @@ import {
   GripVertical, Loader2, ChevronRight, FolderPlus, Save
 } from 'lucide-react';
 import { GoogleDriveImport } from './GoogleDriveImport';
+import { QuickLessonAdd } from './QuickLessonAdd';
 
 interface Course {
   id: string;
@@ -361,7 +362,17 @@ export function LessonManagement() {
         </div>
       )}
 
-      {/* Google Drive Import */}
+      {/* Quick Add Lessons (Direct Link Input) */}
+      {selectedCourse && selectedCourseData && modules.length > 0 && (
+        <QuickLessonAdd
+          courseId={selectedCourse}
+          courseName={selectedCourseData.title}
+          modules={modules}
+          onLessonsAdded={() => fetchModules(selectedCourse)}
+        />
+      )}
+
+      {/* Google Drive Import (Folder Structure) */}
       {selectedCourse && selectedCourseData && (
         <GoogleDriveImport
           courseId={selectedCourse}
@@ -422,7 +433,7 @@ export function LessonManagement() {
                               {idx + 1}.{lessonIdx + 1}
                             </span>
                             {lesson.video_url ? (
-                              <Video className="h-4 w-4 text-green-500" />
+                              <Video className="h-4 w-4 text-primary" />
                             ) : (
                               <FileText className="h-4 w-4 text-muted-foreground" />
                             )}
