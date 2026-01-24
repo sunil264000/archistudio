@@ -6,31 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface DriveFile {
-  id: string;
-  name: string;
-  mimeType: string;
-  parents?: string[];
-}
-
-interface DriveListResponse {
-  files: DriveFile[];
-  nextPageToken?: string;
-}
-
 // Video file extensions to identify
 const VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.mpeg', '.mpg', '.3gp'];
 const VIDEO_MIMETYPES = ['video/mp4', 'video/avi', 'video/mkv', 'video/quicktime', 'video/x-ms-wmv', 'video/x-flv', 'video/webm', 'video/x-m4v', 'video/mpeg', 'video/3gpp'];
-
-function isVideoFile(file: DriveFile): boolean {
-  // Check by mimeType
-  if (file.mimeType.startsWith("video/") || VIDEO_MIMETYPES.includes(file.mimeType)) {
-    return true;
-  }
-  // Check by extension
-  const lowerName = file.name.toLowerCase();
-  return VIDEO_EXTENSIONS.some(ext => lowerName.endsWith(ext));
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -50,37 +28,51 @@ serve(async (req) => {
     const { action, courseId } = await req.json();
 
     if (action === "refresh-all") {
-      // Refresh all courses that have Google Drive links
-      const { data: courses, error: coursesError } = await supabase
-        .from('courses')
-        .select('id, title, slug');
+      console.log("Starting refresh-all scan...");
       
-      if (coursesError) throw coursesError;
-
-      // Get all modules with Google Drive video URLs
-      const { data: allModules } = await supabase
-        .from('modules')
-        .select('id, course_id');
-      
-      const { data: allLessons } = await supabase
+      // Get all lessons with Google Drive video URLs
+      const { data: allLessons, error: lessonsError } = await supabase
         .from('lessons')
-        .select('id, module_id, video_url')
+        .select('id, video_url, duration_minutes')
         .like('video_url', '%drive.google.com%');
+      
+      if (lessonsError) throw lessonsError;
 
-      // Group by course and update
-      const coursesWithDriveContent = new Set<string>();
-      allLessons?.forEach(lesson => {
-        const module = allModules?.find(m => m.id === lesson.module_id);
-        if (module) {
-          coursesWithDriveContent.add(module.course_id);
+      let validLinks = 0;
+      let brokenLinks = 0;
+      let durationsUpdated = 0;
+
+      // Check each video URL and update durations
+      for (const lesson of allLessons || []) {
+        if (lesson.video_url) {
+          const fileId = extractFileId(lesson.video_url);
+          if (fileId) {
+            const result = await checkAndGetDuration(fileId, GOOGLE_API_KEY);
+            if (result.valid) {
+              validLinks++;
+              // Update duration if it was 0 or different
+              if (result.duration > 0 && lesson.duration_minutes !== result.duration) {
+                await supabase.from('lessons').update({ 
+                  duration_minutes: result.duration 
+                }).eq('id', lesson.id);
+                durationsUpdated++;
+              }
+            } else {
+              brokenLinks++;
+            }
+          }
         }
-      });
+      }
+
+      console.log(`Refresh complete: ${validLinks} valid, ${brokenLinks} broken, ${durationsUpdated} durations updated`);
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: `Found ${coursesWithDriveContent.size} courses with Google Drive content`,
-          courseIds: Array.from(coursesWithDriveContent)
+          message: `Scanned ${allLessons?.length || 0} lessons`,
+          validLinks,
+          brokenLinks,
+          durationsUpdated
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -95,32 +87,29 @@ serve(async (req) => {
 
       const { data: lessons } = await supabase
         .from('lessons')
-        .select('id, title, video_url, module_id, description')
+        .select('id, title, video_url, module_id, duration_minutes')
         .in('module_id', modules?.map(m => m.id) || []);
 
-      // Check each video URL and verify it's still accessible
       let validLinks = 0;
       let brokenLinks = 0;
+      let durationsUpdated = 0;
       
       for (const lesson of lessons || []) {
         if (lesson.video_url?.includes('drive.google.com')) {
-          try {
-            const fileId = extractFileId(lesson.video_url);
-            if (fileId) {
-              const isValid = await checkDriveFile(fileId, GOOGLE_API_KEY);
-              if (isValid) {
-                validLinks++;
-              } else {
-                brokenLinks++;
-                // Mark lesson as having broken link
-                const currentDesc = (lesson as any).description || '';
+          const fileId = extractFileId(lesson.video_url);
+          if (fileId) {
+            const result = await checkAndGetDuration(fileId, GOOGLE_API_KEY);
+            if (result.valid) {
+              validLinks++;
+              if (result.duration > 0 && lesson.duration_minutes !== result.duration) {
                 await supabase.from('lessons').update({ 
-                  description: `[BROKEN LINK] ${currentDesc}` 
+                  duration_minutes: result.duration 
                 }).eq('id', lesson.id);
+                durationsUpdated++;
               }
+            } else {
+              brokenLinks++;
             }
-          } catch (e) {
-            brokenLinks++;
           }
         }
       }
@@ -131,6 +120,7 @@ serve(async (req) => {
           courseId,
           validLinks,
           brokenLinks,
+          durationsUpdated,
           totalLessons: lessons?.length || 0
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -152,7 +142,6 @@ serve(async (req) => {
 });
 
 function extractFileId(url: string): string | null {
-  // Handle various Google Drive URL formats
   const patterns = [
     /\/file\/d\/([a-zA-Z0-9_-]+)/,
     /id=([a-zA-Z0-9_-]+)/,
@@ -166,12 +155,24 @@ function extractFileId(url: string): string | null {
   return null;
 }
 
-async function checkDriveFile(fileId: string, apiKey: string): Promise<boolean> {
+async function checkAndGetDuration(fileId: string, apiKey: string): Promise<{ valid: boolean; duration: number }> {
   try {
-    const url = `https://www.googleapis.com/drive/v3/files/${fileId}?key=${apiKey}&fields=id,name`;
+    const url = `https://www.googleapis.com/drive/v3/files/${fileId}?key=${apiKey}&fields=id,name,videoMediaMetadata`;
     const response = await fetch(url);
-    return response.ok;
+    
+    if (!response.ok) {
+      return { valid: false, duration: 0 };
+    }
+    
+    const data = await response.json();
+    let duration = 0;
+    
+    if (data.videoMediaMetadata?.durationMillis) {
+      duration = Math.ceil(parseInt(data.videoMediaMetadata.durationMillis) / 60000);
+    }
+    
+    return { valid: true, duration };
   } catch {
-    return false;
+    return { valid: false, duration: 0 };
   }
 }
