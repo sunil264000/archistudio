@@ -10,8 +10,10 @@ import {
   Loader2, RefreshCw, Eye, EyeOff, Star, Image as ImageIcon, 
   FolderX, CheckSquare, Square, ArrowUpDown, Filter,
   BookOpen, Layers, Clock, AlertCircle, CheckCircle2,
-  Package, X, Link2, Unlink, FolderSync, ExternalLink, EyeIcon
+  Package, X, Link2, Unlink, FolderSync, ExternalLink, EyeIcon,
+  ChevronRight, Play, Video, FileText
 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -78,6 +80,19 @@ interface CourseContent {
   totalHours: number;
 }
 
+interface ModuleWithLessons {
+  id: string;
+  title: string;
+  order_index: number;
+  lessons: {
+    id: string;
+    title: string;
+    duration_minutes: number | null;
+    video_url: string | null;
+    order_index: number;
+  }[];
+}
+
 type SortOption = 'order' | 'name' | 'price' | 'content' | 'empty-first' | 'content-first' | 'published' | 'draft' | 'featured' | 'linked' | 'unlinked';
 type FilterOption = 'all' | 'published' | 'draft' | 'featured' | 'highlighted' | 'empty' | 'has-content' | 'no-thumbnail' | 'linked' | 'unlinked';
 
@@ -104,6 +119,11 @@ export function CourseManagement() {
   const [folderUrl, setFolderUrl] = useState('');
   const [linking, setLinking] = useState(false);
   const [syncingCourse, setSyncingCourse] = useState<string | null>(null);
+  
+  // Expanded course content preview
+  const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
+  const [expandedModules, setExpandedModules] = useState<ModuleWithLessons[]>([]);
+  const [loadingExpanded, setLoadingExpanded] = useState(false);
 
   useEffect(() => {
     fetchCourses();
@@ -201,6 +221,69 @@ export function CourseManagement() {
       console.error('Failed to fetch course content:', err);
     } finally {
       setLoadingContent(false);
+    }
+  };
+
+  // Fetch expanded course modules/lessons
+  const fetchExpandedCourseContent = async (courseId: string) => {
+    if (expandedCourse === courseId) {
+      // Collapse if already expanded
+      setExpandedCourse(null);
+      setExpandedModules([]);
+      return;
+    }
+    
+    setExpandedCourse(courseId);
+    setLoadingExpanded(true);
+    setExpandedModules([]);
+    
+    try {
+      // Fetch modules for this course
+      const { data: modules, error: modulesError } = await supabase
+        .from('modules')
+        .select('id, title, order_index')
+        .eq('course_id', courseId)
+        .order('order_index', { ascending: true });
+      
+      if (modulesError) throw modulesError;
+      
+      if (!modules || modules.length === 0) {
+        setExpandedModules([]);
+        return;
+      }
+      
+      // Fetch lessons for all modules
+      const { data: lessons, error: lessonsError } = await supabase
+        .from('lessons')
+        .select('id, title, duration_minutes, video_url, module_id, order_index')
+        .in('module_id', modules.map(m => m.id))
+        .order('order_index', { ascending: true });
+      
+      if (lessonsError) throw lessonsError;
+      
+      // Group lessons by module
+      const modulesWithLessons: ModuleWithLessons[] = modules.map(mod => ({
+        id: mod.id,
+        title: mod.title,
+        order_index: mod.order_index || 0,
+        lessons: (lessons || [])
+          .filter(l => l.module_id === mod.id)
+          .map(l => ({
+            id: l.id,
+            title: l.title,
+            duration_minutes: l.duration_minutes,
+            video_url: l.video_url,
+            order_index: l.order_index || 0
+          }))
+          .sort((a, b) => a.order_index - b.order_index)
+      }));
+      
+      setExpandedModules(modulesWithLessons);
+    } catch (err) {
+      console.error('Failed to fetch course content:', err);
+      toast.error('Failed to load course content');
+    } finally {
+      setLoadingExpanded(false);
     }
   };
 
@@ -970,265 +1053,339 @@ export function CourseManagement() {
               const content = courseContent[course.id] || { moduleCount: 0, lessonCount: 0, totalHours: 0 };
               const hasContent = content.moduleCount > 0 || content.lessonCount > 0;
               const isLinked = !!course.drive_folder_id;
+              const isExpanded = expandedCourse === course.id;
               
               return (
-                <div 
-                  key={course.id} 
-                  className={`flex items-center gap-3 p-3 transition-colors hover:bg-muted/30 ${
-                    selectedCourses.has(course.id) ? 'bg-primary/5' : ''
-                  }`}
-                >
-                  <Checkbox
-                    checked={selectedCourses.has(course.id)}
-                    onCheckedChange={() => toggleCourseSelection(course.id)}
-                    className="shrink-0"
-                  />
+                <div key={course.id} className="border-b border-border last:border-b-0">
+                  <div 
+                    className={`flex items-center gap-3 p-3 transition-colors hover:bg-muted/30 ${
+                      selectedCourses.has(course.id) ? 'bg-primary/5' : ''
+                    }`}
+                  >
+                    <Checkbox
+                      checked={selectedCourses.has(course.id)}
+                      onCheckedChange={() => toggleCourseSelection(course.id)}
+                      className="shrink-0"
+                    />
 
-                  <div className="flex flex-col gap-0.5 shrink-0">
-                    <Button 
+                    <div className="flex flex-col gap-0.5 shrink-0">
+                      <Button 
+                        variant="ghost"
+                        size="icon" 
+                        className="h-5 w-5"
+                        onClick={() => handleMoveUp(index)}
+                        disabled={index === 0}
+                      >
+                        <ChevronUp className="h-3 w-3" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-5 w-5"
+                        onClick={() => handleMoveDown(index)}
+                        disabled={index === processedCourses.length - 1}
+                      >
+                        <ChevronDown className="h-3 w-3" />
+                      </Button>
+                    </div>
+
+                    {/* Expand/Collapse Button */}
+                    <Button
                       variant="ghost"
-                      size="icon" 
-                      className="h-5 w-5"
-                      onClick={() => handleMoveUp(index)}
-                      disabled={index === 0}
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => fetchExpandedCourseContent(course.id)}
                     >
-                      <ChevronUp className="h-3 w-3" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-5 w-5"
-                      onClick={() => handleMoveDown(index)}
-                      disabled={index === processedCourses.length - 1}
-                    >
-                      <ChevronDown className="h-3 w-3" />
-                    </Button>
-                  </div>
-
-                  <div className="w-14 h-10 rounded bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border">
-                    {course.thumbnail_url ? (
-                      <img src={course.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium truncate max-w-[200px]">{course.title}</span>
-                      {course.is_featured && (
-                        <Star className="h-3 w-3 text-amber-600 fill-amber-600 shrink-0" />
+                      {loadingExpanded && isExpanded ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ChevronRight className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                       )}
-                      {!course.is_published && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Draft</Badge>
+                    </Button>
+
+                    <div className="w-14 h-10 rounded bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border">
+                      {course.thumbnail_url ? (
+                        <img src={course.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
                       )}
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                      <span>₹{course.price_inr || 0}</span>
-                      <span className="capitalize">{course.level || 'beginner'}</span>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium truncate max-w-[200px]">{course.title}</span>
+                        {course.is_featured && (
+                          <Star className="h-3 w-3 text-amber-600 fill-amber-600 shrink-0" />
+                        )}
+                        {!course.is_published && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Draft</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                        <span>₹{course.price_inr || 0}</span>
+                        <span className="capitalize">{course.level || 'beginner'}</span>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Content Badge */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="shrink-0">
-                        {hasContent ? (
-                          <Badge variant="outline" className="bg-blue-600/10 text-blue-600 border-blue-600/30 gap-1">
-                            <Layers className="h-3 w-3" />
-                            {content.moduleCount}M / {content.lessonCount}L
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 gap-1">
-                            <AlertCircle className="h-3 w-3" />
-                            Empty
-                          </Badge>
-                        )}
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {hasContent 
-                        ? `${content.moduleCount} modules, ${content.lessonCount} lessons${content.totalHours > 0 ? ` (${content.totalHours.toFixed(1)}h)` : ''}`
-                        : 'No content imported yet'
-                      }
-                    </TooltipContent>
-                  </Tooltip>
+                    {/* Content Badge - Clickable to expand */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div 
+                          className="shrink-0 cursor-pointer"
+                          onClick={() => fetchExpandedCourseContent(course.id)}
+                        >
+                          {hasContent ? (
+                            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 gap-1 hover:bg-primary/20 transition-colors">
+                              <Layers className="h-3 w-3" />
+                              {content.moduleCount}M / {content.lessonCount}L
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              Empty
+                            </Badge>
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {hasContent 
+                          ? `Click to ${isExpanded ? 'collapse' : 'view'} content: ${content.moduleCount} modules, ${content.lessonCount} lessons`
+                          : 'No content imported yet'
+                        }
+                      </TooltipContent>
+                    </Tooltip>
 
-                  {/* Link Status Badge */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="shrink-0">
-                        {isLinked ? (
-                          <Badge variant="outline" className="bg-green-600/10 text-green-600 border-green-600/30 gap-1 cursor-pointer" onClick={() => window.open(`https://drive.google.com/drive/folders/${course.drive_folder_id}`, '_blank')}>
-                            <Link2 className="h-3 w-3" />
-                            Linked
-                            <ExternalLink className="h-2.5 w-2.5 ml-0.5" />
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-muted text-muted-foreground border-border gap-1">
-                            <Unlink className="h-3 w-3" />
-                            Unlinked
-                          </Badge>
-                        )}
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {isLinked ? 'Click to open linked folder' : 'No Google Drive folder linked'}
-                    </TooltipContent>
-                  </Tooltip>
+                    {/* Link Status Badge */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="shrink-0">
+                          {isLinked ? (
+                            <Badge variant="outline" className="bg-green-600/10 text-green-600 border-green-600/30 gap-1 cursor-pointer" onClick={() => window.open(`https://drive.google.com/drive/folders/${course.drive_folder_id}`, '_blank')}>
+                              <Link2 className="h-3 w-3" />
+                              Linked
+                              <ExternalLink className="h-2.5 w-2.5 ml-0.5" />
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-muted text-muted-foreground border-border gap-1">
+                              <Unlink className="h-3 w-3" />
+                              Unlinked
+                            </Badge>
+                          )}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {isLinked ? 'Click to open linked folder' : 'No Google Drive folder linked'}
+                      </TooltipContent>
+                    </Tooltip>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    {/* Link/Unlink folder */}
-                    {isLinked ? (
-                      <>
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {/* Link/Unlink folder */}
+                      {isLinked ? (
+                        <>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleSyncCourse(course)}
+                                disabled={syncingCourse === course.id}
+                              >
+                                {syncingCourse === course.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <FolderSync className="h-4 w-4 text-green-600" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Sync from Drive (6 levels deep)</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleUnlinkFolder(course)}
+                              >
+                                <Unlink className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Unlink folder</TooltipContent>
+                          </Tooltip>
+                        </>
+                      ) : (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button 
                               variant="ghost" 
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => handleSyncCourse(course)}
-                              disabled={syncingCourse === course.id}
+                              onClick={() => {
+                                setLinkingCourse(course);
+                                setLinkDialogOpen(true);
+                              }}
                             >
-                              {syncingCourse === course.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <FolderSync className="h-4 w-4 text-green-600" />
-                              )}
+                              <Link2 className="h-4 w-4 text-primary" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Sync from Drive (6 levels deep)</TooltipContent>
+                          <TooltipContent>Link Google Drive folder</TooltipContent>
                         </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleUnlinkFolder(course)}
-                            >
-                              <Unlink className="h-4 w-4 text-muted-foreground" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Unlink folder</TooltipContent>
-                        </Tooltip>
-                      </>
-                    ) : (
+                      )}
+
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button 
                             variant="ghost" 
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => {
-                              setLinkingCourse(course);
-                              setLinkDialogOpen(true);
-                            }}
+                            onClick={() => handleTogglePublish(course)}
                           >
-                            <Link2 className="h-4 w-4 text-blue-600" />
+                            {course.is_published ? (
+                              <Eye className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <EyeOff className="h-4 w-4 text-muted-foreground" />
+                            )}
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Link Google Drive folder</TooltipContent>
+                        <TooltipContent>{course.is_published ? 'Unpublish' : 'Publish'}</TooltipContent>
                       </Tooltip>
-                    )}
-
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleTogglePublish(course)}
-                        >
-                          {course.is_published ? (
-                            <Eye className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <EyeOff className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>{course.is_published ? 'Unpublish' : 'Publish'}</TooltipContent>
-                    </Tooltip>
-                    
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleToggleFeatured(course)}
-                        >
-                          <Star className={`h-4 w-4 ${course.is_featured ? 'text-amber-600 fill-amber-600' : 'text-muted-foreground'}`} />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>{course.is_featured ? 'Remove featured' : 'Feature'}</TooltipContent>
-                    </Tooltip>
-                    
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => setEditingCourse(course)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Edit course</TooltipContent>
-                    </Tooltip>
-                    
-                    {hasContent && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
+                      
+                      <Tooltip>
+                        <TooltipTrigger asChild>
                           <Button 
                             variant="ghost" 
                             size="icon"
                             className="h-8 w-8"
-                            disabled={deletingContent === course.id}
+                            onClick={() => handleToggleFeatured(course)}
                           >
-                            {deletingContent === course.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <FolderX className="h-4 w-4 text-orange-600" />
-                            )}
+                            <Star className={`h-4 w-4 ${course.is_featured ? 'text-amber-600 fill-amber-600' : 'text-muted-foreground'}`} />
                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Course Content?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will delete {content.moduleCount} modules and {content.lessonCount} lessons from "{course.title}".
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={() => handleDeleteAllContent(course.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        </TooltipTrigger>
+                        <TooltipContent>{course.is_featured ? 'Remove featured' : 'Feature'}</TooltipContent>
+                      </Tooltip>
+                      
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setEditingCourse(course)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit course</TooltipContent>
+                      </Tooltip>
+                      
+                      {hasContent && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8"
+                              disabled={deletingContent === course.id}
                             >
-                              Delete Content
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
+                              {deletingContent === course.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <FolderX className="h-4 w-4 text-orange-600" />
+                              )}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Course Content?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will delete {content.moduleCount} modules and {content.lessonCount} lessons from "{course.title}".
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleDeleteAllContent(course.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete Content
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
 
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleDeleteCourse(course.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Delete course</TooltipContent>
-                    </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleDeleteCourse(course.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete course</TooltipContent>
+                      </Tooltip>
+                    </div>
                   </div>
+                  
+                  {/* Expanded Content Preview */}
+                  {isExpanded && (
+                    <div className="bg-muted/30 border-t border-border px-4 py-3">
+                      {loadingExpanded ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 justify-center">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Loading content...
+                        </div>
+                      ) : expandedModules.length === 0 ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 justify-center">
+                          <AlertCircle className="h-4 w-4" />
+                          No modules or lessons found for this course
+                        </div>
+                      ) : (
+                        <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                          {expandedModules.map((module, modIndex) => (
+                            <div key={module.id} className="bg-background rounded-lg border border-border overflow-hidden">
+                              <div className="flex items-center gap-3 p-3 bg-muted/50">
+                                <Badge variant="outline" className="shrink-0 bg-primary/10 text-primary border-primary/30">
+                                  M{modIndex + 1}
+                                </Badge>
+                                <span className="font-medium text-sm flex-1 truncate">{module.title}</span>
+                                <Badge variant="secondary" className="text-xs">
+                                  {module.lessons.length} lessons
+                                </Badge>
+                              </div>
+                              {module.lessons.length > 0 && (
+                                <div className="divide-y divide-border">
+                                  {module.lessons.map((lesson, lessonIndex) => (
+                                    <div key={lesson.id} className="flex items-center gap-3 p-2 pl-4 text-sm hover:bg-muted/30 transition-colors">
+                                      <div className="flex items-center gap-2 shrink-0 w-16 text-muted-foreground">
+                                        <span className="text-xs">{modIndex + 1}.{lessonIndex + 1}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        {lesson.video_url ? (
+                                          <Video className="h-3.5 w-3.5 text-green-600" />
+                                        ) : (
+                                          <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                                        )}
+                                      </div>
+                                      <span className="flex-1 truncate">{lesson.title}</span>
+                                      <span className="text-xs text-muted-foreground shrink-0">
+                                        {lesson.duration_minutes ? `${lesson.duration_minutes} min` : '-'}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
