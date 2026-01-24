@@ -10,7 +10,7 @@ import {
   Loader2, RefreshCw, Eye, EyeOff, Star, Image as ImageIcon, 
   FolderX, CheckSquare, Square, ArrowUpDown, Filter,
   BookOpen, Layers, Clock, AlertCircle, CheckCircle2,
-  TrendingUp, Package, X
+  Package, X, Link2, Unlink, FolderSync, ExternalLink
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -39,6 +39,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { CourseEditDialog } from './CourseEditDialog';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -59,6 +67,7 @@ interface Course {
   level: string | null;
   duration_hours: number | null;
   total_lessons: number | null;
+  drive_folder_id?: string | null;
 }
 
 interface CourseContent {
@@ -67,8 +76,8 @@ interface CourseContent {
   totalHours: number;
 }
 
-type SortOption = 'order' | 'name' | 'price' | 'content' | 'empty-first' | 'content-first' | 'published' | 'draft' | 'featured' | 'recently-updated';
-type FilterOption = 'all' | 'published' | 'draft' | 'featured' | 'highlighted' | 'empty' | 'has-content' | 'no-thumbnail';
+type SortOption = 'order' | 'name' | 'price' | 'content' | 'empty-first' | 'content-first' | 'published' | 'draft' | 'featured' | 'linked' | 'unlinked';
+type FilterOption = 'all' | 'published' | 'draft' | 'featured' | 'highlighted' | 'empty' | 'has-content' | 'no-thumbnail' | 'linked' | 'unlinked';
 
 export function CourseManagement() {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -83,6 +92,13 @@ export function CourseManagement() {
   const [activeFilters, setActiveFilters] = useState<Set<FilterOption>>(new Set(['all']));
   const [courseContent, setCourseContent] = useState<Record<string, CourseContent>>({});
   const [loadingContent, setLoadingContent] = useState(false);
+  
+  // Folder linking state
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [linkingCourse, setLinkingCourse] = useState<Course | null>(null);
+  const [folderUrl, setFolderUrl] = useState('');
+  const [linking, setLinking] = useState(false);
+  const [syncingCourse, setSyncingCourse] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCourses();
@@ -104,7 +120,24 @@ export function CourseManagement() {
     if (error) {
       toast.error('Failed to fetch courses');
     } else {
-      setCourses(data || []);
+      // Check for linked folders in site_settings
+      const { data: settings } = await supabase
+        .from('site_settings')
+        .select('key, value')
+        .like('key', 'course_folder_%');
+      
+      const folderMap: Record<string, string> = {};
+      (settings || []).forEach(s => {
+        const courseId = s.key.replace('course_folder_', '');
+        folderMap[courseId] = s.value || '';
+      });
+      
+      const coursesWithFolders = (data || []).map(c => ({
+        ...c,
+        drive_folder_id: folderMap[c.id] || null
+      }));
+      
+      setCourses(coursesWithFolders);
     }
     setLoading(false);
   };
@@ -112,7 +145,6 @@ export function CourseManagement() {
   const fetchCourseContent = async () => {
     setLoadingContent(true);
     try {
-      // Fetch modules with lesson counts in a single query
       const { data: modulesData } = await supabase
         .from('modules')
         .select('course_id, id');
@@ -121,14 +153,12 @@ export function CourseManagement() {
         .from('lessons')
         .select('module_id, duration_minutes');
 
-      // Build content map
       const contentMap: Record<string, CourseContent> = {};
       
       courses.forEach(course => {
         contentMap[course.id] = { moduleCount: 0, lessonCount: 0, totalHours: 0 };
       });
 
-      // Count modules per course
       const modulesByCourse: Record<string, string[]> = {};
       (modulesData || []).forEach(mod => {
         if (!modulesByCourse[mod.course_id]) {
@@ -140,7 +170,6 @@ export function CourseManagement() {
         }
       });
 
-      // Count lessons per module
       const lessonsByModule: Record<string, { count: number; duration: number }> = {};
       (lessonsData || []).forEach(lesson => {
         if (!lessonsByModule[lesson.module_id]) {
@@ -150,7 +179,6 @@ export function CourseManagement() {
         lessonsByModule[lesson.module_id].duration += lesson.duration_minutes || 0;
       });
 
-      // Map lessons to courses
       Object.entries(modulesByCourse).forEach(([courseId, moduleIds]) => {
         if (contentMap[courseId]) {
           moduleIds.forEach(modId => {
@@ -168,6 +196,99 @@ export function CourseManagement() {
       console.error('Failed to fetch course content:', err);
     } finally {
       setLoadingContent(false);
+    }
+  };
+
+  // Link folder to course
+  const handleLinkFolder = async () => {
+    if (!linkingCourse || !folderUrl.trim()) return;
+    
+    setLinking(true);
+    try {
+      // Extract folder ID from URL
+      let folderId = folderUrl.trim();
+      if (folderId.includes('drive.google.com')) {
+        const match = folderId.match(/folders\/([a-zA-Z0-9_-]+)/);
+        if (match) folderId = match[1];
+      }
+      
+      // Save to site_settings
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert({
+          key: `course_folder_${linkingCourse.id}`,
+          value: folderId,
+          description: `Google Drive folder for ${linkingCourse.title}`,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'key' });
+      
+      if (error) throw error;
+      
+      // Update local state
+      setCourses(prev => prev.map(c => 
+        c.id === linkingCourse.id ? { ...c, drive_folder_id: folderId } : c
+      ));
+      
+      toast.success('Folder linked successfully');
+      setLinkDialogOpen(false);
+      setFolderUrl('');
+      setLinkingCourse(null);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to link folder');
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  // Unlink folder from course
+  const handleUnlinkFolder = async (course: Course) => {
+    try {
+      await supabase
+        .from('site_settings')
+        .delete()
+        .eq('key', `course_folder_${course.id}`);
+      
+      setCourses(prev => prev.map(c => 
+        c.id === course.id ? { ...c, drive_folder_id: null } : c
+      ));
+      
+      toast.success('Folder unlinked');
+    } catch (err) {
+      toast.error('Failed to unlink folder');
+    }
+  };
+
+  // Sync course from linked folder
+  const handleSyncCourse = async (course: Course) => {
+    if (!course.drive_folder_id) {
+      toast.error('No folder linked to this course');
+      return;
+    }
+    
+    setSyncingCourse(course.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('scan-google-drive', {
+        body: {
+          folderId: course.drive_folder_id,
+          courseId: course.id,
+          action: 'sync',
+          maxDepth: 6 // Deep scan up to 6 levels
+        }
+      });
+      
+      if (error) throw error;
+      
+      if (data.success) {
+        toast.success(`Synced: ${data.modulesCreated} modules, ${data.lessonsCreated} lessons`);
+        fetchCourses();
+        fetchCourseContent();
+      } else {
+        throw new Error(data.error || 'Sync failed');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to sync course');
+    } finally {
+      setSyncingCourse(null);
     }
   };
 
@@ -277,6 +398,9 @@ export function CourseManagement() {
       await supabase.from('modules').delete().eq('course_id', courseId);
     }
     
+    // Delete linked folder setting
+    await supabase.from('site_settings').delete().eq('key', `course_folder_${courseId}`);
+    
     const { error } = await supabase.from('courses').delete().eq('id', courseId);
     
     if (error) {
@@ -320,7 +444,6 @@ export function CourseManagement() {
         duration_hours: null
       }).eq('id', courseId);
       
-      // Update local content state
       setCourseContent(prev => ({
         ...prev,
         [courseId]: { moduleCount: 0, lessonCount: 0, totalHours: 0 }
@@ -429,11 +552,9 @@ export function CourseManagement() {
     });
   };
 
-  // Process courses with filtering and sorting
   const processedCourses = useMemo(() => {
     let result = [...courses];
 
-    // Apply search filter
     if (searchTerm) {
       result = result.filter(course =>
         course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -441,7 +562,6 @@ export function CourseManagement() {
       );
     }
 
-    // Apply active filters
     if (!activeFilters.has('all')) {
       result = result.filter(course => {
         const content = courseContent[course.id];
@@ -456,12 +576,13 @@ export function CourseManagement() {
         if (activeFilters.has('empty')) passes = passes && !hasContent;
         if (activeFilters.has('has-content')) passes = passes && hasContent;
         if (activeFilters.has('no-thumbnail')) passes = passes && !course.thumbnail_url;
+        if (activeFilters.has('linked')) passes = passes && !!course.drive_folder_id;
+        if (activeFilters.has('unlinked')) passes = passes && !course.drive_folder_id;
         
         return passes;
       });
     }
 
-    // Apply sorting
     result.sort((a, b) => {
       const contentA = courseContent[a.id] || { moduleCount: 0, lessonCount: 0, totalHours: 0 };
       const contentB = courseContent[b.id] || { moduleCount: 0, lessonCount: 0, totalHours: 0 };
@@ -490,6 +611,16 @@ export function CourseManagement() {
         case 'featured':
           if (a.is_featured === b.is_featured) return (a.order_index || 0) - (b.order_index || 0);
           return a.is_featured ? -1 : 1;
+        case 'linked':
+          const linkedA = !!a.drive_folder_id;
+          const linkedB = !!b.drive_folder_id;
+          if (linkedA === linkedB) return (a.order_index || 0) - (b.order_index || 0);
+          return linkedA ? -1 : 1;
+        case 'unlinked':
+          const unlinkedA = !a.drive_folder_id;
+          const unlinkedB = !b.drive_folder_id;
+          if (unlinkedA === unlinkedB) return (a.order_index || 0) - (b.order_index || 0);
+          return unlinkedA ? -1 : 1;
         default:
           return (a.order_index || 0) - (b.order_index || 0);
       }
@@ -498,7 +629,6 @@ export function CourseManagement() {
     return result;
   }, [courses, searchTerm, sortBy, activeFilters, courseContent]);
 
-  // Stats calculations
   const stats = useMemo(() => {
     const emptyCourses = courses.filter(c => {
       const content = courseContent[c.id];
@@ -508,7 +638,7 @@ export function CourseManagement() {
     const coursesWithContent = courses.length - emptyCourses;
     const totalModules = Object.values(courseContent).reduce((sum, c) => sum + c.moduleCount, 0);
     const totalLessons = Object.values(courseContent).reduce((sum, c) => sum + c.lessonCount, 0);
-    const noThumbnail = courses.filter(c => !c.thumbnail_url).length;
+    const linkedCourses = courses.filter(c => c.drive_folder_id).length;
 
     return {
       total: courses.length,
@@ -519,7 +649,8 @@ export function CourseManagement() {
       withContent: coursesWithContent,
       totalModules,
       totalLessons,
-      noThumbnail,
+      linked: linkedCourses,
+      unlinked: courses.length - linkedCourses,
     };
   }, [courses, courseContent]);
 
@@ -533,7 +664,7 @@ export function CourseManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Stats Grid - Enhanced */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
           <CardContent className="p-4">
@@ -544,37 +675,37 @@ export function CourseManagement() {
             <div className="text-xs text-muted-foreground">Total Courses</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+        <Card className="bg-gradient-to-br from-green-600/10 to-green-600/5 border-green-600/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
               <span className="text-2xl font-bold">{stats.published}</span>
             </div>
             <div className="text-xs text-muted-foreground">Published</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20">
+        <Card className="bg-gradient-to-br from-amber-600/10 to-amber-600/5 border-amber-600/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Star className="h-4 w-4 text-amber-500" />
+              <Star className="h-4 w-4 text-amber-600" />
               <span className="text-2xl font-bold">{stats.featured}</span>
             </div>
             <div className="text-xs text-muted-foreground">Featured</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+        <Card className="bg-gradient-to-br from-blue-600/10 to-blue-600/5 border-blue-600/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Layers className="h-4 w-4 text-blue-500" />
-              <span className="text-2xl font-bold">{stats.totalModules}</span>
+              <Link2 className="h-4 w-4 text-blue-600" />
+              <span className="text-2xl font-bold">{stats.linked}</span>
             </div>
-            <div className="text-xs text-muted-foreground">Total Modules</div>
+            <div className="text-xs text-muted-foreground">Linked</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+        <Card className="bg-gradient-to-br from-purple-600/10 to-purple-600/5 border-purple-600/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-purple-500" />
+              <BookOpen className="h-4 w-4 text-purple-600" />
               <span className="text-2xl font-bold">{stats.totalLessons}</span>
             </div>
             <div className="text-xs text-muted-foreground">Total Lessons</div>
@@ -586,7 +717,7 @@ export function CourseManagement() {
               <AlertCircle className="h-4 w-4 text-destructive" />
               <span className="text-2xl font-bold">{stats.empty}</span>
             </div>
-            <div className="text-xs text-muted-foreground">Empty Courses</div>
+            <div className="text-xs text-muted-foreground">Empty</div>
           </CardContent>
         </Card>
       </div>
@@ -595,7 +726,6 @@ export function CourseManagement() {
       <Card className="border-border/50">
         <CardContent className="p-4">
           <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-            {/* Search */}
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -606,9 +736,7 @@ export function CourseManagement() {
               />
             </div>
 
-            {/* Sort & Filter Controls */}
             <div className="flex flex-wrap items-center gap-2">
-              {/* Sort Dropdown */}
               <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
                 <SelectTrigger className="w-[180px] bg-background">
                   <ArrowUpDown className="h-4 w-4 mr-2" />
@@ -624,10 +752,11 @@ export function CourseManagement() {
                   <SelectItem value="published">Published First</SelectItem>
                   <SelectItem value="draft">Drafts First</SelectItem>
                   <SelectItem value="featured">Featured First</SelectItem>
+                  <SelectItem value="linked">Linked First</SelectItem>
+                  <SelectItem value="unlinked">Unlinked First</SelectItem>
                 </SelectContent>
               </Select>
 
-              {/* Filter Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-2">
@@ -654,7 +783,7 @@ export function CourseManagement() {
                     checked={activeFilters.has('published')}
                     onCheckedChange={() => toggleFilter('published')}
                   >
-                    <CheckCircle2 className="h-3 w-3 mr-2 text-green-500" />
+                    <CheckCircle2 className="h-3 w-3 mr-2 text-green-600" />
                     Published
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
@@ -668,7 +797,7 @@ export function CourseManagement() {
                     checked={activeFilters.has('featured')}
                     onCheckedChange={() => toggleFilter('featured')}
                   >
-                    <Star className="h-3 w-3 mr-2 text-amber-500" />
+                    <Star className="h-3 w-3 mr-2 text-amber-600" />
                     Featured
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuSeparator />
@@ -683,22 +812,29 @@ export function CourseManagement() {
                     checked={activeFilters.has('has-content')}
                     onCheckedChange={() => toggleFilter('has-content')}
                   >
-                    <Layers className="h-3 w-3 mr-2 text-blue-500" />
+                    <Layers className="h-3 w-3 mr-2 text-blue-600" />
                     Has Content
                   </DropdownMenuCheckboxItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuCheckboxItem
-                    checked={activeFilters.has('no-thumbnail')}
-                    onCheckedChange={() => toggleFilter('no-thumbnail')}
+                    checked={activeFilters.has('linked')}
+                    onCheckedChange={() => toggleFilter('linked')}
                   >
-                    <ImageIcon className="h-3 w-3 mr-2 text-muted-foreground" />
-                    No Thumbnail
+                    <Link2 className="h-3 w-3 mr-2 text-green-600" />
+                    Linked to Drive
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={activeFilters.has('unlinked')}
+                    onCheckedChange={() => toggleFilter('unlinked')}
+                  >
+                    <Unlink className="h-3 w-3 mr-2 text-muted-foreground" />
+                    Not Linked
                   </DropdownMenuCheckboxItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
               <Separator orientation="vertical" className="h-8 hidden lg:block" />
 
-              {/* Actions */}
               {selectedCourses.size > 0 && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -747,7 +883,6 @@ export function CourseManagement() {
             </div>
           </div>
 
-          {/* Active Filters Tags */}
           {!activeFilters.has('all') && (
             <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border/50">
               <span className="text-xs text-muted-foreground">Active filters:</span>
@@ -806,24 +941,21 @@ export function CourseManagement() {
             {processedCourses.map((course, index) => {
               const content = courseContent[course.id] || { moduleCount: 0, lessonCount: 0, totalHours: 0 };
               const hasContent = content.moduleCount > 0 || content.lessonCount > 0;
+              const isLinked = !!course.drive_folder_id;
               
               return (
                 <div 
                   key={course.id} 
                   className={`flex items-center gap-3 p-3 transition-colors hover:bg-muted/30 ${
-                    selectedCourses.has(course.id) 
-                      ? 'bg-primary/5' 
-                      : ''
+                    selectedCourses.has(course.id) ? 'bg-primary/5' : ''
                   }`}
                 >
-                  {/* Selection */}
                   <Checkbox
                     checked={selectedCourses.has(course.id)}
                     onCheckedChange={() => toggleCourseSelection(course.id)}
                     className="shrink-0"
                   />
 
-                  {/* Reorder */}
                   <div className="flex flex-col gap-0.5 shrink-0">
                     <Button 
                       variant="ghost"
@@ -845,7 +977,6 @@ export function CourseManagement() {
                     </Button>
                   </div>
 
-                  {/* Thumbnail */}
                   <div className="w-14 h-10 rounded bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border">
                     {course.thumbnail_url ? (
                       <img src={course.thumbnail_url} alt="" className="w-full h-full object-cover" />
@@ -854,12 +985,11 @@ export function CourseManagement() {
                     )}
                   </div>
 
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium truncate max-w-[200px]">{course.title}</span>
                       {course.is_featured && (
-                        <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />
+                        <Star className="h-3 w-3 text-amber-600 fill-amber-600 shrink-0" />
                       )}
                       {!course.is_published && (
                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Draft</Badge>
@@ -872,30 +1002,109 @@ export function CourseManagement() {
                   </div>
 
                   {/* Content Badge */}
-                  <div className="shrink-0">
-                    {hasContent ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/30 gap-1">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="shrink-0">
+                        {hasContent ? (
+                          <Badge variant="outline" className="bg-blue-600/10 text-blue-600 border-blue-600/30 gap-1">
                             <Layers className="h-3 w-3" />
                             {content.moduleCount}M / {content.lessonCount}L
                           </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {content.moduleCount} modules, {content.lessonCount} lessons
-                          {content.totalHours > 0 && ` (${content.totalHours.toFixed(1)}h)`}
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : (
-                      <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        Empty
-                      </Badge>
-                    )}
-                  </div>
+                        ) : (
+                          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30 gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            Empty
+                          </Badge>
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {hasContent 
+                        ? `${content.moduleCount} modules, ${content.lessonCount} lessons${content.totalHours > 0 ? ` (${content.totalHours.toFixed(1)}h)` : ''}`
+                        : 'No content imported yet'
+                      }
+                    </TooltipContent>
+                  </Tooltip>
+
+                  {/* Link Status Badge */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="shrink-0">
+                        {isLinked ? (
+                          <Badge variant="outline" className="bg-green-600/10 text-green-600 border-green-600/30 gap-1 cursor-pointer" onClick={() => window.open(`https://drive.google.com/drive/folders/${course.drive_folder_id}`, '_blank')}>
+                            <Link2 className="h-3 w-3" />
+                            Linked
+                            <ExternalLink className="h-2.5 w-2.5 ml-0.5" />
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-muted text-muted-foreground border-border gap-1">
+                            <Unlink className="h-3 w-3" />
+                            Unlinked
+                          </Badge>
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {isLinked ? 'Click to open linked folder' : 'No Google Drive folder linked'}
+                    </TooltipContent>
+                  </Tooltip>
 
                   {/* Actions */}
                   <div className="flex items-center gap-1 shrink-0">
+                    {/* Link/Unlink folder */}
+                    {isLinked ? (
+                      <>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleSyncCourse(course)}
+                              disabled={syncingCourse === course.id}
+                            >
+                              {syncingCourse === course.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <FolderSync className="h-4 w-4 text-green-600" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Sync from Drive (6 levels deep)</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleUnlinkFolder(course)}
+                            >
+                              <Unlink className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Unlink folder</TooltipContent>
+                        </Tooltip>
+                      </>
+                    ) : (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => {
+                              setLinkingCourse(course);
+                              setLinkDialogOpen(true);
+                            }}
+                          >
+                            <Link2 className="h-4 w-4 text-blue-600" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Link Google Drive folder</TooltipContent>
+                      </Tooltip>
+                    )}
+
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button 
@@ -905,7 +1114,7 @@ export function CourseManagement() {
                           onClick={() => handleTogglePublish(course)}
                         >
                           {course.is_published ? (
-                            <Eye className="h-4 w-4 text-green-500" />
+                            <Eye className="h-4 w-4 text-green-600" />
                           ) : (
                             <EyeOff className="h-4 w-4 text-muted-foreground" />
                           )}
@@ -922,10 +1131,10 @@ export function CourseManagement() {
                           className="h-8 w-8"
                           onClick={() => handleToggleFeatured(course)}
                         >
-                          <Star className={`h-4 w-4 ${course.is_featured ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'}`} />
+                          <Star className={`h-4 w-4 ${course.is_featured ? 'text-amber-600 fill-amber-600' : 'text-muted-foreground'}`} />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>{course.is_featured ? 'Remove from featured' : 'Feature course'}</TooltipContent>
+                      <TooltipContent>{course.is_featured ? 'Remove featured' : 'Feature'}</TooltipContent>
                     </Tooltip>
                     
                     <Tooltip>
@@ -954,7 +1163,7 @@ export function CourseManagement() {
                             {deletingContent === course.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <FolderX className="h-4 w-4 text-orange-500" />
+                              <FolderX className="h-4 w-4 text-orange-600" />
                             )}
                           </Button>
                         </AlertDialogTrigger>
@@ -962,7 +1171,7 @@ export function CourseManagement() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete Course Content?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This will delete {content.moduleCount} modules and {content.lessonCount} lessons from "{course.title}". The course itself will remain.
+                              This will delete {content.moduleCount} modules and {content.lessonCount} lessons from "{course.title}".
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -1005,6 +1214,36 @@ export function CourseManagement() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Link Folder Dialog */}
+      <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Link Google Drive Folder</DialogTitle>
+            <DialogDescription>
+              Paste a Google Drive folder URL to link it to "{linkingCourse?.title}". 
+              The scanner will traverse up to 6 levels deep to find all videos.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Input
+              placeholder="https://drive.google.com/drive/folders/..."
+              value={folderUrl}
+              onChange={(e) => setFolderUrl(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Make sure the folder is shared with "Anyone with the link" permission.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLinkDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleLinkFolder} disabled={linking || !folderUrl.trim()}>
+              {linking && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Link Folder
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       {editingCourse && (

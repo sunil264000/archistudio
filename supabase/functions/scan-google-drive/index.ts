@@ -18,6 +18,9 @@ interface DriveListResponse {
   nextPageToken?: string;
 }
 
+// Maximum recursion depth for scanning - INCREASED TO 6 for deep folder structures
+const MAX_SCAN_DEPTH = 6;
+
 // Video file extensions to identify
 const VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.mpeg', '.mpg', '.3gp'];
 const VIDEO_MIMETYPES = ['video/mp4', 'video/avi', 'video/mkv', 'video/quicktime', 'video/x-ms-wmv', 'video/x-flv', 'video/webm', 'video/x-m4v', 'video/mpeg', 'video/3gpp'];
@@ -41,7 +44,7 @@ serve(async (req) => {
       throw new Error("GOOGLE_API_KEY not configured. Please add it in Cloud secrets.");
     }
 
-    const { folderId, courseId, action, scanMode } = await req.json();
+    const { folderId, courseId, action, scanMode, maxDepth } = await req.json();
 
     if (!folderId) {
       throw new Error("Folder ID is required");
@@ -56,20 +59,31 @@ serve(async (req) => {
       }
     }
 
-    console.log("Scanning folder:", extractedFolderId, "Action:", action, "Mode:", scanMode);
+    // Allow custom depth override (1-6), default to MAX_SCAN_DEPTH
+    const scanDepth = Math.min(Math.max(maxDepth || MAX_SCAN_DEPTH, 1), MAX_SCAN_DEPTH);
 
-    // For bulk parent scanning - only scan top-level subfolders (shallow scan)
+    console.log(`Scanning folder: ${extractedFolderId}, Action: ${action}, Mode: ${scanMode}, Depth: ${scanDepth}`);
+
+    // For bulk parent scanning - only scan top-level subfolders (deep count)
     if (scanMode === "bulk-parent") {
-      const structure = await scanFolderShallow(extractedFolderId, GOOGLE_API_KEY);
-      return new Response(JSON.stringify({ success: true, structure }), {
+      const structure = await scanFolderShallow(extractedFolderId, GOOGLE_API_KEY, scanDepth);
+      return new Response(JSON.stringify({ success: true, structure, maxDepth: scanDepth }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Quick scan - just count content without full structure
+    if (action === "quick-scan") {
+      const counts = await quickScanFolder(extractedFolderId, GOOGLE_API_KEY, scanDepth);
+      return new Response(JSON.stringify({ success: true, ...counts, maxDepth: scanDepth }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // For single course folder - deep scan with video metadata
     if (action === "scan" || action === "scan-deep") {
-      const structure = await scanFolder(extractedFolderId, GOOGLE_API_KEY, 0, action === "scan-deep");
-      return new Response(JSON.stringify({ success: true, structure }), {
+      const structure = await scanFolder(extractedFolderId, GOOGLE_API_KEY, 0, action === "scan-deep", scanDepth);
+      return new Response(JSON.stringify({ success: true, structure, maxDepth: scanDepth }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -80,8 +94,8 @@ serve(async (req) => {
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, supabaseKey);
 
-      // Fast parallel scan
-      const structure = await scanFolderFast(extractedFolderId, GOOGLE_API_KEY);
+      // Fast parallel scan with configurable depth
+      const structure = await scanFolderFast(extractedFolderId, GOOGLE_API_KEY, scanDepth);
       
       // SMART SYNC: Delete existing modules and lessons for this course first
       const deleteResult = await deleteExistingContent(supabase, courseId);
@@ -89,20 +103,24 @@ serve(async (req) => {
       
       const importResult = await importStructureFast(supabase, courseId, structure);
 
+      // Update course stats
+      await updateCourseStats(supabase, courseId, importResult.lessonsCreated);
+
       return new Response(JSON.stringify({ 
         success: true, 
         ...importResult,
         deletedModules: deleteResult.modulesDeleted,
         deletedLessons: deleteResult.lessonsDeleted,
-        synced: true 
+        synced: true,
+        maxDepth: scanDepth
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Default: simple scan
-    const structure = await scanFolder(extractedFolderId, GOOGLE_API_KEY, 0, false);
-    return new Response(JSON.stringify({ success: true, structure }), {
+    const structure = await scanFolder(extractedFolderId, GOOGLE_API_KEY, 0, false, scanDepth);
+    return new Response(JSON.stringify({ success: true, structure, maxDepth: scanDepth }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
@@ -118,10 +136,42 @@ serve(async (req) => {
   }
 });
 
-// Deep scan - scans 4 levels of subfolders to count ALL videos
+// Quick scan - just count videos and folders without full structure
+async function quickScanFolder(
+  folderId: string,
+  apiKey: string,
+  maxDepth: number
+): Promise<{ videoCount: number; folderCount: number; resourceCount: number }> {
+  let videoCount = 0;
+  let folderCount = 0;
+  let resourceCount = 0;
+
+  async function countRecursive(fid: string, depth: number): Promise<void> {
+    if (depth > maxDepth) return;
+    
+    const files = await listFilesInFolder(fid, apiKey);
+    
+    for (const file of files) {
+      if (file.mimeType === "application/vnd.google-apps.folder") {
+        folderCount++;
+        await countRecursive(file.id, depth + 1);
+      } else if (isVideoFile(file)) {
+        videoCount++;
+      } else {
+        resourceCount++;
+      }
+    }
+  }
+
+  await countRecursive(folderId, 0);
+  return { videoCount, folderCount, resourceCount };
+}
+
+// Deep scan - scans up to maxDepth levels of subfolders to count ALL videos
 async function scanFolderShallow(
   folderId: string,
-  apiKey: string
+  apiKey: string,
+  maxDepth: number
 ): Promise<any> {
   const files = await listFilesInFolder(folderId, apiKey);
 
@@ -129,7 +179,7 @@ async function scanFolderShallow(
   let rootVideos = 0;
 
   // Helper to recursively count videos up to maxDepth levels
-  async function countVideosDeep(folderId: string, currentDepth: number, maxDepth: number): Promise<number> {
+  async function countVideosDeep(folderId: string, currentDepth: number): Promise<number> {
     if (currentDepth > maxDepth) return 0;
     
     const files = await listFilesInFolder(folderId, apiKey);
@@ -143,7 +193,7 @@ async function scanFolderShallow(
     
     // Process subfolders in parallel for speed
     const subCounts = await Promise.all(
-      subFolders.map(f => countVideosDeep(f.id, currentDepth + 1, maxDepth))
+      subFolders.map(f => countVideosDeep(f.id, currentDepth + 1))
     );
     
     count += subCounts.reduce((sum, c) => sum + c, 0);
@@ -161,11 +211,11 @@ async function scanFolderShallow(
   const topLevelVideos = files.filter(f => isVideoFile(f));
   rootVideos = topLevelVideos.length;
 
-  // Scan all top-level folders in parallel (each scanning 4 levels deep)
+  // Scan all top-level folders in parallel (each scanning maxDepth levels deep)
   const folderResults = await Promise.all(
     topLevelFolders.map(async (file) => {
-      // Count ALL videos up to 4 levels deep
-      const videoCount = await countVideosDeep(file.id, 1, 4);
+      // Count ALL videos up to maxDepth levels deep
+      const videoCount = await countVideosDeep(file.id, 1);
       const subFolderCount = await countSubFolders(file.id);
 
       return {
@@ -184,17 +234,18 @@ async function scanFolderShallow(
   // Sort folders by name
   folders.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
-  return { folders, rootVideos, totalFolders: folders.length };
+  return { folders, rootVideos, totalFolders: folders.length, maxDepth };
 }
 
-// FAST parallel scan - scans up to 4 levels of subfolders in parallel for speed
+// FAST parallel scan - scans up to maxDepth levels of subfolders in parallel for speed
 async function scanFolderFast(
   folderId: string,
-  apiKey: string
+  apiKey: string,
+  maxDepth: number
 ): Promise<any> {
-  // Recursive function to scan folder and all subfolders up to depth 4
-  async function scanDeepParallel(folderId: string, depth: number): Promise<{ videos: any[], resources: any[], nestedFolders: any[] }> {
-    if (depth > 4) return { videos: [], resources: [], nestedFolders: [] };
+  // Recursive function to scan folder and all subfolders up to maxDepth
+  async function scanDeepParallel(folderId: string, depth: number, pathPrefix: string = ""): Promise<{ videos: any[], resources: any[], nestedFolders: any[] }> {
+    if (depth > maxDepth) return { videos: [], resources: [], nestedFolders: [] };
     
     const files = await listFilesInFolder(folderId, apiKey);
     
@@ -206,6 +257,7 @@ async function scanFolderFast(
       durationMinutes: 0,
       driveUrl: `https://drive.google.com/file/d/${v.id}/view`,
       embedUrl: `https://drive.google.com/file/d/${v.id}/preview`,
+      _pathPrefix: pathPrefix,
     }));
     
     const resources = files.filter(f => !isVideoFile(f) && f.mimeType !== "application/vnd.google-apps.folder").map(r => ({
@@ -221,10 +273,12 @@ async function scanFolderFast(
     // Scan all subfolders in parallel
     const nestedResults = await Promise.all(
       subFolders.map(async (sf) => {
-        const nested = await scanDeepParallel(sf.id, depth + 1);
+        const newPrefix = pathPrefix ? `${pathPrefix} > ${sf.name}` : sf.name;
+        const nested = await scanDeepParallel(sf.id, depth + 1, newPrefix);
         return {
           name: sf.name,
           id: sf.id,
+          pathPrefix: newPrefix,
           ...nested,
         };
       })
@@ -238,10 +292,10 @@ async function scanFolderFast(
   const videoFiles = files.filter(f => isVideoFile(f));
   const resourceFiles = files.filter(f => !isVideoFile(f) && f.mimeType !== "application/vnd.google-apps.folder");
 
-  // Scan all top-level folders in PARALLEL (each will scan 4 levels deep)
+  // Scan all top-level folders in PARALLEL (each will scan maxDepth levels deep)
   const subFolderResults = await Promise.all(
     folderFiles.map(async (folder) => {
-      const deepScan = await scanDeepParallel(folder.id, 1);
+      const deepScan = await scanDeepParallel(folder.id, 1, "");
       
       // Flatten all nested videos into a single list with folder prefix
       const allVideos: any[] = [...deepScan.videos];
@@ -309,8 +363,13 @@ async function scanFolder(
   folderId: string,
   apiKey: string,
   depth: number = 0,
-  fetchDurations: boolean = false
+  fetchDurations: boolean = false,
+  maxDepth: number = MAX_SCAN_DEPTH
 ): Promise<any> {
+  if (depth > maxDepth) {
+    return { folders: [], videos: [], resources: [] };
+  }
+
   const files = await listFilesInFolder(folderId, apiKey);
 
   const folders: any[] = [];
@@ -319,7 +378,7 @@ async function scanFolder(
 
   for (const file of files) {
     if (file.mimeType === "application/vnd.google-apps.folder") {
-      const subContent = await scanFolder(file.id, apiKey, depth + 1, fetchDurations);
+      const subContent = await scanFolder(file.id, apiKey, depth + 1, fetchDurations, maxDepth);
       folders.push({
         id: file.id,
         name: file.name,
@@ -412,7 +471,7 @@ async function listFilesInFolder(
 async function deleteExistingContent(
   supabase: any,
   courseId: string
-): Promise<{ modulesDeleted: number; lessonsDeleted: number }> {
+): Promise<{ modulesDeleted: number; lessonsDeleted: number; resourcesDeleted: number }> {
   // Get all modules for this course
   const { data: modules } = await supabase
     .from("modules")
@@ -420,12 +479,30 @@ async function deleteExistingContent(
     .eq("course_id", courseId);
   
   if (!modules || modules.length === 0) {
-    return { modulesDeleted: 0, lessonsDeleted: 0 };
+    return { modulesDeleted: 0, lessonsDeleted: 0, resourcesDeleted: 0 };
   }
   
   const moduleIds = modules.map((m: any) => m.id);
   
-  // Delete all lessons for these modules first (foreign key constraint)
+  // Get all lessons for these modules
+  const { data: lessons } = await supabase
+    .from("lessons")
+    .select("id")
+    .in("module_id", moduleIds);
+  
+  const lessonIds = lessons?.map((l: any) => l.id) || [];
+  
+  // Delete resources first (foreign key)
+  let resourcesDeleted = 0;
+  if (lessonIds.length > 0) {
+    const { count } = await supabase
+      .from("lesson_resources")
+      .delete({ count: 'exact' })
+      .in("lesson_id", lessonIds);
+    resourcesDeleted = count || 0;
+  }
+  
+  // Delete all lessons for these modules
   const { count: lessonsDeleted } = await supabase
     .from("lessons")
     .delete({ count: 'exact' })
@@ -439,8 +516,24 @@ async function deleteExistingContent(
   
   return { 
     modulesDeleted: modulesDeleted || 0, 
-    lessonsDeleted: lessonsDeleted || 0 
+    lessonsDeleted: lessonsDeleted || 0,
+    resourcesDeleted 
   };
+}
+
+// Update course stats after import
+async function updateCourseStats(
+  supabase: any,
+  courseId: string,
+  totalLessons: number
+): Promise<void> {
+  await supabase
+    .from("courses")
+    .update({
+      total_lessons: totalLessons,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", courseId);
 }
 
 // FAST import - uses batch inserts for maximum speed
@@ -507,7 +600,6 @@ async function importStructureFast(
 
     // Now batch insert all lessons
     const allLessons: any[] = [];
-    const lessonToModule: Map<number, string> = new Map();
 
     for (let i = 0; i < insertedModules.length; i++) {
       const module = insertedModules[i];
@@ -552,145 +644,6 @@ async function importStructureFast(
 
       if (!lessonsError && insertedLessons) {
         lessonsCreated += insertedLessons.length;
-      }
-    }
-  }
-
-  return { modulesCreated, lessonsCreated, resourcesCreated };
-}
-
-async function importStructure(
-  supabase: any,
-  courseId: string,
-  structure: any
-): Promise<{ modulesCreated: number; lessonsCreated: number; resourcesCreated: number }> {
-  let modulesCreated = 0;
-  let lessonsCreated = 0;
-  let resourcesCreated = 0;
-
-  // Get existing max order_index for modules
-  const { data: existingModules } = await supabase
-    .from("modules")
-    .select("order_index")
-    .eq("course_id", courseId)
-    .order("order_index", { ascending: false })
-    .limit(1);
-
-  let moduleOrderIndex = existingModules?.[0]?.order_index ?? -1;
-
-  // Process folders as modules
-  for (const folder of structure.folders) {
-    moduleOrderIndex++;
-
-    const { data: newModule, error: moduleError } = await supabase
-      .from("modules")
-      .insert({
-        course_id: courseId,
-        title: folder.name,
-        order_index: moduleOrderIndex,
-      })
-      .select()
-      .single();
-
-    if (moduleError) {
-      console.error("Error creating module:", moduleError);
-      continue;
-    }
-
-    modulesCreated++;
-
-    let lessonOrderIndex = 0;
-    for (const video of folder.videos || []) {
-      const { data: newLesson, error: lessonError } = await supabase.from("lessons").insert({
-        module_id: newModule.id,
-        title: cleanVideoTitle(video.name),
-        video_url: video.embedUrl,
-        order_index: lessonOrderIndex,
-        duration_minutes: video.durationMinutes || 0,
-        is_free_preview: false,
-      }).select().single();
-
-      if (!lessonError && newLesson) {
-        lessonsCreated++;
-        if (lessonOrderIndex === 0 && folder.resources?.length > 0) {
-          for (const resource of folder.resources) {
-            await supabase.from("lesson_resources").insert({
-              lesson_id: newLesson.id,
-              title: resource.name,
-              file_url: resource.downloadUrl,
-              file_type: resource.mimeType,
-            });
-            resourcesCreated++;
-          }
-        }
-      }
-      lessonOrderIndex++;
-    }
-
-    // Process nested folders as additional lessons
-    for (const subFolder of folder.folders || []) {
-      for (const video of subFolder.videos || []) {
-        const { error: lessonError } = await supabase.from("lessons").insert({
-          module_id: newModule.id,
-          title: `${subFolder.name} - ${cleanVideoTitle(video.name)}`,
-          video_url: video.embedUrl,
-          order_index: lessonOrderIndex,
-          duration_minutes: video.durationMinutes || 0,
-          is_free_preview: false,
-        });
-
-        if (!lessonError) {
-          lessonsCreated++;
-        }
-        lessonOrderIndex++;
-      }
-    }
-  }
-
-  // If there are videos directly in the root folder, create a "Course Content" module
-  if (structure.videos && structure.videos.length > 0) {
-    moduleOrderIndex++;
-
-    const { data: mainModule, error: moduleError } = await supabase
-      .from("modules")
-      .insert({
-        course_id: courseId,
-        title: "Course Content",
-        order_index: moduleOrderIndex,
-      })
-      .select()
-      .single();
-
-    if (!moduleError) {
-      modulesCreated++;
-
-      let lessonOrderIndex = 0;
-      for (const video of structure.videos) {
-        const { data: newLesson, error: lessonError } = await supabase.from("lessons").insert({
-          module_id: mainModule.id,
-          title: cleanVideoTitle(video.name),
-          video_url: video.embedUrl,
-          order_index: lessonOrderIndex,
-          duration_minutes: video.durationMinutes || 0,
-          is_free_preview: false,
-        }).select().single();
-
-        if (!lessonError && newLesson) {
-          lessonsCreated++;
-          
-          if (lessonOrderIndex === 0 && structure.resources?.length > 0) {
-            for (const resource of structure.resources) {
-              await supabase.from("lesson_resources").insert({
-                lesson_id: newLesson.id,
-                title: resource.name,
-                file_url: resource.downloadUrl,
-                file_type: resource.mimeType,
-              });
-              resourcesCreated++;
-            }
-          }
-        }
-        lessonOrderIndex++;
       }
     }
   }
