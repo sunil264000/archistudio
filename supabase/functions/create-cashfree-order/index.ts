@@ -8,16 +8,24 @@ const corsHeaders = {
 
 interface OrderRequest {
   courseId: string; // course slug
-  amount: number;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+}
 
-  // Optional course metadata so backend can upsert the course if missing
-  courseTitle?: string;
-  courseShortDescription?: string;
-  courseDescription?: string;
-  courseLevel?: string;
+// Input validation helpers
+function validateName(name: string): boolean {
+  return typeof name === 'string' && name.trim().length > 0 && name.length <= 200;
+}
+
+function validateEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return typeof email === 'string' && emailRegex.test(email) && email.length <= 255;
+}
+
+function validatePhone(phone: string): boolean {
+  const phoneRegex = /^\+?[0-9]{8,15}$/;
+  return typeof phone === 'string' && phoneRegex.test(phone.replace(/[\s-]/g, ''));
 }
 
 serve(async (req) => {
@@ -28,8 +36,6 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      // Use service role so we can write payment/enrollment records reliably
-      // (we still validate the end-user via the JWT below)
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
@@ -49,53 +55,47 @@ serve(async (req) => {
 
     const {
       courseId,
-      amount,
       customerName,
       customerEmail,
       customerPhone,
-      courseTitle,
-      courseShortDescription,
-      courseDescription,
-      courseLevel,
     }: OrderRequest = await req.json();
 
-    // Resolve course UUID from slug (frontend uses slugs)
-    let { data: courseRow } = await supabaseClient
+    // Validate inputs
+    if (!validateName(customerName)) {
+      throw new Error("Invalid customer name");
+    }
+    if (!validateEmail(customerEmail)) {
+      throw new Error("Invalid email address");
+    }
+    if (!validatePhone(customerPhone)) {
+      throw new Error("Invalid phone number");
+    }
+    if (!courseId || typeof courseId !== 'string' || courseId.length > 100) {
+      throw new Error("Invalid course ID");
+    }
+
+    // CRITICAL: Get course from database - courses must exist in DB (no dynamic creation)
+    const { data: course, error: courseError } = await supabaseClient
       .from("courses")
-      .select("id")
+      .select("id, price_inr, title, is_published")
       .eq("slug", courseId)
-      .maybeSingle();
+      .single();
 
-    // If course isn't in DB yet, create it (best-effort)
-    if (!courseRow?.id) {
-      if (!courseTitle) {
-        throw new Error("Invalid course");
-      }
+    if (courseError || !course) {
+      console.error("Course not found:", courseId, courseError);
+      throw new Error("Course not found");
+    }
 
-      const { data: insertedCourse, error: insertCourseError } = await supabaseClient
-        .from("courses")
-        .insert({
-          slug: courseId,
-          title: courseTitle,
-          short_description: courseShortDescription ?? null,
-          description: courseDescription ?? null,
-          level: (courseLevel as any) ?? "beginner",
-          is_published: true,
-          is_featured: false,
-          duration_hours: 0,
-          total_lessons: 0,
-          price_inr: amount,
-          price_usd: 0,
-        })
-        .select("id")
-        .single();
+    // Verify course is published
+    if (!course.is_published) {
+      throw new Error("Course is not available for purchase");
+    }
 
-      if (insertCourseError || !insertedCourse?.id) {
-        console.error("Course upsert error:", insertCourseError);
-        throw new Error("Invalid course");
-      }
-
-      courseRow = insertedCourse;
+    // Use SERVER-SIDE price from database (not client-supplied amount)
+    const amount = Number(course.price_inr);
+    
+    if (!amount || amount <= 0) {
+      throw new Error("Invalid course price");
     }
 
     const appId = Deno.env.get("CASHFREE_APP_ID");
@@ -108,7 +108,7 @@ serve(async (req) => {
     // Generate unique order ID
     const orderId = `order_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-    // Create Cashfree order
+    // Create Cashfree order with SERVER-SIDE validated price
     const cashfreeResponse = await fetch("https://api.cashfree.com/pg/orders", {
       method: "POST",
       headers: {
@@ -119,20 +119,20 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         order_id: orderId,
-        order_amount: amount,
+        order_amount: amount, // Using server-side validated price
         order_currency: "INR",
         customer_details: {
           customer_id: user.id,
-          customer_name: customerName,
-          customer_email: customerEmail,
-          customer_phone: customerPhone,
+          customer_name: customerName.trim().substring(0, 200),
+          customer_email: customerEmail.trim().toLowerCase(),
+          customer_phone: customerPhone.replace(/[\s-]/g, ''),
         },
         order_meta: {
           return_url: `${(req.headers.get("origin") || "https://concrete-logic.lovable.app")}/payment-success?order_id={order_id}&course=${courseId}`,
           cancel_url: `${(req.headers.get("origin") || "https://concrete-logic.lovable.app")}/payment-failed?order_id={order_id}&course=${courseId}`,
           notify_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/cashfree-webhook`,
         },
-        order_note: `Course purchase: ${courseId}`,
+        order_note: `Course purchase: ${course.title}`,
       }),
     });
 
@@ -148,17 +148,17 @@ serve(async (req) => {
       .from("payments")
       .insert({
         user_id: user.id,
-        course_id: courseRow.id,
-        amount: amount,
+        course_id: course.id,
+        amount: amount, // Using server-side validated price
         currency: "INR",
         status: "pending",
         payment_gateway: "cashfree",
         gateway_order_id: orderId,
         metadata: {
           course_slug: courseId,
-          customer_name: customerName,
-          customer_email: customerEmail,
-          customer_phone: customerPhone,
+          customer_name: customerName.trim().substring(0, 200),
+          customer_email: customerEmail.trim().toLowerCase(),
+          customer_phone: customerPhone.replace(/[\s-]/g, ''),
         },
       });
 

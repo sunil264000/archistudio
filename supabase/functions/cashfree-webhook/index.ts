@@ -6,19 +6,97 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Verify Cashfree webhook signature
+async function verifyWebhookSignature(
+  rawBody: string,
+  signature: string | null,
+  timestamp: string | null,
+  secretKey: string
+): Promise<boolean> {
+  if (!signature || !timestamp) {
+    console.error("Missing signature or timestamp headers");
+    return false;
+  }
+
+  // Check timestamp is not too old (5 minutes)
+  const webhookTime = parseInt(timestamp, 10);
+  const currentTime = Math.floor(Date.now() / 1000);
+  if (Math.abs(currentTime - webhookTime) > 300) {
+    console.error("Webhook timestamp too old");
+    return false;
+  }
+
+  try {
+    // Cashfree signature verification: HMAC-SHA256 of timestamp + rawBody
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(secretKey),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+
+    const signatureData = encoder.encode(timestamp + rawBody);
+    const signatureBuffer = await crypto.subtle.sign("HMAC", key, signatureData);
+    
+    // Convert to base64
+    const computedSignature = btoa(
+      String.fromCharCode(...new Uint8Array(signatureBuffer))
+    );
+
+    return signature === computedSignature;
+  } catch (error) {
+    console.error("Signature verification error:", error);
+    return false;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Get the raw body for signature verification
+    const rawBody = await req.text();
+    
+    // Get webhook signature headers
+    const signature = req.headers.get("x-webhook-signature");
+    const timestamp = req.headers.get("x-webhook-timestamp");
+    
+    const secretKey = Deno.env.get("CASHFREE_SECRET_KEY");
+    
+    if (!secretKey) {
+      console.error("CASHFREE_SECRET_KEY not configured");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify webhook signature
+    const isValid = await verifyWebhookSignature(rawBody, signature, timestamp, secretKey);
+    
+    if (!isValid) {
+      console.error("Invalid webhook signature", { 
+        hasSignature: !!signature, 
+        hasTimestamp: !!timestamp,
+        sourceIP: req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip")
+      });
+      return new Response(
+        JSON.stringify({ error: "Invalid signature" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    const payload = await req.json();
-    console.log("Cashfree webhook received:", JSON.stringify(payload));
+    const payload = JSON.parse(rawBody);
+    console.log("Cashfree webhook received (verified):", JSON.stringify(payload));
 
     const { data } = payload;
     
@@ -36,6 +114,21 @@ serve(async (req) => {
       status = "completed";
     } else if (paymentStatus === "FAILED" || paymentStatus === "CANCELLED") {
       status = "failed";
+    }
+
+    // First check if this payment has already been processed (idempotency)
+    const { data: existingPayment } = await supabaseClient
+      .from("payments")
+      .select("id, status")
+      .eq("gateway_order_id", orderId)
+      .single();
+
+    if (existingPayment?.status === "completed") {
+      console.log("Payment already processed, skipping:", orderId);
+      return new Response(
+        JSON.stringify({ success: true, message: "Already processed" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Update payment record
@@ -57,6 +150,22 @@ serve(async (req) => {
 
     // If payment successful, create enrollment and send email
     if (status === "completed" && paymentData) {
+      // Check if enrollment already exists (idempotency)
+      const { data: existingEnrollment } = await supabaseClient
+        .from("enrollments")
+        .select("id")
+        .eq("user_id", paymentData.user_id)
+        .eq("course_id", paymentData.course_id)
+        .maybeSingle();
+
+      if (existingEnrollment) {
+        console.log("Enrollment already exists, skipping creation");
+        return new Response(
+          JSON.stringify({ success: true, message: "Enrollment exists" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       let courseId = paymentData.course_id as string | null;
       let courseName = "";
       let courseSlug = "";
