@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Mail, Phone, MapPin, Send, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
+import { SEOHead } from '@/components/seo/SEOHead';
 
 export default function Contact() {
   const [loading, setLoading] = useState(false);
@@ -39,6 +40,12 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
+      <SEOHead 
+        title="Contact Us - Get in Touch | Archistudio"
+        description="Have questions about our architecture courses? Contact Archistudio support team. We respond within 24 hours."
+        url="https://archistudio.shop/contact"
+        keywords="contact archistudio, architecture course support, 3ds max course help, autocad training inquiry"
+      />
       <Navbar />
       
       {/* Animated Background */}

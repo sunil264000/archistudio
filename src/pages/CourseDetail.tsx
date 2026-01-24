@@ -403,7 +403,7 @@ export default function CourseDetail() {
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
 
-  const courseUrl = `https://archistudio.lovable.app/courses/${course.slug}`;
+  const courseUrl = `https://archistudio.shop/course/${course.slug}`;
   const courseSchema = generateCourseSchema({
     title: course.title,
     description: course.description,

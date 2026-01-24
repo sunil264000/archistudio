@@ -7,8 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
+import { SEOHead } from '@/components/seo/SEOHead';
 import { Calendar, Clock, Search, ArrowRight } from 'lucide-react';
-
 interface BlogPost {
   id: string;
   title: string;
@@ -61,6 +61,12 @@ export default function Blog() {
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
+      <SEOHead 
+        title="Blog - Architecture Insights & Tutorials | Archistudio"
+        description="Practical tips, industry insights, and tutorials to help you become a better architect. Learn 3ds Max, AutoCAD, Revit, and more."
+        url="https://archistudio.shop/blog"
+        keywords="architecture blog, 3ds max tutorials, autocad tips, revit tutorials, architectural visualization tips, interior design articles"
+      />
       <Navbar />
       
       {/* Hero */}
