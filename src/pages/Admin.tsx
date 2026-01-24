@@ -23,6 +23,7 @@ import { SalesManagement } from '@/components/admin/SalesManagement';
 import { AmbientAudioSettings } from '@/components/admin/AmbientAudioSettings';
 import { EmailTesting } from '@/components/admin/EmailTesting';
 import { EmailBroadcast } from '@/components/admin/EmailBroadcast';
+import { EbookPricingSettings } from '@/components/admin/EbookPricingSettings';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
@@ -119,6 +120,8 @@ export default function Admin() {
         return <EmailTesting />;
       case 'email-broadcast':
         return <EmailBroadcast />;
+      case 'ebooks':
+        return <EbookPricingSettings />;
       case 'analytics':
         return <AnalyticsPanel />;
       case 'support':
