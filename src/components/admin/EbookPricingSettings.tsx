@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Slider } from '@/components/ui/slider';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -13,7 +14,8 @@ import {
   Calculator,
   BookOpen,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 
 interface PricingSettings {
@@ -33,6 +35,7 @@ export function EbookPricingSettings() {
   const [totalBooks, setTotalBooks] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [bundleDiscount, setBundleDiscount] = useState(30); // Default 30% discount
   const { toast } = useToast();
 
   useEffect(() => {
@@ -121,7 +124,21 @@ export function EbookPricingSettings() {
   const regularPrice = totalBooks * (settings?.tier_1_price || 50);
   const tieredPrice = calculatePrice(totalBooks);
   const bundleSavings = regularPrice - (settings?.full_bundle_price || 0);
-  const perBookBundle = settings ? Math.round(settings.full_bundle_price / totalBooks) : 0;
+  const perBookBundle = settings && totalBooks > 0 ? Math.round(settings.full_bundle_price / totalBooks) : 0;
+  
+  // Auto-calculate suggested bundle price based on tiered price with discount
+  const suggestedBundlePrice = Math.round(tieredPrice * (1 - bundleDiscount / 100));
+  
+  // Auto-apply bundle price when discount slider changes
+  const autoCalculateBundle = () => {
+    if (settings) {
+      setSettings({ ...settings, full_bundle_price: suggestedBundlePrice });
+      toast({
+        title: "Price Updated",
+        description: `Bundle price set to ₹${suggestedBundlePrice} (${bundleDiscount}% off tiered price)`,
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -201,7 +218,49 @@ export function EbookPricingSettings() {
             Set the special price when users buy all {totalBooks} eBooks together
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* Auto-Calculate Section */}
+          <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl p-4 border border-primary/20">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="h-4 w-4 text-primary" />
+              <span className="font-medium text-sm">Auto-Calculate Bundle Price</span>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Discount from tiered price</span>
+                  <span className="font-bold text-primary">{bundleDiscount}%</span>
+                </div>
+                <Slider
+                  value={[bundleDiscount]}
+                  onValueChange={(value) => setBundleDiscount(value[0])}
+                  min={10}
+                  max={50}
+                  step={5}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>10%</span>
+                  <span>50%</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between gap-4">
+                <div className="text-sm">
+                  <p className="text-muted-foreground">Tiered price: ₹{tieredPrice}</p>
+                  <p className="text-lg font-bold">Suggested: <span className="text-primary">₹{suggestedBundlePrice}</span></p>
+                </div>
+                <Button onClick={autoCalculateBundle} variant="secondary" className="gap-2">
+                  <Calculator className="h-4 w-4" />
+                  Apply Price
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="full_bundle_price">Full Bundle Price (₹)</Label>
@@ -213,7 +272,7 @@ export function EbookPricingSettings() {
                 className="text-lg font-semibold"
               />
               <p className="text-xs text-muted-foreground">
-                Regular price: ₹{regularPrice} • Savings: ₹{bundleSavings}
+                Regular price: ₹{regularPrice} • Tiered price: ₹{tieredPrice} • Savings: ₹{bundleSavings}
               </p>
             </div>
             
@@ -338,17 +397,30 @@ export function EbookPricingSettings() {
 
           {/* Price Calculator Preview */}
           <div className="bg-muted/30 rounded-lg p-4">
-            <p className="font-medium mb-3">Price Calculator Preview</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[5, 10, 20, totalBooks].map((count) => (
-                <div key={count} className="bg-background rounded-lg p-3 border">
-                  <p className="text-xs text-muted-foreground">{count} books</p>
-                  <p className="text-lg font-bold">₹{count === totalBooks ? settings.full_bundle_price : calculatePrice(count)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    ₹{Math.round((count === totalBooks ? settings.full_bundle_price : calculatePrice(count)) / count)}/book
-                  </p>
-                </div>
-              ))}
+            <p className="font-medium mb-3">Price Calculator Preview (Updates Live)</p>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {[5, 10, 20, 30, totalBooks].map((count) => {
+                const isFullBundle = count === totalBooks;
+                const tieredCost = calculatePrice(count);
+                const displayPrice = isFullBundle ? settings.full_bundle_price : tieredCost;
+                
+                return (
+                  <div key={count} className={`rounded-lg p-3 border ${isFullBundle ? 'bg-primary/10 border-primary/30' : 'bg-background'}`}>
+                    <p className="text-xs text-muted-foreground">
+                      {count} books {isFullBundle && '(Bundle)'}
+                    </p>
+                    {isFullBundle && (
+                      <p className="text-xs text-muted-foreground line-through">₹{tieredCost}</p>
+                    )}
+                    <p className={`text-lg font-bold ${isFullBundle ? 'text-primary' : ''}`}>
+                      ₹{displayPrice}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      ₹{Math.round(displayPrice / count)}/book
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </CardContent>
