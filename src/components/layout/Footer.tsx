@@ -65,7 +65,6 @@ export function Footer() {
     ],
     legal: [
       { label: 'Terms & Conditions', to: '/terms' },
-      { label: 'Refunds & Cancellations', to: '/refunds' },
       { label: 'Contact Us', to: '/contact' },
     ],
   };

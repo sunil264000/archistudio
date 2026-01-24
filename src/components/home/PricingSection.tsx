@@ -123,13 +123,6 @@ export function PricingSection() {
           ))}
         </div>
 
-        {/* Money back guarantee */}
-        <div className="max-w-2xl mx-auto mt-12 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-success/10 text-success text-sm">
-            <Check className="h-4 w-4" />
-            <span>30-day money-back guarantee. No questions asked.</span>
-          </div>
-        </div>
       </div>
     </section>
   );

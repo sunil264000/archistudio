@@ -554,9 +554,6 @@ export default function CourseDetail() {
                     <AddToCartButton course={{ ...course, priceInr: effectivePriceInr }} />
                   )}
 
-                  <p className="text-center text-sm text-muted-foreground">
-                    7-day money-back guarantee
-                  </p>
 
                   <Separator />
 
