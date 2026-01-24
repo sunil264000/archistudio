@@ -508,6 +508,62 @@ export type Database = {
           },
         ]
       }
+      import_activity_log: {
+        Row: {
+          action: string
+          course_id: string | null
+          course_title: string
+          created_at: string
+          error_message: string | null
+          folder_id: string
+          folder_name: string
+          id: string
+          lessons_count: number | null
+          modules_count: number | null
+          performed_by: string | null
+          resources_count: number | null
+          status: string | null
+        }
+        Insert: {
+          action?: string
+          course_id?: string | null
+          course_title: string
+          created_at?: string
+          error_message?: string | null
+          folder_id: string
+          folder_name: string
+          id?: string
+          lessons_count?: number | null
+          modules_count?: number | null
+          performed_by?: string | null
+          resources_count?: number | null
+          status?: string | null
+        }
+        Update: {
+          action?: string
+          course_id?: string | null
+          course_title?: string
+          created_at?: string
+          error_message?: string | null
+          folder_id?: string
+          folder_name?: string
+          id?: string
+          lessons_count?: number | null
+          modules_count?: number | null
+          performed_by?: string | null
+          resources_count?: number | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_activity_log_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_resources: {
         Row: {
           created_at: string | null

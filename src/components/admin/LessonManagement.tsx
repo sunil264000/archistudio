@@ -9,14 +9,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { 
   Plus, Pencil, Trash2, Upload, Video, FileText, 
-  GripVertical, Loader2, ChevronRight, FolderPlus, Save
+  GripVertical, Loader2, ChevronRight, FolderPlus, Save, Clock, FolderSync
 } from 'lucide-react';
 import { GoogleDriveImport } from './GoogleDriveImport';
 import { QuickLessonAdd } from './QuickLessonAdd';
 import { BulkCourseImport } from './BulkCourseImport';
+import { ImportActivityLog } from './ImportActivityLog';
 
 interface Course {
   id: string;
@@ -322,14 +324,38 @@ export function LessonManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Bulk Course Import - Import multiple courses at once */}
-      <BulkCourseImport 
-        courses={courses}
-        onImportComplete={() => {
-          fetchCourses();
-          if (selectedCourse) fetchModules(selectedCourse);
-        }}
-      />
+      {/* Bulk Import Tools with Activity Log */}
+      <Tabs defaultValue="import" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="import" className="gap-2">
+            <FolderSync className="h-4 w-4" />
+            Bulk Import
+          </TabsTrigger>
+          <TabsTrigger value="activity" className="gap-2">
+            <Clock className="h-4 w-4" />
+            Recent Activities
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="import" className="mt-4">
+          <BulkCourseImport 
+            courses={courses}
+            onImportComplete={() => {
+              fetchCourses();
+              if (selectedCourse) fetchModules(selectedCourse);
+            }}
+          />
+        </TabsContent>
+        
+        <TabsContent value="activity" className="mt-4">
+          <ImportActivityLog 
+            onCourseClean={() => {
+              fetchCourses();
+              if (selectedCourse) fetchModules(selectedCourse);
+            }}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Course Selector */}
       <div className="flex items-center gap-4">
