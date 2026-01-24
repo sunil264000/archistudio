@@ -5,6 +5,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { SEOHead, generateBlogPostSchema } from '@/components/seo/SEOHead';
 import { ArrowLeft, Calendar, Share2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -126,8 +127,28 @@ export default function BlogPost() {
     );
   }
 
+  const blogSchema = generateBlogPostSchema({
+    title: post.title,
+    description: post.meta_description || post.excerpt || '',
+    url: `https://archistudio.shop/blog/${post.slug}`,
+    image: post.featured_image_url || undefined,
+    publishedTime: post.published_at || post.created_at || '',
+  });
+
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead 
+        title={post.meta_title || `${post.title} | Archistudio Blog`}
+        description={post.meta_description || post.excerpt || ''}
+        url={`https://archistudio.shop/blog/${post.slug}`}
+        image={post.featured_image_url || undefined}
+        type="article"
+        publishedTime={post.published_at || undefined}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogSchema) }}
+      />
       <Navbar />
       
       <article className="py-12">

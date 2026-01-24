@@ -45,7 +45,7 @@ export default function Index() {
         title="Archistudio - Professional Architecture Training"
         description="This platform teaches what architecture colleges and CAD institutes don't: how real buildings are designed, detailed, and executed in offices. Master 3ds Max, AutoCAD, Revit, SketchUp and more."
         keywords="archistudio, architectural visualization course, 3ds max tutorial, autocad training india, revit course online, sketchup lessons, corona rendering tutorial, interior design course, architecture education, BIM training, 3D modeling course, learn architecture online"
-        url="https://archistudio.lovable.app"
+        url="https://archistudio.shop"
       />
       <script
         type="application/ld+json"

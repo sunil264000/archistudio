@@ -117,7 +117,7 @@ export default function Courses() {
       <SEOHead 
         title="All Studios - Archistudio"
         description="Browse our complete catalog of architecture and 3D visualization studio programs. Learn 3ds Max, AutoCAD, Revit, SketchUp and more."
-        url="https://archistudio.lovable.app/courses"
+        url="https://archistudio.shop/courses"
       />
       
       <Navbar />

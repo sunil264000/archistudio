@@ -128,8 +128,8 @@ export function generateCourseSchema(course: {
     provider: {
       '@type': 'Organization',
       name: 'Archistudio',
-      sameAs: 'https://archistudio.lovable.app',
-      logo: 'https://archistudio.lovable.app/logo.png',
+      sameAs: 'https://archistudio.shop',
+      logo: 'https://archistudio.shop/logo.png',
     },
     offers: {
       '@type': 'Offer',
@@ -162,13 +162,13 @@ export function generateOrganizationSchema() {
   return {
     '@context': 'https://schema.org',
     '@type': 'EducationalOrganization',
-    '@id': 'https://archistudio.lovable.app/#organization',
+    '@id': 'https://archistudio.shop/#organization',
     name: 'Archistudio',
     alternateName: 'Archistudio Learning Platform',
-    url: 'https://archistudio.lovable.app',
+    url: 'https://archistudio.shop',
     logo: {
       '@type': 'ImageObject',
-      url: 'https://archistudio.lovable.app/logo.png',
+      url: 'https://archistudio.shop/logo.png',
       width: 512,
       height: 512,
     },
@@ -215,18 +215,18 @@ export function generateWebsiteSchema() {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    '@id': 'https://archistudio.lovable.app/#website',
-    url: 'https://archistudio.lovable.app',
+    '@id': 'https://archistudio.shop/#website',
+    url: 'https://archistudio.shop',
     name: 'Archistudio',
     description: 'Professional architecture training platform',
     publisher: {
-      '@id': 'https://archistudio.lovable.app/#organization',
+      '@id': 'https://archistudio.shop/#organization',
     },
     potentialAction: {
       '@type': 'SearchAction',
       target: {
         '@type': 'EntryPoint',
-        urlTemplate: 'https://archistudio.lovable.app/courses?search={search_term_string}',
+        urlTemplate: 'https://archistudio.shop/courses?search={search_term_string}',
       },
       'query-input': 'required name=search_term_string',
     },
@@ -292,7 +292,7 @@ export function generateBlogPostSchema(post: {
       name: 'Archistudio',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://archistudio.lovable.app/logo.png',
+        url: 'https://archistudio.shop/logo.png',
       },
     },
     mainEntityOfPage: {
