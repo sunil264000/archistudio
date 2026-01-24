@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -20,6 +20,9 @@ import { DemoReviews } from '@/components/course/DemoReviews';
 import { SEOHead, generateCourseSchema } from '@/components/seo/SEOHead';
 import { LiveViewerCounter } from '@/components/social-proof/LiveViewerCounter';
 import { useSaleDiscount } from '@/hooks/useSaleDiscount';
+import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
+import { supabase } from '@/integrations/supabase/client';
+
 // Add to Cart Button Component
 function AddToCartButton({ course }: { course: any }) {
   const { addToCart, isInCart, removeFromCart } = useCart();
@@ -155,8 +158,22 @@ export default function CourseDetail() {
   const { toast } = useToast();
   const { getThumbnail } = useDynamicCourseData();
   const { isActive: saleActive, discountPercent, calculateDiscountedPrice } = useSaleDiscount();
+  
   // Fetch real modules from database
   const { modules: dbModules, loading: modulesLoading, totalLessons: dbTotalLessons, totalDuration } = useCourseModules(slug);
+  
+  // Fetch database course ID for reviews
+  const [dbCourseId, setDbCourseId] = useState<string | null>(null);
+  useEffect(() => {
+    if (slug) {
+      supabase
+        .from('courses')
+        .select('id')
+        .eq('slug', slug)
+        .single()
+        .then(({ data }) => setDbCourseId(data?.id || null));
+    }
+  }, [slug]);
 
   const course = courses.find(c => c.slug === slug);
 
@@ -321,7 +338,7 @@ export default function CourseDetail() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-hidden">
       <SEOHead 
         title={`${course.title} - Concrete Logic`}
         description={course.shortDescription}
@@ -337,8 +354,11 @@ export default function CourseDetail() {
       
       <Navbar />
       
+      {/* Animated Background */}
+      <AnimatedBackground intensity="light" />
+      
       {/* Hero Section */}
-      <section className="pt-24 pb-12 bg-gradient-to-br from-primary/5 via-background to-accent/5">
+      <section className="pt-24 pb-8 relative">
         <div className="container mx-auto px-4">
           <Link to="/courses" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-6 transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -373,21 +393,21 @@ export default function CourseDetail() {
               {/* Live viewer counter */}
               <LiveViewerCounter courseSlug={slug} variant="course" />
 
-              <div className="flex flex-wrap items-center gap-6 text-muted-foreground">
-                <span className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  {course.durationHours} hours
+              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="h-4 w-4" />
+                  {displayTotalHours > 0 ? `${displayTotalHours} hours` : 'Self-paced'}
                 </span>
-                <span className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
-                  {course.totalLessons} lessons
+                <span className="flex items-center gap-1.5">
+                  <BookOpen className="h-4 w-4" />
+                  {displayTotalLessons} lessons
                 </span>
-                <span className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
+                <span className="flex items-center gap-1.5">
+                  <Users className="h-4 w-4" />
                   500+ students
                 </span>
-                <span className="flex items-center gap-2">
-                  <Award className="h-5 w-5" />
+                <span className="flex items-center gap-1.5">
+                  <Award className="h-4 w-4" />
                   Certificate included
                 </span>
               </div>
@@ -618,7 +638,12 @@ export default function CourseDetail() {
                 </CardContent>
               </Card>
 
-              {/* Demo Reviews with Indian Names */}
+              {/* Real User Reviews - only for enrolled users */}
+              {dbCourseId && (
+                <CourseReviews courseId={dbCourseId} />
+              )}
+
+              {/* Demo Reviews with Indian Names - for non-enrolled / no real reviews yet */}
               <DemoReviews courseTitle={course.title} courseSlug={course.slug} />
             </div>
 

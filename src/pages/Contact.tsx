@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Mail, Phone, MapPin, Send, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 
 export default function Contact() {
   const [loading, setLoading] = useState(false);
@@ -37,8 +38,11 @@ export default function Contact() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-hidden">
       <Navbar />
+      
+      {/* Animated Background */}
+      <AnimatedBackground intensity="light" />
       
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-4">

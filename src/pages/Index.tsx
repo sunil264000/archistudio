@@ -3,6 +3,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { HeroSection } from '@/components/home/HeroSection';
 import { SEOHead, generateOrganizationSchema } from '@/components/seo/SEOHead';
+import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 
 // Lazy load below-the-fold sections for faster initial load
 const ProblemSection = lazy(() => import('@/components/home/ProblemSection').then(m => ({ default: m.ProblemSection })));
@@ -22,7 +23,7 @@ const SectionLoader = () => (
 
 export default function Index() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-hidden">
       <SEOHead 
         title="Concrete Logic - Master Architectural Visualization"
         description="Learn 3ds Max, AutoCAD, Revit, SketchUp and more. Transform your architectural design skills with industry-leading courses."
@@ -34,6 +35,9 @@ export default function Index() {
       />
       
       <Navbar />
+      
+      {/* Animated Background */}
+      <AnimatedBackground intensity="light" />
       
       {/* Live users indicator - lazy loaded */}
       <Suspense fallback={null}>

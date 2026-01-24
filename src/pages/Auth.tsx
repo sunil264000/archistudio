@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Background3D } from '@/components/3d/Background3D';
+import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 
 export default function Auth() {
   const { user, loading } = useAuth();
@@ -39,11 +39,9 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background relative">
-      {/* 3D Background - positioned behind all content */}
-      <div className="fixed inset-0 -z-10">
-        <Background3D intensity="light" />
-      </div>
+    <div className="min-h-screen flex flex-col bg-background relative overflow-hidden">
+      {/* Animated Background */}
+      <AnimatedBackground intensity="light" />
       {/* Header */}
       <header className="border-b border-border">
         <div className="container-wide py-4 flex items-center justify-between">
