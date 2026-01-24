@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +11,8 @@ import { FestivalDecorations } from "@/components/festival/FestivalDecorations";
 import { SalesPopup } from "@/components/sales/SalesPopup";
 import { AmbientAudio } from "@/components/audio/AmbientAudio";
 import { useContentProtection } from "@/hooks/useContentProtection";
+import { initializeGA4 } from "@/hooks/useGoogleAnalytics";
+import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Courses from "./pages/Courses";
@@ -28,6 +31,21 @@ import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+// Initialize Google Analytics
+const initAnalytics = async () => {
+  try {
+    const { data } = await supabase.functions.invoke('get-analytics-config');
+    if (data?.enabled && data?.ga4_measurement_id) {
+      initializeGA4(data.ga4_measurement_id);
+    }
+  } catch (error) {
+    console.log('Analytics config not available');
+  }
+};
+
+// Call on app load
+initAnalytics();
 
 const AppContent = () => {
   useContentProtection();

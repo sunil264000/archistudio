@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
+import { analytics } from '@/hooks/useGoogleAnalytics';
 
 interface CartItem {
   courseId: string;
@@ -34,6 +35,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addToCart = (item: CartItem) => {
     if (!items.find(i => i.courseId === item.courseId)) {
       saveCart([...items, item]);
+      // Track add to cart event
+      analytics.addToCart(item.courseId, item.title, item.price);
     }
   };
 
