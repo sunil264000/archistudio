@@ -171,11 +171,11 @@ export default function Courses() {
       {!selectedCategory && !searchQuery && (
         <section className="py-12">
           <div className="container mx-auto px-4">
-            <div className="flex items-center gap-2 mb-6">
+            <div className="flex items-center gap-2 mb-4">
               <Star className="h-6 w-6 text-warning fill-warning" />
               <h2 className="text-2xl font-bold">Featured Courses</h2>
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 stagger-children">
               {featuredCourses.slice(0, 6).map((course, index) => (
                 <CourseCard 
                   key={course.id} 
@@ -213,10 +213,10 @@ export default function Courses() {
               </Button>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {sortedCourses.map((course, index) => (
                 <CourseCard 
-                  key={course.id} 
+                  key={course.id}
                   course={course} 
                   index={index} 
                   getThumbnail={getThumbnail}
