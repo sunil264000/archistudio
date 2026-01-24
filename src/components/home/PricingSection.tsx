@@ -6,15 +6,14 @@ const plans = [
   {
     name: 'Single Course',
     description: 'Perfect for specific skill gaps',
-    priceINR: '₹2,999',
-    priceUSD: '$39',
+    priceINR: '₹349',
     period: 'one-time',
     features: [
       'Access to one course of your choice',
       'All lessons and resources',
       'Certificate on completion',
       'Community forum access',
-      '6 months access',
+      'Lifetime access',
     ],
     cta: 'Choose Course',
     popular: false,
@@ -22,8 +21,7 @@ const plans = [
   {
     name: 'All Access',
     description: 'Best value for serious learners',
-    priceINR: '₹7,999',
-    priceUSD: '$99',
+    priceINR: '₹1,499',
     period: '/year',
     features: [
       'Access to ALL courses',
@@ -40,8 +38,7 @@ const plans = [
   {
     name: 'Lifetime',
     description: 'Never pay again',
-    priceINR: '₹14,999',
-    priceUSD: '$179',
+    priceINR: '₹2,999',
     period: 'one-time',
     features: [
       'Everything in All Access',
@@ -99,9 +96,6 @@ export function PricingSection() {
                 <div className="flex items-baseline gap-2">
                   <span className="text-4xl font-bold">{plan.priceINR}</span>
                   <span className="text-muted-foreground">{plan.period}</span>
-                </div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  or {plan.priceUSD} USD
                 </div>
               </div>
 

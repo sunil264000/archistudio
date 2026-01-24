@@ -37,7 +37,7 @@ export interface Course {
   level: 'beginner' | 'intermediate' | 'advanced';
   durationHours: number;
   totalLessons: number;
-  priceUsd: number;
+  priceUsd?: number; // Optional - not displayed in UI
   priceInr: number;
   thumbnail: string;
   isFeatured: boolean;

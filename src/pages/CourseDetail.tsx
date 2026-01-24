@@ -465,10 +465,7 @@ export default function CourseDetail() {
                         <span className="inline-block px-2 py-0.5 bg-destructive text-destructive-foreground text-xs font-bold rounded">{discountPercent}% OFF</span>
                       </div>
                     ) : (
-                      <>
-                        <span className="text-3xl font-bold">₹{course.priceInr.toLocaleString()}</span>
-                        <span className="text-muted-foreground">(${course.priceUsd})</span>
-                      </>
+                      <span className="text-3xl font-bold">₹{course.priceInr.toLocaleString()}</span>
                     )}
                   </div>
                   
