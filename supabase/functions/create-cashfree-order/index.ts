@@ -108,6 +108,15 @@ serve(async (req) => {
     // Generate unique order ID
     const orderId = `order_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
+    // Cashfree domain whitelisting is strict. Never trust arbitrary request origins here.
+    // If a request comes from a non-whitelisted origin (e.g. preview), we still redirect
+    // back to the published site domain.
+    const PUBLISHED_SITE_URL = "https://archistudio.lovable.app";
+    const reqOrigin = req.headers.get("origin") || "";
+    const redirectBaseUrl = reqOrigin.includes("archistudio.lovable.app")
+      ? "https://archistudio.lovable.app"
+      : PUBLISHED_SITE_URL;
+
     // Create Cashfree order with SERVER-SIDE validated price
     const cashfreeResponse = await fetch("https://api.cashfree.com/pg/orders", {
       method: "POST",
@@ -128,8 +137,8 @@ serve(async (req) => {
           customer_phone: customerPhone.replace(/[\s-]/g, ''),
         },
         order_meta: {
-          return_url: `${(req.headers.get("origin") || "https://archistudio.lovable.app")}/payment-success?order_id={order_id}&course=${courseId}`,
-          cancel_url: `${(req.headers.get("origin") || "https://archistudio.lovable.app")}/payment-failed?order_id={order_id}&course=${courseId}`,
+          return_url: `${redirectBaseUrl}/payment-success?order_id={order_id}&course=${courseId}`,
+          cancel_url: `${redirectBaseUrl}/payment-failed?order_id={order_id}&course=${courseId}`,
           notify_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/cashfree-webhook`,
         },
         order_note: `Course purchase: ${course.title}`,
