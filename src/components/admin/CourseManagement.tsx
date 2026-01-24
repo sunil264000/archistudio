@@ -92,7 +92,7 @@ interface ModuleWithLessons {
   }[];
 }
 
-type SortOption = 'order' | 'name' | 'price' | 'content' | 'empty-first' | 'content-first' | 'published' | 'draft' | 'featured' | 'linked' | 'unlinked';
+type SortOption = 'order' | 'website-order' | 'name' | 'price' | 'content' | 'empty-first' | 'content-first' | 'published' | 'draft' | 'featured' | 'linked' | 'unlinked';
 type FilterOption = 'all' | 'published' | 'draft' | 'featured' | 'highlighted' | 'empty' | 'has-content' | 'no-thumbnail' | 'linked' | 'unlinked';
 
 export function CourseManagement() {
@@ -781,6 +781,11 @@ export function CourseManagement() {
       const hasContentB = contentB.moduleCount > 0 || contentB.lessonCount > 0;
 
       switch (sortBy) {
+        case 'website-order':
+          // Match exact Courses page order: highlighted first, then by order_index
+          if (a.is_highlighted && !b.is_highlighted) return -1;
+          if (!a.is_highlighted && b.is_highlighted) return 1;
+          return (a.order_index || 0) - (b.order_index || 0);
         case 'name':
           return a.title.localeCompare(b.title);
         case 'price':
@@ -950,6 +955,7 @@ export function CourseManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="order">Default Order</SelectItem>
+                  <SelectItem value="website-order">📱 Website Order</SelectItem>
                   <SelectItem value="name">Name (A-Z)</SelectItem>
                   <SelectItem value="price">Price (High-Low)</SelectItem>
                   <SelectItem value="content">Most Content</SelectItem>
