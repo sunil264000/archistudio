@@ -104,6 +104,7 @@ export function CourseManagement() {
   const [deletingContent, setDeletingContent] = useState<string | null>(null);
   const [selectedCourses, setSelectedCourses] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [deletingEmptyCourses, setDeletingEmptyCourses] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('order');
   const [activeFilters, setActiveFilters] = useState<Set<FilterOption>>(new Set(['all']));
   const [courseContent, setCourseContent] = useState<Record<string, CourseContent>>({});
@@ -656,6 +657,67 @@ export function CourseManagement() {
     }
   };
 
+  // Get list of empty courses dynamically
+  const emptyCourses = useMemo(() => {
+    return courses.filter(course => {
+      const content = courseContent[course.id];
+      return !content || (content.moduleCount === 0 && content.lessonCount === 0);
+    });
+  }, [courses, courseContent]);
+
+  // Delete all empty courses (courses with no modules/lessons)
+  const handleDeleteEmptyCourses = async () => {
+    if (emptyCourses.length === 0) {
+      toast.info('No empty courses to delete');
+      return;
+    }
+
+    setDeletingEmptyCourses(true);
+    let deletedCount = 0;
+    let failedCount = 0;
+
+    try {
+      const results = await Promise.allSettled(
+        emptyCourses.map(async (course) => {
+          // Delete any linked folder setting
+          await supabase
+            .from('site_settings')
+            .delete()
+            .eq('key', `course_folder_${course.id}`);
+          
+          // Delete course (modules/lessons already don't exist for empty courses)
+          const { error } = await supabase
+            .from('courses')
+            .delete()
+            .eq('id', course.id);
+          
+          if (error) throw error;
+          return course.id;
+        })
+      );
+
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          deletedCount++;
+        } else {
+          failedCount++;
+        }
+      });
+
+      if (deletedCount > 0) {
+        toast.success(`Deleted ${deletedCount} empty course${deletedCount > 1 ? 's' : ''}`);
+        fetchCourses();
+      }
+      if (failedCount > 0) {
+        toast.error(`Failed to delete ${failedCount} course${failedCount > 1 ? 's' : ''}`);
+      }
+    } catch (err: any) {
+      toast.error('Failed to delete empty courses');
+    } finally {
+      setDeletingEmptyCourses(false);
+    }
+  };
+
   const toggleFilter = (filter: FilterOption) => {
     setActiveFilters(prev => {
       const newFilters = new Set(prev);
@@ -1005,6 +1067,57 @@ export function CourseManagement() {
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
                         Delete All Content
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+
+              {/* Delete Empty Courses Button - shown when there are empty courses */}
+              {emptyCourses.length > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-2 border-destructive/50 text-destructive hover:bg-destructive/10"
+                      disabled={deletingEmptyCourses}
+                    >
+                      {deletingEmptyCourses ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                      Delete Empty ({emptyCourses.length})
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete All Empty Courses?</AlertDialogTitle>
+                      <AlertDialogDescription className="space-y-2">
+                        <span className="block">
+                          This will permanently delete <span className="font-semibold text-destructive">{emptyCourses.length}</span> course{emptyCourses.length > 1 ? 's' : ''} that have no modules or lessons.
+                        </span>
+                        <span className="block text-xs text-muted-foreground mt-2">
+                          Courses to be deleted:
+                        </span>
+                        <div className="max-h-32 overflow-y-auto bg-muted/50 rounded-md p-2 text-xs">
+                          {emptyCourses.slice(0, 10).map(c => (
+                            <div key={c.id} className="py-0.5 truncate">{c.title}</div>
+                          ))}
+                          {emptyCourses.length > 10 && (
+                            <div className="py-0.5 text-muted-foreground">...and {emptyCourses.length - 10} more</div>
+                          )}
+                        </div>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleDeleteEmptyCourses}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete {emptyCourses.length} Empty Course{emptyCourses.length > 1 ? 's' : ''}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
