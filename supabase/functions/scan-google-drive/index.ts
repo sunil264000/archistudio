@@ -23,11 +23,9 @@ const VIDEO_EXTENSIONS = ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm
 const VIDEO_MIMETYPES = ['video/mp4', 'video/avi', 'video/mkv', 'video/quicktime', 'video/x-ms-wmv', 'video/x-flv', 'video/webm', 'video/x-m4v', 'video/mpeg', 'video/3gpp'];
 
 function isVideoFile(file: DriveFile): boolean {
-  // Check by mimeType
   if (file.mimeType.startsWith("video/") || VIDEO_MIMETYPES.includes(file.mimeType)) {
     return true;
   }
-  // Check by extension
   const lowerName = file.name.toLowerCase();
   return VIDEO_EXTENSIONS.some(ext => lowerName.endsWith(ext));
 }
@@ -40,10 +38,10 @@ serve(async (req) => {
   try {
     const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY");
     if (!GOOGLE_API_KEY) {
-      throw new Error("GOOGLE_API_KEY not configured");
+      throw new Error("GOOGLE_API_KEY not configured. Please add it in Cloud secrets.");
     }
 
-    const { folderId, courseId, action } = await req.json();
+    const { folderId, courseId, action, scanMode } = await req.json();
 
     if (!folderId) {
       throw new Error("Folder ID is required");
@@ -58,13 +56,19 @@ serve(async (req) => {
       }
     }
 
-    console.log("Scanning folder:", extractedFolderId);
+    console.log("Scanning folder:", extractedFolderId, "Action:", action, "Mode:", scanMode);
 
-    // Scan the folder structure
-    const structure = await scanFolder(extractedFolderId, GOOGLE_API_KEY);
+    // For bulk parent scanning - only scan top-level subfolders (shallow scan)
+    if (scanMode === "bulk-parent") {
+      const structure = await scanFolderShallow(extractedFolderId, GOOGLE_API_KEY);
+      return new Response(JSON.stringify({ success: true, structure }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    if (action === "scan") {
-      // Just return the structure for preview
+    // For single course folder - deep scan with video metadata
+    if (action === "scan" || action === "scan-deep") {
+      const structure = await scanFolder(extractedFolderId, GOOGLE_API_KEY, 0, action === "scan-deep");
       return new Response(JSON.stringify({ success: true, structure }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -76,6 +80,8 @@ serve(async (req) => {
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, supabaseKey);
 
+      // First scan the folder
+      const structure = await scanFolder(extractedFolderId, GOOGLE_API_KEY, 0, false);
       const importResult = await importStructure(supabase, courseId, structure);
 
       return new Response(JSON.stringify({ success: true, ...importResult }), {
@@ -83,6 +89,8 @@ serve(async (req) => {
       });
     }
 
+    // Default: simple scan
+    const structure = await scanFolder(extractedFolderId, GOOGLE_API_KEY, 0, false);
     return new Response(JSON.stringify({ success: true, structure }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -99,10 +107,59 @@ serve(async (req) => {
   }
 });
 
+// Shallow scan - only gets immediate subfolders with basic video counts (fast)
+async function scanFolderShallow(
+  folderId: string,
+  apiKey: string
+): Promise<any> {
+  const files = await listFilesInFolder(folderId, apiKey);
+
+  const folders: any[] = [];
+  let rootVideos = 0;
+
+  for (const file of files) {
+    if (file.mimeType === "application/vnd.google-apps.folder") {
+      // For each subfolder, just count videos without deep recursion
+      const subFiles = await listFilesInFolder(file.id, apiKey);
+      let videoCount = 0;
+      let subFolderCount = 0;
+      
+      for (const subFile of subFiles) {
+        if (isVideoFile(subFile)) {
+          videoCount++;
+        } else if (subFile.mimeType === "application/vnd.google-apps.folder") {
+          subFolderCount++;
+          // Quick count of videos in nested folders
+          const nestedFiles = await listFilesInFolder(subFile.id, apiKey);
+          videoCount += nestedFiles.filter(f => isVideoFile(f)).length;
+        }
+      }
+
+      folders.push({
+        id: file.id,
+        name: file.name,
+        type: "folder",
+        videoCount,
+        subFolderCount,
+        url: `https://drive.google.com/drive/folders/${file.id}`,
+      });
+    } else if (isVideoFile(file)) {
+      rootVideos++;
+    }
+  }
+
+  // Sort folders by name
+  folders.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
+  return { folders, rootVideos, totalFolders: folders.length };
+}
+
+// Full recursive scan with optional video metadata
 async function scanFolder(
   folderId: string,
   apiKey: string,
-  depth: number = 0
+  depth: number = 0,
+  fetchDurations: boolean = false
 ): Promise<any> {
   const files = await listFilesInFolder(folderId, apiKey);
 
@@ -112,8 +169,7 @@ async function scanFolder(
 
   for (const file of files) {
     if (file.mimeType === "application/vnd.google-apps.folder") {
-      // It's a subfolder (module)
-      const subContent = await scanFolder(file.id, apiKey, depth + 1);
+      const subContent = await scanFolder(file.id, apiKey, depth + 1, fetchDurations);
       folders.push({
         id: file.id,
         name: file.name,
@@ -121,8 +177,8 @@ async function scanFolder(
         ...subContent,
       });
     } else if (isVideoFile(file)) {
-      // It's a video file (lesson) - get duration metadata
-      const duration = await getVideoDuration(file.id, apiKey);
+      // Only fetch duration if requested (slower but more accurate)
+      const duration = fetchDurations ? await getVideoDuration(file.id, apiKey) : 0;
       videos.push({
         id: file.id,
         name: file.name,
@@ -133,7 +189,6 @@ async function scanFolder(
         embedUrl: `https://drive.google.com/file/d/${file.id}/preview`,
       });
     } else {
-      // Other files (resources like PDFs, images, etc.) - these can be downloaded
       resources.push({
         id: file.id,
         name: file.name,
@@ -145,7 +200,7 @@ async function scanFolder(
     }
   }
 
-  // Sort by name to maintain order
+  // Sort by name
   folders.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   videos.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
   resources.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
@@ -162,7 +217,6 @@ async function getVideoDuration(fileId: string, apiKey: string): Promise<number>
     
     const data = await response.json();
     if (data.videoMediaMetadata?.durationMillis) {
-      // Convert milliseconds to minutes (rounded)
       return Math.ceil(parseInt(data.videoMediaMetadata.durationMillis) / 60000);
     }
     return 0;
@@ -227,7 +281,6 @@ async function importStructure(
   for (const folder of structure.folders) {
     moduleOrderIndex++;
 
-    // Create module
     const { data: newModule, error: moduleError } = await supabase
       .from("modules")
       .insert({
@@ -245,21 +298,19 @@ async function importStructure(
 
     modulesCreated++;
 
-    // Create lessons from videos in this folder - NO free preview by default
-      let lessonOrderIndex = 0;
-      for (const video of folder.videos || []) {
-        const { data: newLesson, error: lessonError } = await supabase.from("lessons").insert({
-          module_id: newModule.id,
-          title: cleanVideoTitle(video.name),
-          video_url: video.embedUrl,
-          order_index: lessonOrderIndex,
-          duration_minutes: video.durationMinutes || 0,
-          is_free_preview: false,
-        }).select().single();
+    let lessonOrderIndex = 0;
+    for (const video of folder.videos || []) {
+      const { data: newLesson, error: lessonError } = await supabase.from("lessons").insert({
+        module_id: newModule.id,
+        title: cleanVideoTitle(video.name),
+        video_url: video.embedUrl,
+        order_index: lessonOrderIndex,
+        duration_minutes: video.durationMinutes || 0,
+        is_free_preview: false,
+      }).select().single();
 
-        if (!lessonError && newLesson) {
-          lessonsCreated++;
-        // Import resources for this folder's lessons (attach to first lesson)
+      if (!lessonError && newLesson) {
+        lessonsCreated++;
         if (lessonOrderIndex === 0 && folder.resources?.length > 0) {
           for (const resource of folder.resources) {
             await supabase.from("lesson_resources").insert({
@@ -275,7 +326,7 @@ async function importStructure(
       lessonOrderIndex++;
     }
 
-    // Process nested folders (sub-modules) as additional lessons
+    // Process nested folders as additional lessons
     for (const subFolder of folder.folders || []) {
       for (const video of subFolder.videos || []) {
         const { error: lessonError } = await supabase.from("lessons").insert({
@@ -295,7 +346,7 @@ async function importStructure(
     }
   }
 
-  // If there are videos directly in the root folder, create a "Main Content" module
+  // If there are videos directly in the root folder, create a "Course Content" module
   if (structure.videos && structure.videos.length > 0) {
     moduleOrderIndex++;
 
@@ -326,7 +377,6 @@ async function importStructure(
         if (!lessonError && newLesson) {
           lessonsCreated++;
           
-          // Attach resources to first lesson
           if (lessonOrderIndex === 0 && structure.resources?.length > 0) {
             for (const resource of structure.resources) {
               await supabase.from("lesson_resources").insert({
@@ -348,9 +398,7 @@ async function importStructure(
 }
 
 function cleanVideoTitle(filename: string): string {
-  // Remove file extension
   let title = filename.replace(/\.[^/.]+$/, "");
-  // Remove common prefixes like "01 - ", "1. ", etc.
   title = title.replace(/^\d+[\s._-]+/, "");
   return title.trim();
 }
