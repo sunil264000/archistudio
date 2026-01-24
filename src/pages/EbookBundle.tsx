@@ -19,7 +19,8 @@ import {
   Minus,
   Gift,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +34,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
+import { EbookPDFViewer } from '@/components/ebook/EbookPDFViewer';
 
 interface Ebook {
   id: string;
@@ -80,9 +82,16 @@ export default function EbookBundle() {
   const [loading, setLoading] = useState(true);
   const [phoneDialogOpen, setPhoneDialogOpen] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [selectedViewBook, setSelectedViewBook] = useState<{ id: string; title: string; hasAccess: boolean } | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const { initiatePayment, isLoading: purchasing } = useEbookPayment();
+
+  const handleOpenViewer = (book: { id: string; title: string }, hasAccess: boolean) => {
+    setSelectedViewBook({ id: book.id, title: book.title, hasAccess });
+    setViewerOpen(true);
+  };
 
   useEffect(() => {
     fetchData();
@@ -405,38 +414,50 @@ export default function EbookBundle() {
                     {ownedEbooks.map((book) => (
                       <motion.div
                         key={book.id}
-                        whileHover={{ scale: 1.02 }}
-                        className="p-4 rounded-xl bg-background/80 border border-success/20"
+                        whileHover={{ scale: 1.02, y: -2 }}
+                        className="p-4 rounded-xl bg-background/80 border border-success/20 hover:shadow-lg transition-all"
                       >
-                        <div className="flex items-start gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-success/20 flex items-center justify-center shrink-0">
-                            <BookOpen className="h-5 w-5 text-success" />
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center shrink-0 shadow-inner">
+                            <BookOpen className="h-6 w-6 text-success" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm line-clamp-2 mb-1">{book.title}</h4>
+                            <h4 className="font-semibold text-sm line-clamp-2 mb-1">{book.title}</h4>
                             <Badge variant="outline" className="text-xs bg-success/10 border-success/30 text-success">
                               Owned
                             </Badge>
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          className="w-full mt-3 gap-2 bg-success hover:bg-success/90"
-                          onClick={() => handleDownload(book.id, book.title)}
-                          disabled={downloading === book.id}
-                        >
-                          {downloading === book.id ? (
-                            <>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 gap-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenViewer(book, true);
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                            Read
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="flex-1 gap-1 bg-success hover:bg-success/90"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(book.id, book.title);
+                            }}
+                            disabled={downloading === book.id}
+                          >
+                            {downloading === book.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
-                              Downloading...
-                            </>
-                          ) : (
-                            <>
+                            ) : (
                               <Download className="h-4 w-4" />
-                              Download PDF
-                            </>
-                          )}
-                        </Button>
+                            )}
+                            {downloading === book.id ? '...' : 'Save'}
+                          </Button>
+                        </div>
                       </motion.div>
                     ))}
                   </div>
@@ -496,17 +517,18 @@ export default function EbookBundle() {
                         {categoryBooks.map((book) => (
                           <motion.div
                             key={book.id}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => toggleBook(book.id)}
+                            whileHover={{ scale: 1.02, y: -2 }}
                             className={`
-                              p-4 rounded-xl border cursor-pointer transition-all
+                              p-4 rounded-xl border transition-all group
                               ${selectedBooks.has(book.id) 
                                 ? 'bg-primary/20 border-primary/50 shadow-lg shadow-primary/10' 
-                                : 'bg-background/50 border-border/50 hover:border-primary/30'}
+                                : 'bg-background/50 border-border/50 hover:border-primary/30 hover:shadow-md'}
                             `}
                           >
-                            <div className="flex items-start gap-3">
+                            <div 
+                              className="flex items-start gap-3 cursor-pointer"
+                              onClick={() => toggleBook(book.id)}
+                            >
                               <div className={`
                                 h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 mt-0.5
                                 ${selectedBooks.has(book.id) 
@@ -526,6 +548,20 @@ export default function EbookBundle() {
                                 </p>
                               </div>
                             </div>
+                            
+                            {/* Preview Button */}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="w-full mt-3 gap-2 opacity-70 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenViewer(book, false);
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                              Preview First Pages
+                            </Button>
                           </motion.div>
                         ))}
                       </div>
@@ -604,6 +640,21 @@ export default function EbookBundle() {
         onOpenChange={setPhoneDialogOpen}
         onSubmit={handlePhoneSubmit}
       />
+
+      {/* PDF Viewer Modal */}
+      {selectedViewBook && (
+        <EbookPDFViewer
+          isOpen={viewerOpen}
+          onClose={() => {
+            setViewerOpen(false);
+            setSelectedViewBook(null);
+          }}
+          ebookId={selectedViewBook.id}
+          ebookTitle={selectedViewBook.title}
+          hasAccess={selectedViewBook.hasAccess}
+          previewPages={15}
+        />
+      )}
     </div>
   );
 }
