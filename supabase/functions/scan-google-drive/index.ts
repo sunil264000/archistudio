@@ -107,7 +107,7 @@ serve(async (req) => {
   }
 });
 
-// Shallow scan - only gets immediate subfolders with basic video counts (fast)
+// Deep scan - scans 4 levels of subfolders to count ALL videos
 async function scanFolderShallow(
   folderId: string,
   apiKey: string
@@ -117,36 +117,58 @@ async function scanFolderShallow(
   const folders: any[] = [];
   let rootVideos = 0;
 
-  for (const file of files) {
-    if (file.mimeType === "application/vnd.google-apps.folder") {
-      // For each subfolder, just count videos without deep recursion
-      const subFiles = await listFilesInFolder(file.id, apiKey);
-      let videoCount = 0;
-      let subFolderCount = 0;
-      
-      for (const subFile of subFiles) {
-        if (isVideoFile(subFile)) {
-          videoCount++;
-        } else if (subFile.mimeType === "application/vnd.google-apps.folder") {
-          subFolderCount++;
-          // Quick count of videos in nested folders
-          const nestedFiles = await listFilesInFolder(subFile.id, apiKey);
-          videoCount += nestedFiles.filter(f => isVideoFile(f)).length;
-        }
-      }
+  // Helper to recursively count videos up to maxDepth levels
+  async function countVideosDeep(folderId: string, currentDepth: number, maxDepth: number): Promise<number> {
+    if (currentDepth > maxDepth) return 0;
+    
+    const files = await listFilesInFolder(folderId, apiKey);
+    let count = 0;
+    
+    // Count videos at this level
+    count += files.filter(f => isVideoFile(f)).length;
+    
+    // Recursively count in subfolders
+    const subFolders = files.filter(f => f.mimeType === "application/vnd.google-apps.folder");
+    
+    // Process subfolders in parallel for speed
+    const subCounts = await Promise.all(
+      subFolders.map(f => countVideosDeep(f.id, currentDepth + 1, maxDepth))
+    );
+    
+    count += subCounts.reduce((sum, c) => sum + c, 0);
+    return count;
+  }
 
-      folders.push({
+  // Count subfolders at level 2 (for display info)
+  async function countSubFolders(folderId: string): Promise<number> {
+    const files = await listFilesInFolder(folderId, apiKey);
+    return files.filter(f => f.mimeType === "application/vnd.google-apps.folder").length;
+  }
+
+  // Process top-level folders in parallel
+  const topLevelFolders = files.filter(f => f.mimeType === "application/vnd.google-apps.folder");
+  const topLevelVideos = files.filter(f => isVideoFile(f));
+  rootVideos = topLevelVideos.length;
+
+  // Scan all top-level folders in parallel (each scanning 4 levels deep)
+  const folderResults = await Promise.all(
+    topLevelFolders.map(async (file) => {
+      // Count ALL videos up to 4 levels deep
+      const videoCount = await countVideosDeep(file.id, 1, 4);
+      const subFolderCount = await countSubFolders(file.id);
+
+      return {
         id: file.id,
         name: file.name,
         type: "folder",
         videoCount,
         subFolderCount,
         url: `https://drive.google.com/drive/folders/${file.id}`,
-      });
-    } else if (isVideoFile(file)) {
-      rootVideos++;
-    }
-  }
+      };
+    })
+  );
+
+  folders.push(...folderResults);
 
   // Sort folders by name
   folders.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
@@ -154,63 +176,94 @@ async function scanFolderShallow(
   return { folders, rootVideos, totalFolders: folders.length };
 }
 
-// FAST parallel scan - scans all subfolders in parallel for speed
+// FAST parallel scan - scans up to 4 levels of subfolders in parallel for speed
 async function scanFolderFast(
   folderId: string,
   apiKey: string
 ): Promise<any> {
-  const files = await listFilesInFolder(folderId, apiKey);
+  // Recursive function to scan folder and all subfolders up to depth 4
+  async function scanDeepParallel(folderId: string, depth: number): Promise<{ videos: any[], resources: any[], nestedFolders: any[] }> {
+    if (depth > 4) return { videos: [], resources: [], nestedFolders: [] };
+    
+    const files = await listFilesInFolder(folderId, apiKey);
+    
+    const videos = files.filter(f => isVideoFile(f)).map(v => ({
+      id: v.id,
+      name: v.name,
+      type: "video",
+      mimeType: v.mimeType,
+      durationMinutes: 0,
+      driveUrl: `https://drive.google.com/file/d/${v.id}/view`,
+      embedUrl: `https://drive.google.com/file/d/${v.id}/preview`,
+    }));
+    
+    const resources = files.filter(f => !isVideoFile(f) && f.mimeType !== "application/vnd.google-apps.folder").map(r => ({
+      id: r.id,
+      name: r.name,
+      type: "resource",
+      mimeType: r.mimeType,
+      downloadUrl: `https://drive.google.com/uc?export=download&id=${r.id}`,
+    }));
+    
+    const subFolders = files.filter(f => f.mimeType === "application/vnd.google-apps.folder");
+    
+    // Scan all subfolders in parallel
+    const nestedResults = await Promise.all(
+      subFolders.map(async (sf) => {
+        const nested = await scanDeepParallel(sf.id, depth + 1);
+        return {
+          name: sf.name,
+          id: sf.id,
+          ...nested,
+        };
+      })
+    );
+    
+    return { videos, resources, nestedFolders: nestedResults };
+  }
 
+  const files = await listFilesInFolder(folderId, apiKey);
   const folderFiles = files.filter(f => f.mimeType === "application/vnd.google-apps.folder");
   const videoFiles = files.filter(f => isVideoFile(f));
   const resourceFiles = files.filter(f => !isVideoFile(f) && f.mimeType !== "application/vnd.google-apps.folder");
 
-  // Scan all subfolders in PARALLEL
+  // Scan all top-level folders in PARALLEL (each will scan 4 levels deep)
   const subFolderResults = await Promise.all(
     folderFiles.map(async (folder) => {
-      const subFiles = await listFilesInFolder(folder.id, apiKey);
-      const videos = subFiles.filter(f => isVideoFile(f)).map(v => ({
-        id: v.id,
-        name: v.name,
-        type: "video",
-        mimeType: v.mimeType,
-        durationMinutes: 0,
-        driveUrl: `https://drive.google.com/file/d/${v.id}/view`,
-        embedUrl: `https://drive.google.com/file/d/${v.id}/preview`,
-      }));
-      const resources = subFiles.filter(f => !isVideoFile(f) && f.mimeType !== "application/vnd.google-apps.folder").map(r => ({
-        id: r.id,
-        name: r.name,
-        type: "resource",
-        mimeType: r.mimeType,
-        downloadUrl: `https://drive.google.com/uc?export=download&id=${r.id}`,
-      }));
+      const deepScan = await scanDeepParallel(folder.id, 1);
       
-      // Also check nested folders (one level deep for speed)
-      const nestedFolders = subFiles.filter(f => f.mimeType === "application/vnd.google-apps.folder");
-      const nestedResults = await Promise.all(
-        nestedFolders.map(async (nf) => {
-          const nestedFiles = await listFilesInFolder(nf.id, apiKey);
-          return {
-            name: nf.name,
-            videos: nestedFiles.filter(f => isVideoFile(f)).map(v => ({
-              id: v.id,
-              name: v.name,
-              type: "video",
-              embedUrl: `https://drive.google.com/file/d/${v.id}/preview`,
-              durationMinutes: 0,
-            })),
-          };
-        })
-      );
+      // Flatten all nested videos into a single list with folder prefix
+      const allVideos: any[] = [...deepScan.videos];
+      const allResources: any[] = [...deepScan.resources];
+      
+      // Recursive helper to flatten nested folder videos
+      function flattenVideos(folders: any[], prefix: string = "") {
+        for (const f of folders) {
+          const folderPrefix = prefix ? `${prefix} > ${f.name}` : f.name;
+          for (const v of f.videos || []) {
+            allVideos.push({
+              ...v,
+              name: `${folderPrefix} - ${v.name}`,
+              _originalName: v.name,
+              _folderPath: folderPrefix,
+            });
+          }
+          allResources.push(...(f.resources || []));
+          if (f.nestedFolders?.length > 0) {
+            flattenVideos(f.nestedFolders, folderPrefix);
+          }
+        }
+      }
+      
+      flattenVideos(deepScan.nestedFolders);
 
       return {
         id: folder.id,
         name: folder.name,
         type: "folder",
-        videos: videos.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })),
-        resources,
-        folders: nestedResults.filter(n => n.videos.length > 0),
+        videos: allVideos.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })),
+        resources: allResources,
+        folders: deepScan.nestedFolders.filter(n => n.videos?.length > 0 || n.nestedFolders?.length > 0),
       };
     })
   );
