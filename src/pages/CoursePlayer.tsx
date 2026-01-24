@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Navbar } from '@/components/layout/Navbar';
 import { SecureVideoPlayer } from '@/components/video/SecureVideoPlayer';
 import { CourseQA } from '@/components/course/CourseQA';
+import { LessonResources } from '@/components/course/LessonResources';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +14,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   ChevronLeft, Play, CheckCircle, Lock, Clock, 
-  BookOpen, Award, ChevronRight, CheckCircle2, MessageCircle
+  BookOpen, Award, ChevronRight, CheckCircle2, MessageCircle, Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -404,10 +405,13 @@ export default function CoursePlayer() {
                 </div>
               </div>
 
-              {/* Q&A Section Below Video */}
-              {course && (
+              {/* Resources & Q&A Section Below Video */}
+              {course && currentLesson && (
                 <div className="p-4 border-t">
-                  <Tabs defaultValue="qa" className="w-full">
+                  {/* Downloadable Resources */}
+                  <LessonResources lessonId={currentLesson.id} isEnrolled={isEnrolled} />
+                  
+                  <Tabs defaultValue="qa" className="w-full mt-4">
                     <TabsList className="mb-4">
                       <TabsTrigger value="qa" className="gap-2">
                         <MessageCircle className="h-4 w-4" />

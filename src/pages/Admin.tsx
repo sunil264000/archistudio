@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CourseEditDialog } from '@/components/admin/CourseEditDialog';
 import { LessonManagement } from '@/components/admin/LessonManagement';
+import { CourseManagement } from '@/components/admin/CourseManagement';
 import { CouponManagement } from '@/components/admin/CouponManagement';
 import { CertificateTemplateSettings } from '@/components/admin/CertificateTemplateSettings';
 import { ManualEnrollment } from '@/components/admin/ManualEnrollment';
@@ -89,7 +90,7 @@ export default function Admin() {
       case 'overview':
         return <AdminOverview stats={stats} />;
       case 'courses':
-        return <CoursesPanel />;
+        return <CourseManagement />;
       case 'bundles':
         return <CourseBundleManagement />;
       case 'lessons':
