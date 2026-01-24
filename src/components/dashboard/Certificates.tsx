@@ -88,16 +88,16 @@ export function Certificates() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Award className="h-5 w-5" />
-          My Certificates
+          Proof of Completion
         </CardTitle>
-        <CardDescription>Certificates of completion for your courses</CardDescription>
+        <CardDescription>Documentation of your completed studio programs</CardDescription>
       </CardHeader>
       <CardContent>
         {certificates.length === 0 ? (
           <div className="text-center py-12">
             <Award className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No certificates yet</h3>
-            <p className="text-muted-foreground">Complete a course to earn your certificate!</p>
+            <h3 className="text-lg font-medium mb-2">No completions yet</h3>
+            <p className="text-muted-foreground">Complete a studio program to receive your proof of completion.</p>
           </div>
         ) : (
           <div className="space-y-4">

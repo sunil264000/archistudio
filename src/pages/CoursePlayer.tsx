@@ -245,13 +245,13 @@ export default function CoursePlayer() {
     setShowFinishButton(false);
     setWatchProgress(0);
 
-    toast.success('Lesson completed! 🎉');
+    toast.success('Session completed! 🎉');
     
     // Check for course completion
     const allLessons = modules.flatMap(m => m.lessons);
     const newCompletedCount = Object.values(progress).filter(p => p.completed).length + 1;
     if (newCompletedCount >= allLessons.length) {
-      toast.success('🏆 Congratulations! You completed the course!');
+      toast.success('🏆 Congratulations! You completed this studio program!');
       // Trigger certificate generation
       supabase.functions.invoke('check-course-completion', {
         body: { userId: user.id, courseId: course?.id }
@@ -310,7 +310,7 @@ export default function CoursePlayer() {
             <Link to={`/course/${slug}`}>
               <Button variant="ghost" size="sm" className="gap-2 mb-2">
                 <ChevronLeft className="h-4 w-4" />
-                Back to Course
+                Back to Studio
               </Button>
             </Link>
             <h2 className="font-semibold truncate">{course?.title}</h2>
@@ -457,7 +457,7 @@ export default function CoursePlayer() {
                         className="bg-success hover:bg-success/90 text-success-foreground animate-pulse"
                       >
                         <CheckCircle2 className="h-4 w-4 mr-1" />
-                        Finish Lesson
+                        Finish Session
                       </Button>
                     )}
                     

@@ -41,7 +41,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Welcome, {profile?.full_name || 'Student'}!</h1>
-              <p className="text-muted-foreground">Continue your learning journey</p>
+              <p className="text-muted-foreground">Continue your practice</p>
             </div>
             {isAdmin && (
               <Link to="/admin">
@@ -57,7 +57,7 @@ export default function Dashboard() {
             <TabsList className="grid w-full grid-cols-4 max-w-lg">
               <TabsTrigger value="courses" className="gap-2">
                 <BookOpen className="h-4 w-4" />
-                <span className="hidden sm:inline">Courses</span>
+                <span className="hidden sm:inline">Studios</span>
               </TabsTrigger>
               <TabsTrigger value="progress" className="gap-2">
                 <BarChart3 className="h-4 w-4" />
@@ -65,7 +65,7 @@ export default function Dashboard() {
               </TabsTrigger>
               <TabsTrigger value="certificates" className="gap-2">
                 <Award className="h-4 w-4" />
-                <span className="hidden sm:inline">Certificates</span>
+                <span className="hidden sm:inline">Completions</span>
               </TabsTrigger>
               <TabsTrigger value="referrals" className="gap-2">
                 <Gift className="h-4 w-4" />

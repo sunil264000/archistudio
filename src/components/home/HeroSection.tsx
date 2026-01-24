@@ -106,10 +106,23 @@ export function HeroSection() {
               </span>
             </motion.h1>
             
+            {/* Positioning Statement */}
+            <motion.div
+              variants={fadeInUp}
+              className="max-w-3xl mx-auto mb-4"
+            >
+              <div className="px-6 py-4 rounded-xl bg-secondary/60 backdrop-blur-sm border border-border/50">
+                <p className="text-lg md:text-xl text-foreground font-medium leading-relaxed text-center">
+                  This platform teaches what architecture colleges and CAD institutes don't:{' '}
+                  <span className="text-accent">how real buildings are designed, detailed, and executed in offices.</span>
+                </p>
+              </div>
+            </motion.div>
+            
             {/* Subheadline with word highlighting */}
             <motion.p 
               variants={fadeInUp}
-              className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
+              className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
             >
               From site analysis to working drawings, construction logic to sustainability — 
               <motion.span 
@@ -117,7 +130,7 @@ export function HeroSection() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.2, duration: 0.5 }}
-              > practical skills that colleges don't teach</motion.span> but the industry demands.
+              > practical skills</motion.span> the industry demands.
             </motion.p>
 
             {/* CTAs with enhanced hover */}
@@ -137,7 +150,7 @@ export function HeroSection() {
                       animate={{ x: '200%' }}
                       transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
                     />
-                    {user ? "Browse Courses" : "Start Learning Today"}
+                    {user ? "Explore Studios" : "Begin Your Practice"}
                     <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                   </Button>
                 </motion.div>
@@ -152,7 +165,7 @@ export function HeroSection() {
               {[
                 "No prior CAD knowledge needed",
                 "Learn at your own pace",
-                "Certificate on completion"
+                "Proof of Completion included"
               ].map((text, i) => (
                 <motion.div 
                   key={text}
