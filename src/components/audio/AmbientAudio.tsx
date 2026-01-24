@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { Volume2, VolumeX, Music } from 'lucide-react';
+import { Volume2, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { supabase } from '@/integrations/supabase/client';
 
-// Royalty-free ambient music from Pixabay
-const AMBIENT_AUDIO_URL = "https://cdn.pixabay.com/audio/2022/03/10/audio_50a3d1f86b.mp3";
+// Fallback audio URL
+const FALLBACK_AUDIO_URL = "https://cdn.pixabay.com/audio/2022/03/10/audio_50a3d1f86b.mp3";
 
 export function AmbientAudio() {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -12,15 +13,58 @@ export function AmbientAudio() {
   const [showControls, setShowControls] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Fetch audio URL from database
   useEffect(() => {
-    // Create audio element
+    const fetchAudioUrl = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'ambient_audio_url')
+          .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        
+        let url = data?.value || FALLBACK_AUDIO_URL;
+        
+        // Convert YouTube URL to audio if needed
+        if (url && (url.includes('youtube.com') || url.includes('youtu.be'))) {
+          const patterns = [
+            /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+          ];
+          for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match) {
+              // Use cobalt.tools API for YouTube audio extraction
+              url = `https://api.cobalt.tools/api/json`;
+              break;
+            }
+          }
+        }
+        
+        setAudioUrl(url || FALLBACK_AUDIO_URL);
+      } catch (error) {
+        console.error('Error fetching audio URL:', error);
+        setAudioUrl(FALLBACK_AUDIO_URL);
+      }
+    };
+
+    fetchAudioUrl();
+  }, []);
+
+  // Initialize audio when URL is ready
+  useEffect(() => {
+    if (!audioUrl) return;
+
     const audio = new Audio();
-    audio.src = AMBIENT_AUDIO_URL;
+    audio.src = audioUrl;
     audio.loop = true;
     audio.volume = volume / 100;
     audio.preload = 'auto';
+    audio.crossOrigin = 'anonymous';
     
     audio.oncanplaythrough = () => {
       setIsLoaded(true);
@@ -28,9 +72,13 @@ export function AmbientAudio() {
     };
     
     audio.onerror = () => {
-      console.error('Audio failed to load');
-      setHasError(true);
-      setIsLoaded(false);
+      console.error('Audio failed to load, trying fallback');
+      if (audioUrl !== FALLBACK_AUDIO_URL) {
+        setAudioUrl(FALLBACK_AUDIO_URL);
+      } else {
+        setHasError(true);
+        setIsLoaded(false);
+      }
     };
     
     audioRef.current = audio;
@@ -42,7 +90,7 @@ export function AmbientAudio() {
         audioRef.current = null;
       }
     };
-  }, []);
+  }, [audioUrl]);
 
   useEffect(() => {
     if (audioRef.current) {
