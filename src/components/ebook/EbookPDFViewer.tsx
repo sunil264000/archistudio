@@ -35,6 +35,7 @@ interface EbookPDFViewerProps {
   ebookTitle: string;
   hasAccess: boolean;
   previewPages?: number;
+  onPurchaseRequest?: (ebookId: string, ebookTitle: string) => void;
 }
 
 export function EbookPDFViewer({ 
@@ -43,7 +44,8 @@ export function EbookPDFViewer({
   ebookId, 
   ebookTitle, 
   hasAccess,
-  previewPages = 15 
+  previewPages = 15,
+  onPurchaseRequest
 }: EbookPDFViewerProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -212,8 +214,13 @@ export function EbookPDFViewer({
   };
 
   const handlePurchase = () => {
-    onClose();
-    navigate('/ebooks');
+    if (onPurchaseRequest) {
+      onPurchaseRequest(ebookId, ebookTitle);
+      onClose();
+    } else {
+      onClose();
+      navigate('/ebooks');
+    }
   };
 
   const handlePageLoadSuccess = () => {
@@ -426,20 +433,58 @@ export function EbookPDFViewer({
                           initial={{ scale: 0.8, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ delay: 0.1 }}
-                          className="text-center p-8"
+                          className="text-center p-8 max-w-lg mx-auto"
                         >
-                          <div className="h-24 w-24 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-6 mx-auto border border-primary/30">
-                            <Lock className="h-12 w-12 text-primary" />
-                          </div>
-                          <h3 className="text-2xl font-bold mb-3">Preview Limit Reached</h3>
-                          <p className="text-muted-foreground text-center mb-8 max-w-md">
-                            You've enjoyed {previewPages} free preview pages. 
-                            Purchase to unlock all <span className="text-primary font-semibold">{numPages} pages</span>.
+                          <motion.div 
+                            className="h-28 w-28 rounded-full bg-gradient-to-br from-primary/30 via-accent/20 to-primary/10 flex items-center justify-center mb-6 mx-auto border-2 border-primary/40 shadow-xl"
+                            animate={{ 
+                              boxShadow: ['0 0 20px rgba(var(--primary), 0.3)', '0 0 40px rgba(var(--primary), 0.5)', '0 0 20px rgba(var(--primary), 0.3)']
+                            }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                          >
+                            <Lock className="h-14 w-14 text-primary" />
+                          </motion.div>
+                          
+                          <Badge className="mb-4 bg-amber-500/20 text-amber-600 border-amber-500/40">
+                            <Eye className="h-3 w-3 mr-1" />
+                            Preview Complete
+                          </Badge>
+                          
+                          <h3 className="text-2xl md:text-3xl font-bold mb-3">
+                            Enjoying this book?
+                          </h3>
+                          <p className="text-muted-foreground text-center mb-6 text-sm md:text-base">
+                            You've read {previewPages} preview pages. 
+                            Unlock the full <span className="text-primary font-semibold">{numPages} pages</span> to continue learning.
                           </p>
-                          <Button onClick={handlePurchase} size="lg" className="gap-2 shadow-lg">
-                            <ShoppingCart className="h-5 w-5" />
-                            Purchase Full eBook
-                          </Button>
+                          
+                          <div className="bg-card/80 rounded-xl p-4 mb-6 border border-border/50">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium">{ebookTitle}</span>
+                              <Badge variant="outline" className="text-xs">₹50/book</Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground text-left">
+                              Buy more books together to save up to 45% with our tiered pricing!
+                            </p>
+                          </div>
+                          
+                          <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <Button 
+                              onClick={handlePurchase} 
+                              size="lg" 
+                              className="gap-2 shadow-lg w-full md:w-auto bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
+                            >
+                              <ShoppingCart className="h-5 w-5" />
+                              Continue to Purchase
+                            </Button>
+                          </motion.div>
+                          
+                          <p className="text-xs text-muted-foreground mt-4">
+                            One-time purchase • Instant access • Download anytime
+                          </p>
                         </motion.div>
                       </motion.div>
                     )}
