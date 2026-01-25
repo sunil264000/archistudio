@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { EmailVerificationForm } from './EmailVerificationForm';
 
 const loginSchema = z.object({
   email: z.string().trim().email({ message: 'Please enter a valid email address' }),
@@ -39,6 +40,8 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
   const { signInWithEmail, signUpWithEmail } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState('');
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -60,7 +63,7 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
         if (error.message.includes('Invalid login credentials')) {
           toast.error('Invalid email or password. Please try again.');
         } else if (error.message.includes('Email not confirmed')) {
-          toast.error('Please verify your email before logging in.');
+          toast.error('Please verify your email before logging in. Check your inbox or spam folder.');
         } else {
           toast.error(error.message);
         }
@@ -91,14 +94,37 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
         return;
       }
       
-      toast.success('Account created successfully! Welcome aboard.');
-      onSuccess?.();
+      // Show verification form
+      setPendingEmail(data.email);
+      setShowVerification(true);
+      toast.info('Verification code sent! Check your email (including spam folder).');
     } catch (err) {
       toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  const handleVerificationSuccess = () => {
+    toast.success('Email verified! Welcome to Archistudio.');
+    onSuccess?.();
+  };
+
+  const handleBackToSignup = () => {
+    setShowVerification(false);
+    setPendingEmail('');
+  };
+
+  // Show verification form if pending
+  if (showVerification && mode === 'signup') {
+    return (
+      <EmailVerificationForm
+        email={pendingEmail}
+        onVerified={handleVerificationSuccess}
+        onBack={handleBackToSignup}
+      />
+    );
+  }
 
   if (mode === 'login') {
     return (

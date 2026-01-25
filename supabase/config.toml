@@ -47,3 +47,9 @@ verify_jwt = false
 
 [functions.create-emi-order]
 verify_jwt = false
+
+[functions.send-verification-email]
+verify_jwt = false
+
+[functions.get-course-curriculum-public]
+verify_jwt = false
