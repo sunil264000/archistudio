@@ -94,10 +94,10 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
         return;
       }
       
-      // Show verification form
+      // Show verification form with link-based instructions
       setPendingEmail(data.email);
       setShowVerification(true);
-      toast.info('Verification code sent! Check your email (including spam folder).');
+      toast.info('Verification email sent! Please check your inbox and click the verification link.');
     } catch (err) {
       toast.error('An unexpected error occurred. Please try again.');
     } finally {
