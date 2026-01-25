@@ -161,36 +161,8 @@ export function SecureVideoPlayer({
     }
   };
 
-  // Generate decoy URLs to confuse download managers
-  const generateDecoyUrls = () => {
-    const decoys = [];
-    for (let i = 0; i < 5; i++) {
-      const fakeToken = Math.random().toString(36).substring(2, 15);
-      const fakeTimestamp = Date.now() - Math.floor(Math.random() * 10000);
-      decoys.push(`https://decoy-${i}.invalid/video?t=${fakeToken}&ts=${fakeTimestamp}`);
-    }
-    // Add decoy link elements to DOM (these will fail to download but confuse sniffers)
-    decoys.forEach((url, i) => {
-      const link = document.createElement('link');
-      link.rel = 'prefetch';
-      link.href = url;
-      link.id = `decoy-${i}`;
-      document.head.appendChild(link);
-    });
-  };
-
-  // Clean up decoy URLs
-  const cleanupDecoys = () => {
-    for (let i = 0; i < 5; i++) {
-      const decoy = document.getElementById(`decoy-${i}`);
-      if (decoy) decoy.remove();
-    }
-  };
-
-  useEffect(() => {
-    generateDecoyUrls();
-    return () => cleanupDecoys();
-  }, []);
+  // NOTE: Decoy prefetch links removed.
+  // They can confuse some browsers / network stacks and do not materially improve security.
 
   useEffect(() => {
     // Prevent re-fetching if we already have the URL for this videoPath
