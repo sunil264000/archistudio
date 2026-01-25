@@ -401,21 +401,31 @@ export default function CoursePlayer() {
       <Navbar />
       
       {/* Mobile Header with Lesson Toggle */}
-      <div className="md:hidden sticky top-16 z-40 bg-background/95 backdrop-blur-sm border-b p-2 flex items-center gap-2">
+      <div className="md:hidden sticky top-16 z-40 bg-background/95 backdrop-blur-sm border-b px-3 py-2 flex items-center gap-2 safe-area-inset">
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2 touch-target shrink-0">
               <List className="h-4 w-4" />
-              Lessons
+              <span className="text-xs">Lessons</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[85vw] max-w-sm p-0 flex flex-col">
+          <SheetContent side="left" className="w-[90vw] max-w-sm p-0 flex flex-col">
             <SidebarContent />
           </SheetContent>
         </Sheet>
         
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{currentLesson?.title || 'Select a lesson'}</p>
+          <p className="text-xs font-medium truncate">{currentLesson?.title || 'Select a lesson'}</p>
+        </div>
+        
+        {/* Quick nav arrows for mobile */}
+        <div className="flex gap-1 shrink-0">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToPrevLesson}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToNextLesson}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -426,28 +436,30 @@ export default function CoursePlayer() {
         </aside>
 
         {/* Main Content - Video Player */}
-        <main className="flex-1 flex flex-col overflow-auto">
+        <main className="flex-1 flex flex-col overflow-auto mobile-scroll">
           {currentLesson ? (
             <ScrollArea className="flex-1">
-              {/* Video Container - Full width on mobile */}
-              <div className="bg-black flex items-center justify-center p-2 md:p-4">
+              {/* Video Container - Full width on mobile with proper aspect ratio */}
+              <div className="bg-black flex items-center justify-center">
                 {currentLesson.video_url ? (
-                  <div className="w-full max-w-5xl">
-                    <SecureVideoPlayer
-                      lessonId={currentLesson.id}
-                      videoPath={currentLesson.video_url}
-                      onProgress={handleProgress}
-                      onComplete={handleComplete}
-                      initialPosition={progress[currentLesson.id]?.last_position_seconds || 0}
-                      allowExternal={currentLesson.is_free_preview && !isEnrolled}
-                    />
+                  <div className="w-full">
+                    <div className="w-full aspect-video max-w-5xl mx-auto">
+                      <SecureVideoPlayer
+                        lessonId={currentLesson.id}
+                        videoPath={currentLesson.video_url}
+                        onProgress={handleProgress}
+                        onComplete={handleComplete}
+                        initialPosition={progress[currentLesson.id]?.last_position_seconds || 0}
+                        allowExternal={currentLesson.is_free_preview && !isEnrolled}
+                      />
+                    </div>
                   </div>
                 ) : (
-                  <div className="text-center text-white py-8 md:py-16">
+                  <div className="text-center text-white py-8 md:py-16 px-4">
                     <BookOpen className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-4 opacity-50" />
-                    <p>No video available for this lesson</p>
+                    <p className="text-sm md:text-base">No video available for this lesson</p>
                     {currentLesson.description && (
-                      <p className="mt-4 text-sm opacity-75 max-w-md px-4">
+                      <p className="mt-4 text-xs md:text-sm opacity-75 max-w-md">
                         {currentLesson.description}
                       </p>
                     )}
@@ -457,47 +469,48 @@ export default function CoursePlayer() {
 
               {/* Lesson Info Bar */}
               <div className="border-t p-3 md:p-4 bg-card">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-sm md:text-base truncate">{currentLesson.title}</h3>
-                      {progress[currentLesson.id]?.completed && (
-                        <Badge variant="secondary" className="bg-success/10 text-success shrink-0 text-xs">
-                          <CheckCircle2 className="h-3 w-3 mr-1" />
-                          Completed
-                        </Badge>
+                <div className="flex flex-col gap-3">
+                  {/* Title and status */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-sm md:text-base truncate">{currentLesson.title}</h3>
+                        {progress[currentLesson.id]?.completed && (
+                          <Badge variant="secondary" className="bg-success/10 text-success shrink-0 text-xs">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Done
+                          </Badge>
+                        )}
+                      </div>
+                      {currentLesson.description && (
+                        <p className="text-xs md:text-sm text-muted-foreground mt-1 line-clamp-2">
+                          {currentLesson.description}
+                        </p>
                       )}
                     </div>
-                    {currentLesson.description && (
-                      <p className="text-xs md:text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {currentLesson.description}
-                      </p>
-                    )}
-                  </div>
-                  
-                  {/* Navigation Buttons */}
-                  <div className="flex gap-2 shrink-0 flex-wrap">
-                    <Button variant="outline" size="sm" onClick={goToPrevLesson} className="text-xs md:text-sm">
-                      <ChevronLeft className="h-4 w-4" />
-                      <span className="hidden sm:inline">Previous</span>
-                    </Button>
                     
-                    {/* Finish Lesson Button - Shows at 95%+ watch time */}
+                    {/* Finish Button - more prominent on mobile */}
                     {showFinishButton && !progress[currentLesson.id]?.completed && (
                       <Button 
                         size="sm" 
                         onClick={handleFinishLesson}
-                        className="bg-success hover:bg-success/90 text-success-foreground animate-pulse text-xs md:text-sm"
+                        className="bg-success hover:bg-success/90 text-success-foreground shrink-0 text-xs md:text-sm"
                       >
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
-                        <span className="hidden sm:inline">Finish Session</span>
-                        <span className="sm:hidden">Finish</span>
+                        <CheckCircle2 className="h-4 w-4 md:mr-1" />
+                        <span className="hidden md:inline">Finish Session</span>
                       </Button>
                     )}
-                    
-                    <Button size="sm" onClick={goToNextLesson} className="text-xs md:text-sm">
-                      <span className="hidden sm:inline">Next</span>
-                      <ChevronRight className="h-4 w-4" />
+                  </div>
+                  
+                  {/* Navigation Buttons - Hidden on mobile (they're in the header now) */}
+                  <div className="hidden md:flex gap-2 justify-end">
+                    <Button variant="outline" size="sm" onClick={goToPrevLesson}>
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+                    <Button size="sm" onClick={goToNextLesson}>
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   </div>
                 </div>

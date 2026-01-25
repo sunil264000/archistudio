@@ -242,7 +242,55 @@
 }
 
 @layer utilities {
-  /* Smooth appearance animations */
+  /* ========== MOBILE PERFORMANCE OPTIMIZATIONS ========== */
+  
+  /* Disable heavy animations on mobile for max smoothness */
+  @media (max-width: 768px) {
+    .animate-float,
+    .animate-glow,
+    .pulse-ring::after,
+    .stagger-children > *,
+    .text-gradient-animated {
+      animation: none !important;
+    }
+    
+    .card-3d:hover,
+    .interactive-card:hover,
+    .hover-lift:hover,
+    .card-architectural:hover {
+      transform: none !important;
+    }
+    
+    /* Force GPU acceleration for smooth scrolling */
+    * {
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Reduce motion complexity */
+    .glass {
+      backdrop-filter: blur(8px);
+    }
+  }
+  
+  /* Respect user's reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    
+    .animate-float,
+    .animate-glow,
+    .animate-pulse,
+    .pulse-ring::after {
+      animation: none !important;
+    }
+  }
+
+  /* ========== SMOOTH APPEARANCE ANIMATIONS ========== */
   .animate-in-up {
     animation: fadeInUp 0.6s ease-out forwards;
   }
@@ -290,7 +338,7 @@
     }
   }
 
-  /* Float animation */
+  /* Float animation - disabled on mobile via media query above */
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
@@ -304,7 +352,7 @@
     }
   }
 
-  /* Glow pulse */
+  /* Glow pulse - disabled on mobile */
   .animate-glow {
     animation: glow 2s ease-in-out infinite alternate;
   }
@@ -318,7 +366,7 @@
     }
   }
 
-  /* Stagger children animations */
+  /* Stagger children animations - simplified on mobile */
   .stagger-children > * {
     opacity: 0;
     animation: fadeInUp 0.5s ease-out forwards;
@@ -333,14 +381,16 @@
   .stagger-children > *:nth-child(7) { animation-delay: 0.7s; }
   .stagger-children > *:nth-child(8) { animation-delay: 0.8s; }
 
-  /* 3D card effect */
+  /* 3D card effect - disabled on mobile */
   .card-3d {
     transform-style: preserve-3d;
     perspective: 1000px;
   }
 
-  .card-3d:hover {
-    transform: rotateX(5deg) rotateY(5deg) translateZ(10px);
+  @media (min-width: 769px) {
+    .card-3d:hover {
+      transform: rotateX(5deg) rotateY(5deg) translateZ(10px);
+    }
   }
 
   /* Smooth transitions for all interactive elements */
@@ -378,7 +428,7 @@
     100% { background-position: -200% 0; }
   }
 
-  /* Animated shimmer for gradients */
+  /* Animated shimmer for gradients - disabled on mobile */
   .animate-shimmer {
     animation: gradient-shift 3s ease infinite;
   }
@@ -399,17 +449,19 @@
     border: 1px solid hsl(var(--border) / 0.5);
   }
 
-  /* Hover lift effect */
+  /* Hover lift effect - desktop only */
   .hover-lift {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
-  .hover-lift:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px -12px hsl(var(--foreground) / 0.15);
+  @media (min-width: 769px) {
+    .hover-lift:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px -12px hsl(var(--foreground) / 0.15);
+    }
   }
 
-  /* Text gradient animation */
+  /* Text gradient animation - disabled on mobile */
   .text-gradient-animated {
     background: linear-gradient(
       90deg,
@@ -424,7 +476,7 @@
     animation: gradient-shift 3s ease infinite;
   }
 
-  /* Pulse ring animation */
+  /* Pulse ring animation - disabled on mobile */
   .pulse-ring {
     position: relative;
   }
@@ -449,15 +501,48 @@
     }
   }
 
-  /* Interactive card with subtle parallax */
+  /* Interactive card with subtle parallax - desktop only */
   .interactive-card {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .interactive-card:hover {
-    transform: translateY(-8px) scale(1.01);
-    box-shadow: 
-      0 20px 40px -20px hsl(var(--foreground) / 0.15),
-      0 0 0 1px hsl(var(--accent) / 0.1);
+  @media (min-width: 769px) {
+    .interactive-card:hover {
+      transform: translateY(-8px) scale(1.01);
+      box-shadow: 
+        0 20px 40px -20px hsl(var(--foreground) / 0.15),
+        0 0 0 1px hsl(var(--accent) / 0.1);
+    }
+  }
+
+  /* ========== MOBILE-FIRST LAYOUT UTILITIES ========== */
+  
+  /* Safe area padding for notched devices */
+  .safe-area-inset {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Mobile-optimized touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Smooth mobile scrolling container */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* Hide scrollbars on mobile for cleaner look */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
