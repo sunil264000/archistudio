@@ -34,6 +34,10 @@ export function SecureVideoPlayer({
   const { user, session } = useAuth();
 
   const isExternalUrl = useMemo(() => /^https?:\/\//i.test(videoPath || ''), [videoPath]);
+  const isGoogleDriveUrl = useMemo(
+    () => /drive\.google\.com|docs\.google\.com/i.test(videoPath || ''),
+    [videoPath],
+  );
 
   useEffect(() => {
     const fetchVideoUrl = async () => {
@@ -54,6 +58,62 @@ export function SecureVideoPlayer({
             setError('This video is hosted externally and is disabled for this lesson.');
             return;
           }
+
+          // Google Drive “view” links are not directly playable by <video>.
+          // Use the existing HD streaming proxy for Drive links.
+          if (isGoogleDriveUrl) {
+            const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+            if (user) {
+              let accessToken = session?.access_token;
+              if (!accessToken) {
+                await supabase.auth.refreshSession().catch(() => undefined);
+                const { data: { session: refreshed } } = await supabase.auth.getSession();
+                accessToken = refreshed?.access_token;
+              }
+              if (!accessToken) throw new Error('Please sign in again to continue.');
+
+              const { data, error: ticketError } = await supabase.functions.invoke('mint-video-ticket', {
+                body: { lessonId, videoPath },
+                headers: { Authorization: `Bearer ${accessToken}` },
+              });
+              if (ticketError) throw ticketError;
+              if (!data?.ticket) throw new Error('Could not start video stream');
+
+              const params = new URLSearchParams({
+                ticket: data.ticket,
+                l: lessonId,
+                p: videoPath,
+                _: Math.random().toString(36).slice(2),
+              });
+              setVideoUrl(`${baseUrl}/functions/v1/stream-video?${params.toString()}`);
+              return;
+            }
+
+            if (isFreePreview) {
+              const { data, error: ticketError } = await supabase.functions.invoke(
+                'mint-video-ticket-public',
+                { body: { lessonId, videoPath } },
+              );
+              if (ticketError) throw ticketError;
+              if (!data?.ticket) throw new Error('Could not start preview stream');
+
+              const params = new URLSearchParams({
+                ticket: data.ticket,
+                l: lessonId,
+                p: videoPath,
+                _: Math.random().toString(36).slice(2),
+              });
+              setVideoUrl(`${baseUrl}/functions/v1/stream-video?${params.toString()}`);
+              return;
+            }
+
+            setVideoUrl(null);
+            setError('Please sign in and enroll to watch this lesson.');
+            return;
+          }
+
+          // Other external URLs can be played directly.
           setVideoUrl(videoPath);
           return;
         }
