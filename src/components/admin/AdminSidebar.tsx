@@ -5,7 +5,7 @@ import {
   BookOpen, Package, Video, Users, UserPlus, HelpCircle, Bell, 
   CreditCard, Sparkles, Award, BarChart3, MessageSquare, Settings,
   ChevronLeft, ChevronRight, LayoutDashboard, Timer, Mail, Send, Library, FileText, KeyRound,
-  Gift, Wallet, Rocket
+  Gift, Wallet, Rocket, Zap
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logo from '@/assets/logo.png';
@@ -19,6 +19,7 @@ interface AdminSidebarProps {
 
 const menuItems = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, color: 'text-blue-500' },
+  { id: 'realtime', label: 'Realtime', icon: Zap, color: 'text-accent' },
   { id: 'courses', label: 'Courses', icon: BookOpen, color: 'text-accent' },
   { id: 'bundles', label: 'Bundles', icon: Package, color: 'text-purple-500' },
   { id: 'lessons', label: 'Lessons', icon: Video, color: 'text-green-500' },

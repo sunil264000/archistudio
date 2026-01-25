@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { trackPurchaseAttempt, updatePurchaseAttempt } from "@/hooks/useLiveActivity";
 
 declare global {
   interface Window {
@@ -43,6 +44,7 @@ export const useCashfreePayment = () => {
 
   const initiatePayment = async (details: PaymentDetails) => {
     setIsLoading(true);
+    let attemptId: string | null = null;
 
     try {
       // Load Cashfree SDK
@@ -54,6 +56,23 @@ export const useCashfreePayment = () => {
         throw new Error("Please login to make a payment");
       }
 
+      // Get course ID from slug for tracking
+      const { data: courseData } = await supabase
+        .from('courses')
+        .select('id')
+        .eq('slug', details.courseId)
+        .single();
+
+      // Track purchase attempt
+      if (courseData?.id) {
+        attemptId = await trackPurchaseAttempt(
+          session.user.id,
+          courseData.id,
+          details.amount,
+          'initiated'
+        );
+      }
+
       // Create order via edge function
       const { data, error } = await supabase.functions.invoke("create-cashfree-order", {
         headers: {
@@ -62,9 +81,20 @@ export const useCashfreePayment = () => {
         body: details,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Track failed attempt
+        if (attemptId) {
+          await updatePurchaseAttempt(attemptId, 'failed', { error: error.message });
+        }
+        throw error;
+      }
 
       const { paymentSessionId } = data;
+
+      // Update attempt to payment started
+      if (attemptId) {
+        await updatePurchaseAttempt(attemptId, 'payment_started', { paymentSessionId });
+      }
 
       // Initialize Cashfree checkout
       const cashfree = window.Cashfree({
@@ -78,6 +108,12 @@ export const useCashfreePayment = () => {
 
     } catch (error: any) {
       console.error("Payment error:", error);
+      
+      // Track failed attempt
+      if (attemptId) {
+        await updatePurchaseAttempt(attemptId, 'failed', { error: error.message });
+      }
+      
       toast({
         title: "Payment Error",
         description: error.message || "Failed to initiate payment",

@@ -29,6 +29,7 @@ import { ManualEbookAccess } from '@/components/admin/ManualEbookAccess';
 import { GiftCampaignManagement } from '@/components/admin/GiftCampaignManagement';
 import { EMISettingsManagement } from '@/components/admin/EMISettingsManagement';
 import { LaunchFreeCourseManagement } from '@/components/admin/LaunchFreeCourseManagement';
+import { RealtimeAnalytics } from '@/components/admin/RealtimeAnalytics';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
@@ -99,6 +100,8 @@ export default function Admin() {
     switch (activeTab) {
       case 'overview':
         return <AdminOverview stats={stats} onNavigate={setActiveTab} />;
+      case 'realtime':
+        return <RealtimeAnalytics />;
       case 'courses':
         return <CourseManagement />;
       case 'bundles':
