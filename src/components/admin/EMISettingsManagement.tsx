@@ -8,8 +8,12 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { CreditCard, Pencil, Loader2, Plus, Trash2, Percent } from 'lucide-react';
+import { CreditCard, Pencil, Loader2, Plus, Trash2, Percent, ChevronDown, Layers, FileText } from 'lucide-react';
 
 interface Course {
   id: string;
@@ -32,6 +36,8 @@ interface EMISetting {
 interface PaymentTier {
   percent: number;
   module_order_indices: number[];
+  lesson_ids?: string[]; // NEW: Support individual lesson selection
+  unlock_mode: 'modules' | 'lessons'; // NEW: Choose unlock mode
   label: string;
 }
 
@@ -41,6 +47,17 @@ interface Module {
   order_index: number;
 }
 
+interface Lesson {
+  id: string;
+  title: string;
+  order_index: number;
+  module_id: string;
+}
+
+interface ModuleWithLessons extends Module {
+  lessons: Lesson[];
+}
+
 export function EMISettingsManagement() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [emiSettings, setEmiSettings] = useState<EMISetting[]>([]);
@@ -48,7 +65,8 @@ export function EMISettingsManagement() {
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [modules, setModules] = useState<Module[]>([]);
+  const [modulesWithLessons, setModulesWithLessons] = useState<ModuleWithLessons[]>([]);
+  const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
 
   // Form state
   const [form, setForm] = useState({
@@ -79,7 +97,13 @@ export function EMISettingsManagement() {
       // Parse payment_tiers from JSONB
       const parsed = (settingsData || []).map(s => ({
         ...s,
-        payment_tiers: Array.isArray(s.payment_tiers) ? s.payment_tiers as unknown as PaymentTier[] : []
+        payment_tiers: Array.isArray(s.payment_tiers) 
+          ? (s.payment_tiers as unknown as PaymentTier[]).map(t => ({
+              ...t,
+              unlock_mode: t.unlock_mode || 'modules',
+              lesson_ids: t.lesson_ids || [],
+            }))
+          : []
       })) as EMISetting[];
       setEmiSettings(parsed);
     } catch (error: any) {
@@ -93,18 +117,44 @@ export function EMISettingsManagement() {
     fetchData();
   }, []);
 
-  const fetchModules = async (courseId: string) => {
-    const { data } = await supabase
+  const fetchModulesWithLessons = async (courseId: string) => {
+    // Fetch modules
+    const { data: modulesData } = await supabase
       .from('modules')
       .select('id, title, order_index')
       .eq('course_id', courseId)
       .order('order_index');
-    setModules(data || []);
+
+    if (!modulesData) {
+      setModulesWithLessons([]);
+      return;
+    }
+
+    // Fetch all lessons for this course's modules
+    const moduleIds = modulesData.map(m => m.id);
+    const { data: lessonsData } = await supabase
+      .from('lessons')
+      .select('id, title, order_index, module_id')
+      .in('module_id', moduleIds)
+      .order('order_index');
+
+    // Group lessons by module
+    const modulesWithLessonsList: ModuleWithLessons[] = modulesData.map(module => ({
+      ...module,
+      lessons: (lessonsData || []).filter(l => l.module_id === module.id)
+    }));
+
+    setModulesWithLessons(modulesWithLessonsList);
+    
+    // Auto-expand all modules initially
+    const expanded: Record<string, boolean> = {};
+    modulesData.forEach(m => { expanded[m.id] = true; });
+    setExpandedModules(expanded);
   };
 
   const handleConfigureEMI = async (course: Course) => {
     setSelectedCourse(course);
-    await fetchModules(course.id);
+    await fetchModulesWithLessons(course.id);
 
     // Check if settings already exist
     const existing = emiSettings.find(s => s.course_id === course.id);
@@ -114,7 +164,11 @@ export function EMISettingsManagement() {
         min_first_payment_percent: existing.min_first_payment_percent,
         max_splits: existing.max_splits,
         early_payment_discount_percent: Number(existing.early_payment_discount_percent),
-        payment_tiers: existing.payment_tiers,
+        payment_tiers: existing.payment_tiers.map(t => ({
+          ...t,
+          unlock_mode: t.unlock_mode || 'modules',
+          lesson_ids: t.lesson_ids || [],
+        })),
       });
     } else {
       // Default tiers
@@ -124,9 +178,9 @@ export function EMISettingsManagement() {
         max_splits: 3,
         early_payment_discount_percent: 2,
         payment_tiers: [
-          { percent: 25, module_order_indices: [0, 1], label: 'Unlock Foundations' },
-          { percent: 50, module_order_indices: [0, 1, 2, 3], label: 'Unlock Intermediate' },
-          { percent: 100, module_order_indices: [], label: 'Full Access' },
+          { percent: 25, module_order_indices: [0, 1], lesson_ids: [], unlock_mode: 'modules', label: 'Unlock Foundations' },
+          { percent: 50, module_order_indices: [0, 1, 2, 3], lesson_ids: [], unlock_mode: 'modules', label: 'Unlock Intermediate' },
+          { percent: 100, module_order_indices: [], lesson_ids: [], unlock_mode: 'modules', label: 'Full Access' },
         ],
       });
     }
@@ -190,7 +244,7 @@ export function EMISettingsManagement() {
       ...prev,
       payment_tiers: [
         ...prev.payment_tiers,
-        { percent: 0, module_order_indices: [], label: '' }
+        { percent: 0, module_order_indices: [], lesson_ids: [], unlock_mode: 'modules', label: '' }
       ],
     }));
   };
@@ -224,10 +278,50 @@ export function EMISettingsManagement() {
     }));
   };
 
+  const toggleLessonInTier = (tierIndex: number, lessonId: string) => {
+    setForm(prev => ({
+      ...prev,
+      payment_tiers: prev.payment_tiers.map((t, i) => {
+        if (i !== tierIndex) return t;
+        const lessonIds = t.lesson_ids || [];
+        const newLessonIds = lessonIds.includes(lessonId)
+          ? lessonIds.filter(id => id !== lessonId)
+          : [...lessonIds, lessonId];
+        return { ...t, lesson_ids: newLessonIds };
+      }),
+    }));
+  };
+
+  const toggleAllLessonsInModule = (tierIndex: number, moduleId: string, lessons: Lesson[]) => {
+    setForm(prev => ({
+      ...prev,
+      payment_tiers: prev.payment_tiers.map((t, i) => {
+        if (i !== tierIndex) return t;
+        const lessonIds = t.lesson_ids || [];
+        const moduleLessonIds = lessons.map(l => l.id);
+        const allSelected = moduleLessonIds.every(id => lessonIds.includes(id));
+        
+        let newLessonIds: string[];
+        if (allSelected) {
+          // Remove all lessons from this module
+          newLessonIds = lessonIds.filter(id => !moduleLessonIds.includes(id));
+        } else {
+          // Add all lessons from this module
+          newLessonIds = [...new Set([...lessonIds, ...moduleLessonIds])];
+        }
+        return { ...t, lesson_ids: newLessonIds };
+      }),
+    }));
+  };
+
   const getEMIStatus = (courseId: string) => {
     const setting = emiSettings.find(s => s.course_id === courseId);
     if (!setting) return { enabled: false, tiers: 0 };
     return { enabled: setting.is_emi_enabled, tiers: setting.payment_tiers.length };
+  };
+
+  const getTotalLessonsCount = () => {
+    return modulesWithLessons.reduce((acc, m) => acc + m.lessons.length, 0);
   };
 
   if (loading) {
@@ -249,7 +343,7 @@ export function EMISettingsManagement() {
             EMI / Partial Payment Settings
           </CardTitle>
           <CardDescription>
-            Configure installment payment options for each course with progressive content unlocking
+            Configure installment payment options for each course with progressive content unlocking (by modules OR individual lessons)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -294,11 +388,11 @@ export function EMISettingsManagement() {
 
       {/* EMI Configuration Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Configure EMI for {selectedCourse?.title}</DialogTitle>
             <DialogDescription>
-              Set up payment tiers and map content to each payment level
+              Set up payment tiers and map content (modules or lessons) to each payment level
             </DialogDescription>
           </DialogHeader>
 
@@ -366,6 +460,13 @@ export function EMISettingsManagement() {
                   </div>
                 </div>
 
+                {/* Course structure info */}
+                <div className="p-3 bg-accent/10 border border-accent/20 rounded-lg">
+                  <p className="text-sm text-accent-foreground">
+                    <strong>Course Structure:</strong> {modulesWithLessons.length} modules, {getTotalLessonsCount()} lessons total
+                  </p>
+                </div>
+
                 {/* Payment Tiers */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -421,30 +522,111 @@ export function EMISettingsManagement() {
                       </div>
 
                       {tier.percent < 100 && (
-                        <div className="space-y-2">
-                          <Label>Modules to Unlock</Label>
-                          <div className="flex flex-wrap gap-2">
-                            {modules.map((module) => (
-                              <Button
-                                key={module.id}
-                                type="button"
-                                variant={tier.module_order_indices.includes(module.order_index || 0) ? 'default' : 'outline'}
-                                size="sm"
-                                onClick={() => toggleModuleInTier(tierIndex, module.order_index || 0)}
-                              >
-                                {module.order_index !== null ? module.order_index + 1 : '?'}. {module.title.slice(0, 20)}...
-                              </Button>
-                            ))}
+                        <div className="space-y-3">
+                          {/* Unlock Mode Selector */}
+                          <div className="space-y-2">
+                            <Label>Unlock Mode</Label>
+                            <Tabs 
+                              value={tier.unlock_mode || 'modules'} 
+                              onValueChange={(v) => updateTier(tierIndex, { unlock_mode: v as 'modules' | 'lessons' })}
+                            >
+                              <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="modules" className="flex items-center gap-2">
+                                  <Layers className="h-4 w-4" />
+                                  By Modules
+                                </TabsTrigger>
+                                <TabsTrigger value="lessons" className="flex items-center gap-2">
+                                  <FileText className="h-4 w-4" />
+                                  By Lessons
+                                </TabsTrigger>
+                              </TabsList>
+
+                              <TabsContent value="modules" className="mt-3">
+                                <div className="flex flex-wrap gap-2">
+                                  {modulesWithLessons.map((module) => (
+                                    <Button
+                                      key={module.id}
+                                      type="button"
+                                      variant={tier.module_order_indices.includes(module.order_index || 0) ? 'default' : 'outline'}
+                                      size="sm"
+                                      onClick={() => toggleModuleInTier(tierIndex, module.order_index || 0)}
+                                    >
+                                      {(module.order_index ?? 0) + 1}. {module.title.slice(0, 25)}{module.title.length > 25 ? '...' : ''}
+                                    </Button>
+                                  ))}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Click modules to include/exclude from this tier
+                                </p>
+                              </TabsContent>
+
+                              <TabsContent value="lessons" className="mt-3">
+                                <ScrollArea className="h-[250px] border rounded-lg p-3">
+                                  <div className="space-y-3">
+                                    {modulesWithLessons.map((module) => {
+                                      const lessonIds = tier.lesson_ids || [];
+                                      const moduleLessonIds = module.lessons.map(l => l.id);
+                                      const allSelected = moduleLessonIds.every(id => lessonIds.includes(id));
+                                      const someSelected = moduleLessonIds.some(id => lessonIds.includes(id));
+
+                                      return (
+                                        <Collapsible
+                                          key={module.id}
+                                          open={expandedModules[module.id]}
+                                          onOpenChange={(open) => setExpandedModules(prev => ({ ...prev, [module.id]: open }))}
+                                        >
+                                          <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+                                            <Checkbox
+                                              checked={allSelected}
+                                              onCheckedChange={() => toggleAllLessonsInModule(tierIndex, module.id, module.lessons)}
+                                              className={someSelected && !allSelected ? 'data-[state=checked]:bg-muted-foreground' : ''}
+                                            />
+                                            <CollapsibleTrigger className="flex items-center gap-2 flex-1 text-left">
+                                              <ChevronDown className={`h-4 w-4 transition-transform ${expandedModules[module.id] ? 'rotate-180' : ''}`} />
+                                              <span className="font-medium text-sm">
+                                                Module {(module.order_index ?? 0) + 1}: {module.title}
+                                              </span>
+                                              <Badge variant="secondary" className="ml-auto text-xs">
+                                                {module.lessons.filter(l => lessonIds.includes(l.id)).length}/{module.lessons.length}
+                                              </Badge>
+                                            </CollapsibleTrigger>
+                                          </div>
+                                          <CollapsibleContent>
+                                            <div className="ml-6 mt-2 space-y-1 border-l-2 border-muted pl-3">
+                                              {module.lessons.map((lesson) => (
+                                                <div key={lesson.id} className="flex items-center gap-2 py-1">
+                                                  <Checkbox
+                                                    id={`lesson-${lesson.id}-${tierIndex}`}
+                                                    checked={lessonIds.includes(lesson.id)}
+                                                    onCheckedChange={() => toggleLessonInTier(tierIndex, lesson.id)}
+                                                  />
+                                                  <label
+                                                    htmlFor={`lesson-${lesson.id}-${tierIndex}`}
+                                                    className="text-sm cursor-pointer hover:text-primary"
+                                                  >
+                                                    {(lesson.order_index ?? 0) + 1}. {lesson.title}
+                                                  </label>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          </CollapsibleContent>
+                                        </Collapsible>
+                                      );
+                                    })}
+                                  </div>
+                                </ScrollArea>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Select individual lessons to unlock for this tier ({(tier.lesson_ids || []).length} selected)
+                                </p>
+                              </TabsContent>
+                            </Tabs>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            Click modules to include/exclude from this tier
-                          </p>
                         </div>
                       )}
 
                       {tier.percent === 100 && (
-                        <p className="text-sm text-emerald-600 bg-emerald-500/10 p-2 rounded">
-                          ✓ Full course access (all modules unlocked)
+                        <p className="text-sm text-primary bg-primary/10 p-2 rounded">
+                          ✓ Full course access (all modules and lessons unlocked)
                         </p>
                       )}
                     </div>
