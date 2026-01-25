@@ -110,85 +110,92 @@ export function EMIPaymentOptions({
       return;
     }
 
-    // FULL payment -> existing flow
-    if (paymentMode === 'full') {
-      await initiatePayment({
-        courseId: courseSlug,
-        amount: coursePrice,
-        customerName: profile?.full_name || user.email?.split('@')[0] || 'Student',
-        customerEmail: user.email || '',
-        customerPhone: phone,
-        courseTitle,
-        courseLevel: 'full',
+    try {
+      // FULL payment -> existing flow
+      if (paymentMode === 'full') {
+        await initiatePayment({
+          courseId: courseSlug,
+          amount: coursePrice,
+          customerName: profile?.full_name || user.email?.split('@')[0] || 'Student',
+          customerEmail: user.email || '',
+          customerPhone: phone,
+          courseTitle,
+          courseLevel: 'full',
+        });
+        return;
+      }
+
+      // EMI payment -> dedicated function (amount is computed server-side)
+      if (!emiSettings || !emiSettings.is_emi_enabled) {
+        toast.error('EMI is not enabled for this course');
+        return;
+      }
+      if (selectedTier === null) {
+        toast.error('Please select an EMI option');
+        return;
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        toast.error('Please login to continue');
+        return;
+      }
+
+      // Preserve DB tier index even if we sort for UI
+      const tiersWithDbIndex: TierWithDbIndex[] = (emiSettings.payment_tiers || [])
+        .map((t, i) => ({ ...t, _dbIndex: i }))
+        .sort((a, b) => a.percent - b.percent);
+
+      const chosen = tiersWithDbIndex[selectedTier];
+      if (!chosen) {
+        toast.error('Invalid EMI selection');
+        return;
+      }
+
+      // Load Cashfree SDK
+      if (!(window as any).Cashfree) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
+          document.body.appendChild(script);
+        });
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-emi-order', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: {
+          courseId: courseSlug,
+          customerName: profile?.full_name || user.email?.split('@')[0] || 'Student',
+          customerEmail: user.email || '',
+          customerPhone: phone,
+          paymentPercent: chosen.percent,
+          tierIndex: chosen._dbIndex,
+        },
       });
-      return;
+
+      if (error) {
+        console.error('EMI order error:', error);
+        toast.error(error.message || 'Failed to create EMI order');
+        return;
+      }
+
+      const paymentSessionId = data?.paymentSessionId as string | undefined;
+      if (!paymentSessionId) {
+        toast.error('Missing payment session from server');
+        return;
+      }
+
+      const cashfree = (window as any).Cashfree({ mode: 'production' });
+      await cashfree.checkout({ paymentSessionId, redirectTarget: '_self' });
+    } catch (err: any) {
+      console.error('Payment error:', err);
+      toast.error(err?.message || 'Payment failed');
     }
-
-    // EMI payment -> dedicated function (amount is computed server-side)
-    if (!emiSettings || !emiSettings.is_emi_enabled) {
-      toast.error('EMI is not enabled for this course');
-      return;
-    }
-    if (selectedTier === null) {
-      toast.error('Please select an EMI option');
-      return;
-    }
-
-    const { data: sessionData } = await supabase.auth.getSession();
-    const token = sessionData.session?.access_token;
-    if (!token) {
-      toast.error('Please login to continue');
-      return;
-    }
-
-    // Preserve DB tier index even if we sort for UI
-    const tiersWithDbIndex: TierWithDbIndex[] = (emiSettings.payment_tiers || [])
-      .map((t, i) => ({ ...t, _dbIndex: i }))
-      .sort((a, b) => a.percent - b.percent);
-
-    const chosen = tiersWithDbIndex[selectedTier];
-    if (!chosen) {
-      toast.error('Invalid EMI selection');
-      return;
-    }
-
-    // Load Cashfree SDK (same as full flow)
-    await (async () => {
-      // reuse the script loader behavior from useCashfreePayment by calling initiatePayment on a dummy? no.
-      // Keep local loader to avoid changing hook API.
-      if ((window as any).Cashfree) return;
-      await new Promise<void>((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
-        document.body.appendChild(script);
-      });
-    })();
-
-    const { data, error } = await supabase.functions.invoke('create-emi-order', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: {
-        courseId: courseSlug,
-        customerName: profile?.full_name || user.email?.split('@')[0] || 'Student',
-        customerEmail: user.email || '',
-        customerPhone: phone,
-        paymentPercent: chosen.percent,
-        tierIndex: chosen._dbIndex,
-      },
-    });
-
-    if (error) throw error;
-
-    const paymentSessionId = (data as any)?.paymentSessionId as string | undefined;
-    if (!paymentSessionId) {
-      throw new Error('Missing payment session');
-    }
-
-    const cashfree = (window as any).Cashfree({ mode: 'production' });
-    await cashfree.checkout({ paymentSessionId, redirectTarget: '_self' });
   };
 
   if (loading) {

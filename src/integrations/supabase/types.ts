@@ -1609,6 +1609,74 @@ export type Database = {
         }
         Relationships: []
       }
+      user_lesson_access: {
+        Row: {
+          access_type: string | null
+          course_id: string
+          created_at: string | null
+          emi_payment_id: string | null
+          expires_at: string | null
+          gift_claim_id: string | null
+          granted_at: string | null
+          id: string
+          lesson_id: string
+          user_id: string
+        }
+        Insert: {
+          access_type?: string | null
+          course_id: string
+          created_at?: string | null
+          emi_payment_id?: string | null
+          expires_at?: string | null
+          gift_claim_id?: string | null
+          granted_at?: string | null
+          id?: string
+          lesson_id: string
+          user_id: string
+        }
+        Update: {
+          access_type?: string | null
+          course_id?: string
+          created_at?: string | null
+          emi_payment_id?: string | null
+          expires_at?: string | null
+          gift_claim_id?: string | null
+          granted_at?: string | null
+          id?: string
+          lesson_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_lesson_access_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_lesson_access_emi_payment_id_fkey"
+            columns: ["emi_payment_id"]
+            isOneToOne: false
+            referencedRelation: "emi_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_lesson_access_gift_claim_id_fkey"
+            columns: ["gift_claim_id"]
+            isOneToOne: false
+            referencedRelation: "login_gift_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_lesson_access_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_module_access: {
         Row: {
           access_type: string | null
@@ -1619,6 +1687,7 @@ export type Database = {
           gift_claim_id: string | null
           granted_at: string | null
           id: string
+          lesson_id: string | null
           module_id: string
           user_id: string
         }
@@ -1631,6 +1700,7 @@ export type Database = {
           gift_claim_id?: string | null
           granted_at?: string | null
           id?: string
+          lesson_id?: string | null
           module_id: string
           user_id: string
         }
@@ -1643,6 +1713,7 @@ export type Database = {
           gift_claim_id?: string | null
           granted_at?: string | null
           id?: string
+          lesson_id?: string | null
           module_id?: string
           user_id?: string
         }
@@ -1666,6 +1737,13 @@ export type Database = {
             columns: ["gift_claim_id"]
             isOneToOne: false
             referencedRelation: "login_gift_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_module_access_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
             referencedColumns: ["id"]
           },
           {
