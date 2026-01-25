@@ -1,5 +1,20 @@
 import { motion, Variants, useInView } from 'framer-motion';
-import { ReactNode, useRef } from 'react';
+import { ReactNode, useRef, useMemo } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+// Check for reduced motion preference
+const prefersReducedMotion = typeof window !== 'undefined' 
+  ? window.matchMedia('(prefers-reduced-motion: reduce)').matches 
+  : false;
+
+// Simplified variants for mobile - faster, less complex
+const mobileVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1,
+    transition: { duration: 0.3, ease: 'easeOut' }
+  }
+};
 
 // Reusable animation variants
 export const fadeInUp: Variants = {
@@ -74,15 +89,23 @@ export function AnimatedSection({
   delay = 0
 }: AnimatedSectionProps) {
   const ref = useRef(null);
+  const isMobile = useIsMobile();
   const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  // Use simpler animations on mobile for performance
+  const activeVariants = useMemo(() => {
+    if (prefersReducedMotion) return mobileVariants;
+    if (isMobile) return mobileVariants;
+    return variants;
+  }, [isMobile, variants]);
 
   return (
     <motion.div
       ref={ref}
-      variants={variants}
+      variants={activeVariants}
       initial="hidden"
       animate={isInView ? "visible" : "hidden"}
-      transition={{ delay }}
+      transition={{ delay: isMobile ? 0 : delay }}
       className={className}
     >
       {children}
@@ -272,8 +295,14 @@ export function AnimatedCounter({ value, suffix = '', prefix = '', className = '
   );
 }
 
-// Sparkle animation for icons
+// Sparkle animation for icons - simplified on mobile
 export function SparkleIcon({ children, className = '' }: { children: ReactNode; className?: string }) {
+  const isMobile = useIsMobile();
+  
+  if (isMobile || prefersReducedMotion) {
+    return <span className={`inline-flex ${className}`}>{children}</span>;
+  }
+  
   return (
     <motion.span
       className={`inline-flex ${className}`}
@@ -293,7 +322,7 @@ export function SparkleIcon({ children, className = '' }: { children: ReactNode;
   );
 }
 
-// Parallax floating element
+// Parallax floating element - disabled on mobile
 interface FloatingElementProps {
   children: ReactNode;
   className?: string;
@@ -309,6 +338,13 @@ export function FloatingElement({
   duration = 5,
   delay = 0
 }: FloatingElementProps) {
+  const isMobile = useIsMobile();
+  
+  // No floating animation on mobile
+  if (isMobile || prefersReducedMotion) {
+    return <div className={className}>{children}</div>;
+  }
+  
   return (
     <motion.div
       className={className}
@@ -327,7 +363,7 @@ export function FloatingElement({
   );
 }
 
-// Text reveal with blur effect
+// Text reveal with blur effect - simplified on mobile
 interface BlurRevealTextProps {
   children: ReactNode;
   className?: string;
@@ -337,6 +373,22 @@ interface BlurRevealTextProps {
 export function BlurRevealText({ children, className = '', delay = 0 }: BlurRevealTextProps) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
+  const isMobile = useIsMobile();
+
+  // Simple fade on mobile (no blur for performance)
+  if (isMobile || prefersReducedMotion) {
+    return (
+      <motion.span
+        ref={ref}
+        className={className}
+        initial={{ opacity: 0 }}
+        animate={isInView ? { opacity: 1 } : {}}
+        transition={{ duration: 0.4, delay: 0 }}
+      >
+        {children}
+      </motion.span>
+    );
+  }
 
   return (
     <motion.span
