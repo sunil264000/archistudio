@@ -24,6 +24,12 @@ verify_jwt = false
 [functions.send-ebook-purchase-email]
 verify_jwt = false
 
+[functions.get-video-url]
+verify_jwt = false
+
+[functions.get-video-url-public]
+verify_jwt = false
+
 [functions.send-ebook-gift-email]
 verify_jwt = false
 
