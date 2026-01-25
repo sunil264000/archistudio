@@ -194,6 +194,7 @@ const AppContent = () => {
           }
 
           // AUTO-ENROLL: Create enrollments for each course in the gift
+          const enrolledCourses: string[] = [];
           for (const course of courses) {
             // Check if already enrolled
             const { data: existingEnrollment } = await supabase
@@ -214,8 +215,33 @@ const AppContent = () => {
                 granted_at: new Date().toISOString(),
                 expires_at: expiresAt,
               });
+              enrolledCourses.push(course.title);
               console.log(`Auto-enrolled user in course: ${course.title}`);
             }
+          }
+
+          // Get user profile for email
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('email, full_name')
+            .eq('user_id', user.id)
+            .single();
+
+          // Send gift notification email for all courses at once
+          if (profile?.email && enrolledCourses.length > 0) {
+            supabase.functions.invoke('send-enrollment-email', {
+              body: {
+                email: profile.email,
+                name: profile.full_name || user.email?.split('@')[0] || 'Student',
+                courseName: enrolledCourses.length === 1 
+                  ? enrolledCourses[0] 
+                  : `${enrolledCourses.length} Gift Courses`,
+                courseSlug: courses[0]?.slug || '',
+                isFree: true,
+                isGift: true,
+              }
+            }).catch(err => console.error('Gift enrollment email error:', err));
+            console.log('Gift enrollment email sent!');
           }
 
           // Show the gift modal

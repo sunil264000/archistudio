@@ -38,3 +38,12 @@ verify_jwt = false
 
 [functions.create-cashfree-order]
 verify_jwt = false
+
+[functions.send-enrollment-email]
+verify_jwt = false
+
+[functions.send-emi-email]
+verify_jwt = false
+
+[functions.create-emi-order]
+verify_jwt = false
