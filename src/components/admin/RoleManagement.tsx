@@ -95,15 +95,22 @@ export function RoleManagement() {
     setLoading(true);
     
     // Fetch user roles
-    const { data: roles } = await supabase
+    const { data: roles, error: rolesError } = await supabase
       .from('user_roles')
       .select('*')
       .order('role');
     
     // Fetch all profiles
-    const { data: profilesData } = await supabase
+    const { data: profilesData, error: profilesError } = await supabase
       .from('profiles')
       .select('user_id, full_name, email');
+
+    if (rolesError) {
+      toast.error(`Failed to load roles: ${rolesError.message}`);
+    }
+    if (profilesError) {
+      toast.error(`Failed to load users: ${profilesError.message}`);
+    }
     
     if (profilesData) {
       setProfiles(profilesData);
@@ -122,6 +129,28 @@ export function RoleManagement() {
 
   useEffect(() => {
     fetchData();
+  }, [fetchData]);
+
+  // Realtime sync: if roles/users change elsewhere in admin, reflect here
+  useEffect(() => {
+    const rolesChannel = supabase
+      .channel('role-management-user-roles')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_roles' }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    const profilesChannel = supabase
+      .channel('role-management-profiles')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(rolesChannel);
+      supabase.removeChannel(profilesChannel);
+    };
   }, [fetchData]);
 
   const handleAddRole = async () => {
@@ -188,9 +217,10 @@ export function RoleManagement() {
     r.role.toLowerCase().includes(search.toLowerCase())
   );
 
-  const usersWithoutSpecialRole = profiles.filter(p =>
-    !userRoles.some(r => r.user_id === p.user_id)
-  );
+  // IMPORTANT:
+  // Don't hide users just because they already have a role (many installs assign a default 'user' role).
+  // We allow picking any user and we handle duplicates gracefully on insert.
+  const selectableUsers = profiles;
 
   const getRoleBadge = (role: string) => {
     const config = ROLE_CONFIG[role as AppRole] || ROLE_CONFIG.user;
@@ -338,7 +368,7 @@ export function RoleManagement() {
                   <SelectValue placeholder="Choose a user..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {usersWithoutSpecialRole.map(user => (
+                  {selectableUsers.map(user => (
                     <SelectItem key={user.user_id} value={user.user_id}>
                       {user.full_name || user.email || 'Unknown'}
                       {user.email && user.full_name && (

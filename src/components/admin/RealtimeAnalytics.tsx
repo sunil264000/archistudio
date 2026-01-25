@@ -212,17 +212,26 @@ export function RealtimeAnalytics() {
     setDeleteLoading(true);
     
     try {
-      // Delete user profile (cascade will handle related data)
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('user_id', deletingUser.user_id);
-      
+      const targetUserId = deletingUser.user_id;
+
+      // Use backend function so the auth account + all related tables are cleaned reliably.
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId: targetUserId },
+      });
+
       if (error) throw error;
-      
-      toast.success(`User ${deletingUser.email || deletingUser.full_name} deleted`);
-      setUsers(prev => prev.filter(u => u.id !== deletingUser.id));
+      if ((data as any)?.error) throw new Error((data as any).error);
+
+      toast.success(`User ${deletingUser.email || deletingUser.full_name} permanently deleted`);
+
+      // Optimistic local cleanup across tabs (so it won't appear again without refresh)
+      setUsers(prev => prev.filter(u => u.user_id !== targetUserId));
+      setActiveUsers(prev => prev.filter(a => a.user_id !== targetUserId));
+      setPurchaseAttempts(prev => prev.filter(p => p.user_id !== targetUserId));
       setDeletingUser(null);
+
+      // Hard refresh all to avoid stale queries re-populating lists
+      await refreshAll();
     } catch (error: any) {
       toast.error(`Failed to delete user: ${error.message}`);
     } finally {
