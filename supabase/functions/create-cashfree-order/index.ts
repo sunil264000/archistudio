@@ -143,14 +143,16 @@ serve(async (req) => {
     // Generate unique order ID
     const orderId = `order_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-    // Cashfree domain whitelisting is strict. Never trust arbitrary request origins here.
-    // If a request comes from a non-whitelisted origin (e.g. preview), we still redirect
-    // back to the published site domain.
-    const PUBLISHED_SITE_URL = "https://archistudio.lovable.app";
+    // Cashfree domain whitelisting is strict. Use production domains only.
+    // Support both archistudio.lovable.app and archistudio.shop
     const reqOrigin = req.headers.get("origin") || "";
-    const redirectBaseUrl = reqOrigin.includes("archistudio.lovable.app")
-      ? "https://archistudio.lovable.app"
-      : PUBLISHED_SITE_URL;
+    let redirectBaseUrl = "https://archistudio.lovable.app"; // default
+    
+    if (reqOrigin.includes("archistudio.shop")) {
+      redirectBaseUrl = "https://archistudio.shop";
+    } else if (reqOrigin.includes("archistudio.lovable.app")) {
+      redirectBaseUrl = "https://archistudio.lovable.app";
+    }
 
     // Create Cashfree order with SERVER-SIDE validated price
     const cashfreeResponse = await fetch("https://api.cashfree.com/pg/orders", {

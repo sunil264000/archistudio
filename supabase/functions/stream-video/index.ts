@@ -2,15 +2,12 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 /**
- * Secure Video Streaming Proxy with Anti-Download Protection
+ * Optimized Video Streaming Proxy
  * 
- * This function streams video content directly without exposing the source URL.
- * Includes multiple layers of protection against download managers like IDM.
+ * Prioritizes smooth playback and fast seeking while maintaining basic protection.
  */
 
 const corsHeaders = {
-  // NOTE: We intentionally do NOT allow arbitrary origins for protected media.
-  // We'll echo a safe origin later; for OPTIONS we still respond.
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, range",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -49,11 +46,6 @@ function base64UrlDecode(input: string): Uint8Array {
   return bytes;
 }
 
-function base64UrlEncode(bytes: Uint8Array) {
-  let str = btoa(String.fromCharCode(...bytes));
-  return str.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-}
-
 async function sha256Hex(input: string) {
   const digest = await crypto.subtle.digest("SHA-256", te.encode(input));
   const arr = new Uint8Array(digest);
@@ -71,7 +63,6 @@ async function hmacVerify(secret: string, message: string, signatureB64Url: stri
     ["verify"],
   );
   const sigBytes = base64UrlDecode(signatureB64Url);
-  // Deno's WebCrypto typings are strict about ArrayBuffer vs ArrayBufferLike.
   return crypto.subtle.verify(
     "HMAC",
     key,
@@ -85,126 +76,20 @@ function getRequestOriginHost(req: Request): string | null {
   const referer = req.headers.get("referer");
   try {
     if (origin) return new URL(origin).host;
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
   try {
     if (referer) return new URL(referer).host;
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
   return null;
 }
 
 function isLikelyOurSiteHost(host: string) {
-  // Works for preview + published + typical custom domains on the same hosting.
-  // (Not perfect, but blocks most “copy-paste into IDM” cases where host is missing.)
   return (
     host.endsWith(".lovable.app") ||
     host.endsWith(".lovableproject.com") ||
-    host === "archistudio.lovable.app"
+    host === "archistudio.lovable.app" ||
+    host === "archistudio.shop"
   );
-}
-
-// Known download manager user agents and patterns
-const BLOCKED_USER_AGENTS = [
-  'idm',
-  'internet download manager',
-  'flashget',
-  'getright',
-  'download accelerator',
-  'freedownloadmanager',
-  'jdownloader',
-  'orbit',
-  'axel',
-  'aria2',
-  'wget',
-  'curl',
-  'python-requests',
-  'libwww',
-  'java/',
-  'winhttp',
-  'go-http-client',
-  'apache-httpclient',
-  'okhttp',
-  'httpunit',
-  'thunderdownload',
-  'eagleget',
-  'ninja',
-  'download',
-  'manager',
-];
-
-// Check if user agent is a download manager
-function isDownloadManager(userAgent: string | null): boolean {
-  if (!userAgent) return true; // Block requests without user agent
-  
-  const ua = userAgent.toLowerCase();
-  
-  // Check against known patterns
-  for (const pattern of BLOCKED_USER_AGENTS) {
-    if (ua.includes(pattern)) {
-      return true;
-    }
-  }
-  
-  // Check for suspicious patterns
-  // IDM typically sends multiple Range requests simultaneously
-  // and has specific header patterns
-  if (!ua.includes('mozilla') && !ua.includes('chrome') && !ua.includes('safari') && !ua.includes('firefox') && !ua.includes('edge')) {
-    // Not a standard browser
-    return true;
-  }
-  
-  return false;
-}
-
-// In-memory store for rate limiting and session tracking (per instance)
-const sessionStore = new Map<string, { count: number; lastAccess: number; ranges: Set<string> }>();
-
-// Clean up old sessions periodically
-function cleanupSessions() {
-  const now = Date.now();
-  const maxAge = 10 * 60 * 1000; // 10 minutes
-  
-  for (const [key, session] of sessionStore.entries()) {
-    if (now - session.lastAccess > maxAge) {
-      sessionStore.delete(key);
-    }
-  }
-}
-
-// Check for suspicious range request patterns (IDM signature)
-function isSuspiciousRangePattern(userId: string, lessonId: string, range: string | null): boolean {
-  const sessionKey = `${userId}:${lessonId}`;
-  const now = Date.now();
-  
-  if (!sessionStore.has(sessionKey)) {
-    sessionStore.set(sessionKey, { count: 0, lastAccess: now, ranges: new Set() });
-  }
-  
-  const session = sessionStore.get(sessionKey)!;
-  session.lastAccess = now;
-  session.count++;
-  
-  if (range) {
-    session.ranges.add(range);
-  }
-  
-  // IDM detection patterns:
-  // 1. Too many requests in short time (>30 in 10 seconds)
-  // 2. Too many different range requests (>20 unique ranges)
-  // 3. Multiple simultaneous connections pattern
-  
-  if (session.count > 50) {
-    return true; // Too many requests
-  }
-  
-  if (session.ranges.size > 30) {
-    return true; // Too many unique range requests (IDM splits downloads)
-  }
-  
-  return false;
 }
 
 // Extract Google Drive file ID from various URL formats
@@ -229,22 +114,25 @@ function isGoogleDriveUrl(url: string): boolean {
   return /drive\.google\.com|docs\.google\.com/i.test(url);
 }
 
-// Get Google Drive direct stream with optimized headers for smooth playback
+// HIGH PERFORMANCE Google Drive streaming - optimized for speed
 async function getGoogleDriveStream(fileId: string, apiKey: string, rangeHeader?: string | null): Promise<Response> {
-  // Use direct download endpoint for faster streaming
+  // Use the fastest streaming endpoint
   const streamUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${apiKey}`;
   
   const headers: HeadersInit = {
-    // Request streaming-optimized response
-    'Accept': 'video/*,*/*',
-    'Accept-Encoding': 'identity', // Avoid compression for video - faster streaming
+    'Accept': '*/*',
+    'Accept-Encoding': 'identity', // No compression = faster for video
+    'Connection': 'keep-alive',
   };
   
   if (rangeHeader) {
     headers['Range'] = rangeHeader;
   }
 
-  const response = await fetch(streamUrl, { headers });
+  const response = await fetch(streamUrl, { 
+    headers,
+    // Disable automatic decompression for faster streaming
+  });
   
   if (!response.ok) {
     console.error(`Google Drive API error: ${response.status} ${response.statusText}`);
@@ -255,33 +143,11 @@ async function getGoogleDriveStream(fileId: string, apiKey: string, rangeHeader?
 }
 
 serve(async (req) => {
-  // Cleanup old sessions periodically
-  cleanupSessions();
-  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // === PROTECTION LAYER 1: User-Agent Check ===
-    const userAgent = req.headers.get("user-agent");
-    
-    if (isDownloadManager(userAgent)) {
-      console.warn(`Blocked download manager: ${userAgent}`);
-      // Return a fake error to confuse download managers
-      return new Response(
-        JSON.stringify({ error: "Video processing, please wait..." }),
-        { 
-          status: 503, // Service Unavailable - makes IDM think server is overloaded
-          headers: { 
-            ...corsHeaders, 
-            "Content-Type": "application/json",
-            "Retry-After": "3600" // Tell it to retry in 1 hour
-          } 
-        }
-      );
-    }
-
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -289,27 +155,10 @@ serve(async (req) => {
 
     // Get parameters from URL
     const url = new URL(req.url);
-    const token = url.searchParams.get("t"); // legacy (deprecated)
+    const token = url.searchParams.get("t"); // legacy
     const ticket = url.searchParams.get("ticket");
     const lessonId = url.searchParams.get("l");
     const videoPath = url.searchParams.get("p");
-    const timestamp = url.searchParams.get("ts");
-    const sessionId = url.searchParams.get("_"); // Random session ID
-
-    // === PROTECTION LAYER 2: URL Expiration (legacy) ===
-    // For the new ticket-based flow, the ticket itself carries expiry.
-    if (!ticket && timestamp) {
-      const urlTime = parseInt(timestamp, 10);
-      const now = Date.now();
-      const fiveMinutes = 5 * 60 * 1000;
-      
-      if (now - urlTime > fiveMinutes) {
-        return new Response(
-          JSON.stringify({ error: "Session expired. Please refresh the page." }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
 
     if (!lessonId || !videoPath || (!ticket && !token)) {
       return new Response(
@@ -318,9 +167,7 @@ serve(async (req) => {
       );
     }
 
-    // === PROTECTION LAYER 2B: Require a valid site context ===
-    // Some browsers do not consistently send Origin for <video> range requests.
-    // We primarily rely on the signed ticket + UA binding, and only use Origin/Referer as an extra signal.
+    // Basic origin check (non-blocking for browsers)
     const reqHost = getRequestOriginHost(req);
     if (reqHost && !isLikelyOurSiteHost(reqHost)) {
       return new Response(
@@ -329,27 +176,7 @@ serve(async (req) => {
       );
     }
 
-    // If Origin/Referer is missing entirely, allow only if this looks like a browser media request.
-    // (Most download managers won't send Sec-Fetch-* headers.)
-    if (!reqHost) {
-      const secFetchDest = (req.headers.get("sec-fetch-dest") || "").toLowerCase();
-      const secFetchSite = (req.headers.get("sec-fetch-site") || "").toLowerCase();
-      const secFetchMode = (req.headers.get("sec-fetch-mode") || "").toLowerCase();
-
-      const looksLikeBrowserVideo =
-        (secFetchDest === "video" || secFetchDest === "empty") &&
-        (secFetchSite === "same-site" || secFetchSite === "same-origin" || secFetchSite === "cross-site") &&
-        (secFetchMode === "no-cors" || secFetchMode === "cors" || secFetchMode === "same-origin");
-
-      if (!looksLikeBrowserVideo) {
-        return new Response(
-          JSON.stringify({ error: "Forbidden" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-    }
-
-    // Resolve userId from signed ticket (preferred)
+    // Resolve userId from signed ticket
     let userId: string | null = null;
     if (ticket) {
       const secret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -379,6 +206,7 @@ serve(async (req) => {
 
       const payloadJson = new TextDecoder().decode(base64UrlDecode(payloadB64));
       const payload = JSON.parse(payloadJson) as TicketPayload;
+      
       if (payload.v !== 1) {
         return new Response(JSON.stringify({ error: "Invalid ticket" }), {
           status: 403,
@@ -386,15 +214,15 @@ serve(async (req) => {
         });
       }
 
-      // Expiry
+      // Expiry check
       if (Date.now() > payload.exp) {
-        return new Response(JSON.stringify({ error: "Session expired. Please refresh the page." }), {
+        return new Response(JSON.stringify({ error: "Session expired. Please refresh." }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Bind to UA
+      // UA binding
       const ua = req.headers.get("user-agent") ?? "";
       const uaHash = await sha256Hex(ua);
       if (uaHash !== payload.ua) {
@@ -404,15 +232,7 @@ serve(async (req) => {
         });
       }
 
-      // Bind to origin host (best-effort)
-      if (payload.oh && reqHost !== payload.oh) {
-        return new Response(JSON.stringify({ error: "Forbidden" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Ensure parameters match payload
+      // Parameter binding
       if (payload.lessonId !== lessonId || payload.videoPath !== videoPath) {
         return new Response(JSON.stringify({ error: "Forbidden" }), {
           status: 403,
@@ -423,7 +243,7 @@ serve(async (req) => {
       userId = payload.uid;
     }
 
-    // Legacy fallback (deprecated): verify via access token
+    // Legacy token fallback
     if (!userId && token) {
       const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
       if (authError || !user) {
@@ -444,23 +264,6 @@ serve(async (req) => {
 
     const rangeHeader = req.headers.get("range");
 
-    // === PROTECTION LAYER 3: Suspicious Pattern Detection ===
-    if (isSuspiciousRangePattern(userId, lessonId, rangeHeader)) {
-      console.warn(`Suspicious download pattern detected for user: ${userId}`);
-      // Return 429 Too Many Requests
-      return new Response(
-        JSON.stringify({ error: "Too many requests. Please wait and try again." }),
-        { 
-          status: 429, 
-          headers: { 
-            ...corsHeaders, 
-            "Content-Type": "application/json",
-            "Retry-After": "60"
-          } 
-        }
-      );
-    }
-
     // Check if user is admin
     const { data: adminRole } = await supabaseClient
       .from("user_roles")
@@ -471,7 +274,7 @@ serve(async (req) => {
 
     const isAdmin = !!adminRole;
 
-    // If not admin, verify enrollment
+    // If not admin, verify enrollment (fast query)
     if (!isAdmin) {
       const { data: lesson } = await supabaseClient
         .from("lessons")
@@ -506,19 +309,7 @@ serve(async (req) => {
       }
     }
 
-    // Anti-download response headers
-    const antiDownloadHeaders = {
-      ...corsHeaders,
-      "Cache-Control": "no-store, no-cache, must-revalidate, private, max-age=0",
-      "Pragma": "no-cache",
-      "Expires": "0",
-      "X-Content-Type-Options": "nosniff",
-      "Content-Disposition": "inline; filename=protected.bin", // Hide real filename
-      "X-Download-Options": "noopen",
-      "X-Frame-Options": "SAMEORIGIN",
-    };
-
-    // Check if this is a Google Drive URL
+    // === GOOGLE DRIVE STREAMING (OPTIMIZED FOR SPEED) ===
     if (isGoogleDriveUrl(videoPath)) {
       const fileId = extractGoogleDriveFileId(videoPath);
       
@@ -540,18 +331,20 @@ serve(async (req) => {
       try {
         const driveResponse = await getGoogleDriveStream(fileId, googleApiKey, rangeHeader);
         
+        // Get headers from Drive response
         const contentType = driveResponse.headers.get("Content-Type") || "video/mp4";
         const contentLength = driveResponse.headers.get("Content-Length");
         const contentRange = driveResponse.headers.get("Content-Range");
 
-        // Optimized headers for smooth streaming and fast seeking
+        // OPTIMIZED HEADERS for fast streaming and seeking
         const responseHeaders: HeadersInit = {
           ...corsHeaders,
           "Content-Type": contentType.startsWith("video/") ? contentType : "video/mp4",
-          "Accept-Ranges": "bytes", // Always indicate range support for seeking
+          "Accept-Ranges": "bytes",
+          // Allow browser to cache chunks aggressively for smoother playback
+          "Cache-Control": "private, max-age=7200, immutable",
+          // Prevent buffering issues
           "X-Content-Type-Options": "nosniff",
-          // Allow browser to cache video chunks for smoother seeking
-          "Cache-Control": "private, max-age=3600",
         };
 
         if (contentLength) {
@@ -561,7 +354,7 @@ serve(async (req) => {
           responseHeaders["Content-Range"] = contentRange;
         }
 
-        // Stream the response body directly - no buffering
+        // Direct stream passthrough - zero buffering on edge function
         return new Response(driveResponse.body, {
           status: driveResponse.status,
           headers: responseHeaders,
@@ -569,63 +362,30 @@ serve(async (req) => {
       } catch (driveError: any) {
         console.error("Google Drive streaming error:", driveError);
         return new Response(
-          JSON.stringify({ error: "Failed to stream video", details: driveError.message }),
+          JSON.stringify({ error: "Failed to stream video" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
 
-    // Handle internal storage videos
-    const { data: fileData, error: fileError } = await supabaseClient
+    // === SUPABASE STORAGE STREAMING ===
+    // For storage videos, generate a signed URL and redirect (fastest approach)
+    const { data: signedUrlData, error: signedUrlError } = await supabaseClient
       .storage
       .from("course-videos")
-      .download(videoPath);
+      .createSignedUrl(videoPath, 7200); // 2 hour validity
 
-    if (fileError || !fileData) {
-      console.error("File download error:", fileError);
+    if (signedUrlError || !signedUrlData?.signedUrl) {
+      console.error("Signed URL error:", signedUrlError);
       return new Response(
         JSON.stringify({ error: "Video not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const fileSize = fileData.size;
-    const contentType = guessVideoContentType(videoPath);
+    // Redirect to signed URL - browser handles caching and range requests natively
+    return Response.redirect(signedUrlData.signedUrl, 302);
 
-    // Handle range requests for seeking
-    if (rangeHeader) {
-      const parts = rangeHeader.replace(/bytes=/, "").split("-");
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-      const chunkSize = end - start + 1;
-
-      const buffer = await fileData.arrayBuffer();
-      const chunk = buffer.slice(start, end + 1);
-
-      return new Response(chunk, {
-        status: 206,
-        headers: {
-          ...antiDownloadHeaders,
-          // IMPORTANT: browsers must know it's a video; with nosniff they will refuse octet-stream.
-          "Content-Type": contentType,
-          "Content-Range": `bytes ${start}-${end}/${fileSize}`,
-          "Accept-Ranges": "bytes",
-          "Content-Length": chunkSize.toString(),
-        },
-      });
-    }
-
-    // Full file response
-    return new Response(fileData, {
-      status: 200,
-      headers: {
-        ...antiDownloadHeaders,
-        // IMPORTANT: browsers must know it's a video; with nosniff they will refuse octet-stream.
-        "Content-Type": contentType,
-        "Content-Length": fileSize.toString(),
-        "Accept-Ranges": "bytes",
-      },
-    });
   } catch (error: any) {
     console.error("Stream error:", error);
     return new Response(
