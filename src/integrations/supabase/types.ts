@@ -376,6 +376,50 @@ export type Database = {
           },
         ]
       }
+      course_emi_settings: {
+        Row: {
+          course_id: string
+          created_at: string | null
+          early_payment_discount_percent: number | null
+          id: string
+          is_emi_enabled: boolean | null
+          max_splits: number | null
+          min_first_payment_percent: number | null
+          payment_tiers: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          course_id: string
+          created_at?: string | null
+          early_payment_discount_percent?: number | null
+          id?: string
+          is_emi_enabled?: boolean | null
+          max_splits?: number | null
+          min_first_payment_percent?: number | null
+          payment_tiers?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          course_id?: string
+          created_at?: string | null
+          early_payment_discount_percent?: number | null
+          id?: string
+          is_emi_enabled?: boolean | null
+          max_splits?: number | null
+          min_first_payment_percent?: number | null
+          payment_tiers?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_emi_settings_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: true
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_questions: {
         Row: {
           answer: string | null
@@ -635,6 +679,74 @@ export type Database = {
         }
         Relationships: []
       }
+      emi_payments: {
+        Row: {
+          amount_paid: number
+          course_id: string
+          created_at: string | null
+          due_date: string | null
+          early_discount_applied: number | null
+          gateway_order_id: string | null
+          id: string
+          installment_number: number
+          paid_at: string | null
+          payment_id: string | null
+          remaining_amount: number
+          status: string | null
+          total_course_price: number
+          total_installments: number
+          unlocked_percent: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_paid: number
+          course_id: string
+          created_at?: string | null
+          due_date?: string | null
+          early_discount_applied?: number | null
+          gateway_order_id?: string | null
+          id?: string
+          installment_number: number
+          paid_at?: string | null
+          payment_id?: string | null
+          remaining_amount: number
+          status?: string | null
+          total_course_price: number
+          total_installments: number
+          unlocked_percent: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number
+          course_id?: string
+          created_at?: string | null
+          due_date?: string | null
+          early_discount_applied?: number | null
+          gateway_order_id?: string | null
+          id?: string
+          installment_number?: number
+          paid_at?: string | null
+          payment_id?: string | null
+          remaining_amount?: number
+          status?: string | null
+          total_course_price?: number
+          total_installments?: number
+          unlocked_percent?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emi_payments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       enrollments: {
         Row: {
           course_id: string
@@ -738,6 +850,50 @@ export type Database = {
           },
         ]
       }
+      launch_free_courses: {
+        Row: {
+          auto_enroll_all: boolean | null
+          course_id: string
+          created_at: string | null
+          end_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string | null
+          start_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          auto_enroll_all?: boolean | null
+          course_id: string
+          created_at?: string | null
+          end_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string | null
+          start_at: string
+          updated_at?: string | null
+        }
+        Update: {
+          auto_enroll_all?: boolean | null
+          course_id?: string
+          created_at?: string | null
+          end_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string | null
+          start_at?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "launch_free_courses_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: true
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_resources: {
         Row: {
           created_at: string | null
@@ -822,6 +978,122 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      login_gift_campaign_courses: {
+        Row: {
+          campaign_id: string
+          course_id: string
+          created_at: string | null
+          id: string
+        }
+        Insert: {
+          campaign_id: string
+          course_id: string
+          created_at?: string | null
+          id?: string
+        }
+        Update: {
+          campaign_id?: string
+          course_id?: string
+          created_at?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "login_gift_campaign_courses_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "login_gift_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "login_gift_campaign_courses_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      login_gift_campaigns: {
+        Row: {
+          access_duration_hours: number | null
+          created_at: string | null
+          cta_text: string | null
+          custom_messages: Json | null
+          eligible_users: string | null
+          end_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+          random_percent: number | null
+          start_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          access_duration_hours?: number | null
+          created_at?: string | null
+          cta_text?: string | null
+          custom_messages?: Json | null
+          eligible_users?: string | null
+          end_at: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          random_percent?: number | null
+          start_at: string
+          updated_at?: string | null
+        }
+        Update: {
+          access_duration_hours?: number | null
+          created_at?: string | null
+          cta_text?: string | null
+          custom_messages?: Json | null
+          eligible_users?: string | null
+          end_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          random_percent?: number | null
+          start_at?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      login_gift_claims: {
+        Row: {
+          campaign_id: string
+          claimed_at: string | null
+          expires_at: string | null
+          id: string
+          shown_message: string | null
+          user_id: string
+        }
+        Insert: {
+          campaign_id: string
+          claimed_at?: string | null
+          expires_at?: string | null
+          id?: string
+          shown_message?: string | null
+          user_id: string
+        }
+        Update: {
+          campaign_id?: string
+          claimed_at?: string | null
+          expires_at?: string | null
+          id?: string
+          shown_message?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "login_gift_claims_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "login_gift_campaigns"
             referencedColumns: ["id"]
           },
         ]
@@ -1336,6 +1608,74 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_module_access: {
+        Row: {
+          access_type: string | null
+          course_id: string
+          created_at: string | null
+          emi_payment_id: string | null
+          expires_at: string | null
+          gift_claim_id: string | null
+          granted_at: string | null
+          id: string
+          module_id: string
+          user_id: string
+        }
+        Insert: {
+          access_type?: string | null
+          course_id: string
+          created_at?: string | null
+          emi_payment_id?: string | null
+          expires_at?: string | null
+          gift_claim_id?: string | null
+          granted_at?: string | null
+          id?: string
+          module_id: string
+          user_id: string
+        }
+        Update: {
+          access_type?: string | null
+          course_id?: string
+          created_at?: string | null
+          emi_payment_id?: string | null
+          expires_at?: string | null
+          gift_claim_id?: string | null
+          granted_at?: string | null
+          id?: string
+          module_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_module_access_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_module_access_emi_payment_id_fkey"
+            columns: ["emi_payment_id"]
+            isOneToOne: false
+            referencedRelation: "emi_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_module_access_gift_claim_id_fkey"
+            columns: ["gift_claim_id"]
+            isOneToOne: false
+            referencedRelation: "login_gift_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_module_access_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
