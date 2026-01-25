@@ -9,11 +9,92 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  */
 
 const corsHeaders = {
+  // NOTE: We intentionally do NOT allow arbitrary origins for protected media.
+  // We'll echo a safe origin later; for OPTIONS we still respond.
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, range",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Expose-Headers": "Content-Range, Accept-Ranges, Content-Length",
 };
+
+type TicketPayload = {
+  v: 1;
+  uid: string;
+  lessonId: string;
+  videoPath: string;
+  exp: number;
+  ua: string;
+  oh?: string;
+  n: string;
+};
+
+const te = new TextEncoder();
+
+function base64UrlDecode(input: string): Uint8Array {
+  const b64 = input.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = b64 + "===".slice((b64.length + 3) % 4);
+  const bin = atob(padded);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+function base64UrlEncode(bytes: Uint8Array) {
+  let str = btoa(String.fromCharCode(...bytes));
+  return str.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+async function sha256Hex(input: string) {
+  const digest = await crypto.subtle.digest("SHA-256", te.encode(input));
+  const arr = new Uint8Array(digest);
+  return Array.from(arr)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function hmacVerify(secret: string, message: string, signatureB64Url: string) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    te.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["verify"],
+  );
+  const sigBytes = base64UrlDecode(signatureB64Url);
+  // Deno's WebCrypto typings are strict about ArrayBuffer vs ArrayBufferLike.
+  return crypto.subtle.verify(
+    "HMAC",
+    key,
+    sigBytes.buffer as ArrayBuffer,
+    te.encode(message),
+  );
+}
+
+function getRequestOriginHost(req: Request): string | null {
+  const origin = req.headers.get("origin");
+  const referer = req.headers.get("referer");
+  try {
+    if (origin) return new URL(origin).host;
+  } catch {
+    // ignore
+  }
+  try {
+    if (referer) return new URL(referer).host;
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function isLikelyOurSiteHost(host: string) {
+  // Works for preview + published + typical custom domains on the same hosting.
+  // (Not perfect, but blocks most “copy-paste into IDM” cases where host is missing.)
+  return (
+    host.endsWith(".lovable.app") ||
+    host.endsWith(".lovableproject.com") ||
+    host === "archistudio.lovable.app"
+  );
+}
 
 // Known download manager user agents and patterns
 const BLOCKED_USER_AGENTS = [
@@ -192,17 +273,19 @@ serve(async (req) => {
 
     // Get parameters from URL
     const url = new URL(req.url);
-    const token = url.searchParams.get("t");
+    const token = url.searchParams.get("t"); // legacy (deprecated)
+    const ticket = url.searchParams.get("ticket");
     const lessonId = url.searchParams.get("l");
     const videoPath = url.searchParams.get("p");
     const timestamp = url.searchParams.get("ts");
     const sessionId = url.searchParams.get("_"); // Random session ID
 
-    // === PROTECTION LAYER 2: URL Expiration (reduced to 5 minutes) ===
-    if (timestamp) {
+    // === PROTECTION LAYER 2: URL Expiration (legacy) ===
+    // For the new ticket-based flow, the ticket itself carries expiry.
+    if (!ticket && timestamp) {
       const urlTime = parseInt(timestamp, 10);
       const now = Date.now();
-      const fiveMinutes = 5 * 60 * 1000; // Reduced from 30 to 5 minutes
+      const fiveMinutes = 5 * 60 * 1000;
       
       if (now - urlTime > fiveMinutes) {
         return new Response(
@@ -212,28 +295,121 @@ serve(async (req) => {
       }
     }
 
-    if (!token || !lessonId || !videoPath) {
+    if (!lessonId || !videoPath || (!ticket && !token)) {
       return new Response(
         JSON.stringify({ error: "Missing parameters" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Verify user
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-
-    if (authError || !user) {
+    // === PROTECTION LAYER 2B: Require a valid site Origin/Referer ===
+    // If someone copies the URL and pastes into a download manager, these headers are usually missing.
+    const reqHost = getRequestOriginHost(req);
+    if (!reqHost || !isLikelyOurSiteHost(reqHost)) {
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Forbidden" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    // Resolve userId from signed ticket (preferred)
+    let userId: string | null = null;
+    if (ticket) {
+      const secret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+      if (!secret) {
+        return new Response(JSON.stringify({ error: "Server misconfigured" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const parts = ticket.split(".");
+      if (parts.length !== 2) {
+        return new Response(JSON.stringify({ error: "Invalid ticket" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const [payloadB64, sigB64] = parts;
+      const ok = await hmacVerify(secret, payloadB64, sigB64);
+      if (!ok) {
+        return new Response(JSON.stringify({ error: "Invalid ticket" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const payloadJson = new TextDecoder().decode(base64UrlDecode(payloadB64));
+      const payload = JSON.parse(payloadJson) as TicketPayload;
+      if (payload.v !== 1) {
+        return new Response(JSON.stringify({ error: "Invalid ticket" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Expiry
+      if (Date.now() > payload.exp) {
+        return new Response(JSON.stringify({ error: "Session expired. Please refresh the page." }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Bind to UA
+      const ua = req.headers.get("user-agent") ?? "";
+      const uaHash = await sha256Hex(ua);
+      if (uaHash !== payload.ua) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Bind to origin host (best-effort)
+      if (payload.oh && reqHost !== payload.oh) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Ensure parameters match payload
+      if (payload.lessonId !== lessonId || payload.videoPath !== videoPath) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      userId = payload.uid;
+    }
+
+    // Legacy fallback (deprecated): verify via access token
+    if (!userId && token) {
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      userId = user.id;
+    }
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const rangeHeader = req.headers.get("range");
 
     // === PROTECTION LAYER 3: Suspicious Pattern Detection ===
-    if (isSuspiciousRangePattern(user.id, lessonId, rangeHeader)) {
-      console.warn(`Suspicious download pattern detected for user: ${user.id}`);
+    if (isSuspiciousRangePattern(userId, lessonId, rangeHeader)) {
+      console.warn(`Suspicious download pattern detected for user: ${userId}`);
       // Return 429 Too Many Requests
       return new Response(
         JSON.stringify({ error: "Too many requests. Please wait and try again." }),
@@ -252,7 +428,7 @@ serve(async (req) => {
     const { data: adminRole } = await supabaseClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .eq("role", "admin")
       .maybeSingle();
 
@@ -279,7 +455,7 @@ serve(async (req) => {
         const { data: enrollment } = await supabaseClient
           .from("enrollments")
           .select("id")
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .eq("course_id", courseId)
           .eq("status", "active")
           .maybeSingle();
