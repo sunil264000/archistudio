@@ -377,49 +377,6 @@ function CourseCard({
     advanced: 'bg-destructive/10 text-destructive border-destructive/30',
   };
 
-  // Determine CTA based on access status
-  const getCTAContent = () => {
-    if (accessInfo.loading) {
-      return { text: 'Loading...', icon: Loader2, action: () => {}, disabled: true };
-    }
-    
-    if (accessInfo.accessType === 'full') {
-      return { 
-        text: 'Continue Learning', 
-        icon: Play, 
-        action: () => navigate(`/learn/${course.slug}`),
-        disabled: false 
-      };
-    }
-    
-    if (accessInfo.accessType === 'gift' || accessInfo.accessType === 'launch_free') {
-      return { 
-        text: 'Access Now', 
-        icon: Play, 
-        action: () => navigate(`/learn/${course.slug}`),
-        disabled: false 
-      };
-    }
-    
-    if (accessInfo.accessType === 'partial') {
-      return { 
-        text: 'Unlock More', 
-        icon: ShoppingCart, 
-        action: () => navigate(`/course/${course.slug}`),
-        disabled: false 
-      };
-    }
-    
-    return { 
-      text: `Buy Now - ₹${discountedPrice.toLocaleString()}`, 
-      icon: CreditCard, 
-      action: handleBuyNow,
-      disabled: isLoading 
-    };
-  };
-
-  const ctaContent = getCTAContent();
-
   const handleBuyNow = async () => {
     if (!user) {
       toast({
@@ -471,6 +428,49 @@ function CourseCard({
       courseLevel: course.level,
     });
   };
+
+  // Determine CTA based on access status
+  const getCTAContent = () => {
+    if (accessInfo.loading) {
+      return { text: 'Loading...', icon: Loader2, action: () => {}, disabled: true };
+    }
+    
+    if (accessInfo.accessType === 'full') {
+      return { 
+        text: 'Continue Learning', 
+        icon: Play, 
+        action: () => navigate(`/learn/${course.slug}`),
+        disabled: false 
+      };
+    }
+    
+    if (accessInfo.accessType === 'gift' || accessInfo.accessType === 'launch_free') {
+      return { 
+        text: 'Access Now', 
+        icon: Play, 
+        action: () => navigate(`/learn/${course.slug}`),
+        disabled: false 
+      };
+    }
+    
+    if (accessInfo.accessType === 'partial') {
+      return { 
+        text: 'Unlock More', 
+        icon: ShoppingCart, 
+        action: () => navigate(`/course/${course.slug}`),
+        disabled: false 
+      };
+    }
+    
+    return { 
+      text: `Buy Now - ₹${discountedPrice.toLocaleString()}`, 
+      icon: CreditCard, 
+      action: handleBuyNow,
+      disabled: isLoading 
+    };
+  };
+
+  const ctaContent = getCTAContent();
 
   const handlePhoneSubmit = async (phone: string) => {
     if (!pendingPaymentData) return;
