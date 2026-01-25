@@ -127,8 +127,14 @@ export function SecureVideoPlayer({
       const baseUrl = import.meta.env.VITE_SUPABASE_URL;
       const randomSalt = Math.random().toString(36).substring(7);
 
+      // Ensure we have an auth token and send it explicitly.
+      // (Some environments don't auto-attach it for function invokes.)
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+
       const { data, error: ticketError } = await supabase.functions.invoke('mint-video-ticket', {
         body: { lessonId, videoPath: path },
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
       });
 
       if (ticketError) throw ticketError;
