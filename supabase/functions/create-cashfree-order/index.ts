@@ -34,24 +34,42 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing Supabase configuration");
+      throw new Error("Server configuration error");
+    }
+
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
     // Verify user is authenticated
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("No authorization header");
+      console.error("No authorization header provided");
+      throw new Error("Authorization required");
     }
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
-
-    if (authError || !user) {
-      throw new Error("Unauthorized");
+    const token = authHeader.replace("Bearer ", "");
+    if (!token) {
+      console.error("Empty token");
+      throw new Error("Invalid authorization token");
     }
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+
+    if (authError) {
+      console.error("Auth error:", authError.message);
+      throw new Error("Authentication failed");
+    }
+
+    if (!user) {
+      console.error("No user found for token");
+      throw new Error("User not found");
+    }
+
+    console.log("Authenticated user:", user.id);
 
     const {
       courseId,
