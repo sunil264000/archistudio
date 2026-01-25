@@ -602,7 +602,7 @@ export default function CoursePlayer() {
                             onProgress={handleProgress}
                             onComplete={handleComplete}
                             initialPosition={progress[currentLesson.id]?.last_position_seconds || 0}
-                            allowExternal={false}
+                            allowExternal={true}
                           />
                         </div>
                       </div>
