@@ -14,9 +14,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
 import { useCourseModules } from '@/hooks/useCourseModules';
+import { useAccessControl } from '@/hooks/useAccessControl';
 import { useToast } from '@/hooks/use-toast';
 import { CourseReviews } from '@/components/course/CourseReviews';
 import { DemoReviews } from '@/components/course/DemoReviews';
+import { AccessBadge } from '@/components/course/AccessBadge';
 import { SEOHead, generateCourseSchema, generateBreadcrumbSchema } from '@/components/seo/SEOHead';
 import { LiveViewerCounter } from '@/components/social-proof/LiveViewerCounter';
 import { useSaleDiscount } from '@/hooks/useSaleDiscount';
@@ -169,6 +171,9 @@ export default function CourseDetail() {
   const [dbCourseId, setDbCourseId] = useState<string | null>(null);
   const [dbCourseMeta, setDbCourseMeta] = useState<{ total_lessons: number | null; duration_hours: number | null } | null>(null);
   
+  // Use access control hook for enrollment/gift/EMI status
+  const accessInfo = useAccessControl(user?.id, dbCourseId || undefined);
+  
   // Phone number dialog state
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
   const [pendingPaymentData, setPendingPaymentData] = useState<{
@@ -237,6 +242,16 @@ export default function CourseDetail() {
         variant: "destructive",
       });
       navigate('/auth');
+      return;
+    }
+
+    // Anti-double-purchase: Check if user already has access
+    if (accessInfo.hasAccess && !accessInfo.canPurchase) {
+      toast({
+        title: "Already Enrolled",
+        description: "You already have full access to this course!",
+      });
+      navigate(`/learn/${course.slug}`);
       return;
     }
 
@@ -459,6 +474,14 @@ export default function CourseDetail() {
                     <Star className="h-3 w-3 mr-1 fill-current" /> Featured
                   </Badge>
                 )}
+                {/* Access Badge - shows enrollment/gift/partial status */}
+                {accessInfo.accessType !== 'none' && (
+                  <AccessBadge 
+                    accessType={accessInfo.accessType}
+                    unlockedPercent={accessInfo.unlockedPercent}
+                    expiryDate={accessInfo.giftExpiry || accessInfo.launchFreeExpiry}
+                  />
+                )}
               </div>
 
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
@@ -535,32 +558,81 @@ export default function CourseDetail() {
                     )}
                   </div>
                   
-                  <Button 
-                    onClick={handleBuyNow} 
-                    disabled={isLoading}
-                    className="w-full h-12 text-lg"
-                    size="lg"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : effectivePriceInr === 0 ? (
-                      <>
-                        <BookOpen className="h-5 w-5 mr-2" />
-                        Enroll for Free
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard className="h-5 w-5 mr-2" />
-                        Buy Now
-                      </>
-                    )}
-                  </Button>
+                  {/* CTA Button - changes based on access status */}
+                  {accessInfo.hasAccess && !accessInfo.canPurchase ? (
+                    // User has full access - show Continue Learning
+                    <Button 
+                      onClick={() => navigate(`/learn/${course.slug}`)}
+                      className="w-full h-12 text-lg"
+                      size="lg"
+                    >
+                      <Play className="h-5 w-5 mr-2" />
+                      Continue Learning
+                    </Button>
+                  ) : accessInfo.hasAccess && accessInfo.canPurchase ? (
+                    // User has partial/gift access - show both options
+                    <div className="space-y-2">
+                      <Button 
+                        onClick={() => navigate(`/learn/${course.slug}`)}
+                        className="w-full h-12 text-lg"
+                        size="lg"
+                        variant="secondary"
+                      >
+                        <Play className="h-5 w-5 mr-2" />
+                        Continue Learning
+                      </Button>
+                      {effectivePriceInr > 0 && (
+                        <Button 
+                          onClick={handleBuyNow} 
+                          disabled={isLoading}
+                          className="w-full"
+                          variant="outline"
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <CreditCard className="h-4 w-4 mr-2" />
+                              Unlock Full Access
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    // No access - show Buy/Enroll button
+                    <>
+                      <Button 
+                        onClick={handleBuyNow} 
+                        disabled={isLoading}
+                        className="w-full h-12 text-lg"
+                        size="lg"
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : effectivePriceInr === 0 ? (
+                          <>
+                            <BookOpen className="h-5 w-5 mr-2" />
+                            Enroll for Free
+                          </>
+                        ) : (
+                          <>
+                            <CreditCard className="h-5 w-5 mr-2" />
+                            Buy Now
+                          </>
+                        )}
+                      </Button>
 
-                  {effectivePriceInr > 0 && (
-                    <AddToCartButton course={{ ...course, priceInr: effectivePriceInr }} />
+                      {effectivePriceInr > 0 && (
+                        <AddToCartButton course={{ ...course, priceInr: effectivePriceInr }} />
+                      )}
+                    </>
                   )}
 
 

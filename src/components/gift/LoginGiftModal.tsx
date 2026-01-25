@@ -1,218 +1,61 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Gift, Sparkles, Clock, BookOpen } from 'lucide-react';
-import { format, addHours } from 'date-fns';
+import { format } from 'date-fns';
 
-interface GiftClaim {
-  campaign_id: string;
-  campaign_name: string;
-  courses: { id: string; title: string; slug: string }[];
+interface GiftCourse {
+  id: string;
+  title: string;
+  slug: string;
+  thumbnail_url?: string | null;
+}
+
+interface GiftData {
   message: string;
-  cta_text: string;
-  expires_at: string | null;
+  courses: GiftCourse[];
+  expiresAt: string | null;
+  ctaText: string;
 }
 
-interface LoginGiftModalProps {
-  userId: string;
-  onClose: () => void;
+export interface LoginGiftModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  giftData: GiftData | null;
 }
 
-export function LoginGiftModal({ userId, onClose }: LoginGiftModalProps) {
-  const [giftClaim, setGiftClaim] = useState<GiftClaim | null>(null);
-  const [loading, setLoading] = useState(true);
+export function LoginGiftModal({ open, onOpenChange, giftData }: LoginGiftModalProps) {
   const [canDismiss, setCanDismiss] = useState(false);
-  const [claiming, setClaiming] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    checkAndClaimGift();
-    // Allow dismiss after 2 seconds
-    const timer = setTimeout(() => setCanDismiss(true), 2000);
-    return () => clearTimeout(timer);
-  }, [userId]);
+    if (open) {
+      setCanDismiss(false);
+      // Allow dismiss after 2 seconds
+      const timer = setTimeout(() => setCanDismiss(true), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
 
-  const checkAndClaimGift = async () => {
-    try {
-      // 1. Find active campaigns
-      const now = new Date().toISOString();
-      const { data: campaigns, error: campError } = await supabase
-        .from('login_gift_campaigns')
-        .select('*')
-        .eq('is_active', true)
-        .lte('start_at', now)
-        .gte('end_at', now);
-
-      if (campError || !campaigns || campaigns.length === 0) {
-        setLoading(false);
-        onClose();
-        return;
-      }
-
-      // 2. Check if user already claimed any of these campaigns
-      const { data: existingClaims } = await supabase
-        .from('login_gift_claims')
-        .select('campaign_id')
-        .eq('user_id', userId)
-        .in('campaign_id', campaigns.map(c => c.id));
-
-      const claimedIds = new Set(existingClaims?.map(c => c.campaign_id) || []);
-      const unclaimedCampaigns = campaigns.filter(c => !claimedIds.has(c.id));
-
-      if (unclaimedCampaigns.length === 0) {
-        setLoading(false);
-        onClose();
-        return;
-      }
-
-      // 3. Get user profile to check eligibility
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('created_at')
-        .eq('user_id', userId)
-        .single();
-
-      // 4. Find eligible campaign
-      let eligibleCampaign = null;
-      for (const campaign of unclaimedCampaigns) {
-        const isEligible = await checkEligibility(campaign, profile?.created_at);
-        if (isEligible) {
-          eligibleCampaign = campaign;
-          break;
-        }
-      }
-
-      if (!eligibleCampaign) {
-        setLoading(false);
-        onClose();
-        return;
-      }
-
-      // 5. Get courses for this campaign
-      const { data: campaignCourses } = await supabase
-        .from('login_gift_campaign_courses')
-        .select(`
-          course_id,
-          course:courses(id, title, slug)
-        `)
-        .eq('campaign_id', eligibleCampaign.id);
-
-      const courses = campaignCourses?.map(cc => cc.course).filter(Boolean) || [];
-      
-      if (courses.length === 0) {
-        setLoading(false);
-        onClose();
-        return;
-      }
-
-      // 6. Select random message
-      const messages = Array.isArray(eligibleCampaign.custom_messages) 
-        ? eligibleCampaign.custom_messages 
-        : [];
-      const randomMessage = messages.length > 0 
-        ? messages[Math.floor(Math.random() * messages.length)]
-        : 'Congratulations! You have been granted free access.';
-
-      // 7. Calculate expiry
-      let expiresAt: string | null = null;
-      if (eligibleCampaign.access_duration_hours) {
-        expiresAt = addHours(new Date(), eligibleCampaign.access_duration_hours).toISOString();
-      } else {
-        expiresAt = eligibleCampaign.end_at;
-      }
-
-      setGiftClaim({
-        campaign_id: eligibleCampaign.id,
-        campaign_name: eligibleCampaign.name,
-        courses: courses as any[],
-        message: randomMessage,
-        cta_text: eligibleCampaign.cta_text || 'Start Learning',
-        expires_at: expiresAt,
-      });
-
-      setLoading(false);
-    } catch (error) {
-      console.error('Error checking gift campaign:', error);
-      setLoading(false);
-      onClose();
+  const handleStartLearning = () => {
+    if (giftData?.courses && giftData.courses.length > 0) {
+      const firstCourse = giftData.courses[0];
+      onOpenChange(false);
+      navigate(`/learn/${firstCourse.slug}`);
+    } else {
+      onOpenChange(false);
+      navigate('/courses');
     }
   };
 
-  const checkEligibility = async (campaign: any, userCreatedAt: string | undefined): Promise<boolean> => {
-    const eligibility = campaign.eligible_users;
-
-    if (eligibility === 'all') return true;
-
-    if (eligibility === 'new_only') {
-      if (!userCreatedAt) return false;
-      // User is "new" if created within last 7 days
-      const createdDate = new Date(userCreatedAt);
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      return createdDate >= sevenDaysAgo;
-    }
-
-    if (eligibility === 'random_percent') {
-      const percent = campaign.random_percent || 50;
-      return Math.random() * 100 < percent;
-    }
-
-    return false;
-  };
-
-  const handleClaimGift = async () => {
-    if (!giftClaim) return;
-
-    setClaiming(true);
-    try {
-      // 1. Create claim record
-      const { error: claimError } = await supabase
-        .from('login_gift_claims')
-        .insert({
-          campaign_id: giftClaim.campaign_id,
-          user_id: userId,
-          expires_at: giftClaim.expires_at,
-          shown_message: giftClaim.message,
-        });
-
-      if (claimError) throw claimError;
-
-      // 2. Create enrollments for each course
-      for (const course of giftClaim.courses) {
-        // Check if enrollment already exists
-        const { data: existing } = await supabase
-          .from('enrollments')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('course_id', course.id)
-          .single();
-
-        if (!existing) {
-          await supabase.from('enrollments').insert({
-            user_id: userId,
-            course_id: course.id,
-            status: 'active',
-            is_manual: true,
-            granted_at: new Date().toISOString(),
-            expires_at: giftClaim.expires_at,
-          });
-        }
-      }
-
-      // 3. Navigate to first course
-      const firstCourse = giftClaim.courses[0];
-      onClose();
-      navigate(`/course/${firstCourse.slug}/learn`);
-    } catch (error) {
-      console.error('Error claiming gift:', error);
-    } finally {
-      setClaiming(false);
+  const handleDismiss = () => {
+    if (canDismiss) {
+      onOpenChange(false);
     }
   };
 
-  if (loading || !giftClaim) return null;
+  if (!open || !giftData) return null;
 
   return (
     <AnimatePresence>
@@ -221,7 +64,7 @@ export function LoginGiftModal({ userId, onClose }: LoginGiftModalProps) {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm"
-        onClick={canDismiss ? onClose : undefined}
+        onClick={handleDismiss}
       >
         <motion.div
           initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -270,7 +113,7 @@ export function LoginGiftModal({ userId, onClose }: LoginGiftModalProps) {
               transition={{ delay: 0.4 }}
               className="text-muted-foreground"
             >
-              {giftClaim.message}
+              {giftData.message}
             </motion.p>
 
             {/* Courses */}
@@ -280,7 +123,7 @@ export function LoginGiftModal({ userId, onClose }: LoginGiftModalProps) {
               transition={{ delay: 0.5 }}
               className="bg-muted/50 rounded-lg p-4 space-y-2"
             >
-              {giftClaim.courses.map((course) => (
+              {giftData.courses.map((course) => (
                 <div key={course.id} className="flex items-center gap-2 text-left">
                   <BookOpen className="h-4 w-4 text-accent flex-shrink-0" />
                   <span className="text-sm font-medium truncate">{course.title}</span>
@@ -289,7 +132,7 @@ export function LoginGiftModal({ userId, onClose }: LoginGiftModalProps) {
             </motion.div>
 
             {/* Expiry */}
-            {giftClaim.expires_at && (
+            {giftData.expiresAt && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -298,7 +141,7 @@ export function LoginGiftModal({ userId, onClose }: LoginGiftModalProps) {
               >
                 <Clock className="h-4 w-4" />
                 <span>
-                  Access until {format(new Date(giftClaim.expires_at), 'MMM d, yyyy h:mm a')}
+                  Access until {format(new Date(giftData.expiresAt), 'MMM d, yyyy h:mm a')}
                 </span>
               </motion.div>
             )}
@@ -312,10 +155,9 @@ export function LoginGiftModal({ userId, onClose }: LoginGiftModalProps) {
               <Button
                 size="lg"
                 className="w-full mt-4 gap-2"
-                onClick={handleClaimGift}
-                disabled={claiming}
+                onClick={handleStartLearning}
               >
-                {claiming ? 'Activating...' : giftClaim.cta_text}
+                {giftData.ctaText}
               </Button>
             </motion.div>
 
@@ -324,7 +166,7 @@ export function LoginGiftModal({ userId, onClose }: LoginGiftModalProps) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                onClick={onClose}
+                onClick={() => onOpenChange(false)}
               >
                 Maybe later
               </motion.button>

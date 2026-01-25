@@ -26,6 +26,9 @@ import { EmailBroadcast } from '@/components/admin/EmailBroadcast';
 import { EbookPricingSettings } from '@/components/admin/EbookPricingSettings';
 import { EbookManagement } from '@/components/admin/EbookManagement';
 import { ManualEbookAccess } from '@/components/admin/ManualEbookAccess';
+import { GiftCampaignManagement } from '@/components/admin/GiftCampaignManagement';
+import { EMISettingsManagement } from '@/components/admin/EMISettingsManagement';
+import { LaunchFreeCourseManagement } from '@/components/admin/LaunchFreeCourseManagement';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
@@ -106,6 +109,12 @@ export default function Admin() {
         return <UsersPanel />;
       case 'access':
         return <ManualEnrollment />;
+      case 'gift-campaigns':
+        return <GiftCampaignManagement />;
+      case 'emi-settings':
+        return <EMISettingsManagement />;
+      case 'launch-free':
+        return <LaunchFreeCourseManagement />;
       case 'qa':
         return <QAManagement />;
       case 'notifications':
