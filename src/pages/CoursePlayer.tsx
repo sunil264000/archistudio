@@ -2,11 +2,13 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAccessControl } from '@/hooks/useAccessControl';
 import { Navbar } from '@/components/layout/Navbar';
 import { SecureVideoPlayer } from '@/components/video/SecureVideoPlayer';
 import { CourseQA } from '@/components/course/CourseQA';
 import { LessonResources } from '@/components/course/LessonResources';
 import { LockedLessonPlaceholder } from '@/components/course/LockedLessonPlaceholder';
+import { AccessBadge } from '@/components/course/AccessBadge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -54,11 +56,16 @@ export default function CoursePlayer() {
   const [modules, setModules] = useState<Module[]>([]);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [progress, setProgress] = useState<Record<string, LessonProgress>>({});
-  const [isEnrolled, setIsEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [watchProgress, setWatchProgress] = useState(0);
   const [showFinishButton, setShowFinishButton] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Use access control hook for proper access checking (enrollment, gift, EMI, launch free)
+  const accessInfo = useAccessControl(user?.id, course?.id);
+  
+  // Derived enrollment state from access control
+  const isEnrolled = accessInfo.hasAccess;
   
   // Refs to prevent re-fetching on tab switch or re-renders
   const hasFetchedRef = useRef(false);
@@ -97,20 +104,8 @@ export default function CoursePlayer() {
 
       setCourse(courseData);
 
-      // Check enrollment (only if logged in)
-      let isUserEnrolled = false;
-      if (user) {
-        const { data: enrollment } = await supabase
-          .from('enrollments')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('course_id', courseData.id)
-          .eq('status', 'active')
-          .maybeSingle();
-        isUserEnrolled = !!enrollment;
-      }
-
-      setIsEnrolled(isUserEnrolled);
+      // Note: Enrollment/access is now handled by useAccessControl hook
+      // We still need to determine initial lesson selection based on access
 
       // Fetch modules with lessons
       const { data: modulesData } = await supabase
@@ -156,11 +151,14 @@ export default function CoursePlayer() {
       
       let initialLesson: Lesson | null = null;
       
+      // Note: At this point we don't have accessInfo yet (hook runs after course is set)
+      // So we use basic checks here, and full access control happens in the render
+      
       // 1. Check URL param
       if (lessonIdFromUrl) {
         const fromUrl = allLessonsFlat.find(l => l.id === lessonIdFromUrl) || null;
-        // Guests / non-enrolled users should never land on locked lessons.
-        if (fromUrl && (isUserEnrolled || fromUrl.is_free_preview)) {
+        if (fromUrl) {
+          // We'll let the player show locked placeholder if needed
           initialLesson = fromUrl;
         }
       }
@@ -180,10 +178,10 @@ export default function CoursePlayer() {
         initialLesson = allLessonsFlat.find(l => !completedIds.has(l.id)) || null;
       }
       
-      // 4. Fallback to first lesson
+      // 4. Fallback to first lesson or first free preview
       if (!initialLesson && allLessonsFlat.length > 0) {
-        // Prefer first free preview for anyone who isn't enrolled.
-        if (!isUserEnrolled) {
+        // Prefer first free preview for guests
+        if (!user) {
           initialLesson = allLessonsFlat.find(l => l.is_free_preview) || allLessonsFlat[0];
         } else {
           initialLesson = allLessonsFlat[0];
@@ -320,7 +318,17 @@ export default function CoursePlayer() {
             Back to Studio
           </Button>
         </Link>
-        <h2 className="font-semibold truncate text-sm md:text-base">{course?.title}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-semibold truncate text-sm md:text-base flex-1">{course?.title}</h2>
+          {/* Access Badge */}
+          {accessInfo.accessType !== 'none' && (
+            <AccessBadge 
+              accessType={accessInfo.accessType}
+              unlockedPercent={accessInfo.unlockedPercent}
+              expiryDate={accessInfo.giftExpiry || accessInfo.launchFreeExpiry}
+            />
+          )}
+        </div>
         
         {/* Signup prompt for non-logged-in users */}
         {!user && (
@@ -346,57 +354,75 @@ export default function CoursePlayer() {
 
       <ScrollArea className="flex-1">
         <Accordion type="multiple" defaultValue={modules.map(m => m.id)} className="p-2">
-          {modules.map((module, modIdx) => (
-            <AccordionItem key={module.id} value={module.id} className="border-b-0">
-              <AccordionTrigger className="hover:no-underline px-2 py-3">
-                <span className="text-sm font-medium text-left">
-                  Module {modIdx + 1}: {module.title}
-                </span>
-              </AccordionTrigger>
-              <AccordionContent className="pb-2">
-                <div className="space-y-1">
-                  {module.lessons.map((lesson) => {
-                    const isCompleted = progress[lesson.id]?.completed;
-                    const isLocked = !isEnrolled && !lesson.is_free_preview;
-                    const isCurrent = currentLesson?.id === lesson.id;
+          {modules.map((module, modIdx) => {
+            // Check if this module is unlocked (for partial EMI access)
+            const isModuleUnlocked = accessInfo.accessType === 'partial' 
+              ? accessInfo.unlockedModuleIds.includes(module.id)
+              : isEnrolled;
+              
+            return (
+              <AccordionItem key={module.id} value={module.id} className="border-b-0">
+                <AccordionTrigger className="hover:no-underline px-2 py-3">
+                  <div className="flex items-center gap-2 text-left">
+                    <span className="text-sm font-medium">
+                      Module {modIdx + 1}: {module.title}
+                    </span>
+                    {accessInfo.accessType === 'partial' && !isModuleUnlocked && (
+                      <Lock className="h-3 w-3 text-muted-foreground" />
+                    )}
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pb-2">
+                  <div className="space-y-1">
+                    {module.lessons.map((lesson) => {
+                      const isCompleted = progress[lesson.id]?.completed;
+                      // Lesson is locked if: no access AND not free preview
+                      // For partial access: check module unlock status
+                      const isLocked = lesson.is_free_preview 
+                        ? false 
+                        : accessInfo.accessType === 'partial'
+                          ? !isModuleUnlocked
+                          : !isEnrolled;
+                      const isCurrent = currentLesson?.id === lesson.id;
 
                       return (
-                      <button
-                        key={lesson.id}
-                        onClick={() => handleLessonSelect(lesson)}
-                        className={`w-full flex items-center gap-2 p-2 rounded text-left text-sm transition-colors ${
-                          isCurrent 
-                            ? 'bg-primary text-primary-foreground' 
-                            : isLocked 
-                              ? 'text-muted-foreground hover:bg-muted/50'
-                              : 'hover:bg-muted'
-                        }`}
-                      >
-                        <span className="w-5 h-5 flex items-center justify-center shrink-0">
-                          {isLocked ? (
-                            <Lock className="h-3 w-3" />
-                          ) : isCompleted ? (
-                            <CheckCircle className="h-4 w-4 text-success" />
-                          ) : (
-                            <Play className="h-3 w-3" />
-                          )}
-                        </span>
-                        <span className="flex-1 truncate">{lesson.title}</span>
-                        {lesson.is_free_preview && !isEnrolled && (
-                          <Badge variant="secondary" className="text-xs shrink-0">Free</Badge>
-                        )}
-                        {lesson.duration_minutes && lesson.duration_minutes > 0 && (
-                          <span className="text-xs opacity-60 shrink-0">
-                            {lesson.duration_minutes}m
+                        <button
+                          key={lesson.id}
+                          onClick={() => handleLessonSelect(lesson)}
+                          className={`w-full flex items-center gap-2 p-2 rounded text-left text-sm transition-colors ${
+                            isCurrent 
+                              ? 'bg-primary text-primary-foreground' 
+                              : isLocked 
+                                ? 'text-muted-foreground hover:bg-muted/50'
+                                : 'hover:bg-muted'
+                          }`}
+                        >
+                          <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                            {isLocked ? (
+                              <Lock className="h-3 w-3" />
+                            ) : isCompleted ? (
+                              <CheckCircle className="h-4 w-4 text-success" />
+                            ) : (
+                              <Play className="h-3 w-3" />
+                            )}
                           </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
+                          <span className="flex-1 truncate">{lesson.title}</span>
+                          {lesson.is_free_preview && !isEnrolled && (
+                            <Badge variant="secondary" className="text-xs shrink-0">Free</Badge>
+                          )}
+                          {lesson.duration_minutes && lesson.duration_minutes > 0 && (
+                            <span className="text-xs opacity-60 shrink-0">
+                              {lesson.duration_minutes}m
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
         </Accordion>
       </ScrollArea>
     </>

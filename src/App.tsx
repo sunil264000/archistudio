@@ -1,15 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { PurchaseNotification } from "@/components/social-proof/PurchaseNotification";
 import { FestivalDecorations } from "@/components/festival/FestivalDecorations";
 import { SalesPopup } from "@/components/sales/SalesPopup";
 import { AmbientAudio } from "@/components/audio/AmbientAudio";
+import { LoginGiftModal } from "@/components/gift/LoginGiftModal";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import { initializeGA4 } from "@/hooks/useGoogleAnalytics";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,7 +53,122 @@ initAnalytics();
 
 const AppContent = () => {
   useContentProtection();
-  return null;
+  const { user } = useAuth();
+  const [giftData, setGiftData] = useState<any>(null);
+  const [showGiftModal, setShowGiftModal] = useState(false);
+
+  // Check for gift campaigns when user logs in
+  useEffect(() => {
+    const checkGiftCampaign = async () => {
+      if (!user) return;
+
+      try {
+        const now = new Date().toISOString();
+
+        // Get active campaigns
+        const { data: campaigns } = await supabase
+          .from('login_gift_campaigns')
+          .select(`
+            id,
+            name,
+            access_duration_hours,
+            cta_text,
+            custom_messages,
+            eligible_users,
+            random_percent,
+            end_at,
+            login_gift_campaign_courses(
+              course_id,
+              courses:course_id(id, title, slug, thumbnail_url)
+            )
+          `)
+          .eq('is_active', true)
+          .lte('start_at', now)
+          .gte('end_at', now);
+
+        if (!campaigns || campaigns.length === 0) return;
+
+        for (const campaign of campaigns) {
+          // Check if user already claimed this campaign
+          const { data: existingClaim } = await supabase
+            .from('login_gift_claims')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('campaign_id', campaign.id)
+            .maybeSingle();
+
+          if (existingClaim) continue;
+
+          // Check eligibility
+          if (campaign.eligible_users === 'new_only') {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('created_at')
+              .eq('user_id', user.id)
+              .single();
+            
+            const createdAt = new Date(profile?.created_at || 0);
+            const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            if (createdAt < oneDayAgo) continue;
+          }
+
+          if (campaign.eligible_users === 'random_percent' && campaign.random_percent) {
+            if (Math.random() * 100 > campaign.random_percent) continue;
+          }
+
+          // Get random message
+          const messages = campaign.custom_messages as string[] || [];
+          const randomMessage = messages.length > 0 
+            ? messages[Math.floor(Math.random() * messages.length)]
+            : 'Welcome! Enjoy complimentary access to our courses.';
+
+          // Calculate expiry
+          const expiresAt = campaign.access_duration_hours
+            ? new Date(Date.now() + campaign.access_duration_hours * 60 * 60 * 1000).toISOString()
+            : campaign.end_at;
+
+          // Create claim
+          await supabase.from('login_gift_claims').insert({
+            user_id: user.id,
+            campaign_id: campaign.id,
+            expires_at: expiresAt,
+            shown_message: randomMessage,
+          });
+
+          // Get courses for this campaign
+          const courses = campaign.login_gift_campaign_courses
+            ?.map((cc: any) => cc.courses)
+            .filter(Boolean) || [];
+
+          if (courses.length > 0) {
+            setGiftData({
+              message: randomMessage,
+              courses,
+              expiresAt,
+              ctaText: campaign.cta_text || 'Start Learning',
+            });
+            setShowGiftModal(true);
+          }
+
+          break; // Only process first valid campaign
+        }
+      } catch (error) {
+        console.error('Error checking gift campaign:', error);
+      }
+    };
+
+    checkGiftCampaign();
+  }, [user]);
+
+  return (
+    <>
+      <LoginGiftModal
+        open={showGiftModal}
+        onOpenChange={setShowGiftModal}
+        giftData={giftData}
+      />
+    </>
+  );
 };
 
 const App = () => (

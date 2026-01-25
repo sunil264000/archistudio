@@ -4,7 +4,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   BookOpen, Package, Video, Users, UserPlus, HelpCircle, Bell, 
   CreditCard, Sparkles, Award, BarChart3, MessageSquare, Settings,
-  ChevronLeft, ChevronRight, LayoutDashboard, Timer, Mail, Send, Library, FileText, KeyRound
+  ChevronLeft, ChevronRight, LayoutDashboard, Timer, Mail, Send, Library, FileText, KeyRound,
+  Gift, Wallet, Rocket
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logo from '@/assets/logo.png';
@@ -23,6 +24,9 @@ const menuItems = [
   { id: 'lessons', label: 'Lessons', icon: Video, color: 'text-green-500' },
   { id: 'users', label: 'Users', icon: Users, color: 'text-cyan-500' },
   { id: 'access', label: 'Access Control', icon: UserPlus, color: 'text-orange-500' },
+  { id: 'gift-campaigns', label: 'Gift Campaigns', icon: Gift, color: 'text-pink-500' },
+  { id: 'emi-settings', label: 'EMI Settings', icon: Wallet, color: 'text-amber-500' },
+  { id: 'launch-free', label: 'Launch Free', icon: Rocket, color: 'text-cyan-400' },
   { id: 'qa', label: 'Q&A', icon: HelpCircle, color: 'text-yellow-500' },
   { id: 'notifications', label: 'Notifications', icon: Bell, color: 'text-red-500' },
   { id: 'payments', label: 'Payments', icon: CreditCard, color: 'text-emerald-500' },
