@@ -381,6 +381,7 @@ export type Database = {
           course_id: string
           created_at: string | null
           early_payment_discount_percent: number | null
+          emi_surcharge_percent: number | null
           id: string
           is_emi_enabled: boolean | null
           max_splits: number | null
@@ -392,6 +393,7 @@ export type Database = {
           course_id: string
           created_at?: string | null
           early_payment_discount_percent?: number | null
+          emi_surcharge_percent?: number | null
           id?: string
           is_emi_enabled?: boolean | null
           max_splits?: number | null
@@ -403,6 +405,7 @@ export type Database = {
           course_id?: string
           created_at?: string | null
           early_payment_discount_percent?: number | null
+          emi_surcharge_percent?: number | null
           id?: string
           is_emi_enabled?: boolean | null
           max_splits?: number | null

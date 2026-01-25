@@ -116,6 +116,12 @@ serve(async (req) => {
       throw new Error("EMI is not enabled for this course");
     }
 
+    // Get EMI surcharge percentage (default 10%)
+    const emiSurchargePercent = Number((emiSettings as any).emi_surcharge_percent) || 10;
+    
+    // Calculate EMI total price with surcharge
+    const emiTotalPrice = Math.round(fullPrice * (1 + emiSurchargePercent / 100));
+
     // Validate payment tier
     const paymentTiers = (emiSettings.payment_tiers as any[]) || [];
     if (tierIndex < 0 || tierIndex >= paymentTiers.length) {
@@ -156,14 +162,16 @@ serve(async (req) => {
       throw new Error("You have already unlocked this content");
     }
 
-    // Calculate amount for this installment
-    const previousPaid = (currentUnlocked / 100) * fullPrice;
-    const targetPaid = (paymentPercent / 100) * fullPrice;
+    // Calculate amount for this installment based on EMI total price (with surcharge)
+    const previousPaid = (currentUnlocked / 100) * emiTotalPrice;
+    const targetPaid = (paymentPercent / 100) * emiTotalPrice;
     const amountToPay = Math.round(targetPaid - previousPaid);
 
     if (amountToPay <= 0) {
       throw new Error("Invalid payment amount");
     }
+
+    console.log(`EMI Order: Course ${course.title}, Base Price: ₹${fullPrice}, Surcharge: ${emiSurchargePercent}%, EMI Total: ₹${emiTotalPrice}, This Payment: ₹${amountToPay} (${paymentPercent}%)`);
 
     // Map module_order_indices -> module IDs (stored in modules table)
     const moduleOrderIndices: number[] = Array.isArray(selectedTier.module_order_indices)
@@ -244,11 +252,11 @@ serve(async (req) => {
         installment_number: installmentNumber,
         total_installments: totalInstallments,
         amount_paid: amountToPay,
-        remaining_amount: fullPrice - targetPaid,
+        remaining_amount: emiTotalPrice - targetPaid,
         unlocked_percent: paymentPercent,
         gateway_order_id: orderId,
         status: "pending",
-        total_course_price: fullPrice,
+        total_course_price: emiTotalPrice, // Store EMI total price (with surcharge)
       });
 
     if (emiError) {
