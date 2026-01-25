@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, Shield, Settings } from 'lucide-react';
+import { Loader2, Play, Pause, Volume2, VolumeX, Maximize, Minimize, SkipBack, SkipForward, Shield, Settings } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,6 +26,11 @@ interface SecureVideoPlayerProps {
 
 type QualityMode = 'auto' | 'hd' | 'sd';
 
+// Check if mobile device
+const isMobileDevice = () => {
+  return window.innerWidth < 768 || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+};
+
 export function SecureVideoPlayer({ 
   lessonId, 
   videoPath, 
@@ -50,10 +55,12 @@ export function SecureVideoPlayer({
   const [hasAppliedInitialPosition, setHasAppliedInitialPosition] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekPreviewTime, setSeekPreviewTime] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMobile] = useState(isMobileDevice);
   const isSeekingRef = useRef(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
   const watermarkIntervalRef = useRef<NodeJS.Timeout>();
-  const urlFetchedRef = useRef<string | null>(null); // Track fetched URL to prevent re-fetching
+  const urlFetchedRef = useRef<string | null>(null);
   const { user } = useAuth();
 
   const isExternalUrl = (url: string) => /^https?:\/\//i.test(url);
@@ -369,13 +376,60 @@ export function SecureVideoPlayer({
     }
   };
 
-  const toggleFullscreen = () => {
-    if (containerRef.current) {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else {
-        containerRef.current.requestFullscreen();
+  // Track fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isFs = !!document.fullscreenElement || !!(document as any).webkitFullscreenElement;
+      setIsFullscreen(isFs);
+      
+      // Lock orientation on mobile when fullscreen (if supported)
+      if (isFs && isMobile) {
+        try {
+          (screen.orientation as any)?.lock?.('landscape');
+        } catch {
+          // Orientation lock not supported
+        }
       }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, [isMobile]);
+
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) return;
+
+    try {
+      if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        }
+      } else {
+        // Use video element directly on mobile for native fullscreen controls as fallback
+        if (isMobile && videoRef.current) {
+          if ((videoRef.current as any).webkitEnterFullscreen) {
+            // iOS Safari - use native video fullscreen
+            (videoRef.current as any).webkitEnterFullscreen();
+            return;
+          }
+        }
+        
+        // Standard fullscreen API
+        if (containerRef.current.requestFullscreen) {
+          await containerRef.current.requestFullscreen();
+        } else if ((containerRef.current as any).webkitRequestFullscreen) {
+          (containerRef.current as any).webkitRequestFullscreen();
+        }
+      }
+    } catch (err) {
+      console.warn('Fullscreen request failed:', err);
     }
   };
 
@@ -483,14 +537,19 @@ export function SecureVideoPlayer({
   return (
     <div 
       ref={containerRef}
-      className="relative aspect-video bg-black rounded-lg overflow-hidden group"
+      className={`relative bg-black overflow-hidden group video-protected-container ${
+        isFullscreen 
+          ? 'fixed inset-0 z-[9999] w-screen h-screen' 
+          : 'aspect-video rounded-lg'
+      }`}
       onMouseMove={resetControlsTimeout}
+      onTouchStart={resetControlsTimeout}
       onMouseLeave={() => isPlaying && setShowControls(false)}
     >
       <video
         ref={videoRef}
         src={videoUrl || undefined}
-        className="w-full h-full"
+        className={`w-full h-full object-contain ${isFullscreen ? '' : ''}`}
         preload="auto"
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
@@ -502,6 +561,7 @@ export function SecureVideoPlayer({
         }}
         onClick={togglePlay}
         playsInline
+        webkit-playsinline="true"
         controlsList="nodownload nofullscreen noremoteplayback"
         disablePictureInPicture
         onContextMenu={(e) => e.preventDefault()}
@@ -510,7 +570,7 @@ export function SecureVideoPlayer({
 
       {/* Moving user watermark - identifies who downloaded if leaked */}
       <div 
-        className="absolute text-white/15 text-sm pointer-events-none select-none font-mono transition-all duration-1000"
+        className="absolute text-white/15 text-xs sm:text-sm pointer-events-none select-none font-mono transition-all duration-1000"
         style={{ 
           left: `${watermarkPosition.x}%`, 
           top: `${watermarkPosition.y}%`,
@@ -528,24 +588,24 @@ export function SecureVideoPlayer({
         }`}
         style={{ pointerEvents: showControls ? 'auto' : 'none' }}
       >
-        {/* Center Play Button */}
+        {/* Center Play Button - Larger on mobile */}
         {!isPlaying && (
           <div className="absolute inset-0 flex items-center justify-center" style={{ pointerEvents: 'auto' }}>
             <Button
               variant="ghost"
               size="icon"
-              className="h-20 w-20 rounded-full bg-white/20 hover:bg-white/30 text-white"
+              className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-white/20 hover:bg-white/30 active:bg-white/40 text-white touch-target"
               onClick={(e) => { e.stopPropagation(); togglePlay(); }}
             >
-              <Play className="h-10 w-10 fill-current" />
+              <Play className="h-8 w-8 sm:h-10 sm:w-10 fill-current" />
             </Button>
           </div>
         )}
 
-        {/* Bottom Controls */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2">
-          {/* Progress Bar - Enhanced for better seeking */}
-          <div className="relative group/seek">
+        {/* Bottom Controls - Responsive layout */}
+        <div className={`absolute bottom-0 left-0 right-0 p-2 sm:p-4 space-y-2 ${isFullscreen ? 'safe-area-inset pb-safe' : ''}`}>
+          {/* Progress Bar - Larger touch target on mobile */}
+          <div className="relative group/seek touch-target">
             <Slider
               value={[isSeeking ? seekPreviewTime : currentTime]}
               min={0}
@@ -557,7 +617,6 @@ export function SecureVideoPlayer({
                 setIsSeeking(true);
                 isSeekingRef.current = true;
                 setSeekPreviewTime(newTime);
-                // Only update UI while dragging (commit seek on release)
               }}
               onValueCommit={(value) => {
                 if (videoRef.current && duration > 0) {
@@ -568,41 +627,43 @@ export function SecureVideoPlayer({
                 setIsSeeking(false);
                 isSeekingRef.current = false;
               }}
-              className="cursor-pointer [&>span:first-child]:h-2 [&>span:first-child]:hover:h-3 [&>span:first-child]:transition-all [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:opacity-0 [&_[role=slider]]:group-hover/seek:opacity-100 [&_[role=slider]]:transition-opacity"
+              className="cursor-pointer [&>span:first-child]:h-2 sm:[&>span:first-child]:h-2 [&>span:first-child]:hover:h-3 [&>span:first-child]:transition-all [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 sm:[&_[role=slider]]:h-4 sm:[&_[role=slider]]:w-4 [&_[role=slider]]:opacity-100 sm:[&_[role=slider]]:opacity-0 sm:[&_[role=slider]]:group-hover/seek:opacity-100 [&_[role=slider]]:transition-opacity"
             />
           </div>
 
-          {/* Control Buttons */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          {/* Control Buttons - Mobile-optimized layout */}
+          <div className="flex items-center justify-between gap-1 sm:gap-2">
+            {/* Left controls */}
+            <div className="flex items-center gap-1 sm:gap-2">
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white hover:bg-white/20"
+                className="h-9 w-9 sm:h-10 sm:w-10 text-white hover:bg-white/20 active:bg-white/30"
                 onClick={(e) => { e.stopPropagation(); togglePlay(); }}
               >
-                {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                {isPlaying ? <Pause className="h-4 w-4 sm:h-5 sm:w-5" /> : <Play className="h-4 w-4 sm:h-5 sm:w-5" />}
               </Button>
 
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white hover:bg-white/20"
+                className="h-9 w-9 sm:h-10 sm:w-10 text-white hover:bg-white/20 active:bg-white/30"
                 onClick={(e) => { e.stopPropagation(); skip(-5); }}
               >
-                <SkipBack className="h-5 w-5" />
+                <SkipBack className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
 
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white hover:bg-white/20"
+                className="h-9 w-9 sm:h-10 sm:w-10 text-white hover:bg-white/20 active:bg-white/30"
                 onClick={(e) => { e.stopPropagation(); skip(5); }}
               >
-                <SkipForward className="h-5 w-5" />
+                <SkipForward className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
 
-              <div className="flex items-center gap-2 ml-2">
+              {/* Volume - Hidden on mobile (use device volume) */}
+              <div className="hidden sm:flex items-center gap-2 ml-2">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -620,30 +681,31 @@ export function SecureVideoPlayer({
                 />
               </div>
 
-              <span className="text-white text-sm ml-4">
+              {/* Time - Compact on mobile */}
+              <span className="text-white text-xs sm:text-sm ml-2 sm:ml-4 whitespace-nowrap">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Right controls */}
+            <div className="flex items-center gap-1 sm:gap-2">
               {/* Quality Selector - Only show for Google Drive videos */}
               {isGoogleDriveUrl(videoPath) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
-                      size="sm"
-                      className="text-white hover:bg-white/20 text-xs gap-1"
+                      size="icon"
+                      className="h-9 w-9 sm:h-10 sm:w-10 text-white hover:bg-white/20 active:bg-white/30"
                     >
-                      <Settings className="h-4 w-4" />
-                      {qualityMode === 'sd' ? 'SD' : 'HD'}
+                      <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="min-w-[120px]">
                     <DropdownMenuItem 
                       onClick={() => {
                         if (qualityMode !== 'auto' && qualityMode !== 'hd') {
-                          urlFetchedRef.current = null; // Reset to refetch
+                          urlFetchedRef.current = null;
                           setQualityMode('auto');
                         }
                       }}
@@ -657,7 +719,7 @@ export function SecureVideoPlayer({
                     <DropdownMenuItem 
                       onClick={() => {
                         if (qualityMode !== 'sd') {
-                          urlFetchedRef.current = null; // Reset to refetch
+                          urlFetchedRef.current = null;
                           setQualityMode('sd');
                         }
                       }}
@@ -672,13 +734,14 @@ export function SecureVideoPlayer({
                 </DropdownMenu>
               )}
 
+              {/* Fullscreen toggle */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-white hover:bg-white/20"
+                className="h-9 w-9 sm:h-10 sm:w-10 text-white hover:bg-white/20 active:bg-white/30"
                 onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
               >
-                <Maximize className="h-5 w-5" />
+                {isFullscreen ? <Minimize className="h-4 w-4 sm:h-5 sm:w-5" /> : <Maximize className="h-4 w-4 sm:h-5 sm:w-5" />}
               </Button>
             </div>
           </div>
@@ -686,23 +749,23 @@ export function SecureVideoPlayer({
       </div>
 
       {/* Corner watermarks */}
-      <div className="absolute top-2 left-2 text-white/10 text-xs pointer-events-none select-none flex items-center gap-1">
+      <div className="absolute top-2 left-2 text-white/10 text-[10px] sm:text-xs pointer-events-none select-none flex items-center gap-1">
         <Shield className="h-3 w-3" />
-        Protected
+        <span className="hidden sm:inline">Protected</span>
       </div>
       
       {/* Quality indicator badge */}
       {isGoogleDriveUrl(videoPath) && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs pointer-events-none select-none">
-                  <span
-                    className={`px-2 py-0.5 rounded ${useProxyForGDrive ? 'bg-success/80 text-success-foreground' : 'bg-warning/80 text-warning-foreground'}`}
-                  >
-                    {useProxyForGDrive ? 'HD' : 'SD 360p'}
-                  </span>
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] sm:text-xs pointer-events-none select-none">
+          <span
+            className={`px-1.5 sm:px-2 py-0.5 rounded ${useProxyForGDrive ? 'bg-success/80 text-success-foreground' : 'bg-warning/80 text-warning-foreground'}`}
+          >
+            {useProxyForGDrive ? 'HD' : 'SD'}
+          </span>
         </div>
       )}
       
-      <div className="absolute top-2 right-2 text-white/10 text-xs pointer-events-none select-none">
+      <div className="absolute top-2 right-2 text-white/10 text-[10px] sm:text-xs pointer-events-none select-none">
         Archistudio
       </div>
     </div>
