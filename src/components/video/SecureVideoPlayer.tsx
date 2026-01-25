@@ -61,9 +61,7 @@ export function SecureVideoPlayer({
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
   const watermarkIntervalRef = useRef<NodeJS.Timeout>();
   const urlFetchedRef = useRef<string | null>(null);
-  const { user } = useAuth();
-
-  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  const { user, session } = useAuth();
 
   // Keep actual stream URL off the DOM attribute as much as possible.
   // (Still not DRM; but removes easy link-copy from Elements pane.)
@@ -72,6 +70,7 @@ export function SecureVideoPlayer({
     if (!videoUrl) return;
     try {
       videoRef.current.src = videoUrl;
+      videoRef.current.load();
     } catch {
       // ignore
     }
@@ -129,27 +128,19 @@ export function SecureVideoPlayer({
       const baseUrl = import.meta.env.VITE_SUPABASE_URL;
       const randomSalt = Math.random().toString(36).substring(7);
 
-      // Ensure we have an auth token and send it explicitly.
-      // (Some environments don't auto-attach it for function invokes.)
-      // Wait a moment for auth state hydration (prevents using anon token).
-      let accessToken: string | undefined;
-      for (let i = 0; i < 8; i++) {
-        const { data: { session } } = await supabase.auth.getSession();
-        accessToken = session?.access_token;
-        if (accessToken) break;
-        // If user is present but token isn't hydrated yet, wait briefly.
-        if (user) await sleep(150);
-        else break;
+      // Use the real logged-in session token (never let this fall back to anon).
+      let accessToken = session?.access_token;
+      if (!accessToken && user) {
+        await supabase.auth.refreshSession().catch(() => undefined);
+        const { data: { session: refreshed } } = await supabase.auth.getSession();
+        accessToken = refreshed?.access_token;
       }
 
-      if (!accessToken) {
-        // No session available yet; caller effect will re-run when user/session loads.
-        return null;
-      }
+      if (!accessToken) return null;
 
       const { data, error: ticketError } = await supabase.functions.invoke('mint-video-ticket', {
         body: { lessonId, videoPath: path },
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
 
       if (ticketError) throw ticketError;
