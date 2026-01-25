@@ -29,6 +29,211 @@ const handler = async (req: Request): Promise<Response> => {
     const currentYear = new Date().getFullYear();
     const testBadge = isTest ? ' [TEST]' : '';
 
+    // Spam prevention: Add text version, proper headers, and clean HTML
+    const subject = isTest 
+      ? `[TEST] Welcome to Archistudio, ${userName}!` 
+      : `Welcome to Archistudio, ${userName}!`;
+
+    const textContent = `
+Hi ${userName},
+
+Thank you for joining Archistudio! We're excited to have you as part of our community of aspiring architects and designers.
+
+With Archistudio, you'll have access to:
+- Industry-leading architectural visualization courses
+- Expert instructors with real-world experience  
+- Hands-on projects and practical exercises
+- Certificate of completion for each course
+
+Start exploring our courses: https://archistudio.lovable.app/courses
+
+If you have any questions, feel free to reach out to us at hello@archistudio.shop
+
+Best regards,
+The Archistudio Team
+
+---
+© ${currentYear} Archistudio. All rights reserved.
+https://archistudio.lovable.app
+
+You received this email because you signed up for an account at Archistudio.
+    `.trim();
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no">
+  <title>Welcome to Archistudio</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+    table, td { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+    a { text-decoration: none; }
+    @media only screen and (max-width: 600px) {
+      .container { width: 100% !important; padding: 20px !important; }
+      .content { padding: 24px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  
+  <!-- Preheader text (hidden but used by email clients) -->
+  <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">
+    Welcome aboard! Start your architectural visualization journey with Archistudio.
+  </div>
+  
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f4f4f5;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        
+        <table role="presentation" class="container" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+          
+          <!-- Header with Logo -->
+          <tr>
+            <td align="center" style="padding: 40px 40px 30px; background: linear-gradient(135deg, #1a1a2e 0%, #0f172a 100%); border-radius: 16px 16px 0 0;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center">
+                    <div style="display: inline-block; padding: 12px 24px; background: rgba(34, 197, 94, 0.15); border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.3);">
+                      <span style="font-size: 22px; font-weight: 700; color: #22c55e; letter-spacing: 0.5px;">ARCHISTUDIO</span>
+                    </div>
+                    <p style="color: #94a3b8; font-size: 12px; margin: 10px 0 0 0; letter-spacing: 1.5px; text-transform: uppercase;">Premium Architecture Education</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Welcome Message -->
+          <tr>
+            <td class="content" style="padding: 40px;">
+              
+              <!-- Welcome Icon -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding-bottom: 24px;">
+                    <div style="width: 72px; height: 72px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); border-radius: 50%; line-height: 72px; font-size: 32px; text-align: center;">
+                      &#127881;
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- Heading -->
+              <h1 style="color: #18181b; font-size: 28px; font-weight: 700; margin: 0 0 24px 0; text-align: center; line-height: 1.3;">
+                Welcome to Archistudio!
+              </h1>
+              
+              <!-- Personal Greeting -->
+              <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                Hi <strong style="color: #18181b;">${userName}</strong>,
+              </p>
+              
+              <p style="color: #52525b; font-size: 16px; line-height: 1.7; margin: 0 0 28px 0;">
+                Thank you for joining our community! We're excited to help you master architectural visualization with industry-leading courses designed by professionals.
+              </p>
+              
+              <!-- Features Box -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 32px;">
+                <tr>
+                  <td style="padding: 24px;">
+                    <p style="color: #18181b; font-size: 14px; font-weight: 600; margin: 0 0 16px 0; text-transform: uppercase; letter-spacing: 0.5px;">What you get with Archistudio</p>
+                    
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="padding: 8px 0; color: #52525b; font-size: 15px;">
+                          <span style="color: #22c55e; font-weight: bold; margin-right: 10px;">&#10003;</span>
+                          Professional visualization courses
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #52525b; font-size: 15px;">
+                          <span style="color: #22c55e; font-weight: bold; margin-right: 10px;">&#10003;</span>
+                          Expert instructors with real-world experience
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #52525b; font-size: 15px;">
+                          <span style="color: #22c55e; font-weight: bold; margin-right: 10px;">&#10003;</span>
+                          Hands-on projects and downloadable resources
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #52525b; font-size: 15px;">
+                          <span style="color: #22c55e; font-weight: bold; margin-right: 10px;">&#10003;</span>
+                          Certificate upon course completion
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- CTA Button -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding-bottom: 32px;">
+                    <a href="https://archistudio.lovable.app/courses" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: #ffffff; font-size: 16px; font-weight: 600; padding: 16px 36px; border-radius: 10px; text-decoration: none;">
+                      Explore Courses
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="color: #71717a; font-size: 14px; line-height: 1.6; margin: 0; text-align: center;">
+                Have questions? Just reply to this email or contact us at <a href="mailto:hello@archistudio.shop" style="color: #6366f1;">hello@archistudio.shop</a>
+              </p>
+              
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px 32px; background-color: #fafafa; border-radius: 0 0 16px 16px; border-top: 1px solid #f4f4f5;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding-bottom: 16px;">
+                    <a href="https://instagram.com/archistudio.in" style="color: #71717a; font-size: 13px; margin: 0 12px;">Instagram</a>
+                    <span style="color: #d4d4d8;">|</span>
+                    <a href="https://t.me/archistudio_in" style="color: #71717a; font-size: 13px; margin: 0 12px;">Telegram</a>
+                    <span style="color: #d4d4d8;">|</span>
+                    <a href="https://archistudio.lovable.app" style="color: #71717a; font-size: 13px; margin: 0 12px;">Website</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center">
+                    <p style="color: #a1a1aa; font-size: 12px; margin: 0 0 4px 0;">&copy; ${currentYear} Archistudio. All rights reserved.</p>
+                    <p style="color: #d4d4d8; font-size: 11px; margin: 0;">You received this email because you signed up at archistudio.lovable.app</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+        </table>
+        
+      </td>
+    </tr>
+  </table>
+  
+</body>
+</html>
+    `.trim();
+
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -38,87 +243,14 @@ const handler = async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         from: "Archistudio <hello@archistudio.shop>",
         to: [email],
-        subject: `Welcome to Archistudio! 🎉${testBadge}`,
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0f0f0f;">
-            <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-              <div style="background: linear-gradient(180deg, #1a1a2e 0%, #0f172a 100%); border-radius: 20px; padding: 40px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
-                
-                <!-- Logo -->
-                <div style="text-align: center; margin-bottom: 30px;">
-                  <div style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%); border-radius: 14px; border: 1px solid rgba(34, 197, 94, 0.25);">
-                    <span style="font-size: 26px; font-weight: 800; background: linear-gradient(90deg, #22c55e, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.5px;">ARCHISTUDIO</span>
-                  </div>
-                  <p style="color: #6b7280; font-size: 13px; margin: 12px 0 0 0; letter-spacing: 1px; text-transform: uppercase;">Premium Architecture Education</p>
-                </div>
-                
-                <!-- Header -->
-                <div style="text-align: center; margin-bottom: 35px;">
-                  <div style="display: inline-block; width: 80px; height: 80px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2)); border-radius: 50%; line-height: 80px; font-size: 40px; margin-bottom: 15px;">🎉</div>
-                  <h1 style="color: #ffffff; font-size: 26px; margin: 0; font-weight: 700; letter-spacing: -0.5px;">
-                    Welcome to Archistudio!
-                  </h1>
-                  <div style="width: 50px; height: 3px; background: linear-gradient(90deg, #6366f1, #a855f7); margin: 18px auto 0; border-radius: 2px;"></div>
-                </div>
-                
-                <div style="color: #e5e5e5; font-size: 16px; line-height: 1.7;">
-                  <p style="margin-bottom: 25px; font-size: 18px;">Hi <strong style="color: #fff;">${userName}</strong>! 👋</p>
-                  
-                  <p style="margin-bottom: 20px; color: #d1d5db;">Thank you for joining Archistudio! We're thrilled to have you as part of our community of aspiring architects and designers.</p>
-                  
-                  <p style="margin-bottom: 18px; color: #d1d5db;">With Archistudio, you'll have access to:</p>
-                  
-                  <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 14px; padding: 22px; margin-bottom: 28px;">
-                    <div style="display: flex; align-items: center; margin-bottom: 14px;">
-                      <span style="color: #818cf8; margin-right: 12px; font-size: 18px;">📚</span>
-                      <span style="color: #a5b4fc;">Industry-leading architectural visualization studios</span>
-                    </div>
-                    <div style="display: flex; align-items: center; margin-bottom: 14px;">
-                      <span style="color: #818cf8; margin-right: 12px; font-size: 18px;">👨‍🏫</span>
-                      <span style="color: #a5b4fc;">Expert instructors with real-world experience</span>
-                    </div>
-                    <div style="display: flex; align-items: center; margin-bottom: 14px;">
-                      <span style="color: #818cf8; margin-right: 12px; font-size: 18px;">🛠️</span>
-                      <span style="color: #a5b4fc;">Hands-on projects and practical exercises</span>
-                    </div>
-                    <div style="display: flex; align-items: center;">
-                      <span style="color: #818cf8; margin-right: 12px; font-size: 18px;">🏆</span>
-                      <span style="color: #a5b4fc;">Proof of Completion upon finishing</span>
-                    </div>
-                  </div>
-                  
-                  <div style="text-align: center; margin: 35px 0;">
-                    <a href="https://archistudio.lovable.app/courses" style="display: inline-block; background: linear-gradient(90deg, #6366f1, #a855f7); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 10px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);">
-                      Explore Studios →
-                    </a>
-                  </div>
-                  
-                  <p style="margin-top: 30px; color: #9ca3af; font-size: 14px; text-align: center;">If you have any questions, feel free to reach out to our support team.</p>
-                </div>
-                
-                <!-- Footer -->
-                <div style="margin-top: 40px; padding-top: 25px; border-top: 1px solid rgba(255,255,255,0.08); text-align: center;">
-                  <div style="margin-bottom: 18px;">
-                    <a href="https://instagram.com/archistudio.in" style="color: #6b7280; text-decoration: none; margin: 0 12px; font-size: 13px;">Instagram</a>
-                    <span style="color: #3f3f46;">•</span>
-                    <a href="https://t.me/archistudio_in" style="color: #6b7280; text-decoration: none; margin: 0 12px; font-size: 13px;">Telegram</a>
-                    <span style="color: #3f3f46;">•</span>
-                    <a href="https://archistudio.lovable.app" style="color: #6b7280; text-decoration: none; margin: 0 12px; font-size: 13px;">Website</a>
-                  </div>
-                  <p style="color: #52525b; font-size: 12px; margin: 0;">© ${currentYear} Archistudio. All rights reserved.</p>
-                  <p style="color: #3f3f46; font-size: 11px; margin: 8px 0 0 0;">This is an automated email. Please do not reply directly.</p>
-                </div>
-              </div>
-            </div>
-          </body>
-          </html>
-        `,
+        reply_to: "hello@archistudio.shop",
+        subject: subject,
+        text: textContent,
+        html: htmlContent,
+        headers: {
+          "X-Entity-Ref-ID": `welcome-${Date.now()}`,
+          "List-Unsubscribe": "<mailto:unsubscribe@archistudio.shop>",
+        },
       }),
     });
 
