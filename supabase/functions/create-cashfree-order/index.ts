@@ -34,42 +34,43 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error("Missing Supabase configuration");
-      throw new Error("Server configuration error");
-    }
-
-    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Verify user is authenticated
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      console.error("No authorization header provided");
-      throw new Error("Authorization required");
+      return new Response(
+        JSON.stringify({ error: "Authorization required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    if (!token) {
-      console.error("Empty token");
-      throw new Error("Invalid authorization token");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+      console.error("Missing backend configuration");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    // 1) Auth: validate JWT using anon client with forwarded Authorization header.
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
 
-    if (authError) {
-      console.error("Auth error:", authError.message);
-      throw new Error("Authentication failed");
+    const { data: authData, error: authError } = await authClient.auth.getUser();
+    if (authError || !authData?.user) {
+      console.error("Auth error:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    if (!user) {
-      console.error("No user found for token");
-      throw new Error("User not found");
-    }
-
-    console.log("Authenticated user:", user.id);
+    // 2) DB writes: use service role
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
+    const user = authData.user;
 
     const {
       courseId,
@@ -101,7 +102,10 @@ serve(async (req) => {
 
     if (courseError || !course) {
       console.error("Course not found:", courseId, courseError);
-      throw new Error("Course not found");
+      return new Response(
+        JSON.stringify({ error: "Course not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // Verify course is published
@@ -221,11 +225,8 @@ serve(async (req) => {
   } catch (error: any) {
     console.error("Error creating Cashfree order:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ error: error?.message || "Failed to create order" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });

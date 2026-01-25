@@ -26,24 +26,43 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
-    // Verify user is authenticated
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("No authorization header");
+      return new Response(
+        JSON.stringify({ error: "Authorization required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
-      authHeader.replace("Bearer ", "")
-    );
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
-    if (authError || !user) {
-      throw new Error("Unauthorized");
+    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+      console.error("Missing backend configuration");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
+
+    // 1) Auth
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: authData, error: authError } = await authClient.auth.getUser();
+    if (authError || !authData?.user) {
+      console.error("Auth error:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // 2) DB writes
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
+    const user = authData.user;
 
     const {
       courseId,
@@ -146,8 +165,20 @@ serve(async (req) => {
       throw new Error("Invalid payment amount");
     }
 
-    // Get modules to unlock for this tier
-    const moduleIdsToUnlock = selectedTier.module_ids || [];
+    // Map module_order_indices -> module IDs (stored in modules table)
+    const moduleOrderIndices: number[] = Array.isArray(selectedTier.module_order_indices)
+      ? selectedTier.module_order_indices
+      : [];
+
+    const moduleIdsToUnlock: string[] =
+      paymentPercent === 100
+        ? []
+        : (await supabaseClient
+            .from("modules")
+            .select("id, order_index")
+            .eq("course_id", course.id)
+            .in("order_index", moduleOrderIndices))
+            .data?.map((m: any) => m.id) ?? [];
 
     const appId = Deno.env.get("CASHFREE_APP_ID");
     const secretKey = Deno.env.get("CASHFREE_SECRET_KEY");
@@ -267,11 +298,8 @@ serve(async (req) => {
   } catch (error: any) {
     console.error("Error creating EMI order:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ error: error?.message || "Failed to create EMI order" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
