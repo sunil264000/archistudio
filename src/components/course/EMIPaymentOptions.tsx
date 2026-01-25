@@ -16,6 +16,8 @@ interface PaymentTier {
   label: string;
 }
 
+type TierWithDbIndex = PaymentTier & { _dbIndex: number };
+
 interface EMISetting {
   is_emi_enabled: boolean;
   min_first_payment_percent: number;
@@ -108,25 +110,85 @@ export function EMIPaymentOptions({
       return;
     }
 
-    const amount = paymentMode === 'full' 
-      ? coursePrice 
-      : selectedTier !== null 
-        ? calculateTierPrice(emiSettings!.payment_tiers[selectedTier].percent)
-        : coursePrice;
+    // FULL payment -> existing flow
+    if (paymentMode === 'full') {
+      await initiatePayment({
+        courseId: courseSlug,
+        amount: coursePrice,
+        customerName: profile?.full_name || user.email?.split('@')[0] || 'Student',
+        customerEmail: user.email || '',
+        customerPhone: phone,
+        courseTitle,
+        courseLevel: 'full',
+      });
+      return;
+    }
 
-    const tier = paymentMode === 'emi' && selectedTier !== null 
-      ? emiSettings!.payment_tiers[selectedTier] 
-      : null;
+    // EMI payment -> dedicated function (amount is computed server-side)
+    if (!emiSettings || !emiSettings.is_emi_enabled) {
+      toast.error('EMI is not enabled for this course');
+      return;
+    }
+    if (selectedTier === null) {
+      toast.error('Please select an EMI option');
+      return;
+    }
 
-    await initiatePayment({
-      courseId: courseSlug,
-      amount,
-      customerName: profile?.full_name || user.email?.split('@')[0] || 'Student',
-      customerEmail: user.email || '',
-      customerPhone: phone,
-      courseTitle,
-      courseLevel: tier ? `EMI_${tier.percent}%` : 'full',
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (!token) {
+      toast.error('Please login to continue');
+      return;
+    }
+
+    // Preserve DB tier index even if we sort for UI
+    const tiersWithDbIndex: TierWithDbIndex[] = (emiSettings.payment_tiers || [])
+      .map((t, i) => ({ ...t, _dbIndex: i }))
+      .sort((a, b) => a.percent - b.percent);
+
+    const chosen = tiersWithDbIndex[selectedTier];
+    if (!chosen) {
+      toast.error('Invalid EMI selection');
+      return;
+    }
+
+    // Load Cashfree SDK (same as full flow)
+    await (async () => {
+      // reuse the script loader behavior from useCashfreePayment by calling initiatePayment on a dummy? no.
+      // Keep local loader to avoid changing hook API.
+      if ((window as any).Cashfree) return;
+      await new Promise<void>((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
+        document.body.appendChild(script);
+      });
+    })();
+
+    const { data, error } = await supabase.functions.invoke('create-emi-order', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: {
+        courseId: courseSlug,
+        customerName: profile?.full_name || user.email?.split('@')[0] || 'Student',
+        customerEmail: user.email || '',
+        customerPhone: phone,
+        paymentPercent: chosen.percent,
+        tierIndex: chosen._dbIndex,
+      },
     });
+
+    if (error) throw error;
+
+    const paymentSessionId = (data as any)?.paymentSessionId as string | undefined;
+    if (!paymentSessionId) {
+      throw new Error('Missing payment session');
+    }
+
+    const cashfree = (window as any).Cashfree({ mode: 'production' });
+    await cashfree.checkout({ paymentSessionId, redirectTarget: '_self' });
   };
 
   if (loading) {
@@ -168,7 +230,9 @@ export function EMIPaymentOptions({
     );
   }
 
-  const tiers = emiSettings.payment_tiers.sort((a, b) => a.percent - b.percent);
+  const tiers: TierWithDbIndex[] = (emiSettings.payment_tiers || [])
+    .map((t, i) => ({ ...t, _dbIndex: i }))
+    .sort((a, b) => a.percent - b.percent);
 
   return (
     <Card>
@@ -224,10 +288,7 @@ export function EMIPaymentOptions({
           </div>
         ) : (
           <div className="space-y-4">
-            <RadioGroup
-              value={selectedTier?.toString()}
-              onValueChange={(v) => setSelectedTier(parseInt(v))}
-            >
+            <RadioGroup value={selectedTier?.toString()} onValueChange={(v) => setSelectedTier(parseInt(v))}>
               {tiers.map((tier, index) => {
                 const tierPrice = calculateTierPrice(tier.percent);
                 const unlockedModules = getModulesForTier(tier);

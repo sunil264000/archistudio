@@ -56,6 +56,9 @@ export const useCashfreePayment = () => {
 
       // Create order via edge function
       const { data, error } = await supabase.functions.invoke("create-cashfree-order", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: details,
       });
 
