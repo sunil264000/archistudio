@@ -75,14 +75,30 @@ export function PurchaseNotification() {
 
   useEffect(() => {
     const fetchRealPurchases = async () => {
-      const { data } = await supabase
+      // Fetch completed payments with course info only (no profile join since no FK exists)
+      const { data: payments } = await supabase
         .from('payments')
-        .select('created_at, courses(title), profiles!payments_user_id_fkey(full_name)')
+        .select('created_at, user_id, courses(title)')
         .eq('status', 'completed')
         .order('created_at', { ascending: false })
         .limit(10);
       
-      return data || [];
+      if (!payments || payments.length === 0) return [];
+      
+      // Fetch profiles separately for these users
+      const userIds = [...new Set(payments.map(p => p.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', userIds);
+      
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
+      
+      return payments.map(p => ({
+        created_at: p.created_at,
+        course_title: (p.courses as any)?.title,
+        full_name: profileMap.get(p.user_id) || null,
+      }));
     };
 
     const showNotification = async () => {
@@ -95,7 +111,7 @@ export function PurchaseNotification() {
       
       if (useReal) {
         const real = realPurchases[Math.floor(Math.random() * realPurchases.length)];
-        const name = (real.profiles as any)?.full_name || 'Someone';
+        const name = real.full_name || 'Someone';
         const firstName = name.split(' ')[0];
         const initial = name.split(' ')[1]?.[0] || '';
         const created = new Date(real.created_at);
@@ -111,7 +127,7 @@ export function PurchaseNotification() {
         
         purchase = {
           name: `${firstName} ${initial}.`,
-          course: (real.courses as any)?.title || 'a course',
+          course: real.course_title || 'a course',
           timeAgo,
           isReal: true,
         };
