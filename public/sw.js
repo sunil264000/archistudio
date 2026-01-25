@@ -1,77 +1,70 @@
-const CACHE_NAME = 'concrete-logic-v1';
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-];
+// Service Worker - Network First, No Aggressive Caching
+// This ensures users always get the latest content
 
-// Install event - cache static assets
+const CACHE_NAME = 'concrete-logic-v2';
+
+// Install event - skip caching to ensure fresh content
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    })
-  );
+  // Immediately activate
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// Activate event - clear ALL old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
+        cacheNames.map((name) => caches.delete(name))
       );
+    }).then(() => {
+      // Take control immediately
+      return self.clients.claim();
     })
   );
-  self.clients.claim();
 });
 
-// Fetch event - network first, fallback to cache
+// Fetch event - ALWAYS go to network first, no fallback caching
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
   
-  // Skip API requests
+  // Skip API requests, Supabase, and function calls
   if (event.request.url.includes('/api/') || 
       event.request.url.includes('supabase') ||
-      event.request.url.includes('/functions/')) {
+      event.request.url.includes('/functions/') ||
+      event.request.url.includes('/rest/')) {
     return;
   }
 
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Clone the response before caching
-        const responseClone = response.clone();
-        
-        // Cache successful responses
-        if (response.status === 200) {
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+  // For navigation requests (HTML pages), always fetch from network
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request, {
+        cache: 'no-store', // Bypass browser cache
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
         }
-        
-        return response;
+      }).catch(() => {
+        // Only on network failure, try cache
+        return caches.match('/index.html');
       })
-      .catch(() => {
-        // Fallback to cache
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          
-          // Return offline page for navigation requests
-          if (event.request.mode === 'navigate') {
-            return caches.match('/');
-          }
-          
-          return new Response('Offline', { status: 503 });
-        });
-      })
+    );
+    return;
+  }
+
+  // For other assets (JS, CSS, images), use network first
+  event.respondWith(
+    fetch(event.request, { cache: 'no-store' })
+      .catch(() => caches.match(event.request))
   );
+});
+
+// Listen for skip waiting message
+self.addEventListener('message', (event) => {
+  if (event.data === 'skipWaiting') {
+    self.skipWaiting();
+  }
 });
 
 // Background sync for offline submissions
@@ -82,6 +75,5 @@ self.addEventListener('sync', (event) => {
 });
 
 async function syncProgress() {
-  // Sync any pending progress updates when back online
   console.log('Syncing progress data...');
 }

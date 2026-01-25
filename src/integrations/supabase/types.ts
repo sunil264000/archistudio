@@ -985,6 +985,66 @@ export type Database = {
           },
         ]
       }
+      live_activity: {
+        Row: {
+          activity_type: string
+          course_id: string | null
+          created_at: string
+          ended_at: string | null
+          id: string
+          last_ping: string
+          lesson_id: string | null
+          metadata: Json | null
+          page_url: string | null
+          session_id: string
+          started_at: string
+          user_id: string | null
+        }
+        Insert: {
+          activity_type: string
+          course_id?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          last_ping?: string
+          lesson_id?: string | null
+          metadata?: Json | null
+          page_url?: string | null
+          session_id: string
+          started_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          course_id?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          last_ping?: string
+          lesson_id?: string | null
+          metadata?: Json | null
+          page_url?: string | null
+          session_id?: string
+          started_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_activity_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_activity_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login_gift_campaign_courses: {
         Row: {
           campaign_id: string
@@ -1381,6 +1441,50 @@ export type Database = {
             columns: ["lesson_id"]
             isOneToOne: false
             referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_attempts: {
+        Row: {
+          amount: number | null
+          course_id: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          session_id: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          course_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          session_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          course_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          session_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_attempts_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
             referencedColumns: ["id"]
           },
         ]
