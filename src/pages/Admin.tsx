@@ -30,6 +30,8 @@ import { GiftCampaignManagement } from '@/components/admin/GiftCampaignManagemen
 import { EMISettingsManagement } from '@/components/admin/EMISettingsManagement';
 import { LaunchFreeCourseManagement } from '@/components/admin/LaunchFreeCourseManagement';
 import { RealtimeAnalytics } from '@/components/admin/RealtimeAnalytics';
+import { RoleManagement } from '@/components/admin/RoleManagement';
+import { EmailLogs } from '@/components/admin/EmailLogs';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
@@ -102,6 +104,10 @@ export default function Admin() {
         return <AdminOverview stats={stats} onNavigate={setActiveTab} />;
       case 'realtime':
         return <RealtimeAnalytics />;
+      case 'roles':
+        return <RoleManagement />;
+      case 'email-logs':
+        return <EmailLogs />;
       case 'courses':
         return <CourseManagement />;
       case 'bundles':

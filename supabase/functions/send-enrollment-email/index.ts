@@ -1,6 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,16 +17,43 @@ interface EnrollmentEmailRequest {
   courseSlug: string;
   isFree: boolean;
   isGift?: boolean;
-  isTest?: boolean; // Flag for test emails
+  isTest?: boolean;
   amount?: number;
   orderId?: string;
   paymentDate?: string;
+}
+
+async function logEmail(
+  supabase: any,
+  recipient_email: string,
+  recipient_name: string | null,
+  email_type: string,
+  subject: string,
+  status: string,
+  metadata?: any,
+  error_message?: string
+) {
+  try {
+    await supabase.from('email_logs').insert({
+      recipient_email,
+      recipient_name,
+      email_type,
+      subject,
+      status,
+      metadata,
+      error_message,
+    });
+  } catch (err) {
+    console.error('Failed to log email:', err);
+  }
 }
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
   try {
     const { 
@@ -289,6 +319,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     const resData = await emailResponse.json();
     console.log("Enrollment email sent successfully:", resData);
+
+    // Log the email
+    const emailType = isGift ? 'gift' : isFree ? 'enrollment' : 'enrollment';
+    await logEmail(supabase, email, userName, emailType, subject, 'sent', { courseName, isFree, isGift, isTest });
 
     return new Response(JSON.stringify({ success: true, data: resData }), {
       status: 200,
