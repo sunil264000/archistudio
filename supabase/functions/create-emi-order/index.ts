@@ -6,21 +6,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface OrderRequest {
+interface EMIOrderRequest {
   courseId: string; // course slug
   customerName: string;
   customerEmail: string;
   customerPhone: string;
-}
-
-// Input validation helpers
-function validateName(name: string): boolean {
-  return typeof name === 'string' && name.trim().length > 0 && name.length <= 200;
-}
-
-function validateEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return typeof email === 'string' && emailRegex.test(email) && email.length <= 255;
+  paymentPercent: number; // e.g., 25, 50, 100
+  tierIndex: number; // which tier in the EMI settings
 }
 
 function validatePhone(phone: string): boolean {
@@ -58,23 +50,22 @@ serve(async (req) => {
       customerName,
       customerEmail,
       customerPhone,
-    }: OrderRequest = await req.json();
+      paymentPercent,
+      tierIndex,
+    }: EMIOrderRequest = await req.json();
 
     // Validate inputs
-    if (!validateName(customerName)) {
-      throw new Error("Invalid customer name");
-    }
-    if (!validateEmail(customerEmail)) {
-      throw new Error("Invalid email address");
-    }
     if (!validatePhone(customerPhone)) {
       throw new Error("Invalid phone number");
     }
-    if (!courseId || typeof courseId !== 'string' || courseId.length > 100) {
+    if (!courseId || typeof courseId !== 'string') {
       throw new Error("Invalid course ID");
     }
+    if (!paymentPercent || paymentPercent < 1 || paymentPercent > 100) {
+      throw new Error("Invalid payment percentage");
+    }
 
-    // CRITICAL: Get course from database - courses must exist in DB (no dynamic creation)
+    // Get course from database
     const { data: course, error: courseError } = await supabaseClient
       .from("courses")
       .select("id, price_inr, title, is_published")
@@ -82,16 +73,42 @@ serve(async (req) => {
       .single();
 
     if (courseError || !course) {
-      console.error("Course not found:", courseId, courseError);
       throw new Error("Course not found");
     }
 
-    // Verify course is published
     if (!course.is_published) {
       throw new Error("Course is not available for purchase");
     }
 
-    // ANTI-DOUBLE-PURCHASE: Check if user already has active access
+    const fullPrice = Number(course.price_inr);
+    if (!fullPrice || fullPrice <= 0) {
+      throw new Error("Invalid course price");
+    }
+
+    // Get EMI settings for this course
+    const { data: emiSettings } = await supabaseClient
+      .from("course_emi_settings")
+      .select("*")
+      .eq("course_id", course.id)
+      .eq("is_emi_enabled", true)
+      .single();
+
+    if (!emiSettings) {
+      throw new Error("EMI is not enabled for this course");
+    }
+
+    // Validate payment tier
+    const paymentTiers = (emiSettings.payment_tiers as any[]) || [];
+    if (tierIndex < 0 || tierIndex >= paymentTiers.length) {
+      throw new Error("Invalid payment tier");
+    }
+
+    const selectedTier = paymentTiers[tierIndex];
+    if (selectedTier.percent !== paymentPercent) {
+      throw new Error("Payment percentage mismatch");
+    }
+
+    // Check if user already has full access
     const { data: existingEnrollment } = await supabaseClient
       .from("enrollments")
       .select("id")
@@ -101,15 +118,36 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existingEnrollment) {
-      throw new Error("You already have access to this course");
+      throw new Error("You already have full access to this course");
     }
 
-    // Use SERVER-SIDE price from database (not client-supplied amount)
-    const amount = Number(course.price_inr);
+    // Check existing EMI payments to determine installment number
+    const { data: existingEMI } = await supabaseClient
+      .from("emi_payments")
+      .select("unlocked_percent")
+      .eq("user_id", user.id)
+      .eq("course_id", course.id)
+      .eq("status", "completed")
+      .order("unlocked_percent", { ascending: false })
+      .limit(1);
+
+    const currentUnlocked = existingEMI?.[0]?.unlocked_percent || 0;
     
-    if (!amount || amount <= 0) {
-      throw new Error("Invalid course price");
+    if (paymentPercent <= currentUnlocked) {
+      throw new Error("You have already unlocked this content");
     }
+
+    // Calculate amount for this installment
+    const previousPaid = (currentUnlocked / 100) * fullPrice;
+    const targetPaid = (paymentPercent / 100) * fullPrice;
+    const amountToPay = Math.round(targetPaid - previousPaid);
+
+    if (amountToPay <= 0) {
+      throw new Error("Invalid payment amount");
+    }
+
+    // Get modules to unlock for this tier
+    const moduleIdsToUnlock = selectedTier.module_ids || [];
 
     const appId = Deno.env.get("CASHFREE_APP_ID");
     const secretKey = Deno.env.get("CASHFREE_SECRET_KEY");
@@ -119,18 +157,15 @@ serve(async (req) => {
     }
 
     // Generate unique order ID
-    const orderId = `order_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const orderId = `emi_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-    // Cashfree domain whitelisting is strict. Never trust arbitrary request origins here.
-    // If a request comes from a non-whitelisted origin (e.g. preview), we still redirect
-    // back to the published site domain.
     const PUBLISHED_SITE_URL = "https://archistudio.lovable.app";
     const reqOrigin = req.headers.get("origin") || "";
     const redirectBaseUrl = reqOrigin.includes("archistudio.lovable.app")
       ? "https://archistudio.lovable.app"
       : PUBLISHED_SITE_URL;
 
-    // Create Cashfree order with SERVER-SIDE validated price
+    // Create Cashfree order
     const cashfreeResponse = await fetch("https://api.cashfree.com/pg/orders", {
       method: "POST",
       headers: {
@@ -141,7 +176,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         order_id: orderId,
-        order_amount: amount, // Using server-side validated price
+        order_amount: amountToPay,
         order_currency: "INR",
         customer_details: {
           customer_id: user.id,
@@ -150,11 +185,11 @@ serve(async (req) => {
           customer_phone: customerPhone.replace(/[\s-]/g, ''),
         },
         order_meta: {
-          return_url: `${redirectBaseUrl}/payment-success?order_id={order_id}&course=${courseId}`,
+          return_url: `${redirectBaseUrl}/payment-success?order_id={order_id}&course=${courseId}&emi=true`,
           cancel_url: `${redirectBaseUrl}/payment-failed?order_id={order_id}&course=${courseId}`,
           notify_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/cashfree-webhook`,
         },
-        order_note: `Course purchase: ${course.title}`,
+        order_note: `EMI Payment: ${course.title} (${paymentPercent}% unlock)`,
       }),
     });
 
@@ -165,19 +200,47 @@ serve(async (req) => {
       throw new Error(orderData.message || "Failed to create order");
     }
 
-    // Store payment record in pending state
+    // Determine installment number
+    const installmentNumber = existingEMI?.length ? existingEMI.length + 1 : 1;
+    const totalInstallments = paymentPercent === 100 ? installmentNumber : Math.ceil(100 / (paymentPercent / installmentNumber));
+
+    // Store EMI payment record in pending state
+    const { error: emiError } = await supabaseClient
+      .from("emi_payments")
+      .insert({
+        user_id: user.id,
+        course_id: course.id,
+        installment_number: installmentNumber,
+        total_installments: totalInstallments,
+        amount_paid: amountToPay,
+        remaining_amount: fullPrice - targetPaid,
+        unlocked_percent: paymentPercent,
+        gateway_order_id: orderId,
+        status: "pending",
+        total_course_price: fullPrice,
+      });
+
+    if (emiError) {
+      console.error("EMI record error:", emiError);
+    }
+
+    // Store payment record
     const { error: paymentError } = await supabaseClient
       .from("payments")
       .insert({
         user_id: user.id,
         course_id: course.id,
-        amount: amount, // Using server-side validated price
+        amount: amountToPay,
         currency: "INR",
         status: "pending",
         payment_gateway: "cashfree",
         gateway_order_id: orderId,
         metadata: {
           course_slug: courseId,
+          is_emi: true,
+          payment_percent: paymentPercent,
+          tier_index: tierIndex,
+          module_ids_to_unlock: moduleIdsToUnlock,
           customer_name: customerName.trim().substring(0, 200),
           customer_email: customerEmail.trim().toLowerCase(),
           customer_phone: customerPhone.replace(/[\s-]/g, ''),
@@ -186,7 +249,6 @@ serve(async (req) => {
 
     if (paymentError) {
       console.error("Payment record error:", paymentError);
-      // Don't throw - payment can still proceed even if record fails
     }
 
     return new Response(
@@ -194,6 +256,8 @@ serve(async (req) => {
         orderId: orderData.order_id,
         paymentSessionId: orderData.payment_session_id,
         orderStatus: orderData.order_status,
+        amountToPay,
+        unlockedPercent: paymentPercent,
       }),
       {
         status: 200,
@@ -201,7 +265,7 @@ serve(async (req) => {
       }
     );
   } catch (error: any) {
-    console.error("Error creating Cashfree order:", error);
+    console.error("Error creating EMI order:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

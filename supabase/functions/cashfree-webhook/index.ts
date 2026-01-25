@@ -148,180 +148,16 @@ serve(async (req) => {
       throw updateError;
     }
 
-    // If payment successful, create enrollment and send email
+    // If payment successful, process based on type (regular or EMI)
     if (status === "completed" && paymentData) {
-      // Check if enrollment already exists (idempotency)
-      const { data: existingEnrollment } = await supabaseClient
-        .from("enrollments")
-        .select("id")
-        .eq("user_id", paymentData.user_id)
-        .eq("course_id", paymentData.course_id)
-        .maybeSingle();
-
-      if (existingEnrollment) {
-        console.log("Enrollment already exists, skipping creation");
-        return new Response(
-          JSON.stringify({ success: true, message: "Enrollment exists" }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      let courseId = paymentData.course_id as string | null;
-      let courseName = "";
-      let courseSlug = "";
-
-      // Backfill course_id from stored slug if needed
-      if (!courseId) {
-        const slug = (paymentData.metadata as any)?.course_slug as string | undefined;
-        if (slug) {
-          const { data: courseRow, error: courseError } = await supabaseClient
-            .from("courses")
-            .select("id, title, slug")
-            .eq("slug", slug)
-            .single();
-
-          if (courseError) {
-            console.error("Course lookup error (webhook):", courseError);
-          } else {
-            courseId = courseRow?.id ?? null;
-            courseName = courseRow?.title ?? "";
-            courseSlug = courseRow?.slug ?? "";
-          }
-        }
+      const isEMI = (paymentData.metadata as any)?.is_emi === true;
+      
+      if (isEMI) {
+        // Handle EMI payment
+        await handleEMIPayment(supabaseClient, paymentData, orderId);
       } else {
-        // Get course details for email
-        const { data: courseRow } = await supabaseClient
-          .from("courses")
-          .select("title, slug")
-          .eq("id", courseId)
-          .single();
-        
-        if (courseRow) {
-          courseName = courseRow.title;
-          courseSlug = courseRow.slug;
-        }
-      }
-
-      if (!courseId) {
-        console.error("Cannot create enrollment: missing course_id", {
-          orderId,
-          paymentId,
-          metadata: paymentData.metadata,
-        });
-      } else {
-        const { error: enrollmentError } = await supabaseClient
-          .from("enrollments")
-          .insert({
-            user_id: paymentData.user_id,
-            course_id: courseId,
-            payment_id: paymentData.id,
-            status: "active",
-          });
-
-        if (enrollmentError) {
-          console.error("Error creating enrollment:", enrollmentError);
-        } else {
-          // Check for referral reward - only if purchase is above ₹500
-          const purchaseAmount = Number(paymentData.amount) || 0;
-          
-          if (purchaseAmount >= 500) {
-            // Check if this user was referred
-            const { data: referralUse } = await supabaseClient
-              .from("referral_uses")
-              .select("referral_id, referrals(referrer_id)")
-              .eq("referred_user_id", paymentData.user_id)
-              .maybeSingle();
-
-            if (referralUse?.referral_id) {
-              const referrerId = (referralUse.referrals as any)?.referrer_id;
-              
-              if (referrerId) {
-                // Create a ₹100 discount coupon for the referrer
-                const couponCode = `REF${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-                
-                const { error: couponError } = await supabaseClient
-                  .from("coupons")
-                  .insert({
-                    code: couponCode,
-                    description: `Referral reward - ₹100 off (earned from referral purchase)`,
-                    discount_type: "fixed",
-                    discount_value: 100,
-                    is_active: true,
-                    max_uses: 1,
-                    used_count: 0,
-                    valid_from: new Date().toISOString(),
-                    valid_until: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // Valid for 90 days
-                    min_purchase_amount: 500,
-                  });
-
-                if (couponError) {
-                  console.error("Error creating referral coupon:", couponError);
-                } else {
-                  console.log(`Created referral coupon ${couponCode} for referrer ${referrerId}`);
-                  
-                  // Update referral stats - increment total earned by 100
-                  const { data: currentReferral } = await supabaseClient
-                    .from("referrals")
-                    .select("total_earned_discount")
-                    .eq("id", referralUse.referral_id)
-                    .single();
-
-                  const currentTotal = currentReferral?.total_earned_discount || 0;
-                  
-                  await supabaseClient
-                    .from("referrals")
-                    .update({
-                      total_earned_discount: currentTotal + 100,
-                      updated_at: new Date().toISOString(),
-                    })
-                    .eq("id", referralUse.referral_id);
-
-                  // Create notification for referrer
-                  await supabaseClient
-                    .from("notifications")
-                    .insert({
-                      user_id: referrerId,
-                      title: "🎉 Referral Reward Earned!",
-                      message: `You earned a ₹100 discount coupon! Code: ${couponCode}. Your referred friend made a purchase above ₹500.`,
-                      type: "reward",
-                      action_url: "/dashboard",
-                    });
-                }
-              }
-            }
-          }
-          
-          // Get user email for notification
-          const { data: profile } = await supabaseClient
-            .from("profiles")
-            .select("email, full_name")
-            .eq("user_id", paymentData.user_id)
-            .single();
-
-          if (profile?.email && courseName) {
-            // Send enrollment confirmation email
-            const baseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-            const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-            
-            fetch(`${baseUrl}/functions/v1/send-enrollment-email`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${anonKey}`,
-              },
-              body: JSON.stringify({
-                email: profile.email,
-                name: profile.full_name || "",
-                courseName: courseName,
-                courseSlug: courseSlug,
-                isFree: false,
-                amount: paymentData.amount,
-                orderId: orderId,
-                paymentDate: paymentData.created_at || new Date().toISOString(),
-              }),
-            }).catch(err => console.error("Enrollment email error:", err));
-          }
-        }
+        // Handle regular full payment
+        await handleFullPayment(supabaseClient, paymentData, orderId);
       }
     }
 
@@ -343,3 +179,280 @@ serve(async (req) => {
     );
   }
 });
+
+// Handle EMI (partial) payment
+async function handleEMIPayment(supabaseClient: any, paymentData: any, orderId: string) {
+  const metadata = paymentData.metadata as any;
+  const moduleIdsToUnlock = metadata?.module_ids_to_unlock || [];
+  const paymentPercent = metadata?.payment_percent || 0;
+  
+  // Update EMI payment record
+  const { data: emiPayment, error: emiError } = await supabaseClient
+    .from("emi_payments")
+    .update({
+      status: "completed",
+      paid_at: new Date().toISOString(),
+      payment_id: paymentData.id,
+    })
+    .eq("gateway_order_id", orderId)
+    .select()
+    .single();
+
+  if (emiError) {
+    console.error("Error updating EMI payment:", emiError);
+    return;
+  }
+
+  // Grant module access
+  for (const moduleId of moduleIdsToUnlock) {
+    const { error: accessError } = await supabaseClient
+      .from("user_module_access")
+      .upsert({
+        user_id: paymentData.user_id,
+        module_id: moduleId,
+        course_id: paymentData.course_id,
+        access_type: "emi",
+        emi_payment_id: emiPayment?.id,
+        granted_at: new Date().toISOString(),
+      }, {
+        onConflict: "user_id,module_id",
+      });
+
+    if (accessError) {
+      console.error("Error granting module access:", accessError);
+    }
+  }
+
+  // If 100% unlocked, create full enrollment
+  if (paymentPercent >= 100) {
+    const { error: enrollError } = await supabaseClient
+      .from("enrollments")
+      .upsert({
+        user_id: paymentData.user_id,
+        course_id: paymentData.course_id,
+        payment_id: paymentData.id,
+        status: "active",
+      }, {
+        onConflict: "user_id,course_id",
+      });
+
+    if (enrollError) {
+      console.error("Error creating enrollment from EMI:", enrollError);
+    }
+  }
+
+  // Get user profile and course info for email
+  const { data: profile } = await supabaseClient
+    .from("profiles")
+    .select("email, full_name")
+    .eq("user_id", paymentData.user_id)
+    .single();
+
+  const { data: course } = await supabaseClient
+    .from("courses")
+    .select("title, slug")
+    .eq("id", paymentData.course_id)
+    .single();
+
+  if (profile?.email && course) {
+    // Send EMI confirmation email
+    const baseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    
+    const emailType = paymentPercent >= 100 ? "final_unlock" : "confirmation";
+    
+    fetch(`${baseUrl}/functions/v1/send-emi-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${anonKey}`,
+      },
+      body: JSON.stringify({
+        email: profile.email,
+        name: profile.full_name || "",
+        courseName: course.title,
+        courseSlug: course.slug,
+        emailType,
+        amountPaid: paymentData.amount,
+        remainingAmount: emiPayment?.remaining_amount || 0,
+        unlockedPercent: paymentPercent,
+        orderId,
+      }),
+    }).catch(err => console.error("EMI email error:", err));
+  }
+}
+
+// Handle regular full payment
+async function handleFullPayment(supabaseClient: any, paymentData: any, orderId: string) {
+  // Check if enrollment already exists (idempotency)
+  const { data: existingEnrollment } = await supabaseClient
+    .from("enrollments")
+    .select("id")
+    .eq("user_id", paymentData.user_id)
+    .eq("course_id", paymentData.course_id)
+    .maybeSingle();
+
+  if (existingEnrollment) {
+    console.log("Enrollment already exists, skipping creation");
+    return;
+  }
+
+  let courseId = paymentData.course_id as string | null;
+  let courseName = "";
+  let courseSlug = "";
+
+  // Backfill course_id from stored slug if needed
+  if (!courseId) {
+    const slug = (paymentData.metadata as any)?.course_slug as string | undefined;
+    if (slug) {
+      const { data: courseRow, error: courseError } = await supabaseClient
+        .from("courses")
+        .select("id, title, slug")
+        .eq("slug", slug)
+        .single();
+
+      if (courseError) {
+        console.error("Course lookup error (webhook):", courseError);
+      } else {
+        courseId = courseRow?.id ?? null;
+        courseName = courseRow?.title ?? "";
+        courseSlug = courseRow?.slug ?? "";
+      }
+    }
+  } else {
+    // Get course details for email
+    const { data: courseRow } = await supabaseClient
+      .from("courses")
+      .select("title, slug")
+      .eq("id", courseId)
+      .single();
+    
+    if (courseRow) {
+      courseName = courseRow.title;
+      courseSlug = courseRow.slug;
+    }
+  }
+
+  if (!courseId) {
+    console.error("Cannot create enrollment: missing course_id", {
+      orderId,
+      metadata: paymentData.metadata,
+    });
+    return;
+  }
+
+  const { error: enrollmentError } = await supabaseClient
+    .from("enrollments")
+    .insert({
+      user_id: paymentData.user_id,
+      course_id: courseId,
+      payment_id: paymentData.id,
+      status: "active",
+    });
+
+  if (enrollmentError) {
+    console.error("Error creating enrollment:", enrollmentError);
+    return;
+  }
+
+  // Check for referral reward - only if purchase is above ₹500
+  const purchaseAmount = Number(paymentData.amount) || 0;
+  
+  if (purchaseAmount >= 500) {
+    // Check if this user was referred
+    const { data: referralUse } = await supabaseClient
+      .from("referral_uses")
+      .select("referral_id, referrals(referrer_id)")
+      .eq("referred_user_id", paymentData.user_id)
+      .maybeSingle();
+
+    if (referralUse?.referral_id) {
+      const referrerId = (referralUse.referrals as any)?.referrer_id;
+      
+      if (referrerId) {
+        // Create a ₹100 discount coupon for the referrer
+        const couponCode = `REF${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+        
+        const { error: couponError } = await supabaseClient
+          .from("coupons")
+          .insert({
+            code: couponCode,
+            description: `Referral reward - ₹100 off (earned from referral purchase)`,
+            discount_type: "fixed",
+            discount_value: 100,
+            is_active: true,
+            max_uses: 1,
+            used_count: 0,
+            valid_from: new Date().toISOString(),
+            valid_until: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+            min_purchase_amount: 500,
+          });
+
+        if (couponError) {
+          console.error("Error creating referral coupon:", couponError);
+        } else {
+          console.log(`Created referral coupon ${couponCode} for referrer ${referrerId}`);
+          
+          // Update referral stats
+          const { data: currentReferral } = await supabaseClient
+            .from("referrals")
+            .select("total_earned_discount")
+            .eq("id", referralUse.referral_id)
+            .single();
+
+          const currentTotal = currentReferral?.total_earned_discount || 0;
+          
+          await supabaseClient
+            .from("referrals")
+            .update({
+              total_earned_discount: currentTotal + 100,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", referralUse.referral_id);
+
+          // Create notification for referrer
+          await supabaseClient
+            .from("notifications")
+            .insert({
+              user_id: referrerId,
+              title: "🎉 Referral Reward Earned!",
+              message: `You earned a ₹100 discount coupon! Code: ${couponCode}. Your referred friend made a purchase above ₹500.`,
+              type: "reward",
+              action_url: "/dashboard",
+            });
+        }
+      }
+    }
+  }
+  
+  // Get user email for notification
+  const { data: profile } = await supabaseClient
+    .from("profiles")
+    .select("email, full_name")
+    .eq("user_id", paymentData.user_id)
+    .single();
+
+  if (profile?.email && courseName) {
+    // Send enrollment confirmation email
+    const baseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    
+    fetch(`${baseUrl}/functions/v1/send-enrollment-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${anonKey}`,
+      },
+      body: JSON.stringify({
+        email: profile.email,
+        name: profile.full_name || "",
+        courseName: courseName,
+        courseSlug: courseSlug,
+        isFree: false,
+        amount: paymentData.amount,
+        orderId: orderId,
+        paymentDate: paymentData.created_at || new Date().toISOString(),
+      }),
+    }).catch(err => console.error("Enrollment email error:", err));
+  }
+}

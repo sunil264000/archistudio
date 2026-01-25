@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Clock, BookOpen, Search, Star, Filter, ShoppingCart, CreditCard, Loader2, Sparkles, GraduationCap, Flame } from 'lucide-react';
+import { Clock, BookOpen, Search, Star, Filter, ShoppingCart, CreditCard, Loader2, Sparkles, GraduationCap, Flame, Play } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +19,8 @@ import { SEOHead } from '@/components/seo/SEOHead';
 import { ContactSupportWidget } from '@/components/support/ContactSupportWidget';
 import { supabase } from '@/integrations/supabase/client';
 import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
+import { AccessBadge } from '@/components/course/AccessBadge';
+import { useAccessControlBySlug } from '@/hooks/useAccessControlBySlug';
 import { 
   staggerContainer, 
   staggerContainerFast, 
@@ -359,6 +361,9 @@ function CourseCard({
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
   const [pendingPaymentData, setPendingPaymentData] = useState<any>(null);
 
+  // Access control - check if user has access to this course
+  const accessInfo = useAccessControlBySlug(user?.id, course.slug);
+
   // Use real stats if available, otherwise fallback to static data
   const displayLessons = realStats?.totalLessons || course.totalLessons;
   const displayDuration = realStats ? Math.round(realStats.totalDuration / 60) : course.durationHours;
@@ -372,6 +377,49 @@ function CourseCard({
     advanced: 'bg-destructive/10 text-destructive border-destructive/30',
   };
 
+  // Determine CTA based on access status
+  const getCTAContent = () => {
+    if (accessInfo.loading) {
+      return { text: 'Loading...', icon: Loader2, action: () => {}, disabled: true };
+    }
+    
+    if (accessInfo.accessType === 'full') {
+      return { 
+        text: 'Continue Learning', 
+        icon: Play, 
+        action: () => navigate(`/learn/${course.slug}`),
+        disabled: false 
+      };
+    }
+    
+    if (accessInfo.accessType === 'gift' || accessInfo.accessType === 'launch_free') {
+      return { 
+        text: 'Access Now', 
+        icon: Play, 
+        action: () => navigate(`/learn/${course.slug}`),
+        disabled: false 
+      };
+    }
+    
+    if (accessInfo.accessType === 'partial') {
+      return { 
+        text: 'Unlock More', 
+        icon: ShoppingCart, 
+        action: () => navigate(`/course/${course.slug}`),
+        disabled: false 
+      };
+    }
+    
+    return { 
+      text: `Buy Now - ₹${discountedPrice.toLocaleString()}`, 
+      icon: CreditCard, 
+      action: handleBuyNow,
+      disabled: isLoading 
+    };
+  };
+
+  const ctaContent = getCTAContent();
+
   const handleBuyNow = async () => {
     if (!user) {
       toast({
@@ -380,6 +428,16 @@ function CourseCard({
         variant: "destructive",
       });
       navigate('/auth');
+      return;
+    }
+
+    // Anti-double-purchase check
+    if (accessInfo.hasAccess && !accessInfo.canPurchase) {
+      toast({
+        title: "Already Enrolled",
+        description: "You already have access to this course!",
+      });
+      navigate(`/learn/${course.slug}`);
       return;
     }
 
@@ -474,25 +532,29 @@ function CourseCard({
           </div>
         )}
         
-        {/* Quick buy overlay */}
+        {/* Quick action overlay */}
         <div className={`absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm transition-all duration-300 ${
           isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}>
           <div className="flex flex-col gap-2">
             <Button 
-              onClick={handleBuyNow} 
-              disabled={isLoading}
-              className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg"
+              onClick={ctaContent.action} 
+              disabled={ctaContent.disabled}
+              className={`shadow-lg ${
+                accessInfo.hasAccess 
+                  ? 'bg-success hover:bg-success/90 text-success-foreground' 
+                  : 'bg-accent hover:bg-accent/90 text-accent-foreground'
+              }`}
             >
-              {isLoading ? (
+              {ctaContent.disabled && isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Processing...
                 </>
               ) : (
                 <>
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Buy Now - ₹{effectivePriceInr.toLocaleString()}
+                  <ctaContent.icon className="h-4 w-4 mr-2" />
+                  {ctaContent.text}
                 </>
               )}
             </Button>
@@ -511,6 +573,14 @@ function CourseCard({
           <Badge variant="secondary" className="text-xs">
             {courseCategories.find(c => c.id === course.category)?.name}
           </Badge>
+          {/* Access Badge */}
+          {accessInfo.accessType !== 'none' && (
+            <AccessBadge 
+              accessType={accessInfo.accessType}
+              unlockedPercent={accessInfo.unlockedPercent}
+              expiryDate={accessInfo.giftExpiry || accessInfo.launchFreeExpiry}
+            />
+          )}
         </div>
         <CardTitle className="text-lg line-clamp-2 group-hover:text-accent transition-colors duration-300">
           {course.title}
@@ -550,12 +620,20 @@ function CourseCard({
           </div>
           <Button 
             size="sm" 
-            onClick={handleBuyNow}
-            disabled={isLoading}
-            className="transition-all duration-300 hover:scale-105"
+            onClick={ctaContent.action}
+            disabled={ctaContent.disabled}
+            className={`transition-all duration-300 hover:scale-105 ${
+              accessInfo.hasAccess ? 'bg-success hover:bg-success/90' : ''
+            }`}
           >
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4 mr-1" />}
-            Buy
+            {ctaContent.disabled && isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <ctaContent.icon className="h-4 w-4 mr-1" />
+                {accessInfo.hasAccess ? 'Continue' : 'Buy'}
+              </>
+            )}
           </Button>
         </div>
       </CardContent>
