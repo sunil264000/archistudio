@@ -75,10 +75,11 @@ interface ExpandableModuleProps {
     is_free_preview: boolean;
     video_url: string | null;
   }[];
+  defaultOpen?: boolean;
 }
 
-function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview, courseSlug, lessons }: ExpandableModuleProps) {
-  const [isOpen, setIsOpen] = useState(false);
+function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview, courseSlug, lessons, defaultOpen = false }: ExpandableModuleProps) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const navigate = useNavigate();
   
   const handleLessonClick = (lesson: typeof lessons[0]) => {
@@ -86,70 +87,77 @@ function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview,
       navigate(`/learn/${courseSlug}?lesson=${lesson.id}`);
     }
   };
+  
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
-        <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors cursor-pointer">
+        <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer border border-transparent hover:border-border/50">
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-sm font-medium text-accent">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-colors ${
+              hasFreePreview ? 'bg-success/10 text-success' : 'bg-accent/10 text-accent'
+            }`}>
               {index + 1}
             </div>
-            <div>
-              <p className="font-medium text-sm">{title}</p>
+            <div className="min-w-0">
+              <p className="font-medium text-sm leading-snug">{title}</p>
               <p className="text-xs text-muted-foreground">
-                {lessonCount} lessons{duration && ` • ${duration}`}
+                {lessonCount} {lessonCount === 1 ? 'lesson' : 'lessons'}{duration && ` • ${duration}`}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {hasFreePreview && (
-              <Badge variant="outline" className="text-xs gap-1 border-success/30 text-success">
+              <Badge variant="outline" className="text-xs gap-1 border-success/30 text-success bg-success/5">
                 <Eye className="h-3 w-3" /> Free Preview
               </Badge>
             )}
-            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
           </div>
         </div>
       </CollapsibleTrigger>
-      <CollapsibleContent>
-        <div className="ml-10 mt-0.5 space-y-0 pb-1.5">
-          {lessons.map((lesson, lessonIdx) => (
-            <div 
-              key={lesson.id}
-              onClick={() => handleLessonClick(lesson)}
-              className={`flex items-center justify-between py-2 px-3 rounded text-sm transition-colors ${
-                lesson.is_free_preview 
-                  ? 'cursor-pointer hover:bg-accent/10 hover:text-accent' 
-                  : 'hover:bg-muted/30'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                {lesson.video_url ? (
-                  <Video className="h-3.5 w-3.5 text-accent" />
-                ) : (
-                  <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-                )}
-                <span className={lesson.is_free_preview ? 'text-foreground' : 'text-muted-foreground'}>
-                  {lesson.title}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                {lesson.duration_minutes && lesson.duration_minutes > 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    {lesson.duration_minutes} min
+      <CollapsibleContent className="animate-accordion-down">
+        <div className="ml-11 mt-1 space-y-0.5 pb-2 border-l-2 border-muted pl-4">
+          {lessons.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2 italic">No lessons in this module yet</p>
+          ) : (
+            lessons.map((lesson) => (
+              <div 
+                key={lesson.id}
+                onClick={() => handleLessonClick(lesson)}
+                className={`flex items-center justify-between py-2.5 px-3 rounded-lg text-sm transition-all ${
+                  lesson.is_free_preview 
+                    ? 'cursor-pointer hover:bg-success/10 hover:text-success group' 
+                    : 'hover:bg-muted/30 text-muted-foreground'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {lesson.video_url ? (
+                    <Video className={`h-4 w-4 shrink-0 ${lesson.is_free_preview ? 'text-success' : 'text-muted-foreground'}`} />
+                  ) : (
+                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                  )}
+                  <span className={`truncate ${lesson.is_free_preview ? 'text-foreground group-hover:text-success' : ''}`}>
+                    {lesson.title}
                   </span>
-                )}
-                {lesson.is_free_preview ? (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 flex items-center gap-1 bg-success/10 text-success border-0">
-                    <Play className="h-2.5 w-2.5" />
-                    Free
-                  </Badge>
-                ) : (
-                  <Lock className="h-3 w-3 text-muted-foreground" />
-                )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0 ml-2">
+                  {lesson.duration_minutes && lesson.duration_minutes > 0 && (
+                    <span className="text-[10px] text-muted-foreground tabular-nums">
+                      {lesson.duration_minutes} min
+                    </span>
+                  )}
+                  {lesson.is_free_preview ? (
+                    <Badge className="text-[9px] px-1.5 py-0.5 flex items-center gap-1 bg-success/15 text-success border-0 font-medium">
+                      <Play className="h-2.5 w-2.5 fill-current" />
+                      Play Free
+                    </Badge>
+                  ) : (
+                    <Lock className="h-3 w-3 text-muted-foreground/60" />
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </CollapsibleContent>
     </Collapsible>
@@ -755,7 +763,7 @@ export default function CourseDetail() {
                     {displayTotalHours > 0 && <span>{displayTotalHours} hours total</span>}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-1.5">
+                <CardContent className="space-y-2">
                   {modulesLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -776,6 +784,7 @@ export default function CourseDetail() {
                           hasFreePreview={hasFreePreview}
                           courseSlug={course.slug}
                           lessons={module.lessons}
+                          defaultOpen={i === 0} // First module open by default
                         />
                       );
                     })
