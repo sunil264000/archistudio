@@ -16,17 +16,22 @@ export function HeroSection() {
   const { user } = useAuth();
   
   return (
-    <section className="relative overflow-hidden min-h-[90vh] flex items-center">
-      {/* 3D Background */}
-      <Background3D intensity="medium" />
+    <section className="relative overflow-hidden min-h-[85vh] sm:min-h-[90vh] flex items-center">
+      {/* 3D Background - hidden on mobile for performance */}
+      <div className="hidden md:block">
+        <Background3D intensity="medium" />
+      </div>
+      
+      {/* Mobile-optimized gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-background to-primary/5 md:hidden" />
       
       {/* Enhanced gradient overlays */}
       <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-transparent to-background pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-r from-background/40 via-transparent to-background/40 pointer-events-none" />
       
-      {/* Animated accent orbs with better glow */}
+      {/* Animated accent orbs - hidden on mobile */}
       <motion.div 
-        className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-accent/15 rounded-full blur-[150px]"
+        className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-accent/15 rounded-full blur-[150px] hidden md:block"
         animate={{ 
           scale: [1, 1.2, 1],
           opacity: [0.15, 0.25, 0.15]
@@ -34,7 +39,7 @@ export function HeroSection() {
         transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div 
-        className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[120px]"
+        className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[120px] hidden md:block"
         animate={{ 
           scale: [1.2, 1, 1.2],
           opacity: [0.1, 0.2, 0.1]
@@ -42,11 +47,11 @@ export function HeroSection() {
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />
       
-      {/* Animated grid pattern */}
-      <div className="absolute inset-0 grid-pattern opacity-30" />
+      {/* Animated grid pattern - hidden on mobile */}
+      <div className="absolute inset-0 grid-pattern opacity-30 hidden md:block" />
       
-      {/* Architectural grid lines */}
-      <svg className="absolute inset-0 w-full h-full opacity-[0.08]" xmlns="http://www.w3.org/2000/svg">
+      {/* Architectural grid lines - hidden on mobile */}
+      <svg className="absolute inset-0 w-full h-full opacity-[0.08] hidden lg:block" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="hero-grid" width="80" height="80" patternUnits="userSpaceOnUse">
             <path d="M 80 0 L 0 0 0 80" fill="none" stroke="currentColor" strokeWidth="0.5" />
@@ -58,7 +63,7 @@ export function HeroSection() {
       <div className="relative section-padding w-full">
         <div className="container-wide">
           <motion.div 
-            className="max-w-4xl mx-auto text-center space-y-8"
+            className="max-w-4xl mx-auto text-center space-y-6 sm:space-y-8 px-2"
             variants={staggerContainer}
             initial="hidden"
             animate="visible"
@@ -66,17 +71,17 @@ export function HeroSection() {
             {/* Floating Badge with glow */}
             <motion.div variants={fadeInUp}>
               <FloatingBadge 
-                icon={<Sparkles className="h-4 w-4 text-accent" />}
-                className="shadow-[0_0_40px_-10px_hsl(var(--accent)/0.4)]"
+                icon={<Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />}
+                className="shadow-[0_0_40px_-10px_hsl(var(--accent)/0.4)] text-xs sm:text-sm"
               >
                 For Students & Fresh Architects
               </FloatingBadge>
             </motion.div>
             
-            {/* Headline with animated underline */}
+            {/* Headline with animated underline - mobile optimized */}
             <motion.h1 
               variants={fadeInUp}
-              className="text-4xl md:text-5xl lg:text-7xl font-display font-bold tracking-tight leading-[1.1]"
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-display font-bold tracking-tight leading-[1.15] sm:leading-[1.1]"
             >
               <motion.span
                 initial={{ opacity: 0, y: 30 }}
@@ -85,7 +90,7 @@ export function HeroSection() {
               >
                 Learn Architecture the Way
               </motion.span>{' '}
-              <span className="relative inline-block mt-2">
+              <span className="relative inline-block mt-1 sm:mt-2">
                 <motion.span 
                   className="bg-gradient-to-r from-accent via-primary to-accent bg-[length:200%_auto] bg-clip-text text-transparent"
                   initial={{ opacity: 0, y: 30 }}
@@ -106,23 +111,23 @@ export function HeroSection() {
               </span>
             </motion.h1>
             
-            {/* Positioning Statement */}
+            {/* Positioning Statement - mobile optimized */}
             <motion.div
               variants={fadeInUp}
-              className="max-w-3xl mx-auto mb-4"
+              className="max-w-3xl mx-auto mb-2 sm:mb-4"
             >
-              <div className="px-6 py-4 rounded-xl bg-secondary/60 backdrop-blur-sm border border-border/50">
-                <p className="text-lg md:text-xl text-foreground font-medium leading-relaxed text-center">
+              <div className="px-4 sm:px-6 py-3 sm:py-4 rounded-xl bg-secondary/60 backdrop-blur-sm border border-border/50">
+                <p className="text-base sm:text-lg md:text-xl text-foreground font-medium leading-relaxed text-center">
                   This platform teaches what architecture colleges and CAD institutes don't:{' '}
                   <span className="text-accent">how real buildings are designed, detailed, and executed in offices.</span>
                 </p>
               </div>
             </motion.div>
             
-            {/* Subheadline with word highlighting */}
+            {/* Subheadline with word highlighting - mobile optimized */}
             <motion.p 
               variants={fadeInUp}
-              className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
+              className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed px-2"
             >
               From site analysis to working drawings, construction logic to sustainability — 
               <motion.span 
@@ -133,34 +138,34 @@ export function HeroSection() {
               > practical skills</motion.span> the industry demands.
             </motion.p>
 
-            {/* CTAs with enhanced hover */}
+            {/* CTAs with enhanced hover - mobile optimized */}
             <motion.div 
               variants={fadeInUp}
-              className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
+              className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-4"
             >
-              <Link to={user ? "/courses" : "/auth?mode=signup"}>
+              <Link to={user ? "/courses" : "/auth?mode=signup"} className="w-full sm:w-auto">
                 <motion.div
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <Button variant="glow" size="xl" className="gap-3 text-base group relative overflow-hidden">
+                  <Button variant="glow" size="xl" className="gap-2 sm:gap-3 text-sm sm:text-base group relative overflow-hidden w-full sm:w-auto min-h-[48px] touch-target">
                     <motion.span
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent hidden sm:block"
                       initial={{ x: '-100%' }}
                       animate={{ x: '200%' }}
                       transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
                     />
                     {user ? "Explore Studios" : "Begin Your Practice"}
-                    <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                    <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 transition-transform group-hover:translate-x-1" />
                   </Button>
                 </motion.div>
               </Link>
             </motion.div>
 
-            {/* Trust indicators with staggered animation */}
+            {/* Trust indicators with staggered animation - mobile optimized */}
             <motion.div 
               variants={fadeInUp}
-              className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4 pt-10"
+              className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-2 sm:gap-x-4 sm:gap-y-3 pt-6 sm:pt-10"
             >
               {[
                 "No prior CAD knowledge needed",
@@ -169,14 +174,14 @@ export function HeroSection() {
               ].map((text, i) => (
                 <motion.div 
                   key={text}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-secondary/60 backdrop-blur-sm border border-border/50 hover:border-accent/30 transition-colors"
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-secondary/60 backdrop-blur-sm border border-border/50 hover:border-accent/30 transition-colors w-full sm:w-auto justify-center sm:justify-start"
                   initial={{ opacity: 0, scale: 0.8, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ delay: 1.2 + i * 0.15, duration: 0.5 }}
                   whileHover={{ scale: 1.05, y: -2 }}
                 >
-                  <CheckCircle className="h-5 w-5 text-success" />
-                  <span className="text-sm text-muted-foreground">{text}</span>
+                  <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-success shrink-0" />
+                  <span className="text-xs sm:text-sm text-muted-foreground">{text}</span>
                 </motion.div>
               ))}
             </motion.div>

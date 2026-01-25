@@ -127,11 +127,11 @@ export default function Courses() {
       {/* Animated Background */}
       <AnimatedBackground intensity="light" />
       
-      {/* Hero Section with Advanced Animation */}
-      <section className="pt-24 pb-12 relative overflow-hidden">
-        {/* Background gradient orbs */}
+      {/* Hero Section with Advanced Animation - mobile optimized */}
+      <section className="pt-20 sm:pt-24 pb-8 sm:pb-12 relative overflow-hidden">
+        {/* Background gradient orbs - hidden on mobile */}
         <motion.div 
-          className="absolute top-0 left-1/4 w-96 h-96 bg-accent/10 rounded-full blur-[120px]"
+          className="absolute top-0 left-1/4 w-96 h-96 bg-accent/10 rounded-full blur-[120px] hidden md:block"
           animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.2, 0.1] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         />
@@ -143,10 +143,10 @@ export default function Courses() {
             animate="visible"
           >
             {/* Floating Badge */}
-            <motion.div variants={fadeInUp} className="mb-6">
+            <motion.div variants={fadeInUp} className="mb-4 sm:mb-6">
               <FloatingBadge 
-                icon={<GraduationCap className="h-4 w-4 text-accent" />}
-                className="shadow-[0_0_40px_-10px_hsl(var(--accent)/0.4)]"
+                icon={<GraduationCap className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />}
+                className="shadow-[0_0_40px_-10px_hsl(var(--accent)/0.4)] text-xs sm:text-sm"
               >
                 {totalCourseCount}+ Studio Programs
               </FloatingBadge>
@@ -154,7 +154,7 @@ export default function Courses() {
             
             <motion.h1 
               variants={fadeInUp}
-              className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4"
+              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4"
             >
               <motion.span
                 className="bg-gradient-to-r from-foreground via-accent to-foreground bg-[length:200%_auto] bg-clip-text text-transparent"
@@ -167,31 +167,31 @@ export default function Courses() {
             
             <motion.p 
               variants={fadeInUp}
-              className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8"
+              className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8 px-2"
             >
               Professional studio programs covering 3ds Max, Revit, SketchUp, AutoCAD, and more
             </motion.p>
           </motion.div>
           
-          {/* Animated Search Bar */}
+          {/* Animated Search Bar - mobile optimized */}
           <motion.div 
             className="max-w-xl mx-auto relative"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             <Input
               placeholder="Search studios..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 h-14 text-lg border-2 border-border/50 focus:border-accent transition-all duration-300 bg-background/80 backdrop-blur-sm shadow-lg"
+              className="pl-10 sm:pl-12 h-12 sm:h-14 text-base sm:text-lg border-2 border-border/50 focus:border-accent transition-all duration-300 bg-background/80 backdrop-blur-sm shadow-lg"
             />
           </motion.div>
           
           {/* Confused? Help Banner */}
           <motion.p 
-            className="text-sm text-muted-foreground mt-6"
+            className="text-xs sm:text-sm text-muted-foreground mt-4 sm:mt-6 px-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
@@ -208,19 +208,19 @@ export default function Courses() {
         </div>
       </section>
 
-      {/* Categories with Smooth Transitions */}
-      <section className="py-8 border-b border-border/50 backdrop-blur-sm bg-background/50 sticky top-16 z-40">
+      {/* Categories with Smooth Transitions - mobile scrollable */}
+      <section className="py-4 sm:py-6 md:py-8 border-b border-border/50 backdrop-blur-sm bg-background/50 sticky top-14 sm:top-16 z-40">
         <div className="container mx-auto px-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="h-5 w-5 text-accent" />
-            <span className="font-medium">Filter by Category:</span>
+          <div className="flex items-center gap-2 mb-3 sm:mb-4">
+            <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-accent shrink-0" />
+            <span className="font-medium text-sm sm:text-base">Filter by Category:</span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
             <Button
               variant={selectedCategory === null ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedCategory(null)}
-              className="transition-all duration-300 hover:scale-105"
+              className="transition-all duration-300 hover:scale-105 shrink-0 min-h-[40px] text-sm"
             >
               All Studios
             </Button>
@@ -230,7 +230,7 @@ export default function Courses() {
                 variant={selectedCategory === cat.id ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedCategory(cat.id)}
-                className="transition-all duration-300 hover:scale-105"
+                className="transition-all duration-300 hover:scale-105 shrink-0 min-h-[40px] text-sm whitespace-nowrap"
                 style={{ animationDelay: `${index * 0.05}s` }}
               >
                 {cat.icon} {cat.name}
@@ -240,16 +240,16 @@ export default function Courses() {
         </div>
       </section>
 
-      {/* Featured Courses with Stagger Animation */}
+      {/* Featured Courses with Stagger Animation - mobile optimized */}
       {!selectedCategory && !searchQuery && (
-        <section className="py-12">
+        <section className="py-8 sm:py-10 md:py-12">
           <div className="container mx-auto px-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Star className="h-6 w-6 text-warning fill-warning" />
-              <h2 className="text-2xl font-bold">Featured Studios</h2>
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <Star className="h-5 w-5 sm:h-6 sm:w-6 text-warning fill-warning" />
+              <h2 className="text-xl sm:text-2xl font-bold">Featured Studios</h2>
             </div>
             <motion.div 
-              className="grid md:grid-cols-2 lg:grid-cols-3 gap-4"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
               variants={staggerContainerFast}
               initial="hidden"
               whileInView="visible"
@@ -275,10 +275,10 @@ export default function Courses() {
         </section>
       )}
 
-      {/* All Courses with Grid Animation */}
-      <section className="py-12 bg-muted/30 backdrop-blur-sm">
+      {/* All Courses with Grid Animation - mobile optimized */}
+      <section className="py-8 sm:py-10 md:py-12 bg-muted/30 backdrop-blur-sm">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-bold mb-6 line-accent">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 line-accent">
             {selectedCategory 
               ? courseCategories.find(c => c.id === selectedCategory)?.name 
               : searchQuery 
@@ -287,15 +287,15 @@ export default function Courses() {
           </h2>
           
           {sortedCourses.length === 0 ? (
-            <div className="text-center py-12 animate-fade-in">
-              <p className="text-muted-foreground text-lg">No studios found matching your criteria.</p>
-              <Button variant="outline" className="mt-4" onClick={() => { setSelectedCategory(null); setSearchQuery(''); }}>
+            <div className="text-center py-8 sm:py-12 animate-fade-in">
+              <p className="text-muted-foreground text-base sm:text-lg">No studios found matching your criteria.</p>
+              <Button variant="outline" className="mt-4 min-h-[44px]" onClick={() => { setSelectedCategory(null); setSearchQuery(''); }}>
                 Clear Filters
               </Button>
             </div>
           ) : (
             <motion.div 
-              className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
               variants={staggerContainerFast}
               initial="hidden"
               whileInView="visible"

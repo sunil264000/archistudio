@@ -71,16 +71,16 @@ export function Footer() {
 
   return (
     <footer className="relative border-t border-border bg-gradient-to-b from-background to-secondary/20 overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 grid-pattern opacity-10 pointer-events-none" />
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-[120px] pointer-events-none" />
+      {/* Background decoration - hidden on mobile */}
+      <div className="absolute inset-0 grid-pattern opacity-10 pointer-events-none hidden md:block" />
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-[120px] pointer-events-none hidden md:block" />
       
-      <div className="container-wide py-16 relative">
-        <div className="grid md:grid-cols-4 gap-12 mb-12">
+      <div className="container-wide py-10 sm:py-12 md:py-16 relative">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 md:gap-12 mb-8 sm:mb-10 md:mb-12">
           {/* Brand */}
-          <div className="md:col-span-1 space-y-6">
+          <div className="col-span-2 sm:col-span-2 md:col-span-1 space-y-4 sm:space-y-6">
             <motion.div 
-              className="font-display font-bold text-2xl bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent"
+              className="font-display font-bold text-xl sm:text-2xl bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent"
               whileHover={{ scale: 1.02 }}
             >
               Archistudio
@@ -91,21 +91,21 @@ export function Footer() {
             
             {/* Social Links */}
             {activeSocials.length > 0 && (
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3">
                 {activeSocials.map((social, i) => (
                   <motion.a
                     key={social.key}
                     href={socialLinks[social.key as keyof SocialLinks]}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2.5 rounded-full bg-muted/50 hover:bg-accent hover:text-accent-foreground transition-all duration-300 border border-border/50 hover:border-accent/50 hover:shadow-lg hover:shadow-accent/20"
+                    className="p-2 sm:p-2.5 rounded-full bg-muted/50 hover:bg-accent hover:text-accent-foreground transition-all duration-300 border border-border/50 hover:border-accent/50 hover:shadow-lg hover:shadow-accent/20 touch-target min-w-[44px] min-h-[44px] flex items-center justify-center"
                     aria-label={social.label}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1 }}
                     whileHover={{ y: -3 }}
                   >
-                    <social.icon className="h-4 w-4" />
+                    <social.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                   </motion.a>
                 ))}
               </div>
@@ -114,18 +114,18 @@ export function Footer() {
 
           {/* Courses */}
           <div>
-            <h4 className="font-semibold mb-6 text-sm uppercase tracking-wider text-accent">
+            <h4 className="font-semibold mb-4 sm:mb-6 text-xs sm:text-sm uppercase tracking-wider text-accent">
               Courses
             </h4>
-            <ul className="space-y-3 text-sm">
+            <ul className="space-y-2 sm:space-y-3 text-sm">
               {footerLinks.courses.map((link) => (
                 <li key={link.to}>
                   <Link 
                     to={link.to} 
-                    className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 group"
+                    className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 group py-1 touch-target"
                   >
                     {link.label}
-                    <ArrowUpRight className="h-3 w-3 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all" />
+                    <ArrowUpRight className="h-3 w-3 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all hidden sm:block" />
                   </Link>
                 </li>
               ))}
@@ -134,18 +134,18 @@ export function Footer() {
 
           {/* Company */}
           <div>
-            <h4 className="font-semibold mb-6 text-sm uppercase tracking-wider text-accent">
+            <h4 className="font-semibold mb-4 sm:mb-6 text-xs sm:text-sm uppercase tracking-wider text-accent">
               Company
             </h4>
-            <ul className="space-y-3 text-sm">
+            <ul className="space-y-2 sm:space-y-3 text-sm">
               {footerLinks.company.map((link) => (
                 <li key={link.to}>
                   <Link 
                     to={link.to} 
-                    className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 group"
+                    className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 group py-1 touch-target"
                   >
                     {link.label}
-                    <ArrowUpRight className="h-3 w-3 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all" />
+                    <ArrowUpRight className="h-3 w-3 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all hidden sm:block" />
                   </Link>
                 </li>
               ))}
@@ -154,18 +154,18 @@ export function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="font-semibold mb-6 text-sm uppercase tracking-wider text-accent">
+            <h4 className="font-semibold mb-4 sm:mb-6 text-xs sm:text-sm uppercase tracking-wider text-accent">
               Legal
             </h4>
-            <ul className="space-y-3 text-sm">
+            <ul className="space-y-2 sm:space-y-3 text-sm">
               {footerLinks.legal.map((link) => (
                 <li key={link.to}>
                   <Link 
                     to={link.to} 
-                    className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 group"
+                    className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 group py-1 touch-target"
                   >
                     {link.label}
-                    <ArrowUpRight className="h-3 w-3 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all" />
+                    <ArrowUpRight className="h-3 w-3 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all hidden sm:block" />
                   </Link>
                 </li>
               ))}
@@ -173,12 +173,12 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-border/50 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="text-sm text-muted-foreground">
+        <div className="border-t border-border/50 pt-6 sm:pt-8 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 pb-safe">
+          <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
             © {new Date().getFullYear()} Archistudio. All rights reserved.
           </div>
-          <div className="text-sm text-muted-foreground flex items-center gap-1">
-            Made with <Heart className="h-4 w-4 text-destructive inline fill-destructive" /> for architects who want to build, not just design.
+          <div className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1 text-center sm:text-right">
+            Made with <Heart className="h-3 w-3 sm:h-4 sm:w-4 text-destructive inline fill-destructive" /> for architects who want to build, not just design.
           </div>
         </div>
       </div>
