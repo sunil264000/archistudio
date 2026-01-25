@@ -302,14 +302,35 @@ serve(async (req) => {
       );
     }
 
-    // === PROTECTION LAYER 2B: Require a valid site Origin/Referer ===
-    // If someone copies the URL and pastes into a download manager, these headers are usually missing.
+    // === PROTECTION LAYER 2B: Require a valid site context ===
+    // Some browsers do not consistently send Origin for <video> range requests.
+    // We primarily rely on the signed ticket + UA binding, and only use Origin/Referer as an extra signal.
     const reqHost = getRequestOriginHost(req);
-    if (!reqHost || !isLikelyOurSiteHost(reqHost)) {
+    if (reqHost && !isLikelyOurSiteHost(reqHost)) {
       return new Response(
         JSON.stringify({ error: "Forbidden" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    // If Origin/Referer is missing entirely, allow only if this looks like a browser media request.
+    // (Most download managers won't send Sec-Fetch-* headers.)
+    if (!reqHost) {
+      const secFetchDest = (req.headers.get("sec-fetch-dest") || "").toLowerCase();
+      const secFetchSite = (req.headers.get("sec-fetch-site") || "").toLowerCase();
+      const secFetchMode = (req.headers.get("sec-fetch-mode") || "").toLowerCase();
+
+      const looksLikeBrowserVideo =
+        (secFetchDest === "video" || secFetchDest === "empty") &&
+        (secFetchSite === "same-site" || secFetchSite === "same-origin" || secFetchSite === "cross-site") &&
+        (secFetchMode === "no-cors" || secFetchMode === "cors" || secFetchMode === "same-origin");
+
+      if (!looksLikeBrowserVideo) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
 
     // Resolve userId from signed ticket (preferred)

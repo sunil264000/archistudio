@@ -105,7 +105,6 @@ export function SecureVideoPlayer({
 
   // Flag to track if we're using proxy streaming for Google Drive
   const [useProxyForGDrive, setUseProxyForGDrive] = useState(true);
-  const [iframeReloadKey, setIframeReloadKey] = useState(0);
 
   // Move watermark randomly to make it harder to crop out
   useEffect(() => {
@@ -175,22 +174,14 @@ export function SecureVideoPlayer({
 
     // Handle quality mode changes for Google Drive
     if (videoPath && isGoogleDriveUrl(videoPath)) {
-      // Guests cannot mint tickets (no session token) -> use embed directly.
-      // This is also the most reliable option for previews.
+      // Protected mode: never expose Google Drive embeds.
+      // Require sign-in so we can mint a ticket and stream via the proxy (HD/original quality).
       if (!user) {
-        setUseProxyForGDrive(false);
-        setVideoUrl(getIframeUrl(videoPath));
+        setUseProxyForGDrive(true);
+        setVideoUrl(null);
+        setError('Please sign in to watch this protected lesson.');
         setLoading(false);
-        urlFetchedRef.current = videoPath;
-        return;
-      }
-
-      // If user selected SD mode, use iframe directly
-      if (qualityMode === 'sd') {
-        setUseProxyForGDrive(false);
-        setVideoUrl(getIframeUrl(videoPath));
-        setLoading(false);
-        urlFetchedRef.current = videoPath;
+        urlFetchedRef.current = null;
         return;
       }
 
@@ -207,18 +198,16 @@ export function SecureVideoPlayer({
             setUseProxyForGDrive(true);
             urlFetchedRef.current = videoPath;
           } else {
-            // Fallback to iframe embed if proxy fails (lower quality)
-            console.warn('Proxy streaming unavailable, falling back to iframe embed');
-            setUseProxyForGDrive(false);
-            setVideoUrl(getIframeUrl(videoPath));
-            urlFetchedRef.current = videoPath;
+            setUseProxyForGDrive(true);
+            setVideoUrl(null);
+            throw new Error('Protected streaming is unavailable right now. Please try again.');
           }
         } catch (err: any) {
           console.error('Error setting up Google Drive stream:', err);
-          // Fallback to iframe
-          setUseProxyForGDrive(false);
-          setVideoUrl(getIframeUrl(videoPath));
-          urlFetchedRef.current = videoPath;
+          setUseProxyForGDrive(true);
+          setVideoUrl(null);
+          setError(err?.message || 'Failed to load protected stream');
+          urlFetchedRef.current = null;
         } finally {
           setLoading(false);
         }
@@ -467,81 +456,7 @@ export function SecureVideoPlayer({
     return '';
   };
 
-  // External embeds (Google Drive preview iframe) - ONLY used as fallback when proxy fails
-  // The proxy streaming gives full 720p/1080p quality, iframe gives 360p
-  if (!loading && !error && videoUrl && isGoogleDrivePreview(videoUrl) && !useProxyForGDrive) {
-    return (
-      <div 
-        ref={containerRef} 
-        className="relative aspect-video bg-black rounded-lg overflow-hidden"
-        onContextMenu={(e) => e.preventDefault()}
-      >
-        <iframe
-          title="Lesson video"
-          // NOTE: Google Drive preview doesn't support YouTube params like modestbranding/rel.
-          // Adding them can break the embed sizing/interaction in some browsers.
-          key={iframeReloadKey}
-          src={videoUrl}
-          className="absolute inset-0 h-full w-full"
-          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-          allowFullScreen
-          // IMPORTANT: Avoid sandbox for reliability; it can block playback/interaction on some browsers.
-          style={{ border: 0 }}
-        />
-
-        {/* Fallback actions (some browsers block Drive embeds) */}
-        <div className="absolute top-2 left-2 z-30 flex items-center gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setIframeReloadKey((k) => k + 1);
-            }}
-          >
-            Reload
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              window.open(videoUrl, '_blank', 'noopener,noreferrer');
-            }}
-          >
-            Open
-          </Button>
-        </div>
-        
-        {/* Moving user watermark - identifies who downloaded if leaked */}
-        <div 
-          className="absolute text-white/20 text-sm pointer-events-none select-none z-20 font-mono transition-all duration-1000"
-          style={{ 
-            left: `${watermarkPosition.x}%`, 
-            top: `${watermarkPosition.y}%`,
-            transform: 'translate(-50%, -50%)',
-            textShadow: '0 0 2px rgba(0,0,0,0.5)',
-          }}
-        >
-          {getUserWatermark()}
-        </div>
-
-        {/* Corner watermarks */}
-        <div className="absolute bottom-2 left-2 text-[10px] text-white/30 pointer-events-none select-none z-20 flex items-center gap-1">
-          <Shield className="h-3 w-3" />
-          Protected Content
-        </div>
-        <div className="absolute top-2 right-2 text-white/15 text-xs pointer-events-none select-none z-20">
-          Archistudio
-        </div>
-
-      </div>
-    );
-  }
+  // NOTE: Google Drive iframe embeds removed to avoid exposing the source.
 
   if (loading) {
     return (
@@ -726,7 +641,7 @@ export function SecureVideoPlayer({
 
             {/* Right controls */}
             <div className="flex items-center gap-1 sm:gap-2">
-              {/* Quality Selector - Only show for Google Drive videos */}
+              {/* Quality Selector - Google Drive always streams via protected HD proxy */}
               {isGoogleDriveUrl(videoPath) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -751,20 +666,6 @@ export function SecureVideoPlayer({
                       <span className="flex items-center gap-2">
                         HD (Original)
                         {(qualityMode === 'auto' || qualityMode === 'hd') && <span className="text-xs">✓</span>}
-                      </span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => {
-                        if (qualityMode !== 'sd') {
-                          urlFetchedRef.current = null;
-                          setQualityMode('sd');
-                        }
-                      }}
-                      className={qualityMode === 'sd' ? 'bg-muted' : ''}
-                    >
-                      <span className="flex items-center gap-2">
-                        SD (360p)
-                        {qualityMode === 'sd' && <span className="text-xs">✓</span>}
                       </span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -795,9 +696,9 @@ export function SecureVideoPlayer({
       {isGoogleDriveUrl(videoPath) && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 text-[10px] sm:text-xs pointer-events-none select-none">
           <span
-            className={`px-1.5 sm:px-2 py-0.5 rounded ${useProxyForGDrive ? 'bg-success/80 text-success-foreground' : 'bg-warning/80 text-warning-foreground'}`}
+            className={`px-1.5 sm:px-2 py-0.5 rounded bg-success/80 text-success-foreground`}
           >
-            {useProxyForGDrive ? 'HD' : 'SD'}
+            HD
           </span>
         </div>
       )}
