@@ -318,8 +318,8 @@ export default function CoursePlayer() {
             Back to Studio
           </Button>
         </Link>
-        <div className="flex items-center gap-2">
-          <h2 className="font-semibold truncate text-sm md:text-base flex-1">{course?.title}</h2>
+        <div className="space-y-2">
+          <h2 className="font-semibold text-sm md:text-base leading-snug break-words">{course?.title}</h2>
           {/* Access Badge */}
           {accessInfo.accessType !== 'none' && (
             <AccessBadge 
@@ -363,12 +363,12 @@ export default function CoursePlayer() {
             return (
               <AccordionItem key={module.id} value={module.id} className="border-b-0">
                 <AccordionTrigger className="hover:no-underline px-2 py-3">
-                  <div className="flex items-center gap-2 text-left">
-                    <span className="text-sm font-medium">
+                  <div className="flex items-start gap-2 text-left min-w-0 flex-1">
+                    <span className="text-sm font-medium leading-snug break-words whitespace-normal">
                       Module {modIdx + 1}: {module.title}
                     </span>
                     {accessInfo.accessType === 'partial' && !isModuleUnlocked && (
-                      <Lock className="h-3 w-3 text-muted-foreground" />
+                      <Lock className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
                     )}
                   </div>
                 </AccordionTrigger>
@@ -389,32 +389,36 @@ export default function CoursePlayer() {
                         <button
                           key={lesson.id}
                           onClick={() => handleLessonSelect(lesson)}
-                          className={`w-full flex items-center gap-2 p-2 rounded text-left text-sm transition-colors ${
+                          className={`w-full flex items-start gap-2 p-2.5 rounded-lg text-left text-sm transition-all ${
                             isCurrent 
-                              ? 'bg-primary text-primary-foreground' 
+                              ? 'bg-primary text-primary-foreground shadow-sm' 
                               : isLocked 
                                 ? 'text-muted-foreground hover:bg-muted/50'
                                 : 'hover:bg-muted'
                           }`}
                         >
-                          <span className="w-5 h-5 flex items-center justify-center shrink-0">
+                          <span className="w-5 h-5 flex items-center justify-center shrink-0 mt-0.5">
                             {isLocked ? (
-                              <Lock className="h-3 w-3" />
+                              <Lock className="h-3.5 w-3.5" />
                             ) : isCompleted ? (
                               <CheckCircle className="h-4 w-4 text-success" />
                             ) : (
-                              <Play className="h-3 w-3" />
+                              <Play className="h-3.5 w-3.5" />
                             )}
                           </span>
-                          <span className="flex-1 truncate">{lesson.title}</span>
-                          {lesson.is_free_preview && !isEnrolled && (
-                            <Badge variant="secondary" className="text-xs shrink-0">Free</Badge>
-                          )}
-                          {lesson.duration_minutes && lesson.duration_minutes > 0 && (
-                            <span className="text-xs opacity-60 shrink-0">
-                              {lesson.duration_minutes}m
-                            </span>
-                          )}
+                          <div className="flex-1 min-w-0">
+                            <span className="block leading-snug break-words whitespace-normal">{lesson.title}</span>
+                            <div className="flex items-center gap-2 mt-1">
+                              {lesson.is_free_preview && !isEnrolled && (
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Free</Badge>
+                              )}
+                              {lesson.duration_minutes && lesson.duration_minutes > 0 && (
+                                <span className="text-[10px] opacity-60">
+                                  {lesson.duration_minutes} min
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </button>
                       );
                     })}
