@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,16 +19,6 @@ interface BroadcastEmailRequest {
   testEmail?: string;
 }
 
-const getCategoryEmoji = (category: string): string => {
-  switch (category) {
-    case 'announcement': return '📢';
-    case 'promotion': return '🎁';
-    case 'update': return '🆕';
-    case 'newsletter': return '📰';
-    default: return '📧';
-  }
-};
-
 const getCategoryColor = (category: string): string => {
   switch (category) {
     case 'announcement': return '#f59e0b';
@@ -37,10 +29,47 @@ const getCategoryColor = (category: string): string => {
   }
 };
 
+const getCategoryLabel = (category: string): string => {
+  switch (category) {
+    case 'announcement': return 'Announcement';
+    case 'promotion': return 'Special Offer';
+    case 'update': return 'Product Update';
+    case 'newsletter': return 'Newsletter';
+    default: return 'Update';
+  }
+};
+
+async function logEmail(
+  supabase: any,
+  recipientEmail: string,
+  recipientName: string | null,
+  emailType: string,
+  subject: string,
+  status: 'sent' | 'failed',
+  errorMessage: string | null = null,
+  metadata: Record<string, any> = {}
+) {
+  try {
+    await supabase.from('email_logs').insert({
+      recipient_email: recipientEmail,
+      recipient_name: recipientName,
+      email_type: emailType,
+      subject: subject,
+      status: status,
+      error_message: errorMessage,
+      metadata: metadata,
+    });
+  } catch (err) {
+    console.error('Failed to log email:', err);
+  }
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
     // Verify admin access
@@ -49,21 +78,16 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Unauthorized");
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
     // Get the user from the token
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
       throw new Error("Unauthorized");
     }
 
     // Check if user is admin
-    const { data: adminRole } = await supabaseClient
+    const { data: adminRole } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
@@ -88,89 +112,145 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const currentYear = new Date().getFullYear();
-    const categoryEmoji = getCategoryEmoji(category);
     const categoryColor = getCategoryColor(category);
+    const categoryLabel = getCategoryLabel(category);
 
-    // Build HTML email
+    // Plain text version
+    const textContent = `
+${categoryLabel.toUpperCase()}
+
+${subject}
+
+${message}
+
+---
+Visit Archistudio: https://archistudio.lovable.app/courses
+
+© ${currentYear} Archistudio. All rights reserved.
+You're receiving this because you're a valued member of Archistudio.
+    `.trim();
+
+    // Build HTML email with table-based layout
     const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      </head>
-      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0f0f0f;">
-        <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-          <div style="background: linear-gradient(180deg, #1a1a2e 0%, #0f172a 100%); border-radius: 20px; padding: 40px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
-            
-            <!-- Logo -->
-            <div style="text-align: center; margin-bottom: 30px;">
-              <div style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%); border-radius: 14px; border: 1px solid rgba(34, 197, 94, 0.25);">
-                <span style="font-size: 26px; font-weight: 800; background: linear-gradient(90deg, #22c55e, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.5px;">ARCHISTUDIO</span>
-              </div>
-            </div>
-            
-            <!-- Category Badge -->
-            <div style="text-align: center; margin-bottom: 25px;">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0f0f0f;">
+  
+  <div style="display: none; max-height: 0; overflow: hidden;">
+    ${categoryLabel}: ${subject}
+  </div>
+  
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #0f0f0f;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background: linear-gradient(180deg, #1a1a2e 0%, #0f172a 100%); border-radius: 20px; border: 1px solid rgba(255,255,255,0.08);">
+          
+          <!-- Logo -->
+          <tr>
+            <td align="center" style="padding: 40px 40px 30px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="padding: 14px 28px; background: rgba(34, 197, 94, 0.15); border-radius: 14px; border: 1px solid rgba(34, 197, 94, 0.25);">
+                    <span style="font-size: 22px; font-weight: 800; color: #22c55e; letter-spacing: -0.5px;">ARCHISTUDIO</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Category Badge -->
+          <tr>
+            <td align="center" style="padding: 0 40px 25px;">
               <span style="display: inline-block; background: ${categoryColor}20; color: ${categoryColor}; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
-                ${categoryEmoji} ${category}
+                ${categoryLabel}
               </span>
-            </div>
-            
-            <!-- Subject -->
-            <h1 style="color: #ffffff; font-size: 26px; margin: 0 0 25px 0; font-weight: 700; text-align: center; letter-spacing: -0.5px; line-height: 1.3;">
-              ${subject}
-            </h1>
-            
-            <!-- Message Content -->
-            <div style="color: #d1d5db; font-size: 16px; line-height: 1.8; white-space: pre-wrap;">
-              ${message.split('\n').map(line => `<p style="margin: 0 0 15px 0;">${line || '&nbsp;'}</p>`).join('')}
-            </div>
-            
-            <!-- CTA Button -->
-            <div style="text-align: center; margin: 35px 0;">
-              <a href="https://archistudio.lovable.app/courses" style="display: inline-block; background: linear-gradient(90deg, ${categoryColor}, ${categoryColor}dd); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 10px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px ${categoryColor}40;">
-                Explore Courses →
-              </a>
-            </div>
-            
-            <!-- Footer -->
-            <div style="margin-top: 40px; padding-top: 25px; border-top: 1px solid rgba(255,255,255,0.08); text-align: center;">
-              <div style="margin-bottom: 18px;">
-                <a href="https://instagram.com/archistudio.in" style="color: #6b7280; text-decoration: none; margin: 0 12px; font-size: 13px;">Instagram</a>
-                <span style="color: #3f3f46;">•</span>
-                <a href="https://t.me/archistudio_in" style="color: #6b7280; text-decoration: none; margin: 0 12px; font-size: 13px;">Telegram</a>
-                <span style="color: #3f3f46;">•</span>
-                <a href="https://archistudio.lovable.app" style="color: #6b7280; text-decoration: none; margin: 0 12px; font-size: 13px;">Website</a>
+            </td>
+          </tr>
+          
+          <!-- Subject -->
+          <tr>
+            <td style="padding: 0 40px;">
+              <h1 style="color: #ffffff; font-size: 26px; margin: 0 0 25px 0; font-weight: 700; text-align: center; letter-spacing: -0.5px; line-height: 1.3;">
+                ${subject}
+              </h1>
+            </td>
+          </tr>
+          
+          <!-- Message Content -->
+          <tr>
+            <td style="padding: 0 40px 40px;">
+              <div style="color: #d1d5db; font-size: 16px; line-height: 1.8;">
+                ${message.split('\n').map(line => `<p style="margin: 0 0 15px 0;">${line || '&nbsp;'}</p>`).join('')}
               </div>
-              <p style="color: #52525b; font-size: 12px; margin: 0;">© ${currentYear} Archistudio. All rights reserved.</p>
-              <p style="color: #3f3f46; font-size: 11px; margin: 8px 0 0 0;">
-                You're receiving this because you're a valued member of Archistudio.
-              </p>
-            </div>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+              
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 35px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="https://archistudio.lovable.app/courses" style="display: inline-block; background: ${categoryColor}; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 10px; font-weight: 600; font-size: 16px;">
+                      Explore Courses
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 25px 40px 32px; border-top: 1px solid rgba(255,255,255,0.08);">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="padding-bottom: 16px;">
+                    <a href="https://instagram.com/archistudio.in" style="color: #6b7280; text-decoration: none; margin: 0 10px; font-size: 13px;">Instagram</a>
+                    <span style="color: #3f3f46;">•</span>
+                    <a href="https://t.me/archistudio_in" style="color: #6b7280; text-decoration: none; margin: 0 10px; font-size: 13px;">Telegram</a>
+                    <span style="color: #3f3f46;">•</span>
+                    <a href="https://archistudio.lovable.app" style="color: #6b7280; text-decoration: none; margin: 0 10px; font-size: 13px;">Website</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center">
+                    <p style="color: #52525b; font-size: 12px; margin: 0;">© ${currentYear} Archistudio. All rights reserved.</p>
+                    <p style="color: #3f3f46; font-size: 11px; margin: 8px 0 0 0;">
+                      You're receiving this because you're a valued member of Archistudio.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+        </table>
+      </td>
+    </tr>
+  </table>
+  
+</body>
+</html>
+    `.trim();
 
-    let recipients: string[] = [];
+    let recipients: { email: string; name: string | null }[] = [];
     let sentCount = 0;
     let failedCount = 0;
 
     if (testMode && testEmail) {
       // Test mode - send only to specified email
-      recipients = [testEmail];
+      recipients = [{ email: testEmail, name: null }];
     } else {
       // Get recipients based on target audience
-      let query = supabaseClient
+      let query = supabase
         .from("profiles")
-        .select("email, user_id")
+        .select("email, full_name, user_id")
         .not("email", "is", null);
 
       if (targetAudience === 'enrolled') {
-        // Get users who have at least one enrollment
-        const { data: enrolledUsers } = await supabaseClient
+        const { data: enrolledUsers } = await supabase
           .from("enrollments")
           .select("user_id")
           .eq("status", "active");
@@ -183,8 +263,7 @@ const handler = async (req: Request): Promise<Response> => {
           recipients = [];
         }
       } else if (targetAudience === 'not-enrolled') {
-        // Get users who have no enrollments
-        const { data: enrolledUsers } = await supabaseClient
+        const { data: enrolledUsers } = await supabase
           .from("enrollments")
           .select("user_id")
           .eq("status", "active");
@@ -197,7 +276,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       const { data: profiles } = await query;
-      recipients = profiles?.map(p => p.email).filter(Boolean) as string[] || [];
+      recipients = profiles?.map(p => ({ email: p.email, name: p.full_name })).filter(r => r.email) || [];
     }
 
     console.log(`Sending broadcast email to ${recipients.length} recipients`);
@@ -207,7 +286,7 @@ const handler = async (req: Request): Promise<Response> => {
     for (let i = 0; i < recipients.length; i += batchSize) {
       const batch = recipients.slice(i, i + batchSize);
       
-      const emailPromises = batch.map(async (email) => {
+      const emailPromises = batch.map(async (recipient) => {
         try {
           const response = await fetch("https://api.resend.com/emails", {
             method: "POST",
@@ -217,22 +296,31 @@ const handler = async (req: Request): Promise<Response> => {
             },
             body: JSON.stringify({
               from: "Archistudio <hello@archistudio.shop>",
-              to: [email],
-              subject: `${categoryEmoji} ${subject}`,
+              to: [recipient.email],
+              reply_to: "hello@archistudio.shop",
+              subject: subject,
+              text: textContent,
               html: htmlContent,
+              headers: {
+                "List-Unsubscribe": "<mailto:unsubscribe@archistudio.shop>",
+                "X-Entity-Ref-ID": `broadcast-${Date.now()}-${recipient.email}`,
+              },
             }),
           });
 
           if (response.ok) {
             sentCount++;
+            await logEmail(supabase, recipient.email, recipient.name, 'broadcast', subject, 'sent', null, { category, targetAudience });
           } else {
             failedCount++;
             const errData = await response.text();
-            console.error(`Failed to send to ${email}:`, errData);
+            console.error(`Failed to send to ${recipient.email}:`, errData);
+            await logEmail(supabase, recipient.email, recipient.name, 'broadcast', subject, 'failed', errData, { category, targetAudience });
           }
-        } catch (error) {
+        } catch (error: any) {
           failedCount++;
-          console.error(`Error sending to ${email}:`, error);
+          console.error(`Error sending to ${recipient.email}:`, error);
+          await logEmail(supabase, recipient.email, recipient.name, 'broadcast', subject, 'failed', error.message, { category, targetAudience });
         }
       });
 
@@ -245,7 +333,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Log broadcast activity
-    await supabaseClient
+    await supabase
       .from("analytics_events")
       .insert({
         event_type: "email_broadcast",

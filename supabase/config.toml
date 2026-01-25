@@ -53,3 +53,9 @@ verify_jwt = false
 
 [functions.get-course-curriculum-public]
 verify_jwt = false
+
+[functions.send-broadcast-email]
+verify_jwt = false
+
+[functions.send-ebook-purchase-email]
+verify_jwt = false
