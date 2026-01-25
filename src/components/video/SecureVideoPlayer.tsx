@@ -14,6 +14,7 @@ import {
 interface SecureVideoPlayerProps {
   lessonId: string;
   videoPath: string;
+  isFreePreview?: boolean;
   onProgress?: (progress: number, currentTime: number) => void;
   onComplete?: () => void;
   initialPosition?: number;
@@ -34,6 +35,7 @@ const isMobileDevice = () => {
 export function SecureVideoPlayer({ 
   lessonId, 
   videoPath, 
+  isFreePreview = false,
   onProgress,
   onComplete,
   initialPosition = 0,
@@ -161,6 +163,33 @@ export function SecureVideoPlayer({
     }
   };
 
+  const generatePublicPreviewStreamingUrl = async (path: string): Promise<string | null> => {
+    try {
+      const baseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const randomSalt = Math.random().toString(36).substring(7);
+
+      const { data, error: ticketError } = await supabase.functions.invoke(
+        'mint-video-ticket-public',
+        { body: { lessonId, videoPath: path } },
+      );
+
+      if (ticketError) throw ticketError;
+      if (!data?.ticket) throw new Error('Could not mint preview ticket');
+
+      const params = new URLSearchParams({
+        ticket: data.ticket,
+        l: lessonId,
+        p: path,
+        _: randomSalt,
+      });
+
+      return `${baseUrl}/functions/v1/stream-video?${params.toString()}`;
+    } catch (err) {
+      console.error('Failed to generate public preview URL:', err);
+      return null;
+    }
+  };
+
   // NOTE: Decoy prefetch links removed.
   // They can confuse some browsers / network stacks and do not materially improve security.
 
@@ -177,11 +206,36 @@ export function SecureVideoPlayer({
       // Protected mode: never expose Google Drive embeds.
       // Require sign-in so we can mint a ticket and stream via the proxy (HD/original quality).
       if (!user) {
-        setUseProxyForGDrive(true);
-        setVideoUrl(null);
-        setError('Please sign in to watch this protected lesson.');
-        setLoading(false);
-        urlFetchedRef.current = null;
+        if (!isFreePreview) {
+          setUseProxyForGDrive(true);
+          setVideoUrl(null);
+          setError('Please sign in to watch this lesson.');
+          setLoading(false);
+          urlFetchedRef.current = null;
+          return;
+        }
+
+        const fetchPublicPreview = async () => {
+          try {
+            setLoading(true);
+            setError(null);
+            const streamUrl = await generatePublicPreviewStreamingUrl(videoPath);
+            if (!streamUrl) throw new Error('Preview is unavailable right now. Please try again.');
+            setVideoUrl(streamUrl);
+            setUseProxyForGDrive(true);
+            urlFetchedRef.current = videoPath;
+          } catch (err: any) {
+            console.error('Error setting up public preview stream:', err);
+            setVideoUrl(null);
+            setUseProxyForGDrive(true);
+            setError(err?.message || 'Failed to load preview');
+            urlFetchedRef.current = null;
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        fetchPublicPreview();
         return;
       }
 
@@ -241,21 +295,50 @@ export function SecureVideoPlayer({
         setLoading(true);
         setError(null);
 
-        const streamUrl = await generateStreamingUrl(videoPath);
-        
-        if (!streamUrl) {
-          // Fallback to signed URL approach
-          const { data, error: fnError } = await supabase.functions.invoke('get-video-url', {
-            body: { lessonId, videoPath },
-          });
-
-          if (fnError) throw fnError;
-          if (!data?.signedUrl) throw new Error('Could not get video URL');
-
-          setVideoUrl(data.signedUrl);
-        } else {
-          setVideoUrl(streamUrl);
+        // Guests can only stream FREE PREVIEW lessons (still via proxy, ticketed).
+        if (!user && isFreePreview) {
+          const previewUrl = await generatePublicPreviewStreamingUrl(videoPath);
+          if (!previewUrl) throw new Error('Preview is unavailable right now. Please try again.');
+          setVideoUrl(previewUrl);
+          urlFetchedRef.current = videoPath;
+          return;
         }
+
+        const streamUrl = await generateStreamingUrl(videoPath);
+
+        if (streamUrl) {
+          setVideoUrl(streamUrl);
+          urlFetchedRef.current = videoPath;
+          return;
+        }
+
+        // If we cannot mint a ticket, we must not attempt any unauthenticated fallback.
+        // This keeps source URLs from being exposed to guests.
+        if (!user) {
+          setVideoUrl(null);
+          setError('Please sign in to watch this lesson.');
+          urlFetchedRef.current = null;
+          return;
+        }
+
+        // Authenticated fallback: ask backend for a signed URL (still access-checked server-side).
+        let accessToken = session?.access_token;
+        if (!accessToken) {
+          await supabase.auth.refreshSession().catch(() => undefined);
+          const { data: { session: refreshed } } = await supabase.auth.getSession();
+          accessToken = refreshed?.access_token;
+        }
+
+        if (!accessToken) throw new Error('Please sign in again to continue.');
+
+        const { data, error: fnError } = await supabase.functions.invoke('get-video-url', {
+          body: { lessonId, videoPath },
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        if (fnError) throw fnError;
+        if (!data?.signedUrl) throw new Error('Could not get video URL');
+        setVideoUrl(data.signedUrl);
         urlFetchedRef.current = videoPath;
       } catch (err: any) {
         console.error('Error fetching video URL:', err);
@@ -268,7 +351,7 @@ export function SecureVideoPlayer({
     if (videoPath) {
       fetchStreamingUrl();
     }
-  }, [lessonId, videoPath, allowExternal, qualityMode, getIframeUrl, user?.id]);
+  }, [lessonId, videoPath, allowExternal, qualityMode, getIframeUrl, user?.id, isFreePreview]);
 
   // Apply initial position when video is ready - only once
   useEffect(() => {

@@ -6,6 +6,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { SecureVideoPlayer } from '@/components/video/SecureVideoPlayer';
 import { CourseQA } from '@/components/course/CourseQA';
 import { LessonResources } from '@/components/course/LessonResources';
+import { LockedLessonPlaceholder } from '@/components/course/LockedLessonPlaceholder';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -157,7 +158,11 @@ export default function CoursePlayer() {
       
       // 1. Check URL param
       if (lessonIdFromUrl) {
-        initialLesson = allLessonsFlat.find(l => l.id === lessonIdFromUrl) || null;
+        const fromUrl = allLessonsFlat.find(l => l.id === lessonIdFromUrl) || null;
+        // Guests / non-enrolled users should never land on locked lessons.
+        if (fromUrl && (isUserEnrolled || fromUrl.is_free_preview)) {
+          initialLesson = fromUrl;
+        }
       }
       
       // 2. If not logged in, find first free preview lesson
@@ -177,7 +182,12 @@ export default function CoursePlayer() {
       
       // 4. Fallback to first lesson
       if (!initialLesson && allLessonsFlat.length > 0) {
-        initialLesson = allLessonsFlat[0];
+        // Prefer first free preview for anyone who isn't enrolled.
+        if (!isUserEnrolled) {
+          initialLesson = allLessonsFlat.find(l => l.is_free_preview) || allLessonsFlat[0];
+        } else {
+          initialLesson = allLessonsFlat[0];
+        }
       }
       
       if (initialLesson) {
@@ -441,20 +451,42 @@ export default function CoursePlayer() {
             <ScrollArea className="flex-1">
               {/* Video Container - Full width on mobile with proper aspect ratio */}
               <div className="bg-black flex items-center justify-center">
-                {currentLesson.video_url ? (
-                  <div className="w-full">
-                    <div className="w-full aspect-video max-w-5xl mx-auto">
-                      <SecureVideoPlayer
-                        lessonId={currentLesson.id}
-                        videoPath={currentLesson.video_url}
-                        onProgress={handleProgress}
-                        onComplete={handleComplete}
-                        initialPosition={progress[currentLesson.id]?.last_position_seconds || 0}
-                        allowExternal={false}
-                      />
-                    </div>
-                  </div>
-                ) : (
+                {(() => {
+                  const isLocked = !isEnrolled && !currentLesson.is_free_preview;
+
+                  if (isLocked) {
+                    return (
+                      <div className="w-full py-6 md:py-10 px-4">
+                        <LockedLessonPlaceholder
+                          title={currentLesson.title}
+                          description={currentLesson.description}
+                          isLoggedIn={!!user}
+                          onSignIn={() => navigate('/auth')}
+                          onEnroll={() => navigate(`/course/${slug}`)}
+                        />
+                      </div>
+                    );
+                  }
+
+                  if (currentLesson.video_url) {
+                    return (
+                      <div className="w-full">
+                        <div className="w-full aspect-video max-w-5xl mx-auto">
+                          <SecureVideoPlayer
+                            lessonId={currentLesson.id}
+                            videoPath={currentLesson.video_url}
+                            isFreePreview={!!currentLesson.is_free_preview}
+                            onProgress={handleProgress}
+                            onComplete={handleComplete}
+                            initialPosition={progress[currentLesson.id]?.last_position_seconds || 0}
+                            allowExternal={false}
+                          />
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
                   <div className="text-center text-white py-8 md:py-16 px-4">
                     <BookOpen className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-4 opacity-50" />
                     <p className="text-sm md:text-base">No video available for this lesson</p>
@@ -464,7 +496,8 @@ export default function CoursePlayer() {
                       </p>
                     )}
                   </div>
-                )}
+                  );
+                })()}
               </div>
 
               {/* Lesson Info Bar */}
