@@ -57,9 +57,9 @@ export default function Index() {
       {/* Animated Background */}
       <AnimatedBackground intensity="light" />
       
-      {/* Live users indicator - lazy loaded */}
+      {/* Live users indicator - lazy loaded, hidden on small mobile */}
       <Suspense fallback={null}>
-        <div className="fixed top-20 right-4 z-40 bg-card/95 backdrop-blur-sm border border-border rounded-lg px-3 py-2 shadow-lg">
+        <div className="fixed top-20 right-2 sm:right-4 z-40 bg-card/95 backdrop-blur-sm border border-border rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 shadow-lg text-xs sm:text-sm hidden sm:block">
           <LiveViewerCounter variant="site" />
         </div>
       </Suspense>

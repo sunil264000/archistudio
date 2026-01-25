@@ -150,27 +150,45 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    /* Mobile-first: ensure minimum readable font size */
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
-  /* Typography scale */
+  /* Typography scale - mobile-first with minimum sizes */
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
 
+  /* Mobile-first responsive typography (min 14px for body, 24px for h1) */
   h1 {
-    @apply text-4xl md:text-5xl lg:text-6xl;
+    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl;
+    line-height: 1.2;
   }
 
   h2 {
-    @apply text-3xl md:text-4xl;
+    @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl;
+    line-height: 1.25;
   }
 
   h3 {
-    @apply text-2xl md:text-3xl;
+    @apply text-lg sm:text-xl md:text-2xl lg:text-3xl;
+    line-height: 1.3;
   }
 
   h4 {
-    @apply text-xl md:text-2xl;
+    @apply text-base sm:text-lg md:text-xl lg:text-2xl;
+    line-height: 1.35;
+  }
+
+  /* Ensure minimum font size for readability (Google requires 12px+) */
+  p, span, a, li, td, th, label, input, textarea, select, button {
+    @apply text-sm sm:text-base;
+    min-height: auto;
   }
 
   /* Focus styles */
@@ -214,18 +232,20 @@
     transform: translateY(-2px);
   }
 
-  /* Section spacing */
+  /* Section spacing - mobile-optimized */
   .section-padding {
-    @apply py-16 md:py-24 lg:py-32;
+    @apply py-10 sm:py-14 md:py-20 lg:py-28;
   }
 
-  /* Container with max width */
+  /* Container with max width - better mobile padding */
   .container-tight {
     @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+    width: 100%;
   }
 
   .container-wide {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    width: 100%;
   }
 
   /* Text gradient */
