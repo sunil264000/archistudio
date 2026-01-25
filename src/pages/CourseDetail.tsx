@@ -27,6 +27,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
 import { analytics } from '@/hooks/useGoogleAnalytics';
 import { LinkedEbooksHighlight } from '@/components/course/LinkedEbooksHighlight';
+import { EMIPaymentOptions } from '@/components/course/EMIPaymentOptions';
 
 // Add to Cart Button Component
 function AddToCartButton({ course }: { course: any }) {
@@ -658,6 +659,34 @@ export default function CourseDetail() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* EMI Payment Options - Show when user doesn't have full access and price > 0 */}
+              {effectivePriceInr > 0 && (!accessInfo.hasAccess || accessInfo.canPurchase) && dbCourseId && (
+                <EMIPaymentOptions
+                  courseId={dbCourseId}
+                  courseSlug={course.slug}
+                  courseTitle={course.title}
+                  coursePrice={saleActive && discountPercent > 0 
+                    ? calculateDiscountedPrice(effectivePriceInr) 
+                    : effectivePriceInr}
+                  modules={dbModules.map(m => ({ 
+                    id: m.id, 
+                    title: m.title, 
+                    order_index: m.order_index 
+                  }))}
+                  onPhoneRequired={() => {
+                    setPendingPaymentData({
+                      courseId: course.slug,
+                      amount: effectivePriceInr,
+                      customerName: profile?.full_name || user?.email?.split('@')[0] || 'Customer',
+                      customerEmail: user?.email || '',
+                      courseTitle: course.title,
+                    });
+                    setShowPhoneDialog(true);
+                  }}
+                  customerPhone={profile?.phone || undefined}
+                />
+              )}
             </div>
           </div>
         </div>
