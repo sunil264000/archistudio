@@ -302,7 +302,13 @@ export default function CoursePlayer() {
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="flex items-center justify-center h-[60vh]">
-          <div className="animate-pulse">Loading course...</div>
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative w-16 h-16">
+              <div className="absolute inset-0 rounded-full border-4 border-muted animate-pulse" />
+              <div className="absolute inset-0 rounded-full border-4 border-t-accent animate-spin" />
+            </div>
+            <p className="text-muted-foreground animate-pulse">Loading your studio...</p>
+          </div>
         </div>
       </div>
     );
@@ -311,70 +317,139 @@ export default function CoursePlayer() {
   // Sidebar content component (reused in both desktop and mobile)
   const SidebarContent = () => (
     <>
-      <div className="p-4 border-b">
+      <div className="p-4 border-b bg-gradient-to-b from-muted/30 to-transparent">
         <Link to={`/course/${slug}`}>
-          <Button variant="ghost" size="sm" className="gap-2 mb-2">
+          <Button variant="ghost" size="sm" className="gap-2 mb-3 hover:bg-accent/10 hover:text-accent transition-all">
             <ChevronLeft className="h-4 w-4" />
             Back to Studio
           </Button>
         </Link>
-        <div className="space-y-2">
-          <h2 className="font-semibold text-sm md:text-base leading-snug break-words">{course?.title}</h2>
-          {/* Access Badge */}
-          {accessInfo.accessType !== 'none' && (
-            <AccessBadge 
-              accessType={accessInfo.accessType}
-              unlockedPercent={accessInfo.unlockedPercent}
-              expiryDate={accessInfo.giftExpiry || accessInfo.launchFreeExpiry}
-            />
-          )}
+        
+        <div className="space-y-3">
+          {/* Course title with better styling */}
+          <div className="space-y-2">
+            <h2 className="font-semibold text-sm md:text-base leading-snug break-words whitespace-normal">
+              {course?.title}
+            </h2>
+            
+            {/* Access Badge with animation */}
+            {accessInfo.accessType !== 'none' && (
+              <div className="animate-fade-in">
+                <AccessBadge 
+                  accessType={accessInfo.accessType}
+                  unlockedPercent={accessInfo.unlockedPercent}
+                  expiryDate={accessInfo.giftExpiry || accessInfo.launchFreeExpiry}
+                />
+              </div>
+            )}
+          </div>
         </div>
         
-        {/* Signup prompt for non-logged-in users */}
+        {/* Signup prompt for non-logged-in users - Enhanced design */}
         {!user && (
-          <div className="mt-3 p-3 rounded-lg bg-accent/10 border border-accent/30 text-sm">
-            <p className="font-medium text-accent mb-2">🎓 Like what you see?</p>
-            <p className="text-muted-foreground text-xs mb-2">Sign up to access all lessons and track your progress!</p>
-            <Button size="sm" onClick={() => navigate('/auth')} className="w-full">
-              Sign Up Free
-            </Button>
+          <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-accent/15 via-accent/10 to-transparent border border-accent/20 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
+                <Award className="h-5 w-5 text-accent" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-accent text-sm mb-1">Like what you see?</p>
+                <p className="text-muted-foreground text-xs mb-3 leading-relaxed">
+                  Sign up free to unlock all lessons and track your learning progress!
+                </p>
+                <Button 
+                  size="sm" 
+                  onClick={() => navigate('/auth')} 
+                  className="w-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm"
+                >
+                  Sign Up Free
+                </Button>
+              </div>
+            </div>
           </div>
         )}
         
+        {/* Progress section - Enhanced */}
         {user && (
-          <div className="mt-2">
-            <div className="flex justify-between text-sm mb-1">
-              <span>Progress</span>
-              <span>{Math.round(overallProgress)}%</span>
+          <div className="mt-4 p-3 rounded-xl bg-muted/30 border border-border/50">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-medium text-muted-foreground">Your Progress</span>
+              <span className="text-sm font-bold text-accent">{Math.round(overallProgress)}%</span>
             </div>
-            <Progress value={overallProgress} className="h-2" />
+            <div className="relative">
+              <Progress value={overallProgress} className="h-2.5" />
+              {overallProgress > 0 && (
+                <div 
+                  className="absolute top-0 h-2.5 bg-gradient-to-r from-accent to-accent/80 rounded-full transition-all duration-500"
+                  style={{ width: `${overallProgress}%` }}
+                />
+              )}
+            </div>
+            {completedLessons > 0 && (
+              <p className="text-[10px] text-muted-foreground mt-1.5">
+                {completedLessons} of {totalLessons} sessions completed
+              </p>
+            )}
           </div>
         )}
       </div>
 
       <ScrollArea className="flex-1">
-        <Accordion type="multiple" defaultValue={modules.map(m => m.id)} className="p-2">
+        <Accordion type="multiple" defaultValue={modules.map(m => m.id)} className="p-3">
           {modules.map((module, modIdx) => {
             // Check if this module is unlocked (for partial EMI access)
             const isModuleUnlocked = accessInfo.accessType === 'partial' 
               ? accessInfo.unlockedModuleIds.includes(module.id)
               : isEnrolled;
+            
+            // Calculate module progress
+            const moduleLessons = module.lessons;
+            const moduleCompletedCount = moduleLessons.filter(l => progress[l.id]?.completed).length;
+            const moduleProgress = moduleLessons.length > 0 ? (moduleCompletedCount / moduleLessons.length) * 100 : 0;
               
             return (
-              <AccordionItem key={module.id} value={module.id} className="border-b-0">
-                <AccordionTrigger className="hover:no-underline px-2 py-3">
-                  <div className="flex items-start gap-2 text-left min-w-0 flex-1">
-                    <span className="text-sm font-medium leading-snug break-words whitespace-normal">
-                      Module {modIdx + 1}: {module.title}
-                    </span>
-                    {accessInfo.accessType === 'partial' && !isModuleUnlocked && (
-                      <Lock className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
-                    )}
+              <AccordionItem key={module.id} value={module.id} className="border-b border-border/30 last:border-b-0">
+                <AccordionTrigger className="hover:no-underline px-3 py-3.5 hover:bg-muted/30 rounded-lg transition-colors [&[data-state=open]]:bg-muted/20">
+                  <div className="flex items-start gap-3 text-left min-w-0 flex-1">
+                    {/* Module number badge */}
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold ${
+                      moduleProgress === 100 
+                        ? 'bg-success/20 text-success' 
+                        : 'bg-accent/10 text-accent'
+                    }`}>
+                      {moduleProgress === 100 ? (
+                        <CheckCircle className="h-4 w-4" />
+                      ) : (
+                        modIdx + 1
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium leading-snug break-words whitespace-normal block">
+                        {module.title}
+                      </span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-muted-foreground">
+                          {moduleLessons.length} sessions
+                        </span>
+                        {user && moduleCompletedCount > 0 && (
+                          <span className="text-[10px] text-accent font-medium">
+                            {moduleCompletedCount}/{moduleLessons.length} done
+                          </span>
+                        )}
+                        {accessInfo.accessType === 'partial' && !isModuleUnlocked && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <Lock className="h-2.5 w-2.5" />
+                            Locked
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pb-2">
-                  <div className="space-y-1">
-                    {module.lessons.map((lesson) => {
+                <AccordionContent className="pb-2 pt-1">
+                  <div className="space-y-1 pl-1">
+                    {module.lessons.map((lesson, lessonIdx) => {
                       const isCompleted = progress[lesson.id]?.completed;
                       // Lesson is locked if: no access AND not free preview
                       // For partial access: check module unlock status
@@ -389,33 +464,55 @@ export default function CoursePlayer() {
                         <button
                           key={lesson.id}
                           onClick={() => handleLessonSelect(lesson)}
-                          className={`w-full flex items-start gap-2 p-2.5 rounded-lg text-left text-sm transition-all ${
+                          className={`w-full flex items-start gap-3 p-3 rounded-xl text-left text-sm transition-all group ${
                             isCurrent 
-                              ? 'bg-primary text-primary-foreground shadow-sm' 
+                              ? 'bg-gradient-to-r from-accent to-accent/80 text-accent-foreground shadow-md shadow-accent/20' 
                               : isLocked 
-                                ? 'text-muted-foreground hover:bg-muted/50'
-                                : 'hover:bg-muted'
+                                ? 'text-muted-foreground hover:bg-muted/30 opacity-60'
+                                : 'hover:bg-muted/50'
                           }`}
                         >
-                          <span className="w-5 h-5 flex items-center justify-center shrink-0 mt-0.5">
+                          {/* Status icon */}
+                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all ${
+                            isCurrent 
+                              ? 'bg-white/20' 
+                              : isCompleted 
+                                ? 'bg-success/15 text-success' 
+                                : isLocked 
+                                  ? 'bg-muted/50' 
+                                  : 'bg-muted group-hover:bg-accent/10 group-hover:text-accent'
+                          }`}>
                             {isLocked ? (
                               <Lock className="h-3.5 w-3.5" />
                             ) : isCompleted ? (
-                              <CheckCircle className="h-4 w-4 text-success" />
+                              <CheckCircle className="h-4 w-4" />
+                            ) : isCurrent ? (
+                              <Play className="h-3.5 w-3.5 fill-current" />
                             ) : (
                               <Play className="h-3.5 w-3.5" />
                             )}
                           </span>
+                          
                           <div className="flex-1 min-w-0">
-                            <span className="block leading-snug break-words whitespace-normal">{lesson.title}</span>
-                            <div className="flex items-center gap-2 mt-1">
+                            <span className="block leading-snug break-words whitespace-normal font-medium">
+                              {lesson.title}
+                            </span>
+                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                               {lesson.is_free_preview && !isEnrolled && (
-                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Free</Badge>
+                                <Badge className="bg-success/15 text-success border-success/20 text-[10px] px-2 py-0.5 font-medium">
+                                  Free Preview
+                                </Badge>
                               )}
                               {lesson.duration_minutes && lesson.duration_minutes > 0 && (
-                                <span className="text-[10px] opacity-60">
+                                <span className={`text-[10px] flex items-center gap-1 ${isCurrent ? 'opacity-80' : 'opacity-60'}`}>
+                                  <Clock className="h-3 w-3" />
                                   {lesson.duration_minutes} min
                                 </span>
+                              )}
+                              {isCurrent && (
+                                <Badge className="bg-white/20 text-[10px] px-2 py-0.5 border-0 font-medium">
+                                  Now Playing
+                                </Badge>
                               )}
                             </div>
                           </div>
