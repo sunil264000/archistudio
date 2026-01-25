@@ -205,10 +205,7 @@ export default function CoursePlayer() {
   };
 
   const handleLessonSelect = (lesson: Lesson) => {
-    if (!isEnrolled && !lesson.is_free_preview) {
-      toast.error('Please enroll to access this lesson');
-      return;
-    }
+    // Allow selecting any lesson - the player will show locked placeholder if needed
     setCurrentLesson(lesson);
     setSidebarOpen(false); // Close sidebar on mobile after selection
   };
@@ -363,16 +360,15 @@ export default function CoursePlayer() {
                     const isLocked = !isEnrolled && !lesson.is_free_preview;
                     const isCurrent = currentLesson?.id === lesson.id;
 
-                    return (
+                      return (
                       <button
                         key={lesson.id}
                         onClick={() => handleLessonSelect(lesson)}
-                        disabled={isLocked}
                         className={`w-full flex items-center gap-2 p-2 rounded text-left text-sm transition-colors ${
                           isCurrent 
                             ? 'bg-primary text-primary-foreground' 
                             : isLocked 
-                              ? 'text-muted-foreground cursor-not-allowed'
+                              ? 'text-muted-foreground hover:bg-muted/50'
                               : 'hover:bg-muted'
                         }`}
                       >
