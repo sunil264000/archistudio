@@ -136,7 +136,7 @@ function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview,
                   ) : (
                     <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                   )}
-                  <span className={`truncate ${lesson.is_free_preview ? 'text-foreground group-hover:text-success' : ''}`}>
+                  <span className={`block leading-snug break-words whitespace-normal ${lesson.is_free_preview ? 'text-foreground group-hover:text-success' : ''}`}>
                     {lesson.title}
                   </span>
                 </div>

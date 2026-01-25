@@ -30,6 +30,16 @@ type TicketPayload = {
 
 const te = new TextEncoder();
 
+function guessVideoContentType(path: string): string {
+  const lower = (path || "").toLowerCase();
+  if (lower.endsWith('.mp4')) return 'video/mp4';
+  if (lower.endsWith('.webm')) return 'video/webm';
+  if (lower.endsWith('.mov')) return 'video/quicktime';
+  if (lower.endsWith('.m4v')) return 'video/x-m4v';
+  if (lower.endsWith('.mkv')) return 'video/x-matroska';
+  return 'video/mp4';
+}
+
 function base64UrlDecode(input: string): Uint8Array {
   const b64 = input.replace(/-/g, "+").replace(/_/g, "/");
   const padded = b64 + "===".slice((b64.length + 3) % 4);
@@ -572,6 +582,7 @@ serve(async (req) => {
     }
 
     const fileSize = fileData.size;
+    const contentType = guessVideoContentType(videoPath);
 
     // Handle range requests for seeking
     if (rangeHeader) {
@@ -587,7 +598,8 @@ serve(async (req) => {
         status: 206,
         headers: {
           ...antiDownloadHeaders,
-          "Content-Type": "application/octet-stream", // Hide that it's video
+          // IMPORTANT: browsers must know it's a video; with nosniff they will refuse octet-stream.
+          "Content-Type": contentType,
           "Content-Range": `bytes ${start}-${end}/${fileSize}`,
           "Accept-Ranges": "bytes",
           "Content-Length": chunkSize.toString(),
@@ -600,7 +612,8 @@ serve(async (req) => {
       status: 200,
       headers: {
         ...antiDownloadHeaders,
-        "Content-Type": "application/octet-stream", // Hide video MIME type
+        // IMPORTANT: browsers must know it's a video; with nosniff they will refuse octet-stream.
+        "Content-Type": contentType,
         "Content-Length": fileSize.toString(),
         "Accept-Ranges": "bytes",
       },
