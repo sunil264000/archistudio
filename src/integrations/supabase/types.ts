@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_history: {
+        Row: {
+          activity_type: string
+          course_id: string | null
+          created_at: string
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          lesson_id: string | null
+          metadata: Json | null
+          page_url: string | null
+          session_id: string | null
+          started_at: string
+          user_id: string | null
+        }
+        Insert: {
+          activity_type: string
+          course_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          lesson_id?: string | null
+          metadata?: Json | null
+          page_url?: string | null
+          session_id?: string | null
+          started_at: string
+          user_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          course_id?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          lesson_id?: string | null
+          metadata?: Json | null
+          page_url?: string | null
+          session_id?: string | null
+          started_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_history_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_history_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_chat_history: {
         Row: {
           ai_response: string
@@ -679,6 +739,45 @@ export type Database = {
           price_single?: number
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      email_logs: {
+        Row: {
+          created_at: string
+          email_type: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          recipient_email: string
+          recipient_name: string | null
+          sent_at: string
+          status: string
+          subject: string
+        }
+        Insert: {
+          created_at?: string
+          email_type: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email: string
+          recipient_name?: string | null
+          sent_at?: string
+          status?: string
+          subject: string
+        }
+        Update: {
+          created_at?: string
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email?: string
+          recipient_name?: string | null
+          sent_at?: string
+          status?: string
+          subject?: string
         }
         Relationships: []
       }
@@ -1905,7 +2004,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "manager" | "uploader"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2033,7 +2132,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "manager", "uploader"],
     },
   },
 } as const
