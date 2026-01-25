@@ -63,6 +63,8 @@ export function SecureVideoPlayer({
   const urlFetchedRef = useRef<string | null>(null);
   const { user } = useAuth();
 
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
   // Keep actual stream URL off the DOM attribute as much as possible.
   // (Still not DRM; but removes easy link-copy from Elements pane.)
   useEffect(() => {
@@ -129,8 +131,21 @@ export function SecureVideoPlayer({
 
       // Ensure we have an auth token and send it explicitly.
       // (Some environments don't auto-attach it for function invokes.)
-      const { data: { session } } = await supabase.auth.getSession();
-      const accessToken = session?.access_token;
+      // Wait a moment for auth state hydration (prevents using anon token).
+      let accessToken: string | undefined;
+      for (let i = 0; i < 8; i++) {
+        const { data: { session } } = await supabase.auth.getSession();
+        accessToken = session?.access_token;
+        if (accessToken) break;
+        // If user is present but token isn't hydrated yet, wait briefly.
+        if (user) await sleep(150);
+        else break;
+      }
+
+      if (!accessToken) {
+        // No session available yet; caller effect will re-run when user/session loads.
+        return null;
+      }
 
       const { data, error: ticketError } = await supabase.functions.invoke('mint-video-ticket', {
         body: { lessonId, videoPath: path },
@@ -290,7 +305,7 @@ export function SecureVideoPlayer({
     if (videoPath) {
       fetchStreamingUrl();
     }
-  }, [lessonId, videoPath, allowExternal, qualityMode, getIframeUrl]);
+  }, [lessonId, videoPath, allowExternal, qualityMode, getIframeUrl, user?.id]);
 
   // Apply initial position when video is ready - only once
   useEffect(() => {
