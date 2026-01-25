@@ -63,6 +63,18 @@ export function SecureVideoPlayer({
   const urlFetchedRef = useRef<string | null>(null);
   const { user } = useAuth();
 
+  // Keep actual stream URL off the DOM attribute as much as possible.
+  // (Still not DRM; but removes easy link-copy from Elements pane.)
+  useEffect(() => {
+    if (!videoRef.current) return;
+    if (!videoUrl) return;
+    try {
+      videoRef.current.src = videoUrl;
+    } catch {
+      // ignore
+    }
+  }, [videoUrl]);
+
   const isExternalUrl = (url: string) => /^https?:\/\//i.test(url);
   const isGoogleDriveUrl = (url: string) =>
     /drive\.google\.com|docs\.google\.com/i.test(url);
@@ -109,22 +121,24 @@ export function SecureVideoPlayer({
     };
   }, []);
 
-  // Generate secure streaming URL through our proxy
+  // Generate secure streaming URL through our proxy (ticket-based, no access token in URL)
   const generateStreamingUrl = async (path: string): Promise<string | null> => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) return null;
-
       const baseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const timestamp = Date.now();
       const randomSalt = Math.random().toString(36).substring(7);
+
+      const { data, error: ticketError } = await supabase.functions.invoke('mint-video-ticket', {
+        body: { lessonId, videoPath: path },
+      });
+
+      if (ticketError) throw ticketError;
+      if (!data?.ticket) throw new Error('Could not mint video ticket');
       
-      // Build secure URL with token, lesson, path, and timestamp
+      // Build secure URL with ticket, lesson, path, and cache-buster
       const params = new URLSearchParams({
-        t: session.access_token,
+        ticket: data.ticket,
         l: lessonId,
         p: path,
-        ts: timestamp.toString(),
         _: randomSalt, // Cache buster
       });
 
@@ -548,7 +562,9 @@ export function SecureVideoPlayer({
     >
       <video
         ref={videoRef}
-        src={videoUrl || undefined}
+        // NOTE: we set the src via property (below effect) to reduce DOM attribute exposure.
+        // This doesn't make it impossible to discover, but avoids leaking sensitive tokens.
+        src={undefined}
         className={`w-full h-full object-contain ${isFullscreen ? '' : ''}`}
         preload="auto"
         onPlay={() => setIsPlaying(true)}
