@@ -40,7 +40,7 @@ export function useCourseModules(courseSlug: string | undefined) {
           .from('courses')
           .select('id')
           .eq('slug', courseSlug)
-          .single();
+          .maybeSingle();
 
         if (courseError || !course) {
           console.log('Course not found:', courseSlug);
@@ -71,7 +71,23 @@ export function useCourseModules(courseSlug: string | undefined) {
           .in('module_id', moduleIds)
           .order('order_index');
 
+        // If lesson reads are blocked for guests (or other RLS rules), fall back to a
+        // public backend function that returns safe lesson metadata (no video URLs).
         if (lessonsError) {
+          console.warn('Lesson fetch blocked; falling back to public curriculum endpoint');
+          const { data: publicData, error: publicErr } = await supabase.functions.invoke(
+            'get-course-curriculum-public',
+            { body: { courseSlug } },
+          );
+
+          if (!publicErr && publicData?.modules) {
+            setModules(publicData.modules);
+            setTotalLessons(publicData.totalLessons || 0);
+            setTotalDuration(publicData.totalDuration || 0);
+            setLoading(false);
+            return;
+          }
+
           console.error('Error fetching lessons:', lessonsError);
         }
 
