@@ -71,6 +71,9 @@ export default function CoursePlayer() {
   const hasFetchedRef = useRef(false);
   const courseSlugRef = useRef<string | null>(null);
 
+  // Throttle progress writes to avoid flooding the network (can cause playback stutter)
+  const lastProgressSaveRef = useRef<Record<string, number>>({});
+
   // Get lesson ID from URL query param if present
   const lessonIdFromUrl = searchParams.get('lesson');
 
@@ -219,18 +222,30 @@ export default function CoursePlayer() {
       setShowFinishButton(true);
     }
 
-    // Save progress every 10 seconds
+    // Save progress every 10 seconds (but only when we cross a new 10s boundary)
     const roundedTime = Math.floor(currentTime / 10) * 10;
-    
-    await supabase.from('progress').upsert({
-      user_id: user.id,
-      lesson_id: currentLesson.id,
-      last_position_seconds: roundedTime,
-      watch_time_seconds: roundedTime,
-      updated_at: new Date().toISOString(),
-    }, {
-      onConflict: 'user_id,lesson_id',
-    });
+    const lastSaved = lastProgressSaveRef.current[currentLesson.id] ?? -1;
+    if (roundedTime <= lastSaved) return;
+
+    lastProgressSaveRef.current[currentLesson.id] = roundedTime;
+
+    supabase
+      .from('progress')
+      .upsert(
+        {
+          user_id: user.id,
+          lesson_id: currentLesson.id,
+          last_position_seconds: roundedTime,
+          watch_time_seconds: roundedTime,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'user_id,lesson_id',
+        }
+      )
+      .then(({ error }) => {
+        if (error) console.error('Progress save failed:', error);
+      });
   }, [currentLesson, user, progress]);
 
   const handleComplete = useCallback(async () => {

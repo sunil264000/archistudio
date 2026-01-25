@@ -221,7 +221,7 @@ export function SecureVideoPlayer({
         className="w-full h-full object-contain"
         controls
         playsInline
-        preload="metadata"
+        preload="auto"
         onTimeUpdate={() => {
           const v = videoRef.current;
           if (!v) return;
