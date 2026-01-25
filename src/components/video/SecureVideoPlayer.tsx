@@ -105,6 +105,7 @@ export function SecureVideoPlayer({
 
   // Flag to track if we're using proxy streaming for Google Drive
   const [useProxyForGDrive, setUseProxyForGDrive] = useState(true);
+  const [iframeReloadKey, setIframeReloadKey] = useState(0);
 
   // Move watermark randomly to make it harder to crop out
   useEffect(() => {
@@ -174,6 +175,16 @@ export function SecureVideoPlayer({
 
     // Handle quality mode changes for Google Drive
     if (videoPath && isGoogleDriveUrl(videoPath)) {
+      // Guests cannot mint tickets (no session token) -> use embed directly.
+      // This is also the most reliable option for previews.
+      if (!user) {
+        setUseProxyForGDrive(false);
+        setVideoUrl(getIframeUrl(videoPath));
+        setLoading(false);
+        urlFetchedRef.current = videoPath;
+        return;
+      }
+
       // If user selected SD mode, use iframe directly
       if (qualityMode === 'sd') {
         setUseProxyForGDrive(false);
@@ -465,20 +476,46 @@ export function SecureVideoPlayer({
         className="relative aspect-video bg-black rounded-lg overflow-hidden"
         onContextMenu={(e) => e.preventDefault()}
       >
-        {/* Invisible overlay to block right-click and prevent download options */}
-        <div 
-          className="absolute inset-0 z-10"
-          style={{ background: 'transparent', pointerEvents: 'none' }}
-        />
         <iframe
           title="Lesson video"
-          src={`${videoUrl}?modestbranding=1&rel=0`}
+          // NOTE: Google Drive preview doesn't support YouTube params like modestbranding/rel.
+          // Adding them can break the embed sizing/interaction in some browsers.
+          key={iframeReloadKey}
+          src={videoUrl}
           className="absolute inset-0 h-full w-full"
-          allow="autoplay; encrypted-media; picture-in-picture"
+          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
           allowFullScreen
-          sandbox="allow-scripts allow-same-origin allow-presentation"
-          style={{ pointerEvents: 'auto' }}
+          // IMPORTANT: Avoid sandbox for reliability; it can block playback/interaction on some browsers.
+          style={{ border: 0 }}
         />
+
+        {/* Fallback actions (some browsers block Drive embeds) */}
+        <div className="absolute top-2 left-2 z-30 flex items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIframeReloadKey((k) => k + 1);
+            }}
+          >
+            Reload
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              window.open(videoUrl, '_blank', 'noopener,noreferrer');
+            }}
+          >
+            Open
+          </Button>
+        </div>
         
         {/* Moving user watermark - identifies who downloaded if leaked */}
         <div 
