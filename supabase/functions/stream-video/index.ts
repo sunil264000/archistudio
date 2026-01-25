@@ -229,16 +229,22 @@ function isGoogleDriveUrl(url: string): boolean {
   return /drive\.google\.com|docs\.google\.com/i.test(url);
 }
 
-// Get Google Drive direct download URL using API
+// Get Google Drive direct stream with optimized headers for smooth playback
 async function getGoogleDriveStream(fileId: string, apiKey: string, rangeHeader?: string | null): Promise<Response> {
-  const metadataUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${apiKey}`;
+  // Use direct download endpoint for faster streaming
+  const streamUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${apiKey}`;
   
-  const headers: HeadersInit = {};
+  const headers: HeadersInit = {
+    // Request streaming-optimized response
+    'Accept': 'video/*,*/*',
+    'Accept-Encoding': 'identity', // Avoid compression for video - faster streaming
+  };
+  
   if (rangeHeader) {
     headers['Range'] = rangeHeader;
   }
 
-  const response = await fetch(metadataUrl, { headers });
+  const response = await fetch(streamUrl, { headers });
   
   if (!response.ok) {
     console.error(`Google Drive API error: ${response.status} ${response.statusText}`);
@@ -537,11 +543,15 @@ serve(async (req) => {
         const contentType = driveResponse.headers.get("Content-Type") || "video/mp4";
         const contentLength = driveResponse.headers.get("Content-Length");
         const contentRange = driveResponse.headers.get("Content-Range");
-        const acceptRanges = driveResponse.headers.get("Accept-Ranges");
 
+        // Optimized headers for smooth streaming and fast seeking
         const responseHeaders: HeadersInit = {
-          ...antiDownloadHeaders,
-          "Content-Type": contentType,
+          ...corsHeaders,
+          "Content-Type": contentType.startsWith("video/") ? contentType : "video/mp4",
+          "Accept-Ranges": "bytes", // Always indicate range support for seeking
+          "X-Content-Type-Options": "nosniff",
+          // Allow browser to cache video chunks for smoother seeking
+          "Cache-Control": "private, max-age=3600",
         };
 
         if (contentLength) {
@@ -550,10 +560,8 @@ serve(async (req) => {
         if (contentRange) {
           responseHeaders["Content-Range"] = contentRange;
         }
-        if (acceptRanges) {
-          responseHeaders["Accept-Ranges"] = acceptRanges;
-        }
 
+        // Stream the response body directly - no buffering
         return new Response(driveResponse.body, {
           status: driveResponse.status,
           headers: responseHeaders,
