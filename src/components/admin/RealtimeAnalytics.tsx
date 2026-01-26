@@ -12,7 +12,7 @@ import {
   Activity, Users, Eye, ShoppingCart, Play, Trash2,
   RefreshCw, Clock, TrendingUp, AlertCircle, CheckCircle,
   XCircle, Loader2, Mail, ShieldCheck, UserX, Search,
-  BarChart3, Zap, Globe
+  BarChart3, Zap, Globe, Smartphone, Tablet, Monitor, Timer
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -59,10 +59,39 @@ interface UserProfile {
   created_at: string;
 }
 
+interface VisitorSession {
+  id: string;
+  session_id: string;
+  device_type: string;
+  browser: string | null;
+  os: string | null;
+  landing_page: string | null;
+  referrer: string | null;
+  pages_viewed: number;
+  total_duration_seconds: number;
+  is_bounce: boolean;
+  started_at: string;
+  last_ping: string;
+  timezone: string | null;
+}
+
+interface TrafficStats {
+  totalVisitors24h: number;
+  activeNow: number;
+  mobile: number;
+  tablet: number;
+  desktop: number;
+  avgDurationMobile: number;
+  avgDurationTablet: number;
+  avgDurationDesktop: number;
+  bounceRate: number;
+}
+
 export function RealtimeAnalytics() {
   const [activeUsers, setActiveUsers] = useState<LiveActivity[]>([]);
   const [purchaseAttempts, setPurchaseAttempts] = useState<PurchaseAttempt[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [visitorSessions, setVisitorSessions] = useState<VisitorSession[]>([]);
   const [courses, setCourses] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -81,12 +110,70 @@ export function RealtimeAnalytics() {
     newUsers24h: 0,
   });
 
+  // Traffic stats
+  const [trafficStats, setTrafficStats] = useState<TrafficStats>({
+    totalVisitors24h: 0,
+    activeNow: 0,
+    mobile: 0,
+    tablet: 0,
+    desktop: 0,
+    avgDurationMobile: 0,
+    avgDurationTablet: 0,
+    avgDurationDesktop: 0,
+    bounceRate: 0,
+  });
+
   const fetchCourses = useCallback(async () => {
     const { data } = await supabase.from('courses').select('id, title');
     if (data) {
       const map: Record<string, string> = {};
       data.forEach(c => { map[c.id] = c.title; });
       setCourses(map);
+    }
+  }, []);
+
+  const fetchVisitorSessions = useCallback(async () => {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    
+    const { data, error } = await supabase
+      .from('visitor_sessions')
+      .select('*')
+      .gte('started_at', twentyFourHoursAgo)
+      .order('started_at', { ascending: false })
+      .limit(500);
+    
+    if (!error && data) {
+      setVisitorSessions(data as VisitorSession[]);
+      
+      // Calculate traffic stats
+      const activeVisitors = data.filter(v => new Date(v.last_ping) >= new Date(fiveMinutesAgo));
+      const mobileVisitors = data.filter(v => v.device_type === 'mobile');
+      const tabletVisitors = data.filter(v => v.device_type === 'tablet');
+      const desktopVisitors = data.filter(v => v.device_type === 'desktop');
+      const bounces = data.filter(v => v.is_bounce);
+      
+      const avgMobile = mobileVisitors.length > 0 
+        ? mobileVisitors.reduce((sum, v) => sum + (v.total_duration_seconds || 0), 0) / mobileVisitors.length 
+        : 0;
+      const avgTablet = tabletVisitors.length > 0 
+        ? tabletVisitors.reduce((sum, v) => sum + (v.total_duration_seconds || 0), 0) / tabletVisitors.length 
+        : 0;
+      const avgDesktop = desktopVisitors.length > 0 
+        ? desktopVisitors.reduce((sum, v) => sum + (v.total_duration_seconds || 0), 0) / desktopVisitors.length 
+        : 0;
+      
+      setTrafficStats({
+        totalVisitors24h: data.length,
+        activeNow: activeVisitors.length,
+        mobile: mobileVisitors.length,
+        tablet: tabletVisitors.length,
+        desktop: desktopVisitors.length,
+        avgDurationMobile: Math.round(avgMobile),
+        avgDurationTablet: Math.round(avgTablet),
+        avgDurationDesktop: Math.round(avgDesktop),
+        bounceRate: data.length > 0 ? Math.round((bounces.length / data.length) * 100) : 0,
+      });
     }
   }, []);
 
@@ -153,10 +240,11 @@ export function RealtimeAnalytics() {
       fetchActiveUsers(),
       fetchPurchaseAttempts(),
       fetchUsers(),
+      fetchVisitorSessions(),
     ]);
     setRefreshing(false);
     toast.success('Data refreshed');
-  }, [fetchActiveUsers, fetchPurchaseAttempts, fetchUsers]);
+  }, [fetchActiveUsers, fetchPurchaseAttempts, fetchUsers, fetchVisitorSessions]);
 
   useEffect(() => {
     const init = async () => {
@@ -166,6 +254,7 @@ export function RealtimeAnalytics() {
         fetchActiveUsers(),
         fetchPurchaseAttempts(),
         fetchUsers(),
+        fetchVisitorSessions(),
       ]);
       setLoading(false);
     };
@@ -193,19 +282,28 @@ export function RealtimeAnalytics() {
       })
       .subscribe();
 
+    const visitorChannel = supabase
+      .channel('visitor-sessions-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'visitor_sessions' }, () => {
+        fetchVisitorSessions();
+      })
+      .subscribe();
+
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       fetchActiveUsers();
       fetchPurchaseAttempts();
+      fetchVisitorSessions();
     }, 30000);
 
     return () => {
       supabase.removeChannel(activityChannel);
       supabase.removeChannel(purchaseChannel);
       supabase.removeChannel(profileChannel);
+      supabase.removeChannel(visitorChannel);
       clearInterval(interval);
     };
-  }, [fetchCourses, fetchActiveUsers, fetchPurchaseAttempts, fetchUsers]);
+  }, [fetchCourses, fetchActiveUsers, fetchPurchaseAttempts, fetchUsers, fetchVisitorSessions]);
 
   const handleDeleteUser = async () => {
     if (!deletingUser) return;
@@ -300,6 +398,16 @@ export function RealtimeAnalytics() {
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours}h ago`;
     return new Date(date).toLocaleDateString();
+  };
+
+  const formatDuration = (seconds: number): string => {
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours}h ${remainingMinutes}m`;
   };
 
   if (loading) {
@@ -409,11 +517,15 @@ export function RealtimeAnalytics() {
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs defaultValue="live" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+      <Tabs defaultValue="traffic" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4 max-w-xl">
+          <TabsTrigger value="traffic" className="gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Traffic
+          </TabsTrigger>
           <TabsTrigger value="live" className="gap-2">
             <Activity className="h-4 w-4" />
-            Live Activity
+            Live
           </TabsTrigger>
           <TabsTrigger value="purchases" className="gap-2">
             <ShoppingCart className="h-4 w-4" />
@@ -424,6 +536,202 @@ export function RealtimeAnalytics() {
             Users
           </TabsTrigger>
         </TabsList>
+
+        {/* Traffic Analytics Tab */}
+        <TabsContent value="traffic">
+          <div className="grid gap-6">
+            {/* Device Breakdown Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="bg-gradient-to-br from-blue-500/10 to-transparent">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-blue-600">
+                      <Smartphone className="h-5 w-5" />
+                      <CardTitle className="text-lg">Mobile</CardTitle>
+                    </div>
+                    <Badge variant="outline" className="text-blue-600 border-blue-500/30">
+                      {trafficStats.totalVisitors24h > 0 
+                        ? Math.round((trafficStats.mobile / trafficStats.totalVisitors24h) * 100) 
+                        : 0}%
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-4xl font-bold">{trafficStats.mobile}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Avg. time: {formatDuration(trafficStats.avgDurationMobile)}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-purple-500/10 to-transparent">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-purple-600">
+                      <Tablet className="h-5 w-5" />
+                      <CardTitle className="text-lg">Tablet</CardTitle>
+                    </div>
+                    <Badge variant="outline" className="text-purple-600 border-purple-500/30">
+                      {trafficStats.totalVisitors24h > 0 
+                        ? Math.round((trafficStats.tablet / trafficStats.totalVisitors24h) * 100) 
+                        : 0}%
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-4xl font-bold">{trafficStats.tablet}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Avg. time: {formatDuration(trafficStats.avgDurationTablet)}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-emerald-500/10 to-transparent">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-emerald-600">
+                      <Monitor className="h-5 w-5" />
+                      <CardTitle className="text-lg">Desktop</CardTitle>
+                    </div>
+                    <Badge variant="outline" className="text-emerald-600 border-emerald-500/30">
+                      {trafficStats.totalVisitors24h > 0 
+                        ? Math.round((trafficStats.desktop / trafficStats.totalVisitors24h) * 100) 
+                        : 0}%
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-4xl font-bold">{trafficStats.desktop}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Avg. time: {formatDuration(trafficStats.avgDurationDesktop)}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Summary Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                    <Globe className="h-4 w-4" />
+                    Total Visitors (24h)
+                  </div>
+                  <p className="text-3xl font-bold mt-2">{trafficStats.totalVisitors24h}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                    <Activity className="h-4 w-4" />
+                    Active Now
+                  </div>
+                  <p className="text-3xl font-bold mt-2 text-emerald-600">{trafficStats.activeNow}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                    <Timer className="h-4 w-4" />
+                    Bounce Rate
+                  </div>
+                  <p className="text-3xl font-bold mt-2">{trafficStats.bounceRate}%</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                    <TrendingUp className="h-4 w-4" />
+                    Avg. Session
+                  </div>
+                  <p className="text-3xl font-bold mt-2">
+                    {formatDuration(
+                      trafficStats.totalVisitors24h > 0
+                        ? Math.round(
+                            (trafficStats.avgDurationMobile * trafficStats.mobile +
+                              trafficStats.avgDurationTablet * trafficStats.tablet +
+                              trafficStats.avgDurationDesktop * trafficStats.desktop) /
+                              trafficStats.totalVisitors24h
+                          )
+                        : 0
+                    )}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Recent Visitor Sessions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5 text-accent" />
+                  Recent Visitor Sessions
+                </CardTitle>
+                <CardDescription>Real-time visitor traffic from all devices</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[300px]">
+                  {visitorSessions.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Globe className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                      <p>No visitor sessions yet</p>
+                      <p className="text-sm mt-2">Traffic data will appear here as visitors browse your site</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {visitorSessions.slice(0, 50).map((session, index) => (
+                        <motion.div
+                          key={session.id}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.02 }}
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-full bg-accent/10 flex items-center justify-center">
+                              {session.device_type === 'mobile' && <Smartphone className="h-4 w-4" />}
+                              {session.device_type === 'tablet' && <Tablet className="h-4 w-4" />}
+                              {session.device_type === 'desktop' && <Monitor className="h-4 w-4" />}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="capitalize text-xs">
+                                  {session.device_type}
+                                </Badge>
+                                {session.browser && (
+                                  <span className="text-xs text-muted-foreground">{session.browser}</span>
+                                )}
+                                {session.os && (
+                                  <span className="text-xs text-muted-foreground">• {session.os}</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {session.landing_page || '/'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="text-muted-foreground">
+                                {session.pages_viewed} pages
+                              </span>
+                              <span className="font-medium">
+                                {formatDuration(session.total_duration_seconds || 0)}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {getTimeAgo(session.started_at)}
+                            </p>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
         {/* Live Activity Tab */}
         <TabsContent value="live">
