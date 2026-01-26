@@ -12,6 +12,7 @@ import { SalesPopup } from "@/components/sales/SalesPopup";
 import { AmbientAudio } from "@/components/audio/AmbientAudio";
 import { LoginGiftModal } from "@/components/gift/LoginGiftModal";
 import { useContentProtection } from "@/hooks/useContentProtection";
+import { useVisitorTracking } from "@/hooks/useVisitorTracking";
 import { initializeGA4 } from "@/hooks/useGoogleAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
@@ -53,6 +54,7 @@ initAnalytics();
 
 const AppContent = () => {
   useContentProtection();
+  useVisitorTracking(); // Track real visitor sessions
   const { user } = useAuth();
   const [giftData, setGiftData] = useState<any>(null);
   const [showGiftModal, setShowGiftModal] = useState(false);

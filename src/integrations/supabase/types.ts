@@ -1982,6 +1982,81 @@ export type Database = {
         }
         Relationships: []
       }
+      visitor_sessions: {
+        Row: {
+          browser: string | null
+          country: string | null
+          created_at: string
+          device_type: string
+          ended_at: string | null
+          id: string
+          is_bounce: boolean | null
+          landing_page: string | null
+          last_ping: string
+          os: string | null
+          pages_viewed: number | null
+          referrer: string | null
+          screen_height: number | null
+          screen_width: number | null
+          session_id: string
+          started_at: string
+          timezone: string | null
+          total_duration_seconds: number | null
+          user_id: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          browser?: string | null
+          country?: string | null
+          created_at?: string
+          device_type?: string
+          ended_at?: string | null
+          id?: string
+          is_bounce?: boolean | null
+          landing_page?: string | null
+          last_ping?: string
+          os?: string | null
+          pages_viewed?: number | null
+          referrer?: string | null
+          screen_height?: number | null
+          screen_width?: number | null
+          session_id: string
+          started_at?: string
+          timezone?: string | null
+          total_duration_seconds?: number | null
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          browser?: string | null
+          country?: string | null
+          created_at?: string
+          device_type?: string
+          ended_at?: string | null
+          id?: string
+          is_bounce?: boolean | null
+          landing_page?: string | null
+          last_ping?: string
+          os?: string | null
+          pages_viewed?: number | null
+          referrer?: string | null
+          screen_height?: number | null
+          screen_width?: number | null
+          session_id?: string
+          started_at?: string
+          timezone?: string | null
+          total_duration_seconds?: number | null
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
