@@ -311,6 +311,7 @@ export function RealtimeAnalytics() {
     
     try {
       const targetUserId = deletingUser.user_id;
+      const targetEmail = deletingUser.email || deletingUser.full_name;
 
       // Use backend function so the auth account + all related tables are cleaned reliably.
       const { data, error } = await supabase.functions.invoke('delete-user', {
@@ -318,20 +319,40 @@ export function RealtimeAnalytics() {
       });
 
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
+      
+      // Check for error in response body
+      const responseData = data as { error?: string; success?: boolean };
+      if (responseData?.error) {
+        throw new Error(responseData.error);
+      }
 
-      toast.success(`User ${deletingUser.email || deletingUser.full_name} permanently deleted`);
-
-      // Optimistic local cleanup across tabs (so it won't appear again without refresh)
+      // Immediately remove from local state before any async operations
       setUsers(prev => prev.filter(u => u.user_id !== targetUserId));
       setActiveUsers(prev => prev.filter(a => a.user_id !== targetUserId));
       setPurchaseAttempts(prev => prev.filter(p => p.user_id !== targetUserId));
       setDeletingUser(null);
+      
+      toast.success(`User ${targetEmail} permanently deleted`);
 
-      // Hard refresh all to avoid stale queries re-populating lists
-      await refreshAll();
+      // Give the database trigger time to cascade deletes, then refresh
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Fetch fresh data from database
+      const { data: freshProfiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (freshProfiles) {
+        setUsers(freshProfiles);
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const newUsers = freshProfiles.filter(u => new Date(u.created_at!) >= new Date(twentyFourHoursAgo));
+        setStats(prev => ({ ...prev, newUsers24h: newUsers.length }));
+      }
     } catch (error: any) {
       toast.error(`Failed to delete user: ${error.message}`);
+      // On error, refresh to get accurate state
+      await fetchUsers();
     } finally {
       setDeleteLoading(false);
     }
