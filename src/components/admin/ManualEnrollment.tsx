@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserPlus, Search, Loader2, Check, Gift, Trash2, BookOpen, GraduationCap, Users, MessageSquare, X, Sparkles } from 'lucide-react';
+import { UserPlus, Search, Loader2, Check, Gift, Trash2, BookOpen, GraduationCap, Users, MessageSquare, X, Sparkles, ChevronDown, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface UserProfile {
@@ -68,6 +68,8 @@ export function ManualEnrollment() {
   const [granting, setGranting] = useState(false);
   const [manualEnrollments, setManualEnrollments] = useState<ManualEnrollmentEntry[]>([]);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
+  const [revokeSelection, setRevokeSelection] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchCourses();
@@ -320,12 +322,16 @@ export function ManualEnrollment() {
     }
   };
 
-  const revokeAccess = async (enrollmentId: string) => {
-    if (!confirm('Revoke this access?')) return;
-    setRemoving(enrollmentId);
+  const revokeAccess = async (enrollmentIds: string[]) => {
+    if (enrollmentIds.length === 0) return;
+    const label = enrollmentIds.length === 1 ? 'this access' : `${enrollmentIds.length} enrollments`;
+    if (!confirm(`Revoke ${label}?`)) return;
+    setRemoving(enrollmentIds[0]);
     try {
-      await supabase.from('enrollments').delete().eq('id', enrollmentId);
-      toast.success('Access revoked');
+      const { error } = await supabase.from('enrollments').delete().in('id', enrollmentIds);
+      if (error) throw error;
+      toast.success(`${enrollmentIds.length} enrollment(s) revoked`);
+      setRevokeSelection(new Set());
       fetchManualEnrollments();
     } catch {
       toast.error('Failed to revoke access');
@@ -574,47 +580,155 @@ export function ManualEnrollment() {
         </CardContent>
       </Card>
 
-      {/* Enrollment History */}
+      {/* Enrollment History - Grouped by User */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Gift className="h-4 w-4" />
-            Recent Manual Enrollments ({manualEnrollments.length})
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Gift className="h-4 w-4" />
+              Recent Manual Enrollments ({manualEnrollments.length})
+            </CardTitle>
+            {revokeSelection.size > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => revokeAccess(Array.from(revokeSelection))}
+                disabled={removing !== null}
+                className="gap-2"
+              >
+                {removing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                Revoke Selected ({revokeSelection.size})
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {manualEnrollments.length === 0 ? (
             <p className="text-muted-foreground text-center py-6 text-sm">No manual enrollments yet.</p>
           ) : (
             <div className="space-y-2">
-              {manualEnrollments.map((enrollment) => (
-                <div
-                  key={enrollment.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-9 w-9 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
-                      <Gift className="h-4 w-4 text-accent" />
+              {(() => {
+                // Group enrollments by user
+                const grouped = manualEnrollments.reduce<Record<string, typeof manualEnrollments>>((acc, e) => {
+                  const key = e.user_id;
+                  if (!acc[key]) acc[key] = [];
+                  acc[key].push(e);
+                  return acc;
+                }, {});
+
+                return Object.entries(grouped).map(([userId, enrollments]) => {
+                  const profile = (enrollments[0] as any).profiles;
+                  const userName = profile?.full_name || profile?.email || 'Unknown User';
+                  const isExpanded = expandedUsers.has(userId);
+                  const allIds = enrollments.map(e => e.id);
+                  const allSelected = allIds.every(id => revokeSelection.has(id));
+
+                  return (
+                    <div key={userId} className="border rounded-lg overflow-hidden">
+                      {/* User header - click to expand */}
+                      <div
+                        className="flex items-center justify-between p-3 hover:bg-muted/50 cursor-pointer transition-colors"
+                        onClick={() => setExpandedUsers(prev => {
+                          const next = new Set(prev);
+                          next.has(userId) ? next.delete(userId) : next.add(userId);
+                          return next;
+                        })}
+                      >
+                        <div className="flex items-center gap-3">
+                          {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                          <div className="h-8 w-8 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+                            <span className="text-xs font-medium">{userName[0].toUpperCase()}</span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{userName}</p>
+                            <p className="text-xs text-muted-foreground">{enrollments.length} course(s) gifted</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-destructive hover:text-destructive gap-1 h-7"
+                            onClick={() => revokeAccess(allIds)}
+                            disabled={removing !== null}
+                          >
+                            <Trash2 className="h-3 w-3" /> Revoke All
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Expanded course list */}
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="border-t">
+                              {/* Select all for this user */}
+                              <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 border-b">
+                                <Checkbox
+                                  checked={allSelected}
+                                  onCheckedChange={() => {
+                                    setRevokeSelection(prev => {
+                                      const next = new Set(prev);
+                                      if (allSelected) {
+                                        allIds.forEach(id => next.delete(id));
+                                      } else {
+                                        allIds.forEach(id => next.add(id));
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                />
+                                <span className="text-xs text-muted-foreground">Select all for this user</span>
+                              </div>
+                              {enrollments.map(enrollment => (
+                                <div
+                                  key={enrollment.id}
+                                  className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <Checkbox
+                                      checked={revokeSelection.has(enrollment.id)}
+                                      onCheckedChange={() => {
+                                        setRevokeSelection(prev => {
+                                          const next = new Set(prev);
+                                          next.has(enrollment.id) ? next.delete(enrollment.id) : next.add(enrollment.id);
+                                          return next;
+                                        });
+                                      }}
+                                    />
+                                    <GraduationCap className="h-4 w-4 text-muted-foreground shrink-0" />
+                                    <span className="text-sm">{(enrollment as any).courses?.title || 'Unknown Course'}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <Badge variant="outline" className="text-xs">
+                                      {enrollment.granted_at ? new Date(enrollment.granted_at).toLocaleDateString() : 'N/A'}
+                                    </Badge>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => revokeAccess([enrollment.id])}
+                                      disabled={removing !== null}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {(enrollment as any).profiles?.full_name || (enrollment as any).profiles?.email || 'Unknown'}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {(enrollment as any).courses?.title || 'Unknown Course'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant="outline" className="text-xs">
-                      {enrollment.granted_at ? new Date(enrollment.granted_at).toLocaleDateString() : 'N/A'}
-                    </Badge>
-                    <Button variant="ghost" size="icon" onClick={() => revokeAccess(enrollment.id)} disabled={removing === enrollment.id}>
-                      {removing === enrollment.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 text-destructive" />}
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                  );
+                });
+              })()}
             </div>
           )}
         </CardContent>
