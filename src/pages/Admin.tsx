@@ -25,7 +25,7 @@ import { EmailTesting } from '@/components/admin/EmailTesting';
 import { EmailBroadcast } from '@/components/admin/EmailBroadcast';
 import { EbookPricingSettings } from '@/components/admin/EbookPricingSettings';
 import { EbookManagement } from '@/components/admin/EbookManagement';
-import { ManualEbookAccess } from '@/components/admin/ManualEbookAccess';
+// ManualEbookAccess is now unified into ManualEnrollment
 import { GiftCampaignManagement } from '@/components/admin/GiftCampaignManagement';
 import { EMISettingsManagement } from '@/components/admin/EMISettingsManagement';
 import { LaunchFreeCourseManagement } from '@/components/admin/LaunchFreeCourseManagement';
@@ -145,7 +145,7 @@ export default function Admin() {
       case 'ebook-library':
         return <EbookManagement />;
       case 'ebook-access':
-        return <ManualEbookAccess />;
+        return <ManualEnrollment />;
       case 'analytics':
         return <AnalyticsPanel />;
       case 'support':
