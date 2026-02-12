@@ -196,6 +196,11 @@ export default function CourseDetail() {
     courseLevel?: string;
   } | null>(null);
   
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [slug]);
+
   useEffect(() => {
     if (slug) {
       supabase
