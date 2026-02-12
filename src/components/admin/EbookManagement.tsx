@@ -29,7 +29,8 @@ import {
   FolderSync,
   Link2,
   Trash,
-  AlertTriangle
+  AlertTriangle,
+  Search
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -66,6 +67,7 @@ const CATEGORIES = [
 
 export function EbookManagement() {
   const [ebooks, setEbooks] = useState<Ebook[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBook, setEditingBook] = useState<Ebook | null>(null);
@@ -268,8 +270,17 @@ export function EbookManagement() {
     }
   };
 
-  // Group ebooks by category
-  const ebooksByCategory = ebooks.reduce((acc, ebook) => {
+  // Filter ebooks by search query
+  const filteredEbooks = searchQuery.trim()
+    ? ebooks.filter(e => 
+        e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (e.description && e.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      )
+    : ebooks;
+
+  // Group filtered ebooks by category
+  const ebooksByCategory = filteredEbooks.reduce((acc, ebook) => {
     if (!acc[ebook.category]) acc[ebook.category] = [];
     acc[ebook.category].push(ebook);
     return acc;
@@ -305,10 +316,12 @@ export function EbookManagement() {
       <TabsContent value="library">
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold">eBook Library</h2>
-          <p className="text-muted-foreground">{ebooks.length} books in library</p>
+          <p className="text-muted-foreground">
+            {searchQuery ? `${filteredEbooks.length} of ${ebooks.length}` : ebooks.length} books in library
+          </p>
         </div>
         
         <div className="flex items-center gap-3">
@@ -431,6 +444,17 @@ export function EbookManagement() {
           </DialogContent>
         </Dialog>
         </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search eBooks by title, category, or description..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
       {/* eBooks by Category */}
