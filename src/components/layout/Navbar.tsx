@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Sparkles, Library } from 'lucide-react';
+import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Library } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { CartSheet } from '@/components/cart/CartSheet';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,9 +18,7 @@ export function Navbar() {
   });
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -42,116 +40,89 @@ export function Navbar() {
 
   return (
     <motion.header 
-      className={`sticky top-0 z-50 transition-all duration-500 ${
+      className={`sticky top-0 z-50 transition-all duration-300 ${
         scrolled 
-          ? 'border-b border-border/50 bg-background/80 backdrop-blur-xl shadow-lg shadow-background/10' 
+          ? 'border-b border-border/60 bg-background/80 backdrop-blur-xl' 
           : 'border-b border-transparent bg-transparent'
       }`}
-      initial={{ y: -100 }}
+      initial={{ y: -80 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
-      <nav className="container-wide py-3 sm:py-4 flex items-center justify-between">
+      <nav className="container-wide py-4 flex items-center justify-between">
+        {/* Logo */}
         <Link to="/" className="group flex items-center gap-2">
-          <div className="relative">
-            <span className="font-display font-bold text-xl sm:text-2xl tracking-tight bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent group-hover:from-accent group-hover:to-primary transition-all duration-300">
-              Archistudio
-            </span>
-            <motion.div 
-              className="absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-accent to-primary hidden sm:block"
-              initial={{ width: 0 }}
-              whileHover={{ width: '100%' }}
-              transition={{ duration: 0.3 }}
-            />
-          </div>
+          <span className="font-display font-bold text-lg sm:text-xl tracking-tight text-foreground">
+            Archistudio
+          </span>
+          <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-accent mt-0.5" />
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-8">
-          <div className="flex items-center gap-6 text-sm">
-            <Link 
-              to="/courses" 
-              className="relative text-muted-foreground hover:text-foreground transition-colors group"
-            >
-              <span>Studios</span>
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
-            </Link>
-            <Link 
-              to="/ebooks" 
-              className="relative text-muted-foreground hover:text-foreground transition-colors group flex items-center gap-1.5"
-            >
-              <Library className="h-4 w-4" />
-              <span>eBooks</span>
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
-            </Link>
-            <Link 
-              to="/blog" 
-              className="relative text-muted-foreground hover:text-foreground transition-colors group"
-            >
-              <span>Blog</span>
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-accent transition-all duration-300 group-hover:w-full" />
-            </Link>
+        <div className="hidden md:flex items-center gap-1">
+          <div className="flex items-center gap-1 text-sm">
+            {[
+              { to: '/courses', label: 'Studios' },
+              { to: '/ebooks', label: 'eBooks', icon: Library },
+              { to: '/blog', label: 'Blog' },
+            ].map((link) => (
+              <Link 
+                key={link.to}
+                to={link.to} 
+                className="px-4 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all duration-200 flex items-center gap-1.5"
+              >
+                {link.icon && <link.icon className="h-3.5 w-3.5" />}
+                {link.label}
+              </Link>
+            ))}
           </div>
+
+          <div className="w-px h-6 bg-border mx-2" />
 
           <CartSheet />
 
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={toggleDarkMode}
-            className="relative overflow-hidden"
-          >
-            <motion.div
-              key={isDark ? 'dark' : 'light'}
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -20, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </motion.div>
+          <Button variant="ghost" size="icon" onClick={toggleDarkMode} className="rounded-lg">
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
           {loading ? (
-            <div className="h-10 w-24 animate-pulse rounded-lg bg-muted" />
+            <div className="h-9 w-20 animate-pulse rounded-lg bg-muted" />
           ) : user ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 ml-1">
               {isAdmin && (
                 <Link to="/admin">
-                  <Button variant="outline" size="sm" className="gap-2 border-accent/50 hover:border-accent hover:bg-accent/10">
-                    <ShieldCheck className="h-4 w-4 text-accent" />
+                  <Button variant="ghost" size="sm" className="gap-1.5 text-accent">
+                    <ShieldCheck className="h-4 w-4" />
                     Admin
                   </Button>
                 </Link>
               )}
               <Link to="/dashboard">
-                <Button variant="ghost" size="sm" className="gap-2">
+                <Button variant="ghost" size="sm" className="gap-1.5">
                   <User className="h-4 w-4" />
                   {profile?.full_name || 'Dashboard'}
                 </Button>
               </Link>
-              <Button variant="outline" size="sm" onClick={signOut} className="gap-2">
+              <Button variant="outline" size="sm" onClick={signOut} className="gap-1.5">
                 <LogOut className="h-4 w-4" />
-                Sign Out
               </Button>
             </div>
           ) : (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 ml-1">
               <Link to="/auth">
                 <Button variant="ghost" size="sm">Sign In</Button>
               </Link>
               <Link to="/auth?mode=signup">
-                <Button size="sm" className="gap-2 group">
-                  <Sparkles className="h-4 w-4" />
+                <Button size="sm" className="gap-1.5 group">
                   Get Started
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                 </Button>
               </Link>
             </div>
           )}
         </div>
 
-        {/* Mobile Menu Button - larger touch target */}
+        {/* Mobile Menu Button */}
         <button
           className="md:hidden p-3 -mr-2 rounded-lg hover:bg-muted transition-colors touch-target min-w-[48px] min-h-[48px] flex items-center justify-center"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -163,94 +134,84 @@ export function Navbar() {
               initial={{ rotate: -90, opacity: 0 }}
               animate={{ rotate: 0, opacity: 1 }}
               exit={{ rotate: 90, opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
             >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </motion.div>
           </AnimatePresence>
         </button>
       </nav>
 
-      {/* Mobile Menu - improved touch targets */}
+      {/* Mobile Menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div 
-            className="md:hidden border-t border-border bg-background/95 backdrop-blur-xl overflow-hidden safe-area-inset"
+            className="md:hidden border-t border-border bg-background/98 backdrop-blur-xl overflow-hidden safe-area-inset"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.25 }}
           >
-            <div className="p-4 space-y-3">
-              <div className="flex flex-col gap-1">
+            <div className="p-5 space-y-2">
+              {[
+                { to: '/courses', label: 'Studios' },
+                { to: '/ebooks', label: 'eBooks' },
+                { to: '/#pricing', label: 'Pricing' },
+              ].map((link) => (
                 <Link 
-                  to="/courses" 
-                  className="text-foreground hover:text-accent transition-colors py-4 px-4 rounded-lg hover:bg-muted text-base font-medium touch-target min-h-[48px] flex items-center"
+                  key={link.to}
+                  to={link.to} 
+                  className="block text-foreground py-3.5 px-4 rounded-xl hover:bg-secondary transition-colors text-base font-medium touch-target"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Studios
+                  {link.label}
                 </Link>
-                <Link 
-                  to="/ebooks" 
-                  className="text-foreground hover:text-accent transition-colors py-4 px-4 rounded-lg hover:bg-muted flex items-center gap-2 text-base font-medium touch-target min-h-[48px]"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Library className="h-5 w-5" />
-                  eBooks Bundle
-                </Link>
-                <a 
-                  href="/#pricing" 
-                  className="text-foreground hover:text-accent transition-colors py-4 px-4 rounded-lg hover:bg-muted text-base font-medium touch-target min-h-[48px] flex items-center"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Pricing
-                </a>
-                <button 
-                  onClick={() => { toggleDarkMode(); setMobileMenuOpen(false); }}
-                  className="text-left text-foreground hover:text-accent transition-colors py-4 px-4 rounded-lg hover:bg-muted flex items-center gap-2 text-base font-medium touch-target min-h-[48px] w-full"
-                >
-                  {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                  {isDark ? 'Light Mode' : 'Dark Mode'}
-                </button>
-              </div>
+              ))}
               
-              {!loading && user && (
-                <div className="flex flex-col gap-2 pt-4 border-t border-border">
-                  {isAdmin && (
-                    <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="outline" className="w-full gap-2 border-accent/50 min-h-[48px] text-base">
-                        <ShieldCheck className="h-5 w-5 text-accent" />
-                        Admin Panel
+              <button 
+                onClick={() => { toggleDarkMode(); setMobileMenuOpen(false); }}
+                className="w-full text-left text-foreground py-3.5 px-4 rounded-xl hover:bg-secondary transition-colors flex items-center gap-2.5 text-base font-medium touch-target"
+              >
+                {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                {isDark ? 'Light Mode' : 'Dark Mode'}
+              </button>
+              
+              <div className="pt-4 border-t border-border space-y-2">
+                {!loading && user ? (
+                  <>
+                    {isAdmin && (
+                      <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
+                        <Button variant="outline" className="w-full gap-2 min-h-[48px] text-base text-accent">
+                          <ShieldCheck className="h-5 w-5" />
+                          Admin Panel
+                        </Button>
+                      </Link>
+                    )}
+                    <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="ghost" className="w-full gap-2 justify-start min-h-[48px] text-base">
+                        <User className="h-5 w-5" />
+                        {profile?.full_name || 'Dashboard'}
                       </Button>
                     </Link>
-                  )}
-                  <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full gap-2 justify-start min-h-[48px] text-base">
-                      <User className="h-5 w-5" />
-                      {profile?.full_name || 'My Dashboard'}
+                    <Button variant="outline" className="w-full gap-2 min-h-[48px] text-base" onClick={() => { signOut(); setMobileMenuOpen(false); }}>
+                      <LogOut className="h-5 w-5" />
+                      Sign Out
                     </Button>
-                  </Link>
-                  <Button variant="outline" className="w-full gap-2 min-h-[48px] text-base" onClick={() => { signOut(); setMobileMenuOpen(false); }}>
-                    <LogOut className="h-5 w-5" />
-                    Sign Out
-                  </Button>
-                </div>
-              )}
-
-              {!loading && !user && (
-                <div className="flex flex-col gap-2 pt-4 border-t border-border pb-safe">
-                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" className="w-full min-h-[48px] text-base">Sign In</Button>
-                  </Link>
-                  <Link to="/auth?mode=signup" onClick={() => setMobileMenuOpen(false)}>
-                    <Button className="w-full gap-2 min-h-[48px] text-base">
-                      <Sparkles className="h-5 w-5" />
-                      Get Started
-                      <ArrowRight className="h-5 w-5" />
-                    </Button>
-                  </Link>
-                </div>
-              )}
+                  </>
+                ) : !loading ? (
+                  <>
+                    <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="outline" className="w-full min-h-[48px] text-base">Sign In</Button>
+                    </Link>
+                    <Link to="/auth?mode=signup" onClick={() => setMobileMenuOpen(false)}>
+                      <Button className="w-full gap-2 min-h-[48px] text-base">
+                        Get Started
+                        <ArrowRight className="h-5 w-5" />
+                      </Button>
+                    </Link>
+                  </>
+                ) : null}
+              </div>
             </div>
           </motion.div>
         )}

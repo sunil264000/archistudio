@@ -1,57 +1,73 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, CheckCircle, Sparkles, Star } from 'lucide-react';
-import { Background3D } from '@/components/3d/Background3D';
+import { ArrowRight, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { 
-  FloatingBadge, 
-  AnimatedUnderline, 
-  FloatingElement,
-  staggerContainer,
-  fadeInUp 
-} from '@/components/animations/AnimatedSection';
 import { useAuth } from '@/contexts/AuthContext';
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] as const }
+  })
+};
+
+// Scrolling marquee of architecture keywords
+function MarqueeStrip() {
+  const words = [
+    'WORKING DRAWINGS', 'SITE ANALYSIS', 'CONSTRUCTION LOGIC', 'STRUCTURAL COORDINATION',
+    'DETAILING', 'SPECIFICATIONS', 'MEP INTEGRATION', 'SUSTAINABILITY', 'BIM MODELING',
+    '3DS MAX', 'AUTOCAD', 'REVIT', 'SKETCHUP', 'CORONA RENDERING'
+  ];
+  
+  return (
+    <div className="absolute bottom-0 left-0 right-0 overflow-hidden border-t border-border/30 bg-background/50 backdrop-blur-sm">
+      <div className="flex animate-marquee whitespace-nowrap py-3 sm:py-4">
+        {[...words, ...words].map((word, i) => (
+          <span key={i} className="mx-4 sm:mx-8 text-[10px] sm:text-xs font-mono tracking-[0.2em] text-muted-foreground/60">
+            {word}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function HeroSection() {
   const { user } = useAuth();
   
   return (
-    <section className="relative overflow-hidden min-h-[85vh] sm:min-h-[90vh] flex items-center">
-      {/* 3D Background - hidden on mobile for performance */}
-      <div className="hidden md:block">
-        <Background3D intensity="medium" />
+    <section className="relative min-h-[100vh] flex items-center overflow-hidden">
+      {/* Clean gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-secondary/40 via-background to-background" />
+      
+      {/* Subtle geometric shapes - desktop only */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none hidden md:block">
+        <motion.div 
+          className="absolute top-[15%] right-[8%] w-[300px] h-[300px] rounded-full border border-border/30"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+        />
+        <motion.div 
+          className="absolute bottom-[20%] left-[5%] w-[200px] h-[200px] border border-border/20 rotate-45"
+          animate={{ rotate: [45, 135, 45] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div 
+          className="absolute top-[40%] right-[25%] w-2 h-2 rounded-full bg-accent/40"
+          animate={{ scale: [1, 1.5, 1], opacity: [0.4, 0.8, 0.4] }}
+          transition={{ duration: 3, repeat: Infinity }}
+        />
+        <motion.div 
+          className="absolute top-[25%] left-[30%] w-1.5 h-1.5 rounded-full bg-accent/30"
+          animate={{ scale: [1, 2, 1], opacity: [0.3, 0.6, 0.3] }}
+          transition={{ duration: 4, repeat: Infinity, delay: 1 }}
+        />
       </div>
       
-      {/* Mobile-optimized gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-background to-primary/5 md:hidden" />
-      
-      {/* Enhanced gradient overlays */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-transparent to-background pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-r from-background/40 via-transparent to-background/40 pointer-events-none" />
-      
-      {/* Animated accent orbs - hidden on mobile */}
-      <motion.div 
-        className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-accent/15 rounded-full blur-[150px] hidden md:block"
-        animate={{ 
-          scale: [1, 1.2, 1],
-          opacity: [0.15, 0.25, 0.15]
-        }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div 
-        className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-primary/10 rounded-full blur-[120px] hidden md:block"
-        animate={{ 
-          scale: [1.2, 1, 1.2],
-          opacity: [0.1, 0.2, 0.1]
-        }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-      />
-      
-      {/* Animated grid pattern - hidden on mobile */}
-      <div className="absolute inset-0 grid-pattern opacity-30 hidden md:block" />
-      
-      {/* Architectural grid lines - hidden on mobile */}
-      <svg className="absolute inset-0 w-full h-full opacity-[0.08] hidden lg:block" xmlns="http://www.w3.org/2000/svg">
+      {/* Grid lines - desktop */}
+      <svg className="absolute inset-0 w-full h-full opacity-[0.03] hidden lg:block" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="hero-grid" width="80" height="80" patternUnits="userSpaceOnUse">
             <path d="M 80 0 L 0 0 0 80" fill="none" stroke="currentColor" strokeWidth="0.5" />
@@ -62,197 +78,133 @@ export function HeroSection() {
       
       <div className="relative section-padding w-full">
         <div className="container-wide">
-          <motion.div 
-            className="max-w-4xl mx-auto text-center space-y-6 sm:space-y-8 px-2"
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-          >
-            {/* Floating Badge with glow */}
-            <motion.div variants={fadeInUp}>
-              <FloatingBadge 
-                icon={<Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />}
-                className="shadow-[0_0_40px_-10px_hsl(var(--accent)/0.4)] text-xs sm:text-sm"
-              >
-                For Students & Fresh Architects
-              </FloatingBadge>
-            </motion.div>
-            
-            {/* Headline with animated underline - mobile optimized */}
-            <motion.h1 
-              variants={fadeInUp}
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-display font-bold tracking-tight leading-[1.15] sm:leading-[1.1]"
-            >
-              <motion.span
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-              >
-                Learn Architecture the Way
-              </motion.span>{' '}
-              <span className="relative inline-block mt-1 sm:mt-2">
-                <motion.span 
-                  className="bg-gradient-to-r from-accent via-primary to-accent bg-[length:200%_auto] bg-clip-text text-transparent"
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ 
-                    opacity: 1, 
-                    y: 0,
-                    backgroundPosition: ['0% center', '200% center']
-                  }}
-                  transition={{ 
-                    opacity: { duration: 0.6, delay: 0.5 },
-                    y: { duration: 0.6, delay: 0.5 },
-                    backgroundPosition: { duration: 8, repeat: Infinity, ease: "linear" }
-                  }}
-                >
-                  It Is Actually Practiced
-                </motion.span>
-                <AnimatedUnderline delay={1} />
-              </span>
-            </motion.h1>
-            
-            {/* Positioning Statement - mobile optimized */}
-            <motion.div
-              variants={fadeInUp}
-              className="max-w-3xl mx-auto mb-2 sm:mb-4"
-            >
-              <div className="px-4 sm:px-6 py-3 sm:py-4 rounded-xl bg-secondary/60 backdrop-blur-sm border border-border/50">
-                <p className="text-base sm:text-lg md:text-xl text-foreground font-medium leading-relaxed text-center">
-                  This platform teaches what architecture colleges and CAD institutes don't:{' '}
-                  <span className="text-accent">how real buildings are designed, detailed, and executed in offices.</span>
-                </p>
-              </div>
-            </motion.div>
-            
-            {/* Subheadline with word highlighting - mobile optimized */}
-            <motion.p 
-              variants={fadeInUp}
-              className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed px-2"
-            >
-              From site analysis to working drawings, construction logic to sustainability — 
-              <motion.span 
-                className="text-foreground font-medium"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.2, duration: 0.5 }}
-              > practical skills</motion.span> the industry demands.
-            </motion.p>
-
-            {/* CTAs with enhanced hover - mobile optimized */}
-            <motion.div 
-              variants={fadeInUp}
-              className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-4"
-            >
-              <Link to={user ? "/courses" : "/auth?mode=signup"} className="w-full sm:w-auto">
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Button variant="glow" size="xl" className="gap-2 sm:gap-3 text-sm sm:text-base group relative overflow-hidden w-full sm:w-auto min-h-[48px] touch-target">
-                    <motion.span
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent hidden sm:block"
-                      initial={{ x: '-100%' }}
-                      animate={{ x: '200%' }}
-                      transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                    />
-                    {user ? "Explore Studios" : "Begin Your Practice"}
-                    <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 transition-transform group-hover:translate-x-1" />
-                  </Button>
-                </motion.div>
-              </Link>
-            </motion.div>
-
-            {/* Trust indicators with staggered animation - mobile optimized */}
-            <motion.div 
-              variants={fadeInUp}
-              className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-2 sm:gap-x-4 sm:gap-y-3 pt-6 sm:pt-10"
-            >
-              {[
-                "No prior CAD knowledge needed",
-                "Learn at your own pace",
-                "Proof of Completion included"
-              ].map((text, i) => (
+          <div className="max-w-5xl mx-auto">
+            <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-12 lg:gap-16 items-center">
+              {/* Left content */}
+              <div className="space-y-6 sm:space-y-8 text-center lg:text-left">
+                {/* Label */}
                 <motion.div 
-                  key={text}
-                  className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-secondary/60 backdrop-blur-sm border border-border/50 hover:border-accent/30 transition-colors w-full sm:w-auto justify-center sm:justify-start"
-                  initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ delay: 1.2 + i * 0.15, duration: 0.5 }}
-                  whileHover={{ scale: 1.05, y: -2 }}
+                  custom={0} variants={fadeUp} initial="hidden" animate="visible"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-card/80 backdrop-blur-sm"
                 >
-                  <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-success shrink-0" />
-                  <span className="text-xs sm:text-sm text-muted-foreground">{text}</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                  <span className="text-xs font-medium tracking-wide text-muted-foreground">
+                    For Students & Fresh Architects
+                  </span>
                 </motion.div>
-              ))}
-            </motion.div>
-          </motion.div>
+                
+                {/* Headline */}
+                <motion.h1 
+                  custom={1} variants={fadeUp} initial="hidden" animate="visible"
+                  className="font-display font-bold"
+                >
+                  Learn Architecture
+                  <br />
+                  <span className="text-accent">the Way It Is</span>
+                  <br />
+                  <span className="text-accent">Actually Practiced</span>
+                </motion.h1>
+                
+                {/* Positioning statement */}
+                <motion.p 
+                  custom={2} variants={fadeUp} initial="hidden" animate="visible"
+                  className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed"
+                >
+                  This platform teaches what architecture colleges and CAD institutes don't:{' '}
+                  <span className="text-foreground font-medium">how real buildings are designed, detailed, and executed in offices.</span>
+                </motion.p>
+                
+                {/* CTAs */}
+                <motion.div 
+                  custom={3} variants={fadeUp} initial="hidden" animate="visible"
+                  className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 justify-center lg:justify-start"
+                >
+                  <Link to={user ? "/courses" : "/auth?mode=signup"} className="w-full sm:w-auto">
+                    <Button variant="default" size="xl" className="gap-2 group w-full sm:w-auto">
+                      {user ? "Explore Studios" : "Start Learning Free"}
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </Button>
+                  </Link>
+                  <Link to="/courses" className="w-full sm:w-auto">
+                    <Button variant="outline" size="xl" className="gap-2 w-full sm:w-auto">
+                      <Play className="h-4 w-4" />
+                      Preview Sessions
+                    </Button>
+                  </Link>
+                </motion.div>
+                
+                {/* Stats row */}
+                <motion.div 
+                  custom={4} variants={fadeUp} initial="hidden" animate="visible"
+                  className="flex items-center gap-6 sm:gap-10 justify-center lg:justify-start pt-4"
+                >
+                  {[
+                    { value: '70+', label: 'Studio Programs' },
+                    { value: '2,000+', label: 'Students' },
+                    { value: '4.9', label: 'Avg Rating' },
+                  ].map((stat) => (
+                    <div key={stat.label} className="text-center lg:text-left">
+                      <div className="text-xl sm:text-2xl font-bold text-foreground">{stat.value}</div>
+                      <div className="text-[11px] sm:text-xs text-muted-foreground tracking-wide">{stat.label}</div>
+                    </div>
+                  ))}
+                </motion.div>
+              </div>
+              
+              {/* Right - Premium visual card */}
+              <motion.div
+                custom={2} variants={fadeUp} initial="hidden" animate="visible"
+                className="hidden lg:block"
+              >
+                <div className="relative">
+                  {/* Main card */}
+                  <motion.div 
+                    className="relative rounded-2xl border border-border bg-card/60 backdrop-blur-sm p-8 space-y-6 overflow-hidden"
+                    whileHover={{ y: -4 }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    {/* Accent line top */}
+                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-accent to-transparent" />
+                    
+                    <div className="space-y-5">
+                      <div className="text-xs font-mono tracking-[0.15em] uppercase text-accent">What You'll Master</div>
+                      
+                      {[
+                        'Working Drawings & Detailing',
+                        'Construction Logic & Sequences',
+                        'Site Analysis & Documentation',
+                        'Structural Coordination',
+                        'Software — 3ds Max, AutoCAD, Revit',
+                        'Sustainability & Services',
+                      ].map((item, i) => (
+                        <motion.div 
+                          key={item}
+                          className="flex items-center gap-3 text-sm text-muted-foreground"
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.8 + i * 0.1 }}
+                        >
+                          <div className="w-1 h-1 rounded-full bg-accent shrink-0" />
+                          {item}
+                        </motion.div>
+                      ))}
+                    </div>
+                    
+                    {/* Decorative corner */}
+                    <div className="absolute bottom-0 right-0 w-24 h-24 border-t border-l border-border/50 rounded-tl-3xl" />
+                  </motion.div>
+                  
+                  {/* Shadow card behind */}
+                  <div className="absolute -bottom-3 -right-3 inset-x-3 h-full rounded-2xl border border-border/50 bg-secondary/30 -z-10" />
+                </div>
+              </motion.div>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Decorative architectural element */}
-      <motion.div 
-        className="absolute bottom-0 left-0 right-0 h-px"
-        initial={{ scaleX: 0 }}
-        animate={{ scaleX: 1 }}
-        transition={{ duration: 1.5, delay: 0.5 }}
-        style={{ background: 'linear-gradient(to right, transparent, hsl(var(--accent) / 0.6), transparent)' }}
-      />
       
-      {/* Floating decorative shapes */}
-      <FloatingElement className="absolute top-20 right-[10%] hidden lg:block" yOffset={25} duration={6}>
-        <motion.div 
-          className="w-20 h-20 border border-accent/30 rotate-45"
-          animate={{ rotate: [45, 55, 45] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </FloatingElement>
-      
-      <FloatingElement className="absolute bottom-40 left-[8%] hidden lg:block" yOffset={20} duration={5} delay={1}>
-        <div className="w-16 h-16 bg-gradient-to-br from-accent/20 to-transparent rounded-full" />
-      </FloatingElement>
-      
-      <FloatingElement className="absolute top-1/3 right-[5%] hidden xl:block" yOffset={15} duration={7} delay={2}>
-        <Star className="h-8 w-8 text-accent/30" />
-      </FloatingElement>
-      
-      {/* Corner accent lines */}
-      <motion.div
-        className="absolute top-0 left-0 w-40 h-40 hidden lg:block"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5 }}
-      >
-        <svg className="w-full h-full" viewBox="0 0 160 160">
-          <motion.path
-            d="M0 80 L0 0 L80 0"
-            stroke="hsl(var(--accent) / 0.3)"
-            strokeWidth="1"
-            fill="none"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 1.5, delay: 1.5 }}
-          />
-        </svg>
-      </motion.div>
-      
-      <motion.div
-        className="absolute bottom-0 right-0 w-40 h-40 hidden lg:block"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5 }}
-      >
-        <svg className="w-full h-full" viewBox="0 0 160 160">
-          <motion.path
-            d="M160 80 L160 160 L80 160"
-            stroke="hsl(var(--accent) / 0.3)"
-            strokeWidth="1"
-            fill="none"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 1.5, delay: 1.7 }}
-          />
-        </svg>
-      </motion.div>
+      {/* Marquee strip at bottom */}
+      <MarqueeStrip />
     </section>
   );
 }
