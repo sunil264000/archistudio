@@ -3,6 +3,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { HeroSection } from '@/components/home/HeroSection';
 import { SEOHead, generateOrganizationSchema, generateWebsiteSchema } from '@/components/seo/SEOHead';
+import { SitelinkSchema } from '@/components/seo/SitelinkSchema';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { useGoogleAnalytics, analytics, initializeGA4 } from '@/hooks/useGoogleAnalytics';
 
@@ -51,6 +52,7 @@ export default function Index() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(combinedSchema) }}
       />
+      <SitelinkSchema />
       
       <Navbar />
       
