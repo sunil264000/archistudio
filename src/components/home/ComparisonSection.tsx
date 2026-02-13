@@ -1,187 +1,93 @@
 import { X, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { 
-  staggerContainer,
   staggerContainerFast,
   fadeInUp
 } from '@/components/animations/AnimatedSection';
 
 const comparisons = [
-  {
-    aspect: 'Drawing Skills',
-    college: 'Conceptual sketches and presentations',
-    platform: 'Construction-ready working drawings',
-  },
-  {
-    aspect: 'Site Understanding',
-    college: 'Theoretical site analysis frameworks',
-    platform: 'Practical site reading and documentation',
-  },
-  {
-    aspect: 'Construction Knowledge',
-    college: 'Abstract building technology courses',
-    platform: 'Real construction sequences and logic',
-  },
-  {
-    aspect: 'Coordination',
-    college: 'Individual design projects',
-    platform: 'Multi-discipline project coordination',
-  },
-  {
-    aspect: 'Professional Skills',
-    college: 'Studio critiques with professors',
-    platform: 'Client meetings and contractor talks',
-  },
-  {
-    aspect: 'Learning Style',
-    college: 'Theory-first, practice-maybe-later',
-    platform: 'Practice-first, theory-when-needed',
-  },
+  { aspect: 'Drawing Skills', college: 'Conceptual sketches and presentations', platform: 'Construction-ready working drawings' },
+  { aspect: 'Site Understanding', college: 'Theoretical site analysis frameworks', platform: 'Practical site reading and documentation' },
+  { aspect: 'Construction Knowledge', college: 'Abstract building technology courses', platform: 'Real construction sequences and logic' },
+  { aspect: 'Coordination', college: 'Individual design projects', platform: 'Multi-discipline project coordination' },
+  { aspect: 'Professional Skills', college: 'Studio critiques with professors', platform: 'Client meetings and contractor talks' },
+  { aspect: 'Learning Style', college: 'Theory-first, practice-maybe-later', platform: 'Practice-first, theory-when-needed' },
 ];
 
 export function ComparisonSection() {
   return (
-    <section className="section-padding relative overflow-hidden">
-      {/* Subtle animated gradient */}
-      <motion.div 
-        className="absolute inset-0 pointer-events-none opacity-20"
-        animate={{
-          background: [
-            'radial-gradient(circle at 30% 70%, hsl(var(--destructive) / 0.1) 0%, transparent 40%), radial-gradient(circle at 70% 30%, hsl(var(--success) / 0.1) 0%, transparent 40%)',
-            'radial-gradient(circle at 70% 70%, hsl(var(--destructive) / 0.1) 0%, transparent 40%), radial-gradient(circle at 30% 30%, hsl(var(--success) / 0.1) 0%, transparent 40%)',
-            'radial-gradient(circle at 30% 70%, hsl(var(--destructive) / 0.1) 0%, transparent 40%), radial-gradient(circle at 70% 30%, hsl(var(--success) / 0.1) 0%, transparent 40%)',
-          ]
-        }}
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-      />
-      
-      <div className="container-wide relative">
+    <section className="section-padding bg-secondary/20 relative overflow-hidden">
+      <div className="container-wide">
         <motion.div 
-          className="max-w-4xl mx-auto text-center mb-16"
-          variants={staggerContainer}
-          initial="hidden"
-          whileInView="visible"
+          className="max-w-3xl mx-auto text-center mb-14 sm:mb-20"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
         >
-          <motion.div 
-            variants={fadeInUp}
-            className="text-technical mb-4"
-          >
-            The Difference
-          </motion.div>
-          <motion.h2 
-            variants={fadeInUp}
-            className="text-3xl md:text-4xl font-display font-bold mb-4"
-          >
-            Why This Works When{' '}
-            <motion.span 
-              className="text-accent"
-              whileHover={{ scale: 1.05 }}
-              style={{ display: 'inline-block' }}
-            >
-              College Didn't
-            </motion.span>
-          </motion.h2>
-          <motion.p 
-            variants={fadeInUp}
-            className="text-lg text-muted-foreground"
-          >
+          <div className="section-label mb-4">The Difference</div>
+          <h2 className="font-display font-bold mb-4">
+            Why This Works When <span className="text-accent">College Didn't</span>
+          </h2>
+          <p className="text-muted-foreground max-w-lg mx-auto">
             It's not that college was useless. It just wasn't designed for practice.
-          </motion.p>
+          </p>
         </motion.div>
 
         <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <motion.div 
-            className="grid grid-cols-3 gap-4 mb-4 text-sm font-medium"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <div className="text-muted-foreground">Aspect</div>
-            <div className="text-center text-muted-foreground">College Approach</div>
-            <div className="text-center text-accent font-semibold">Our Approach</div>
-          </motion.div>
+          {/* Desktop table */}
+          <div className="hidden sm:block">
+            <div className="grid grid-cols-[1.2fr_1fr_1fr] gap-4 mb-3 px-5">
+              <div className="text-xs font-medium tracking-wider uppercase text-muted-foreground">Aspect</div>
+              <div className="text-xs font-medium tracking-wider uppercase text-muted-foreground text-center">College</div>
+              <div className="text-xs font-medium tracking-wider uppercase text-accent text-center">Archistudio</div>
+            </div>
 
-          {/* Rows */}
-          <motion.div 
-            className="space-y-3"
-            variants={staggerContainerFast}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-50px" }}
-          >
-            {comparisons.map((item, i) => (
-              <motion.div 
-                key={i}
-                variants={fadeInUp}
-                whileHover={{ 
-                  scale: 1.01,
-                  boxShadow: '0 10px 40px -10px hsl(var(--accent) / 0.1)',
-                  borderColor: 'hsl(var(--accent) / 0.3)'
-                }}
-                className="grid grid-cols-3 gap-4 p-4 rounded-xl bg-card border border-border items-center transition-all duration-300 cursor-default"
-              >
+            <motion.div 
+              className="space-y-2"
+              variants={staggerContainerFast}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-50px" }}
+            >
+              {comparisons.map((item, i) => (
                 <motion.div 
-                  className="font-medium text-sm"
-                  whileHover={{ x: 5 }}
+                  key={i}
+                  variants={fadeInUp}
+                  className="grid grid-cols-[1.2fr_1fr_1fr] gap-4 p-5 rounded-xl bg-card border border-border hover:border-accent/20 transition-all duration-200 items-center"
                 >
-                  {item.aspect}
+                  <div className="font-medium text-sm">{item.aspect}</div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
+                    <X className="h-3.5 w-3.5 text-destructive/60 shrink-0" />
+                    <span className="text-center">{item.college}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm justify-center">
+                    <Check className="h-3.5 w-3.5 text-success shrink-0" />
+                    <span className="text-center font-medium">{item.platform}</span>
+                  </div>
                 </motion.div>
-                <div className="text-center">
-                  <motion.div 
-                    className="inline-flex items-center gap-2 text-sm text-muted-foreground"
-                    whileHover={{ scale: 0.98 }}
-                  >
-                    <motion.div
-                      whileHover={{ rotate: 90 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <X className="h-4 w-4 text-destructive shrink-0" />
-                    </motion.div>
-                    <span className="hidden sm:inline">{item.college}</span>
-                  </motion.div>
-                </div>
-                <div className="text-center">
-                  <motion.div 
-                    className="inline-flex items-center gap-2 text-sm font-medium"
-                    whileHover={{ scale: 1.02 }}
-                  >
-                    <motion.div
-                      whileHover={{ scale: 1.2 }}
-                      transition={{ type: "spring", stiffness: 400 }}
-                    >
-                      <Check className="h-4 w-4 text-success shrink-0" />
-                    </motion.div>
-                    <span className="hidden sm:inline text-foreground">{item.platform}</span>
-                  </motion.div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
+              ))}
+            </motion.div>
+          </div>
 
-          {/* Mobile-friendly alternative description */}
+          {/* Mobile cards */}
           <motion.div 
-            className="sm:hidden mt-8 space-y-4"
+            className="sm:hidden space-y-3"
             variants={staggerContainerFast}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
           >
             {comparisons.map((item, i) => (
-              <motion.div 
-                key={i} 
-                variants={fadeInUp}
-                className="p-4 rounded-xl bg-card border border-border"
-              >
-                <div className="font-medium mb-3 text-accent">{item.aspect}</div>
+              <motion.div key={i} variants={fadeInUp} className="p-5 rounded-xl bg-card border border-border">
+                <div className="font-medium text-accent text-sm mb-3">{item.aspect}</div>
                 <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
-                  <X className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-                  <span>College: {item.college}</span>
+                  <X className="h-4 w-4 text-destructive/60 shrink-0 mt-0.5" />
+                  <span>{item.college}</span>
                 </div>
                 <div className="flex items-start gap-2 text-sm">
                   <Check className="h-4 w-4 text-success shrink-0 mt-0.5" />
-                  <span className="font-medium">Here: {item.platform}</span>
+                  <span className="font-medium">{item.platform}</span>
                 </div>
               </motion.div>
             ))}

@@ -1,111 +1,45 @@
 import { 
-  MapPin, 
-  PenTool, 
-  Layers, 
-  Building2, 
-  Leaf, 
-  FileText, 
-  Ruler, 
-  Lightbulb 
+  MapPin, PenTool, Layers, Building2, 
+  Leaf, FileText, Ruler, Lightbulb 
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { 
-  AnimatedSection,
-  staggerContainer,
   staggerContainerFast,
   fadeInUp
 } from '@/components/animations/AnimatedSection';
 
 const modules = [
-  {
-    icon: MapPin,
-    title: 'Site Analysis',
-    description: 'Read sites like experienced architects. Understand context, constraints, and opportunities before putting pen to paper.',
-  },
-  {
-    icon: PenTool,
-    title: 'Working Drawings',
-    description: 'Create complete drawing sets that contractors can actually build from. Plans, sections, details — all of it.',
-  },
-  {
-    icon: Layers,
-    title: 'Construction Logic',
-    description: 'Understand how buildings go up. Sequences, dependencies, and the "why" behind construction methods.',
-  },
-  {
-    icon: Building2,
-    title: 'Structural Coordination',
-    description: 'Read and coordinate with structural drawings. No more guessing what those symbols mean.',
-  },
-  {
-    icon: Leaf,
-    title: 'Sustainability',
-    description: 'Design for climate, energy efficiency, and material consciousness. Beyond buzzwords, into practice.',
-  },
-  {
-    icon: FileText,
-    title: 'Specifications',
-    description: 'Write specs that protect your design intent. Materials, finishes, and quality standards.',
-  },
-  {
-    icon: Ruler,
-    title: 'Detailing',
-    description: 'Create details that solve real problems. Junctions, transitions, and the craft of building.',
-  },
-  {
-    icon: Lightbulb,
-    title: 'Services Integration',
-    description: 'Understand MEP coordination. Your building needs more than walls and windows.',
-  },
+  { icon: MapPin, title: 'Site Analysis', description: 'Read sites like experienced architects. Context, constraints, opportunities.' },
+  { icon: PenTool, title: 'Working Drawings', description: 'Complete drawing sets that contractors can actually build from.' },
+  { icon: Layers, title: 'Construction Logic', description: 'How buildings go up. Sequences, dependencies, and the "why" behind methods.' },
+  { icon: Building2, title: 'Structural Coordination', description: 'Read and coordinate with structural drawings confidently.' },
+  { icon: Leaf, title: 'Sustainability', description: 'Climate-responsive design, energy efficiency, material consciousness.' },
+  { icon: FileText, title: 'Specifications', description: 'Write specs that protect your design intent and quality standards.' },
+  { icon: Ruler, title: 'Detailing', description: 'Create details that solve real problems. Junctions, transitions, craft.' },
+  { icon: Lightbulb, title: 'Services Integration', description: 'Understand MEP coordination. Your building needs more than walls.' },
 ];
 
 export function WhatYouLearnSection() {
   return (
-    <section id="courses" className="section-padding relative overflow-hidden">
-      {/* Animated background gradient */}
-      <motion.div 
-        className="absolute inset-0 opacity-30 pointer-events-none"
-        animate={{
-          background: [
-            'radial-gradient(ellipse at 20% 50%, hsl(var(--accent) / 0.1) 0%, transparent 50%)',
-            'radial-gradient(ellipse at 80% 50%, hsl(var(--accent) / 0.1) 0%, transparent 50%)',
-            'radial-gradient(ellipse at 20% 50%, hsl(var(--accent) / 0.1) 0%, transparent 50%)',
-          ]
-        }}
-        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-      />
-      
-      <div className="container-wide relative">
+    <section className="section-padding bg-secondary/30 relative overflow-hidden">
+      <div className="container-wide">
         <motion.div 
-          className="max-w-4xl mx-auto text-center mb-16"
-          variants={staggerContainer}
-          initial="hidden"
-          whileInView="visible"
+          className="max-w-3xl mx-auto text-center mb-14 sm:mb-20"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
         >
-          <motion.div 
-            variants={fadeInUp}
-            className="text-technical mb-4"
-          >
-            The Curriculum
-          </motion.div>
-          <motion.h2 
-            variants={fadeInUp}
-            className="text-3xl md:text-4xl font-display font-bold mb-4"
-          >
-            What You'll Actually Learn
-          </motion.h2>
-          <motion.p 
-            variants={fadeInUp}
-            className="text-lg text-muted-foreground"
-          >
+          <div className="section-label mb-4">The Curriculum</div>
+          <h2 className="font-display font-bold mb-4">What You'll Actually Learn</h2>
+          <p className="text-muted-foreground max-w-xl mx-auto">
             Eight comprehensive modules covering everything your college skipped. 
-            Each one built on real-world project experience.
-          </motion.p>
+            Each built on real-world project experience.
+          </p>
         </motion.div>
 
         <motion.div 
-          className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
+          className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5"
           variants={staggerContainerFast}
           initial="hidden"
           whileInView="visible"
@@ -115,41 +49,14 @@ export function WhatYouLearnSection() {
             <motion.div 
               key={i}
               variants={fadeInUp}
-              whileHover={{ 
-                y: -8,
-                boxShadow: '0 25px 50px -12px hsl(var(--accent) / 0.15)',
-              }}
-              className="group relative p-6 rounded-xl bg-card border border-border hover:border-accent/50 transition-all duration-500 overflow-hidden"
+              className="group relative p-6 rounded-xl bg-card border border-border hover:border-accent/30 transition-all duration-300 hover:shadow-medium"
             >
-              {/* Hover glow effect */}
-              <motion.div 
-                className="absolute inset-0 bg-gradient-to-br from-accent/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-              />
+              <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center mb-4 group-hover:bg-accent/10 transition-colors">
+                <module.icon className="h-5 w-5 text-accent" />
+              </div>
               
-              {/* Icon with animation */}
-              <motion.div 
-                className="relative h-12 w-12 rounded-lg bg-secondary flex items-center justify-center mb-4 group-hover:bg-accent/20 transition-colors duration-300"
-                whileHover={{ rotate: [0, -5, 5, 0], scale: 1.1 }}
-                transition={{ duration: 0.4 }}
-              >
-                <module.icon className="h-6 w-6 text-accent transition-transform duration-300 group-hover:scale-110" />
-              </motion.div>
-              
-              <h3 className="relative font-semibold text-lg mb-2 group-hover:text-accent transition-colors duration-300">
-                {module.title}
-              </h3>
-              <p className="relative text-muted-foreground text-sm leading-relaxed">
-                {module.description}
-              </p>
-              
-              {/* Bottom accent line */}
-              <motion.div 
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
-                initial={{ scaleX: 0 }}
-                whileHover={{ scaleX: 1 }}
-                transition={{ duration: 0.3 }}
-                style={{ transformOrigin: 'left' }}
-              />
+              <h3 className="font-semibold text-base mb-2 group-hover:text-accent transition-colors">{module.title}</h3>
+              <p className="text-muted-foreground text-sm leading-relaxed">{module.description}</p>
             </motion.div>
           ))}
         </motion.div>

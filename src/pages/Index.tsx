@@ -16,7 +16,7 @@ const CourseStructureSection = lazy(() => import('@/components/home/CourseStruct
 const ComparisonSection = lazy(() => import('@/components/home/ComparisonSection').then(m => ({ default: m.ComparisonSection })));
 const TestimonialsSection = lazy(() => import('@/components/home/TestimonialsSection').then(m => ({ default: m.TestimonialsSection })));
 const FinalCTASection = lazy(() => import('@/components/home/FinalCTASection').then(m => ({ default: m.FinalCTASection })));
-const LiveViewerCounter = lazy(() => import('@/components/social-proof/LiveViewerCounter').then(m => ({ default: m.LiveViewerCounter })));
+
 
 // Minimal loading fallback
 const SectionLoader = () => (
@@ -56,20 +56,13 @@ export default function Index() {
       
       <Navbar />
       
-      {/* Animated Background */}
+      {/* Animated Background - desktop only */}
       <AnimatedBackground intensity="light" />
       
-      {/* Live users indicator - lazy loaded, hidden on small mobile */}
-      <Suspense fallback={null}>
-        <div className="fixed top-20 right-2 sm:right-4 z-40 bg-card/95 backdrop-blur-sm border border-border rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 shadow-lg text-xs sm:text-sm hidden sm:block">
-          <LiveViewerCounter variant="site" />
-        </div>
-      </Suspense>
-      
-      {/* Section 1: Hero - loaded immediately for fast LCP */}
+      {/* Hero */}
       <HeroSection />
       
-      {/* Below-the-fold sections - lazy loaded */}
+      {/* Below-the-fold sections */}
       <Suspense fallback={<SectionLoader />}>
         <ProblemSection />
       </Suspense>

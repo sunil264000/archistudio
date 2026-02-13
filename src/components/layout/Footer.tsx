@@ -1,8 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Instagram, Facebook, Twitter, Youtube, Linkedin, ArrowUpRight, Heart } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Instagram, Facebook, Twitter, Youtube, Linkedin, ArrowUpRight } from 'lucide-react';
 
 interface SocialLinks {
   instagram_url: string;
@@ -14,11 +13,7 @@ interface SocialLinks {
 
 export function Footer() {
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({
-    instagram_url: '',
-    facebook_url: '',
-    twitter_url: '',
-    youtube_url: '',
-    linkedin_url: '',
+    instagram_url: '', facebook_url: '', twitter_url: '', youtube_url: '', linkedin_url: '',
   });
 
   useEffect(() => {
@@ -30,13 +25,10 @@ export function Footer() {
 
       if (data) {
         const links: Partial<SocialLinks> = {};
-        data.forEach(item => {
-          links[item.key as keyof SocialLinks] = item.value || '';
-        });
+        data.forEach(item => { links[item.key as keyof SocialLinks] = item.value || ''; });
         setSocialLinks(prev => ({ ...prev, ...links }));
       }
     };
-
     fetchSocialLinks();
   }, []);
 
@@ -48,137 +40,79 @@ export function Footer() {
     { key: 'linkedin_url', icon: Linkedin, label: 'LinkedIn' },
   ];
 
-  const activeSocials = socialIcons.filter(
-    s => socialLinks[s.key as keyof SocialLinks]
-  );
-
-  const footerLinks = {
-    courses: [
-      { label: 'All Courses', to: '/courses' },
-      { label: 'Beginner Track', to: '/courses?level=beginner' },
-      { label: 'Advanced Track', to: '/courses?level=advanced' },
-    ],
-    company: [
-      { label: 'About Us', to: '/about' },
-      { label: 'Blog', to: '/blog' },
-      { label: 'Contact', to: '/contact' },
-    ],
-    legal: [
-      { label: 'Terms & Conditions', to: '/terms' },
-      { label: 'Contact Us', to: '/contact' },
-    ],
-  };
+  const activeSocials = socialIcons.filter(s => socialLinks[s.key as keyof SocialLinks]);
 
   return (
-    <footer className="relative border-t border-border bg-gradient-to-b from-background to-secondary/20 overflow-hidden">
-      {/* Background decoration - hidden on mobile */}
-      <div className="absolute inset-0 grid-pattern opacity-10 pointer-events-none hidden md:block" />
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-[120px] pointer-events-none hidden md:block" />
-      
-      <div className="container-wide py-10 sm:py-12 md:py-16 relative">
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 md:gap-12 mb-8 sm:mb-10 md:mb-12">
+    <footer className="border-t border-border bg-card/50">
+      <div className="container-wide py-16 sm:py-20">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-12 mb-12">
           {/* Brand */}
-          <div className="col-span-2 sm:col-span-2 md:col-span-1 space-y-4 sm:space-y-6">
-            <motion.div 
-              className="font-display font-bold text-xl sm:text-2xl bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent"
-              whileHover={{ scale: 1.02 }}
-            >
-              Archistudio
-            </motion.div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+          <div className="col-span-2 md:col-span-1 space-y-5">
+            <div className="font-display font-bold text-lg text-foreground">Archistudio</div>
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
               Practical architecture education for the real world. Built by architects, for architects.
             </p>
             
-            {/* Social Links */}
             {activeSocials.length > 0 && (
-              <div className="flex gap-2 sm:gap-3">
-                {activeSocials.map((social, i) => (
-                  <motion.a
+              <div className="flex gap-2">
+                {activeSocials.map((social) => (
+                  <a
                     key={social.key}
                     href={socialLinks[social.key as keyof SocialLinks]}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 sm:p-2.5 rounded-full bg-muted/50 hover:bg-accent hover:text-accent-foreground transition-all duration-300 border border-border/50 hover:border-accent/50 hover:shadow-lg hover:shadow-accent/20 touch-target min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    className="p-2.5 rounded-lg bg-secondary/60 hover:bg-accent hover:text-accent-foreground transition-all duration-200 border border-border/50 hover:border-accent/50 touch-target min-w-[44px] min-h-[44px] flex items-center justify-center"
                     aria-label={social.label}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    whileHover={{ y: -3 }}
                   >
-                    <social.icon className="h-4 w-4 sm:h-5 sm:w-5" />
-                  </motion.a>
+                    <social.icon className="h-4 w-4" />
+                  </a>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Courses */}
-          <div>
-            <h4 className="font-semibold mb-4 sm:mb-6 text-xs sm:text-sm uppercase tracking-wider text-accent">
-              Courses
-            </h4>
-            <ul className="space-y-2 sm:space-y-3 text-sm">
-              {footerLinks.courses.map((link) => (
-                <li key={link.to}>
-                  <Link 
-                    to={link.to} 
-                    className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 group py-1 touch-target"
-                  >
-                    {link.label}
-                    <ArrowUpRight className="h-3 w-3 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all hidden sm:block" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <h4 className="font-semibold mb-4 sm:mb-6 text-xs sm:text-sm uppercase tracking-wider text-accent">
-              Company
-            </h4>
-            <ul className="space-y-2 sm:space-y-3 text-sm">
-              {footerLinks.company.map((link) => (
-                <li key={link.to}>
-                  <Link 
-                    to={link.to} 
-                    className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 group py-1 touch-target"
-                  >
-                    {link.label}
-                    <ArrowUpRight className="h-3 w-3 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all hidden sm:block" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Legal */}
-          <div>
-            <h4 className="font-semibold mb-4 sm:mb-6 text-xs sm:text-sm uppercase tracking-wider text-accent">
-              Legal
-            </h4>
-            <ul className="space-y-2 sm:space-y-3 text-sm">
-              {footerLinks.legal.map((link) => (
-                <li key={link.to}>
-                  <Link 
-                    to={link.to} 
-                    className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 group py-1 touch-target"
-                  >
-                    {link.label}
-                    <ArrowUpRight className="h-3 w-3 opacity-0 -translate-y-1 translate-x-1 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all hidden sm:block" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          {/* Links */}
+          {[
+            { title: 'Studios', links: [
+              { label: 'All Programs', to: '/courses' },
+              { label: 'Beginner Track', to: '/courses?level=beginner' },
+              { label: 'Advanced Track', to: '/courses?level=advanced' },
+            ]},
+            { title: 'Company', links: [
+              { label: 'About Us', to: '/about' },
+              { label: 'Blog', to: '/blog' },
+              { label: 'Contact', to: '/contact' },
+            ]},
+            { title: 'Legal', links: [
+              { label: 'Terms & Conditions', to: '/terms' },
+              { label: 'Contact Us', to: '/contact' },
+            ]},
+          ].map((section) => (
+            <div key={section.title}>
+              <h4 className="text-xs font-medium tracking-[0.12em] uppercase text-foreground mb-5">{section.title}</h4>
+              <ul className="space-y-3 text-sm">
+                {section.links.map((link) => (
+                  <li key={link.to}>
+                    <Link 
+                      to={link.to} 
+                      className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 group py-0.5"
+                    >
+                      {link.label}
+                      <ArrowUpRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
 
-        <div className="border-t border-border/50 pt-6 sm:pt-8 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 pb-safe">
-          <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
+        <div className="border-t border-border pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 pb-safe">
+          <div className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} Archistudio. All rights reserved.
           </div>
-          <div className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1 text-center sm:text-right">
-            Made with <Heart className="h-3 w-3 sm:h-4 sm:w-4 text-destructive inline fill-destructive" /> for architects who want to build, not just design.
+          <div className="text-xs text-muted-foreground">
+            For architects who want to build, not just design.
           </div>
         </div>
       </div>
