@@ -11,6 +11,7 @@ import { FestivalDecorations } from "@/components/festival/FestivalDecorations";
 import { SalesPopup } from "@/components/sales/SalesPopup";
 import { AmbientAudio } from "@/components/audio/AmbientAudio";
 import { LoginGiftModal } from "@/components/gift/LoginGiftModal";
+import { WelcomePopup } from "@/components/welcome/WelcomePopup";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import { useVisitorTracking } from "@/hooks/useVisitorTracking";
 import { initializeGA4 } from "@/hooks/useGoogleAnalytics";
@@ -288,6 +289,7 @@ const App = () => (
         <AuthProvider>
           <CartProvider>
             <AppContent />
+            <WelcomePopup />
             <FestivalDecorations />
             <PurchaseNotification />
             <SalesPopup />
