@@ -64,8 +64,10 @@ serve(async (req) => {
       border_style: settingsData.border_style || defaultSettings.border_style,
     } : defaultSettings;
 
-    // Preview mode
+    // Handle both GET (query params) and POST (JSON body)
     const url = new URL(req.url);
+    
+    // Preview mode
     if (url.searchParams.get("preview") === "true") {
       const html = generateCertificateHtml(
         settings, "John Doe", "3ds Max Architectural Visualization",
@@ -77,7 +79,22 @@ serve(async (req) => {
       });
     }
 
-    const { certificateId, userId, courseId } = await req.json();
+    let certificateId: string | undefined;
+    let userId: string | undefined;
+    let courseId: string | undefined;
+
+    // GET request: read from query params
+    if (req.method === "GET") {
+      certificateId = url.searchParams.get("certificateId") || undefined;
+      userId = url.searchParams.get("userId") || undefined;
+      courseId = url.searchParams.get("courseId") || undefined;
+    } else {
+      // POST request: read from JSON body
+      const body = await req.json();
+      certificateId = body.certificateId;
+      userId = body.userId;
+      courseId = body.courseId;
+    }
 
     let certificate;
 
