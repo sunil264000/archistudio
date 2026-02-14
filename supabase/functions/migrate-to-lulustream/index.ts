@@ -53,21 +53,36 @@ serve(async (req) => {
 
     // ACTION: Prepare migration - scan all Google Drive lessons and create migration records
     if (action === "prepare") {
-      let query = supabase
-        .from("lessons")
-        .select("id, title, video_url, module_id, modules!inner(course_id, courses!inner(title))")
-        .like("video_url", "%drive.google.com%");
+      // Fetch ALL lessons using pagination to bypass the 1000-row default limit
+      const allLessons: any[] = [];
+      const pageSize = 1000;
+      let offset = 0;
+      let hasMore = true;
 
-      if (courseId) {
-        query = supabase
+      while (hasMore) {
+        let query = supabase
           .from("lessons")
           .select("id, title, video_url, module_id, modules!inner(course_id, courses!inner(title))")
           .like("video_url", "%drive.google.com%")
-          .eq("modules.course_id", courseId);
+          .range(offset, offset + pageSize - 1);
+
+        if (courseId) {
+          query = query.eq("modules.course_id", courseId);
+        }
+
+        const { data: batch, error: batchError } = await query;
+        if (batchError) throw batchError;
+
+        if (batch && batch.length > 0) {
+          allLessons.push(...batch);
+          offset += pageSize;
+          hasMore = batch.length === pageSize;
+        } else {
+          hasMore = false;
+        }
       }
 
-      const { data: lessons, error: lessonsError } = await query;
-      if (lessonsError) throw lessonsError;
+      const lessons = allLessons;
 
       if (!lessons || lessons.length === 0) {
         return jsonResponse({ success: true, message: "No Google Drive videos found", prepared: 0 });
