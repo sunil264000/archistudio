@@ -2015,6 +2015,60 @@ export type Database = {
         }
         Relationships: []
       }
+      video_migrations: {
+        Row: {
+          course_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          lesson_id: string | null
+          lulustream_embed_url: string | null
+          lulustream_file_code: string | null
+          original_url: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          course_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          lesson_id?: string | null
+          lulustream_embed_url?: string | null
+          lulustream_file_code?: string | null
+          original_url: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          course_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          lesson_id?: string | null
+          lulustream_embed_url?: string | null
+          lulustream_file_code?: string | null
+          original_url?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_migrations_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_migrations_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       visitor_sessions: {
         Row: {
           browser: string | null
