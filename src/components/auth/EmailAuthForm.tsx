@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { EmailVerificationForm } from './EmailVerificationForm';
+import { supabase } from '@/integrations/supabase/client';
 
 const loginSchema = z.object({
   email: z.string().trim().email({ message: 'Please enter a valid email address' }),
@@ -42,6 +43,7 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
+  const [pendingPassword, setPendingPassword] = useState('');
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -55,7 +57,6 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
 
   const onLoginSubmit = async (data: LoginFormData) => {
     setLoading(true);
-
     try {
       const { error } = await signInWithEmail(data.email, data.password);
       
@@ -63,7 +64,16 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
         if (error.message.includes('Invalid login credentials')) {
           toast.error('Invalid email or password. Please try again.');
         } else if (error.message.includes('Email not confirmed')) {
-          toast.error('Please verify your email before logging in. Check your inbox or spam folder.');
+          // User hasn't verified yet - send them a new OTP and show verification
+          toast.info('Email not verified yet. Sending you a new verification code...');
+          setPendingEmail(data.email);
+          setPendingPassword(data.password);
+          
+          await supabase.functions.invoke('verify-email-otp', {
+            body: { action: 'send', email: data.email },
+          });
+          
+          setShowVerification(true);
         } else {
           toast.error(error.message);
         }
@@ -81,7 +91,6 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
 
   const onSignupSubmit = async (data: SignupFormData) => {
     setLoading(true);
-
     try {
       const { error } = await signUpWithEmail(data.email, data.password, data.fullName);
       
@@ -94,10 +103,20 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
         return;
       }
       
-      // Show verification form with link-based instructions
+      // Send OTP via our edge function
+      const { error: otpError } = await supabase.functions.invoke('verify-email-otp', {
+        body: { action: 'send', email: data.email, name: data.fullName },
+      });
+
+      if (otpError) {
+        toast.error('Failed to send verification code. Please try again.');
+        return;
+      }
+
       setPendingEmail(data.email);
+      setPendingPassword(data.password);
       setShowVerification(true);
-      toast.info('Verification email sent! Please check your inbox and click the verification link.');
+      toast.info('A 6-digit verification code has been sent to your email!');
     } catch (err) {
       toast.error('An unexpected error occurred. Please try again.');
     } finally {
@@ -110,18 +129,20 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
     onSuccess?.();
   };
 
-  const handleBackToSignup = () => {
+  const handleBackToForm = () => {
     setShowVerification(false);
     setPendingEmail('');
+    setPendingPassword('');
   };
 
   // Show verification form if pending
-  if (showVerification && mode === 'signup') {
+  if (showVerification) {
     return (
       <EmailVerificationForm
         email={pendingEmail}
+        password={pendingPassword}
         onVerified={handleVerificationSuccess}
-        onBack={handleBackToSignup}
+        onBack={handleBackToForm}
       />
     );
   }
