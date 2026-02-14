@@ -156,7 +156,7 @@ serve(async (req) => {
 
     // ACTION: Migrate — auto-prepares missing records then processes batch
     if (action === "migrate") {
-      const batchSize = Math.min(customBatchSize || 50, 200);
+      const batchSize = Math.min(customBatchSize || 50, 50); // LuluStream limit: 60 req/min
 
       // Auto-prepare: find Drive lessons without migration records and add them
       let lessonQuery = supabase
@@ -219,10 +219,7 @@ serve(async (req) => {
         courses?.forEach(c => { courseTitleMap[c.id] = c.title; });
       }
 
-      let processed = 0;
-      let failed = 0;
-
-      // Process ALL at once concurrently for maximum speed
+      // Process ALL concurrently
       const results = await Promise.allSettled(pending.map(async (migration) => {
         try {
           const fileId = extractFileId(migration.original_url);
@@ -230,10 +227,8 @@ serve(async (req) => {
 
           const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${GOOGLE_API_KEY}`;
           const courseTitle = migration.course_id ? courseTitleMap[migration.course_id] || "" : "";
-          // Use lesson_id as filename since we skip the Drive API lookup for speed
           const organizedTitle = courseTitle ? `[${courseTitle}] ${fileId}` : fileId;
 
-          // Skip Google Drive file info API call — go straight to upload
           const uploadRes = await fetch(
             `${LULUSTREAM_API_BASE}/upload/url?key=${LULUSTREAM_API_KEY}&url=${encodeURIComponent(downloadUrl)}&new_title=${encodeURIComponent(organizedTitle)}`
           );
