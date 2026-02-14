@@ -21,8 +21,11 @@ const modules = [
 
 export function WhatYouLearnSection() {
   return (
-    <section className="section-padding bg-secondary/30 relative overflow-hidden">
-      <div className="container-wide">
+    <section className="section-padding relative overflow-hidden">
+      {/* Subtle background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-secondary/20 to-background" />
+      
+      <div className="container-wide relative">
         <motion.div 
           className="max-w-3xl mx-auto text-center mb-14 sm:mb-20"
           initial={{ opacity: 0, y: 20 }}
@@ -49,14 +52,21 @@ export function WhatYouLearnSection() {
             <motion.div 
               key={i}
               variants={fadeInUp}
-              className="group relative p-6 rounded-xl bg-card border border-border hover:border-accent/30 transition-all duration-300 hover:shadow-medium"
+              className="group relative p-6 rounded-xl card-glass hover:border-accent/30 transition-all duration-500"
             >
-              <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center mb-4 group-hover:bg-accent/10 transition-colors">
-                <module.icon className="h-5 w-5 text-accent" />
-              </div>
+              {/* Hover glow */}
+              <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" 
+                style={{ boxShadow: 'var(--glow-accent)' }} 
+              />
               
-              <h3 className="font-semibold text-base mb-2 group-hover:text-accent transition-colors">{module.title}</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">{module.description}</p>
+              <div className="relative">
+                <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center mb-4 group-hover:bg-accent/10 transition-colors duration-300">
+                  <module.icon className="h-5 w-5 text-accent" />
+                </div>
+                
+                <h3 className="font-semibold text-base mb-2 group-hover:text-accent transition-colors duration-300">{module.title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{module.description}</p>
+              </div>
             </motion.div>
           ))}
         </motion.div>

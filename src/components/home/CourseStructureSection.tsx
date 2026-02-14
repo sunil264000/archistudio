@@ -20,6 +20,7 @@ const tracks = [
     accentClass: 'text-success',
     bgClass: 'bg-success/8',
     borderClass: 'hover:border-success/30',
+    glowColor: 'hsl(var(--success) / 0.08)',
   },
   {
     level: 'Intermediate',
@@ -35,6 +36,7 @@ const tracks = [
     accentClass: 'text-accent',
     bgClass: 'bg-accent/8',
     borderClass: 'hover:border-accent/30',
+    glowColor: 'hsl(var(--accent) / 0.08)',
   },
   {
     level: 'Advanced',
@@ -50,6 +52,7 @@ const tracks = [
     accentClass: 'text-blueprint',
     bgClass: 'bg-blueprint/8',
     borderClass: 'hover:border-blueprint/30',
+    glowColor: 'hsl(var(--blueprint) / 0.08)',
   },
 ];
 
@@ -84,14 +87,21 @@ export function CourseStructureSection() {
             <motion.div 
               key={i}
               variants={fadeInUp}
-              className={`relative flex flex-col p-7 rounded-2xl bg-card border border-border ${track.borderClass} transition-all duration-300 hover:shadow-medium group`}
+              className={`relative flex flex-col p-7 rounded-2xl card-glass ${track.borderClass} transition-all duration-500 group`}
+              whileHover={{ y: -4 }}
             >
+              {/* Hover glow */}
+              <div 
+                className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                style={{ boxShadow: `0 0 60px ${track.glowColor}` }}
+              />
+
               {/* Level badge */}
-              <div className={`inline-flex self-start px-3 py-1 rounded-full text-xs font-medium ${track.accentClass} ${track.bgClass} border border-current/10`}>
+              <div className={`relative inline-flex self-start px-3 py-1 rounded-full text-xs font-medium ${track.accentClass} ${track.bgClass} border border-current/10`}>
                 {track.level}
               </div>
 
-              <div className="mt-5 flex-1">
+              <div className="relative mt-5 flex-1">
                 <h3 className="text-2xl font-bold mb-1">{track.title}</h3>
                 <p className={`text-sm ${track.accentClass} font-medium mb-4`}>{track.duration}</p>
                 <p className="text-muted-foreground text-sm mb-6 leading-relaxed">{track.description}</p>

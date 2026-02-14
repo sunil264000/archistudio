@@ -1,7 +1,6 @@
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ArrowDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { 
-  AnimatedSection, 
   fadeInUp, 
   fadeInLeft, 
   fadeInRight,
@@ -18,6 +17,9 @@ export function ProblemSection() {
 
   return (
     <section className="section-padding relative overflow-hidden">
+      {/* Subtle orb */}
+      <div className="absolute top-[20%] right-[-10%] w-[400px] h-[400px] rounded-full bg-accent/[0.03] blur-[100px] pointer-events-none" />
+      
       <div className="container-wide">
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
@@ -58,7 +60,7 @@ export function ProblemSection() {
                 <motion.div 
                   key={i}
                   variants={fadeInRight}
-                  className="flex items-start gap-4 p-5 rounded-xl bg-card border border-border hover:border-accent/20 transition-all duration-300 group"
+                  className="flex items-start gap-4 p-5 rounded-xl card-glass group"
                 >
                   <div className="shrink-0 mt-0.5">
                     <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center group-hover:bg-warning/20 transition-colors">
@@ -79,7 +81,7 @@ export function ProblemSection() {
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-secondary/60 border border-border">
+            <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full card-glass">
               <div className="w-1.5 h-1.5 rounded-full bg-accent" />
               <p className="text-sm font-medium">We're here to bridge that gap. <span className="text-accent">Permanently.</span></p>
             </div>

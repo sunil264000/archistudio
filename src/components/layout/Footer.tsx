@@ -43,7 +43,7 @@ export function Footer() {
   const activeSocials = socialIcons.filter(s => socialLinks[s.key as keyof SocialLinks]);
 
   return (
-    <footer className="border-t border-border bg-card/50">
+    <footer className="border-t border-border/40 bg-card/30 backdrop-blur-sm">
       <div className="container-wide py-16 sm:py-20">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-12 mb-12">
           {/* Brand */}
