@@ -1,36 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Loader2, Mail, AlertCircle, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Loader2, Mail, AlertCircle, RefreshCw, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface EmailVerificationFormProps {
   email: string;
+  password: string;
   onVerified: () => void;
   onBack: () => void;
 }
 
-export function EmailVerificationForm({ email, onVerified, onBack }: EmailVerificationFormProps) {
-  const { user } = useAuth();
+export function EmailVerificationForm({ email, password, onVerified, onBack }: EmailVerificationFormProps) {
+  const [code, setCode] = useState(['', '', '', '', '', '']);
+  const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
-  const [checkingStatus, setCheckingStatus] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Listen for auth state changes - user clicking the email link will trigger this
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
-        toast.success('Email verified successfully! Welcome to Archistudio.');
-        onVerified();
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [onVerified]);
-
-  // Countdown timer for resend button
+  // Countdown timer
   useEffect(() => {
     if (countdown > 0 && !canResend) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
@@ -40,51 +30,110 @@ export function EmailVerificationForm({ email, onVerified, onBack }: EmailVerifi
     }
   }, [countdown, canResend]);
 
-  // Check if already verified (in case user clicked link in another tab)
-  const handleCheckStatus = async () => {
-    setCheckingStatus(true);
+  // Auto-focus first input
+  useEffect(() => {
+    inputRefs.current[0]?.focus();
+  }, []);
+
+  const handleInputChange = (index: number, value: string) => {
+    // Only allow digits
+    const digit = value.replace(/\D/g, '').slice(-1);
+    const newCode = [...code];
+    newCode[index] = digit;
+    setCode(newCode);
+
+    // Auto-advance to next input
+    if (digit && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-submit when all 6 digits entered
+    if (digit && index === 5) {
+      const fullCode = newCode.join('');
+      if (fullCode.length === 6) {
+        handleVerify(fullCode);
+      }
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !code[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasted.length === 6) {
+      const newCode = pasted.split('');
+      setCode(newCode);
+      inputRefs.current[5]?.focus();
+      handleVerify(pasted);
+    }
+  };
+
+  const handleVerify = async (fullCode?: string) => {
+    const codeStr = fullCode || code.join('');
+    if (codeStr.length !== 6) {
+      toast.error('Please enter the complete 6-digit code');
+      return;
+    }
+
+    setVerifying(true);
     try {
-      const { data, error } = await supabase.auth.getUser();
-      
-      if (error) {
-        toast.error('Could not check verification status');
+      const { data, error } = await supabase.functions.invoke('verify-email-otp', {
+        body: { action: 'verify', email, code: codeStr },
+      });
+
+      if (error || !data?.success) {
+        toast.error(data?.error || 'Verification failed. Please try again.');
+        setCode(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
         return;
       }
 
-      if (data.user?.email_confirmed_at) {
-        toast.success('Email already verified! Redirecting...');
-        onVerified();
-      } else {
-        toast.info('Email not verified yet. Please check your inbox and click the verification link.');
+      // Email is now confirmed! Sign in the user automatically
+      toast.success('Email verified! Signing you in...');
+      
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        toast.error('Verified but could not auto-login. Please sign in manually.');
+        onBack();
+        return;
       }
+
+      onVerified();
     } catch (err) {
-      toast.error('Failed to check status. Please try again.');
+      toast.error('Verification failed. Please try again.');
     } finally {
-      setCheckingStatus(false);
+      setVerifying(false);
     }
   };
 
   const handleResend = async () => {
     setResending(true);
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-        },
+      const { data, error } = await supabase.functions.invoke('verify-email-otp', {
+        body: { action: 'send', email },
       });
 
-      if (error) {
-        toast.error(error.message);
+      if (error || !data?.success) {
+        toast.error('Failed to resend code. Please try again.');
         return;
       }
 
-      toast.success('Verification email sent! Please check your inbox.');
+      toast.success('New verification code sent! Check your inbox.');
       setCountdown(60);
       setCanResend(false);
+      setCode(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
     } catch (err) {
-      toast.error('Failed to resend email. Please try again.');
+      toast.error('Failed to resend. Please try again.');
     } finally {
       setResending(false);
     }
@@ -92,57 +141,66 @@ export function EmailVerificationForm({ email, onVerified, onBack }: EmailVerifi
 
   return (
     <div className="space-y-6">
-      {/* Email Icon Header */}
+      {/* Header */}
       <div className="flex flex-col items-center text-center space-y-4">
-        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-          <Mail className="h-8 w-8 text-primary" />
+        <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center">
+          <ShieldCheck className="h-8 w-8 text-accent" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-foreground">Check your email</h3>
+          <h3 className="text-lg font-semibold text-foreground">Enter Verification Code</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            We sent a verification link to
+            We sent a 6-digit code to
           </p>
-          <p className="text-sm font-medium text-foreground mt-1">{email}</p>
+          <p className="text-sm font-medium text-accent mt-1">{email}</p>
         </div>
       </div>
 
-      {/* Instructions */}
-      <div className="space-y-4">
-        <div className="flex items-start gap-3 p-4 rounded-lg bg-accent/50 border border-accent">
-          <CheckCircle2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-medium text-foreground">What to do next:</p>
-            <ol className="text-muted-foreground mt-2 space-y-1 list-decimal list-inside">
-              <li>Open the email we just sent you</li>
-              <li>Click the "Verify Email" button in the email</li>
-              <li>You'll be automatically signed in</li>
-            </ol>
-          </div>
-        </div>
-
-        {/* Spam Notice */}
-        <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border">
-          <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-          <div className="text-sm text-muted-foreground">
-            <p className="font-medium">Can't find the email?</p>
-            <p className="mt-0.5">
-              Check your <strong>Spam</strong> or <strong>Junk</strong> folder. It may take a few minutes to arrive.
-            </p>
-          </div>
-        </div>
+      {/* 6-digit code input */}
+      <div className="flex justify-center gap-2 sm:gap-3" onPaste={handlePaste}>
+        {code.map((digit, index) => (
+          <Input
+            key={index}
+            ref={(el) => { inputRefs.current[index] = el; }}
+            type="text"
+            inputMode="numeric"
+            maxLength={1}
+            value={digit}
+            onChange={(e) => handleInputChange(index, e.target.value)}
+            onKeyDown={(e) => handleKeyDown(index, e)}
+            className="w-11 h-14 sm:w-12 sm:h-14 text-center text-xl font-bold bg-background border-2 focus:border-accent transition-colors"
+            disabled={verifying}
+          />
+        ))}
       </div>
 
-      {/* Check Status Button */}
-      <Button 
-        onClick={handleCheckStatus} 
-        className="w-full" 
-        disabled={checkingStatus}
+      {/* Verify button */}
+      <Button
+        onClick={() => handleVerify()}
+        className="w-full"
+        disabled={verifying || code.join('').length !== 6}
       >
-        {checkingStatus && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        I've Verified My Email
+        {verifying ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Verifying...
+          </>
+        ) : (
+          <>
+            <CheckCircle2 className="mr-2 h-4 w-4" />
+            Verify & Sign In
+          </>
+        )}
       </Button>
 
-      {/* Resend Section */}
+      {/* Instructions */}
+      <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border">
+        <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+        <div className="text-sm text-muted-foreground">
+          <p>Can't find the email? Check your <strong>Spam</strong> or <strong>Junk</strong> folder.</p>
+        </div>
+      </div>
+
+      {/* Resend */}
       <div className="text-center space-y-2">
         {canResend ? (
           <Button
@@ -157,16 +215,16 @@ export function EmailVerificationForm({ email, onVerified, onBack }: EmailVerifi
             ) : (
               <RefreshCw className="mr-2 h-4 w-4" />
             )}
-            Resend verification email
+            Resend code
           </Button>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Resend email in <span className="font-medium text-foreground">{countdown}s</span>
+            Resend in <span className="font-medium text-foreground">{countdown}s</span>
           </p>
         )}
       </div>
 
-      {/* Back Button */}
+      {/* Back */}
       <div className="text-center">
         <button
           type="button"
