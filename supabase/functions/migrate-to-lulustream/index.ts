@@ -6,7 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// LuluStream uses the same API pattern as DoodStream/StreamTape
 const LULUSTREAM_API_BASE = "https://api.lulustream.com/api";
 
 serve(async (req) => {
@@ -25,7 +24,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { action, courseId, lessonId } = await req.json();
+    const { action, courseId, courseIds, batchSize: customBatchSize } = await req.json();
+
+    // Resolve filter IDs: support single courseId or multi courseIds
+    const filterCourseIds: string[] = courseIds?.length ? courseIds : courseId ? [courseId] : [];
 
     // ACTION: Check LuluStream account info
     if (action === "account-info") {
@@ -34,26 +36,46 @@ serve(async (req) => {
       return jsonResponse({ success: true, account: data });
     }
 
-    // ACTION: Get migration status/stats
+    // ACTION: Get migration status/stats (paginated to get ALL rows)
     if (action === "status") {
-      const { data: stats } = await supabase
-        .from("video_migrations")
-        .select("status");
+      const allStats: any[] = [];
+      let offset = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        let query = supabase
+          .from("video_migrations")
+          .select("status, course_id")
+          .range(offset, offset + pageSize - 1);
+
+        if (filterCourseIds.length > 0) {
+          query = query.in("course_id", filterCourseIds);
+        }
+
+        const { data: batch } = await query;
+        if (batch && batch.length > 0) {
+          allStats.push(...batch);
+          offset += pageSize;
+          hasMore = batch.length === pageSize;
+        } else {
+          hasMore = false;
+        }
+      }
 
       const counts = {
-        total: stats?.length || 0,
-        pending: stats?.filter(s => s.status === "pending").length || 0,
-        uploading: stats?.filter(s => s.status === "uploading").length || 0,
-        completed: stats?.filter(s => s.status === "completed").length || 0,
-        failed: stats?.filter(s => s.status === "failed").length || 0,
+        total: allStats.length,
+        pending: allStats.filter(s => s.status === "pending").length,
+        uploading: allStats.filter(s => s.status === "uploading").length,
+        completed: allStats.filter(s => s.status === "completed").length,
+        failed: allStats.filter(s => s.status === "failed").length,
       };
 
       return jsonResponse({ success: true, counts });
     }
 
-    // ACTION: Prepare migration - scan all Google Drive lessons and create migration records
+    // ACTION: Prepare migration - scan ALL Google Drive lessons with pagination
     if (action === "prepare") {
-      // Fetch ALL lessons using pagination to bypass the 1000-row default limit
       const allLessons: any[] = [];
       const pageSize = 1000;
       let offset = 0;
@@ -66,8 +88,8 @@ serve(async (req) => {
           .like("video_url", "%drive.google.com%")
           .range(offset, offset + pageSize - 1);
 
-        if (courseId) {
-          query = query.eq("modules.course_id", courseId);
+        if (filterCourseIds.length > 0) {
+          query = query.in("modules.course_id", filterCourseIds);
         }
 
         const { data: batch, error: batchError } = await query;
@@ -82,23 +104,25 @@ serve(async (req) => {
         }
       }
 
-      const lessons = allLessons;
-
-      if (!lessons || lessons.length === 0) {
+      if (allLessons.length === 0) {
         return jsonResponse({ success: true, message: "No Google Drive videos found", prepared: 0 });
       }
 
-      // Check which lessons already have migration records
-      const lessonIds = lessons.map(l => l.id);
-      const { data: existing } = await supabase
-        .from("video_migrations")
-        .select("lesson_id")
-        .in("lesson_id", lessonIds);
+      // Check existing records with pagination too
+      const lessonIds = allLessons.map(l => l.id);
+      const existingIds = new Set<string>();
+      
+      // Query existing in chunks of 500 (IN clause limit)
+      for (let i = 0; i < lessonIds.length; i += 500) {
+        const chunk = lessonIds.slice(i, i + 500);
+        const { data: existing } = await supabase
+          .from("video_migrations")
+          .select("lesson_id")
+          .in("lesson_id", chunk);
+        existing?.forEach(e => existingIds.add(e.lesson_id));
+      }
 
-      const existingIds = new Set(existing?.map(e => e.lesson_id) || []);
-
-      // Create migration records for new lessons only
-      const newRecords = lessons
+      const newRecords = allLessons
         .filter(l => !existingIds.has(l.id))
         .map(l => ({
           lesson_id: l.id,
@@ -107,11 +131,15 @@ serve(async (req) => {
           status: "pending",
         }));
 
+      // Insert in batches of 500
       if (newRecords.length > 0) {
-        const { error: insertError } = await supabase
-          .from("video_migrations")
-          .insert(newRecords);
-        if (insertError) throw insertError;
+        for (let i = 0; i < newRecords.length; i += 500) {
+          const chunk = newRecords.slice(i, i + 500);
+          const { error: insertError } = await supabase
+            .from("video_migrations")
+            .insert(chunk);
+          if (insertError) throw insertError;
+        }
       }
 
       return jsonResponse({
@@ -119,13 +147,23 @@ serve(async (req) => {
         message: `Prepared ${newRecords.length} new videos for migration (${existingIds.size} already tracked)`,
         prepared: newRecords.length,
         alreadyTracked: existingIds.size,
-        totalDriveVideos: lessons.length,
+        totalDriveVideos: allLessons.length,
       });
+    }
+
+    // ACTION: Create folder on LuluStream
+    if (action === "create-folder") {
+      const { folderName, parentId } = await req.json().catch(() => ({}));
+      let url = `${LULUSTREAM_API_BASE}/folder/create?key=${LULUSTREAM_API_KEY}&name=${encodeURIComponent(folderName || "Courses")}`;
+      if (parentId) url += `&parent_id=${parentId}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      return jsonResponse({ success: true, folder: data });
     }
 
     // ACTION: Start migration - process pending videos in batch
     if (action === "migrate") {
-      const batchSize = 5; // Process 5 at a time (LuluStream remote upload is async on their end)
+      const batchSize = Math.min(customBatchSize || 10, 20);
 
       let query = supabase
         .from("video_migrations")
@@ -133,8 +171,8 @@ serve(async (req) => {
         .eq("status", "pending")
         .limit(batchSize);
 
-      if (courseId) {
-        query = query.eq("course_id", courseId);
+      if (filterCourseIds.length > 0) {
+        query = query.in("course_id", filterCourseIds);
       }
 
       const { data: pending, error: pendingError } = await query;
@@ -144,47 +182,56 @@ serve(async (req) => {
         return jsonResponse({ success: true, message: "No pending migrations", processed: 0 });
       }
 
+      // Get course titles for folder naming
+      const uniqueCourseIds = [...new Set(pending.map(p => p.course_id).filter(Boolean))];
+      let courseTitleMap: Record<string, string> = {};
+      if (uniqueCourseIds.length > 0) {
+        const { data: courses } = await supabase
+          .from("courses")
+          .select("id, title")
+          .in("id", uniqueCourseIds);
+        courses?.forEach(c => { courseTitleMap[c.id] = c.title; });
+      }
+
       let processed = 0;
       let failed = 0;
 
       for (const migration of pending) {
         try {
-          // Mark as uploading
           await supabase
             .from("video_migrations")
             .update({ status: "uploading", updated_at: new Date().toISOString() })
             .eq("id", migration.id);
 
-          // Extract Google Drive file ID
           const fileId = extractFileId(migration.original_url);
           if (!fileId) throw new Error("Could not extract file ID from URL");
 
-          // Get file name from Google Drive
           const fileInfoRes = await fetch(
             `https://www.googleapis.com/drive/v3/files/${fileId}?key=${GOOGLE_API_KEY}&fields=name,size`
           );
           const fileInfo = await fileInfoRes.json();
           const fileName = fileInfo.name || "video";
 
-          // Create a direct download URL for Google Drive
           const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${GOOGLE_API_KEY}`;
 
-          // Send remote upload request to LuluStream
+          // Build upload URL with course folder name as title prefix for organization
+          const courseTitle = migration.course_id ? courseTitleMap[migration.course_id] || "" : "";
+          const organizedTitle = courseTitle ? `[${courseTitle}] ${fileName}` : fileName;
+
           const uploadRes = await fetch(
-            `${LULUSTREAM_API_BASE}/upload/url?key=${LULUSTREAM_API_KEY}&url=${encodeURIComponent(downloadUrl)}&new_title=${encodeURIComponent(fileName)}`
+            `${LULUSTREAM_API_BASE}/upload/url?key=${LULUSTREAM_API_KEY}&url=${encodeURIComponent(downloadUrl)}&new_title=${encodeURIComponent(organizedTitle)}`
           );
           const uploadData = await uploadRes.json();
 
-          console.log(`LuluStream upload response for ${fileName}:`, JSON.stringify(uploadData));
+          console.log(`LuluStream upload response for ${organizedTitle}:`, JSON.stringify(uploadData));
 
           if (uploadData.status === 200 && uploadData.result) {
-            // Remote upload queued successfully - LuluStream will download in background
             const fileCode = uploadData.result.filecode || uploadData.result.file_code || "";
 
             await supabase
               .from("video_migrations")
               .update({
-                status: "uploading", // Still uploading on LuluStream's end
+                status: "uploading",
                 lulustream_file_code: fileCode,
                 updated_at: new Date().toISOString(),
               })
@@ -219,7 +266,6 @@ serve(async (req) => {
 
     // ACTION: Check remote upload status and update completed ones
     if (action === "check-progress") {
-      // Get all migrations that are in "uploading" state
       const { data: uploading } = await supabase
         .from("video_migrations")
         .select("id, lesson_id, lulustream_file_code")
@@ -229,7 +275,6 @@ serve(async (req) => {
         return jsonResponse({ success: true, message: "No uploads in progress", checked: 0 });
       }
 
-      // Check remote upload status on LuluStream
       const statusRes = await fetch(
         `${LULUSTREAM_API_BASE}/urlupload/list?key=${LULUSTREAM_API_KEY}`
       );
@@ -242,28 +287,20 @@ serve(async (req) => {
         const remoteUploads = statusData.result;
 
         for (const migration of uploading) {
-          // Find matching remote upload by file code
           const match = remoteUploads.find((r: any) =>
             r.filecode === migration.lulustream_file_code ||
             r.file_code === migration.lulustream_file_code
           );
 
-          if (match && (match.status === "completed" || match.status === "working" && match.bytes_loaded === match.bytes_total && match.bytes_total > 0)) {
-            // Upload completed - get the embed URL
+          if (match && (match.status === "completed" || (match.status === "working" && match.bytes_loaded === match.bytes_total && match.bytes_total > 0))) {
             const fileCode = migration.lulustream_file_code;
             const embedUrl = `https://lulustream.com/e/${fileCode}`;
 
-            // Update migration record
             await supabase
               .from("video_migrations")
-              .update({
-                status: "completed",
-                lulustream_embed_url: embedUrl,
-                updated_at: new Date().toISOString(),
-              })
+              .update({ status: "completed", lulustream_embed_url: embedUrl, updated_at: new Date().toISOString() })
               .eq("id", migration.id);
 
-            // Update the lesson's video URL to LuluStream embed
             await supabase
               .from("lessons")
               .update({ video_url: embedUrl })
@@ -276,8 +313,7 @@ serve(async (req) => {
         }
       }
 
-      // Also check if any file_codes that aren't in remote list might already be done
-      // Try getting file info directly
+      // Double-check via file info API
       for (const migration of uploading) {
         if (!migration.lulustream_file_code) continue;
 
@@ -292,11 +328,7 @@ serve(async (req) => {
 
             await supabase
               .from("video_migrations")
-              .update({
-                status: "completed",
-                lulustream_embed_url: embedUrl,
-                updated_at: new Date().toISOString(),
-              })
+              .update({ status: "completed", lulustream_embed_url: embedUrl, updated_at: new Date().toISOString() })
               .eq("id", migration.id);
 
             await supabase
@@ -308,27 +340,61 @@ serve(async (req) => {
             stillUploading = Math.max(0, stillUploading - 1);
           }
         } catch {
-          // Ignore - file might not be ready yet
+          // File not ready yet
         }
       }
 
-      return jsonResponse({
-        success: true,
-        checked: uploading.length,
-        completed,
-        stillUploading,
-      });
+      return jsonResponse({ success: true, checked: uploading.length, completed, stillUploading });
     }
 
     // ACTION: Retry failed migrations
     if (action === "retry-failed") {
-      const { error } = await supabase
+      let query = supabase
         .from("video_migrations")
         .update({ status: "pending", error_message: null, updated_at: new Date().toISOString() })
         .eq("status", "failed");
 
+      if (filterCourseIds.length > 0) {
+        query = query.in("course_id", filterCourseIds);
+      }
+
+      const { error } = await query;
       if (error) throw error;
       return jsonResponse({ success: true, message: "Failed migrations reset to pending" });
+    }
+
+    // ACTION: Get per-course breakdown
+    if (action === "course-stats") {
+      const allMigrations: any[] = [];
+      let offset = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data: batch } = await supabase
+          .from("video_migrations")
+          .select("status, course_id")
+          .range(offset, offset + pageSize - 1);
+        
+        if (batch && batch.length > 0) {
+          allMigrations.push(...batch);
+          offset += pageSize;
+          hasMore = batch.length === pageSize;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      // Group by course_id
+      const courseMap: Record<string, { total: number; pending: number; uploading: number; completed: number; failed: number }> = {};
+      for (const m of allMigrations) {
+        const cid = m.course_id || "unknown";
+        if (!courseMap[cid]) courseMap[cid] = { total: 0, pending: 0, uploading: 0, completed: 0, failed: 0 };
+        courseMap[cid].total++;
+        courseMap[cid][m.status as keyof typeof courseMap[string]]++;
+      }
+
+      return jsonResponse({ success: true, courseStats: courseMap });
     }
 
     return jsonResponse({ success: false, error: "Invalid action" }, 400);
