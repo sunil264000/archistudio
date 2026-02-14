@@ -162,7 +162,7 @@ serve(async (req) => {
         .eq("status", "failed")
         .or("error_message.ilike.%limit%,error_message.ilike.%queue%,error_message.ilike.%already%");
 
-      // KEY FIX: Only 10 per batch to stay under 60 req/min (each upload = 1 API call + DB calls)
+      // Only 10 per batch to stay under 60 req/min
       const batchSize = Math.min(customBatchSize || 10, 10, 95 - currentUploading);
 
       // Auto-prepare: find Drive lessons without migration records
@@ -211,12 +211,18 @@ serve(async (req) => {
 
       // SEQUENTIAL processing with delay to respect 60 req/min
       let processed = 0, failed = 0;
+      let hitDailyLimit = false;
       for (const migration of pending) {
+        if (hitDailyLimit) {
+          // Skip remaining, don't mark as failed
+          break;
+        }
         try {
           const fileId = extractFileId(migration.original_url);
           if (!fileId) throw new Error("Could not extract file ID");
 
-          const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${GOOGLE_API_KEY}`;
+          // Use direct download link - works for files shared with "anyone with link"
+          const downloadUrl = `https://drive.google.com/uc?id=${fileId}&export=download&confirm=t`;
           const courseTitle = migration.course_id ? courseTitleMap[migration.course_id] || "" : "";
           const organizedTitle = courseTitle ? `[${courseTitle}] ${fileId}` : fileId;
 
@@ -232,9 +238,20 @@ serve(async (req) => {
               .eq("id", migration.id);
             processed++;
           } else {
-            throw new Error(uploadData.msg || "LuluStream API error");
+            const errMsg = uploadData.msg || "LuluStream API error";
+            // Detect daily limit hit — stop sending more, don't mark as failed
+            if (errMsg.toLowerCase().includes("limit") || errMsg.toLowerCase().includes("max url")) {
+              hitDailyLimit = true;
+              console.log("Daily URL upload limit reached, stopping batch");
+              break;
+            }
+            throw new Error(errMsg);
           }
         } catch (err: any) {
+          if (err.message?.toLowerCase().includes("limit")) {
+            hitDailyLimit = true;
+            break;
+          }
           await supabase.from("video_migrations")
             .update({ status: "failed", error_message: err.message, updated_at: new Date().toISOString() })
             .eq("id", migration.id);
@@ -244,14 +261,24 @@ serve(async (req) => {
         await delay(1500);
       }
 
-      return jsonResponse({ success: true, message: `Processed ${processed}, failed ${failed} (${currentUploading} already uploading)`, processed, failed, currentUploading });
+      const msg = hitDailyLimit 
+        ? `Daily limit reached after ${processed} uploads. Will resume tomorrow automatically.`
+        : `Processed ${processed}, failed ${failed} (${currentUploading} already uploading)`;
+
+      return jsonResponse({ success: true, message: msg, processed, failed, currentUploading, hitDailyLimit });
     }
 
     // ACTION: Check remote upload status — RATE-LIMIT SAFE: checks max 20 files per run
     if (action === "check-progress") {
+      // Auto-reset uploads stuck for more than 20 minutes
+      await supabase.from("video_migrations")
+        .update({ status: "pending", lulustream_file_code: null, error_message: "Auto-reset: stuck >20min", updated_at: new Date().toISOString() })
+        .eq("status", "uploading")
+        .lt("updated_at", new Date(Date.now() - 20 * 60 * 1000).toISOString());
+
       const { data: uploading } = await supabase
         .from("video_migrations")
-        .select("id, lesson_id, lulustream_file_code")
+        .select("id, lesson_id, lulustream_file_code, updated_at")
         .eq("status", "uploading")
         .limit(30);
 
@@ -359,6 +386,30 @@ serve(async (req) => {
         if (courseMap[cid][m.status] !== undefined) courseMap[cid][m.status]++;
       }
       return jsonResponse({ success: true, courseStats: courseMap });
+    }
+
+    // ACTION: Clear LuluStream remote upload queue
+    if (action === "clear-queue") {
+      // Get the remote upload list
+      const listRes = await fetch(`${LULUSTREAM_API_BASE}/urlupload/list?key=${LULUSTREAM_API_KEY}`);
+      const listData = await listRes.json();
+      let removed = 0;
+      
+      if (listData.status === 200 && listData.result && Array.isArray(listData.result)) {
+        for (const item of listData.result) {
+          const fileCode = item.filecode || item.file_code;
+          if (fileCode) {
+            try {
+              // Try to remove from queue
+              await fetch(`${LULUSTREAM_API_BASE}/urlupload/remove?key=${LULUSTREAM_API_KEY}&file_code=${fileCode}`);
+              removed++;
+              await delay(500);
+            } catch {}
+          }
+        }
+      }
+      
+      return jsonResponse({ success: true, message: `Cleared ${removed} items from LuluStream queue`, removed, queueItems: listData.result?.length || 0 });
     }
 
     // ACTION: Account info
