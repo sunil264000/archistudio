@@ -57,17 +57,19 @@ export function Certificates() {
 
     setGenerating(cert.id);
     try {
-      // First ensure the certificate record exists via POST
-      const { error } = await supabase.functions.invoke('generate-certificate', {
+      const { data, error } = await supabase.functions.invoke('generate-certificate', {
         body: { certificateId: cert.id },
       });
 
       if (error) throw error;
       
-      // Open the edge function URL directly (not blob) so fonts load properly
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const directUrl = `${supabaseUrl}/functions/v1/generate-certificate?certificateId=${cert.id}`;
-      window.open(directUrl, '_blank');
+      const html = typeof data === 'string' ? data : '';
+      if (!html) throw new Error('Empty certificate response');
+      const win = window.open('', '_blank');
+      if (win) {
+        win.document.write(html);
+        win.document.close();
+      }
       toast.success('Certificate opened! Use Ctrl+P to save as PDF.');
     } catch (error) {
       toast.error('Failed to generate certificate');
