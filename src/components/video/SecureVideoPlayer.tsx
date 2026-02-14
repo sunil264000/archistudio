@@ -38,6 +38,10 @@ export function SecureVideoPlayer({
     () => /drive\.google\.com|docs\.google\.com/i.test(videoPath || ''),
     [videoPath],
   );
+  const isLuluStreamUrl = useMemo(
+    () => /lulustream\.com/i.test(videoPath || ''),
+    [videoPath],
+  );
 
   useEffect(() => {
     const fetchVideoUrl = async () => {
@@ -53,6 +57,12 @@ export function SecureVideoPlayer({
 
         // External hosts: only allow if explicitly enabled.
         if (isExternalUrl) {
+          // LuluStream embed URLs — always allow, render as iframe
+          if (isLuluStreamUrl) {
+            setVideoUrl(videoPath);
+            return;
+          }
+
           if (!allowExternal) {
             setVideoUrl(null);
             setError('This video is hosted externally and is disabled for this lesson.');
@@ -209,6 +219,21 @@ export function SecureVideoPlayer({
             If you're the admin, please upload the video in the Admin Panel → Lessons section.
           </p>
         </div>
+      </div>
+    );
+  }
+
+  // LuluStream: render as iframe embed
+  if (isLuluStreamUrl && videoUrl) {
+    return (
+      <div className="aspect-video rounded-lg overflow-hidden bg-black">
+        <iframe
+          src={videoUrl}
+          className="w-full h-full border-0"
+          allowFullScreen
+          allow="autoplay; encrypted-media; picture-in-picture"
+          sandbox="allow-scripts allow-same-origin allow-popups"
+        />
       </div>
     );
   }

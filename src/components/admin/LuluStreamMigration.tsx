@@ -7,7 +7,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Cloud, Play, RefreshCw, Loader2, CheckCircle, XCircle, AlertTriangle, FolderOpen, Zap, DatabaseZap } from "lucide-react";
+import { Cloud, Play, RefreshCw, Loader2, CheckCircle, XCircle, AlertTriangle, FolderOpen, Zap, DatabaseZap, Timer, TimerOff } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface MigrationStats {
   total: number;
@@ -29,6 +31,8 @@ export function LuluStreamMigration() {
   const [autoMigrate, setAutoMigrate] = useState(false);
   const [batchSize, setBatchSize] = useState(50);
   const [courseStats, setCourseStats] = useState<Record<string, MigrationStats>>({});
+  const [cronEnabled, setCronEnabled] = useState<boolean | null>(null);
+  const [cronLoading, setCronLoading] = useState(false);
 
   const courseIdsParam = selectedCourses.length > 0 ? selectedCourses : undefined;
 
@@ -59,11 +63,54 @@ export function LuluStreamMigration() {
     if (data) setCourses(data);
   }, []);
 
+  const fetchCronStatus = useCallback(async () => {
+    try {
+      const { data } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "lulustream_cron_enabled")
+        .maybeSingle();
+      setCronEnabled(data?.value === "true");
+    } catch {
+      setCronEnabled(false);
+    }
+  }, []);
+
+  const toggleCron = async () => {
+    setCronLoading(true);
+    try {
+      const newValue = !cronEnabled;
+      const { data: existing } = await supabase
+        .from("site_settings")
+        .select("id")
+        .eq("key", "lulustream_cron_enabled")
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from("site_settings")
+          .update({ value: String(newValue), updated_at: new Date().toISOString() })
+          .eq("key", "lulustream_cron_enabled");
+      } else {
+        await supabase
+          .from("site_settings")
+          .insert({ key: "lulustream_cron_enabled", value: String(newValue), description: "Enable/disable background LuluStream migration cron jobs" });
+      }
+      setCronEnabled(newValue);
+      toast.success(newValue ? "Background migration ENABLED — videos will migrate automatically" : "Background migration DISABLED — cron jobs paused");
+    } catch (err: any) {
+      toast.error("Failed to update cron setting");
+    } finally {
+      setCronLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchStats();
     fetchCourses();
     fetchCourseStats();
-  }, [fetchStats, fetchCourses, fetchCourseStats]);
+    fetchCronStatus();
+  }, [fetchStats, fetchCourses, fetchCourseStats, fetchCronStatus]);
 
   useEffect(() => {
     fetchStats();
@@ -239,12 +286,37 @@ export function LuluStreamMigration() {
             </div>
           )}
 
+          {/* Background Cron Toggle */}
+          <div className="p-4 border rounded-lg space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {cronEnabled ? <Timer className="h-5 w-5 text-green-500" /> : <TimerOff className="h-5 w-5 text-muted-foreground" />}
+                <div>
+                  <Label className="text-sm font-semibold">Background Auto-Migration</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Runs in the backend every 2 min — no browser needed. Migrates 50 videos/batch & checks progress automatically.
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={cronEnabled ?? false}
+                onCheckedChange={toggleCron}
+                disabled={cronLoading || cronEnabled === null}
+              />
+            </div>
+            {cronEnabled && (
+              <div className="p-3 bg-green-500/10 rounded-md text-sm flex items-center gap-2 text-green-700 dark:text-green-400">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span><strong>Background migration active.</strong> You can close your browser — videos are migrating automatically.</span>
+              </div>
+            )}
+          </div>
+
           {autoMigrate && (
             <div className="p-3 bg-primary/10 rounded-md text-sm flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
               <div>
-                <strong>Auto-migration running.</strong> Sending batches of {batchSize} every 12 seconds.
-                Lesson URLs are automatically updated once LuluStream finishes processing.
+                <strong>Browser auto-migration running.</strong> Sending batches of {batchSize} every 65 seconds.
               </div>
             </div>
           )}
