@@ -122,6 +122,36 @@ serve(async (req) => {
       action_url: "/dashboard",
     });
 
+    // Send certificate email
+    try {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("user_id", userId)
+        .single();
+
+      const { data: courseData } = await supabase
+        .from("courses")
+        .select("title")
+        .eq("id", courseId)
+        .single();
+
+      if (profileData?.email) {
+        await supabase.functions.invoke("send-certificate-email", {
+          body: {
+            email: profileData.email,
+            name: profileData.full_name || "Student",
+            courseName: courseData?.title || "Studio Program",
+            certificateNumber: certificateNumber,
+            issueDate: new Date().toISOString(),
+          },
+        });
+        console.log("Certificate email sent to:", profileData.email);
+      }
+    } catch (emailErr) {
+      console.error("Failed to send certificate email (non-blocking):", emailErr);
+    }
+
     return new Response(
       JSON.stringify({
         completed: true,
