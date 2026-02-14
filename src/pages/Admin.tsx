@@ -32,6 +32,7 @@ import { LaunchFreeCourseManagement } from '@/components/admin/LaunchFreeCourseM
 import { RealtimeAnalytics } from '@/components/admin/RealtimeAnalytics';
 import { RoleManagement } from '@/components/admin/RoleManagement';
 import { EmailLogs } from '@/components/admin/EmailLogs';
+import { AutoFixLogs } from '@/components/admin/AutoFixLogs';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
@@ -108,6 +109,8 @@ export default function Admin() {
         return <RoleManagement />;
       case 'email-logs':
         return <EmailLogs />;
+      case 'auto-fix-logs':
+        return <AutoFixLogs />;
       case 'courses':
         return <CourseManagement />;
       case 'bundles':
