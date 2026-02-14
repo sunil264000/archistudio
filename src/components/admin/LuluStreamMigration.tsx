@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Cloud, Play, RefreshCw, Loader2, CheckCircle, XCircle, Upload, AlertTriangle } from "lucide-react";
+import { Cloud, Play, RefreshCw, Loader2, CheckCircle, XCircle, Upload, AlertTriangle, FolderOpen, Zap } from "lucide-react";
 
 interface MigrationStats {
   total: number;
@@ -19,21 +20,36 @@ interface MigrationStats {
 export function LuluStreamMigration() {
   const [stats, setStats] = useState<MigrationStats>({ total: 0, pending: 0, uploading: 0, completed: 0, failed: 0 });
   const [courses, setCourses] = useState<{ id: string; title: string }[]>([]);
-  const [selectedCourse, setSelectedCourse] = useState<string>("all");
+  const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
   const [isPreparing, setIsPreparing] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [autoMigrate, setAutoMigrate] = useState(false);
+  const [batchSize, setBatchSize] = useState(10);
+  const [courseStats, setCourseStats] = useState<Record<string, MigrationStats>>({});
+
+  const courseIdsParam = selectedCourses.length > 0 ? selectedCourses : undefined;
 
   const fetchStats = useCallback(async () => {
     try {
       const { data } = await supabase.functions.invoke("migrate-to-lulustream", {
-        body: { action: "status" },
+        body: { action: "status", courseIds: courseIdsParam },
       });
       if (data?.success) setStats(data.counts);
     } catch (err) {
       console.error("Failed to fetch stats:", err);
+    }
+  }, [courseIdsParam]);
+
+  const fetchCourseStats = useCallback(async () => {
+    try {
+      const { data } = await supabase.functions.invoke("migrate-to-lulustream", {
+        body: { action: "course-stats" },
+      });
+      if (data?.success) setCourseStats(data.courseStats);
+    } catch (err) {
+      console.error("Failed to fetch course stats:", err);
     }
   }, []);
 
@@ -45,28 +61,29 @@ export function LuluStreamMigration() {
   useEffect(() => {
     fetchStats();
     fetchCourses();
-  }, [fetchStats, fetchCourses]);
+    fetchCourseStats();
+  }, [fetchStats, fetchCourses, fetchCourseStats]);
+
+  // Re-fetch stats when selection changes
+  useEffect(() => {
+    fetchStats();
+  }, [selectedCourses, fetchStats]);
 
   // Auto-migration loop
   useEffect(() => {
     if (!autoMigrate) return;
 
     const interval = setInterval(async () => {
-      // Send batch for migration
       if (stats.pending > 0) {
         try {
-          const { data } = await supabase.functions.invoke("migrate-to-lulustream", {
-            body: { action: "migrate", courseId: selectedCourse === "all" ? undefined : selectedCourse },
+          await supabase.functions.invoke("migrate-to-lulustream", {
+            body: { action: "migrate", courseIds: courseIdsParam, batchSize },
           });
-          if (data?.success) {
-            console.log(`Auto-migrate batch: ${data.message}`);
-          }
         } catch (err) {
           console.error("Auto-migrate error:", err);
         }
       }
 
-      // Check progress of uploads
       if (stats.uploading > 0) {
         try {
           await supabase.functions.invoke("migrate-to-lulustream", {
@@ -77,29 +94,28 @@ export function LuluStreamMigration() {
         }
       }
 
-      // Refresh stats
       await fetchStats();
 
-      // Stop if everything is done
       if (stats.pending === 0 && stats.uploading === 0) {
         setAutoMigrate(false);
         toast.success("Migration complete! All videos have been processed.");
       }
-    }, 15000); // Every 15 seconds
+    }, 12000);
 
     return () => clearInterval(interval);
-  }, [autoMigrate, stats, selectedCourse, fetchStats]);
+  }, [autoMigrate, stats, courseIdsParam, batchSize, fetchStats]);
 
   const handlePrepare = async () => {
     setIsPreparing(true);
     try {
       const { data, error } = await supabase.functions.invoke("migrate-to-lulustream", {
-        body: { action: "prepare", courseId: selectedCourse === "all" ? undefined : selectedCourse },
+        body: { action: "prepare", courseIds: courseIdsParam },
       });
       if (error) throw error;
       if (data?.success) {
         toast.success(data.message);
         await fetchStats();
+        await fetchCourseStats();
       } else {
         throw new Error(data?.error);
       }
@@ -114,7 +130,7 @@ export function LuluStreamMigration() {
     setIsMigrating(true);
     try {
       const { data, error } = await supabase.functions.invoke("migrate-to-lulustream", {
-        body: { action: "migrate", courseId: selectedCourse === "all" ? undefined : selectedCourse },
+        body: { action: "migrate", courseIds: courseIdsParam, batchSize },
       });
       if (error) throw error;
       if (data?.success) {
@@ -152,7 +168,7 @@ export function LuluStreamMigration() {
     setIsRetrying(true);
     try {
       const { data, error } = await supabase.functions.invoke("migrate-to-lulustream", {
-        body: { action: "retry-failed" },
+        body: { action: "retry-failed", courseIds: courseIdsParam },
       });
       if (error) throw error;
       if (data?.success) {
@@ -166,114 +182,223 @@ export function LuluStreamMigration() {
     }
   };
 
+  const toggleCourse = (courseId: string) => {
+    setSelectedCourses(prev =>
+      prev.includes(courseId) ? prev.filter(id => id !== courseId) : [...prev, courseId]
+    );
+  };
+
+  const selectAllCourses = () => {
+    if (selectedCourses.length === courses.length) {
+      setSelectedCourses([]);
+    } else {
+      setSelectedCourses(courses.map(c => c.id));
+    }
+  };
+
   const progressPercent = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Cloud className="h-5 w-5" />
-          LuluStream Video Migration
-        </CardTitle>
-        <CardDescription>
-          Migrate videos from Google Drive to LuluStream for smooth HLS streaming with unlimited storage.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Course Filter */}
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium">Course:</span>
-          <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-            <SelectTrigger className="w-[300px]">
-              <SelectValue placeholder="All courses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Courses</SelectItem>
-              {courses.map(c => (
-                <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="space-y-6">
+      {/* Stats Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Cloud className="h-5 w-5" />
+            LuluStream Video Migration
+          </CardTitle>
+          <CardDescription>
+            Migrate videos from Google Drive to LuluStream. Videos are auto-linked to lessons and organized by course.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <StatBadge label="Total" count={stats.total} variant="secondary" />
+            <StatBadge label="Pending" count={stats.pending} variant="outline" />
+            <StatBadge label="Uploading" count={stats.uploading} variant="default" />
+            <StatBadge label="Completed" count={stats.completed} variant="secondary" icon={<CheckCircle className="h-3 w-3 text-green-500" />} />
+            <StatBadge label="Failed" count={stats.failed} variant="destructive" icon={<XCircle className="h-3 w-3" />} />
+          </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <StatBadge label="Total" count={stats.total} variant="secondary" />
-          <StatBadge label="Pending" count={stats.pending} variant="outline" />
-          <StatBadge label="Uploading" count={stats.uploading} variant="default" />
-          <StatBadge label="Completed" count={stats.completed} variant="secondary" icon={<CheckCircle className="h-3 w-3 text-green-500" />} />
-          <StatBadge label="Failed" count={stats.failed} variant="destructive" icon={<XCircle className="h-3 w-3" />} />
-        </div>
-
-        {/* Progress Bar */}
-        {stats.total > 0 && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Migration Progress</span>
-              <span>{progressPercent}%</span>
+          {/* Progress Bar */}
+          {stats.total > 0 && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Migration Progress</span>
+                <span>{stats.completed}/{stats.total} ({progressPercent}%)</span>
+              </div>
+              <Progress value={progressPercent} className="h-3" />
             </div>
-            <Progress value={progressPercent} className="h-3" />
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex flex-wrap gap-3">
-          <Button onClick={handlePrepare} disabled={isPreparing} variant="outline">
-            {isPreparing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-            {isPreparing ? "Scanning..." : "1. Prepare Migration"}
-          </Button>
-
-          <Button onClick={handleMigrateBatch} disabled={isMigrating || stats.pending === 0} variant="outline">
-            {isMigrating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
-            {isMigrating ? "Sending..." : "2. Send Batch (5)"}
-          </Button>
-
-          <Button onClick={handleCheckProgress} disabled={isChecking || stats.uploading === 0} variant="outline">
-            {isChecking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-            {isChecking ? "Checking..." : "3. Check Progress"}
-          </Button>
-
-          <Button
-            onClick={() => setAutoMigrate(!autoMigrate)}
-            variant={autoMigrate ? "destructive" : "default"}
-            disabled={stats.pending === 0 && stats.uploading === 0}
-          >
-            {autoMigrate ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Stop Auto-Migrate
-              </>
-            ) : (
-              <>
-                <Play className="mr-2 h-4 w-4" />
-                Auto-Migrate All
-              </>
-            )}
-          </Button>
-        </div>
-
-        {/* Retry + Refresh */}
-        <div className="flex gap-3">
-          {stats.failed > 0 && (
-            <Button onClick={handleRetryFailed} disabled={isRetrying} variant="outline" size="sm">
-              {isRetrying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <AlertTriangle className="mr-2 h-4 w-4" />}
-              Retry Failed ({stats.failed})
-            </Button>
           )}
-          <Button onClick={fetchStats} variant="ghost" size="sm">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh Stats
-          </Button>
-        </div>
 
-        {autoMigrate && (
-          <div className="p-3 bg-primary/10 rounded-md text-sm">
-            <strong>Auto-migration is running.</strong> Videos are being sent to LuluStream in batches of 5 every 15 seconds.
-            Lesson URLs will be automatically updated once LuluStream finishes processing each video.
+          {autoMigrate && (
+            <div className="p-3 bg-primary/10 rounded-md text-sm flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <div>
+                <strong>Auto-migration running.</strong> Sending batches of {batchSize} every 12 seconds. 
+                Lesson URLs are automatically updated once LuluStream finishes processing.
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Course Selection Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FolderOpen className="h-4 w-4" />
+            Select Courses to Migrate
+          </CardTitle>
+          <CardDescription>
+            Choose specific courses or select all. Leave empty to process everything.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={selectAllCourses}>
+              {selectedCourses.length === courses.length ? "Deselect All" : "Select All"}
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {selectedCourses.length === 0
+                ? "All courses (no filter)"
+                : `${selectedCourses.length} course${selectedCourses.length > 1 ? "s" : ""} selected`}
+            </span>
+            {selectedCourses.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => setSelectedCourses([])}>
+                Clear
+              </Button>
+            )}
           </div>
-        )}
-      </CardContent>
-    </Card>
+          <ScrollArea className="h-[240px] border rounded-md p-3">
+            <div className="space-y-2">
+              {courses.map(course => {
+                const cs = courseStats[course.id];
+                return (
+                  <label
+                    key={course.id}
+                    className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors"
+                  >
+                    <Checkbox
+                      checked={selectedCourses.includes(course.id)}
+                      onCheckedChange={() => toggleCourse(course.id)}
+                    />
+                    <span className="flex-1 text-sm truncate">{course.title}</span>
+                    {cs && (
+                      <div className="flex items-center gap-1.5 text-xs shrink-0">
+                        {cs.completed > 0 && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                            ✅ {cs.completed}
+                          </Badge>
+                        )}
+                        {cs.pending > 0 && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            ⏳ {cs.pending}
+                          </Badge>
+                        )}
+                        {cs.uploading > 0 && (
+                          <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                            ⬆ {cs.uploading}
+                          </Badge>
+                        )}
+                        {cs.failed > 0 && (
+                          <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                            ❌ {cs.failed}
+                          </Badge>
+                        )}
+                        {!cs.total && (
+                          <span className="text-muted-foreground">Not prepared</span>
+                        )}
+                      </div>
+                    )}
+                    {!cs && (
+                      <span className="text-xs text-muted-foreground">Not prepared</span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+
+      {/* Actions Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Zap className="h-4 w-4" />
+            Migration Actions
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Batch size control */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">Batch Size:</span>
+            {[5, 10, 15, 20].map(size => (
+              <Button
+                key={size}
+                variant={batchSize === size ? "default" : "outline"}
+                size="sm"
+                onClick={() => setBatchSize(size)}
+              >
+                {size}
+              </Button>
+            ))}
+          </div>
+
+          {/* Main actions */}
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={handlePrepare} disabled={isPreparing} variant="outline">
+              {isPreparing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+              {isPreparing ? "Scanning all videos..." : "1. Prepare Migration"}
+            </Button>
+
+            <Button onClick={handleMigrateBatch} disabled={isMigrating || stats.pending === 0} variant="outline">
+              {isMigrating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+              {isMigrating ? "Sending..." : `2. Send Batch (${batchSize})`}
+            </Button>
+
+            <Button onClick={handleCheckProgress} disabled={isChecking || stats.uploading === 0} variant="outline">
+              {isChecking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              {isChecking ? "Checking..." : "3. Check Progress"}
+            </Button>
+
+            <Button
+              onClick={() => setAutoMigrate(!autoMigrate)}
+              variant={autoMigrate ? "destructive" : "default"}
+              disabled={stats.pending === 0 && stats.uploading === 0 && !autoMigrate}
+            >
+              {autoMigrate ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Stop Auto-Migrate
+                </>
+              ) : (
+                <>
+                  <Play className="mr-2 h-4 w-4" />
+                  Auto-Migrate All
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Secondary actions */}
+          <div className="flex gap-3">
+            {stats.failed > 0 && (
+              <Button onClick={handleRetryFailed} disabled={isRetrying} variant="outline" size="sm">
+                {isRetrying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <AlertTriangle className="mr-2 h-4 w-4" />}
+                Retry Failed ({stats.failed})
+              </Button>
+            )}
+            <Button onClick={() => { fetchStats(); fetchCourseStats(); }} variant="ghost" size="sm">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh Stats
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
