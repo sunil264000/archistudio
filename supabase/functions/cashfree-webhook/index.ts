@@ -18,11 +18,11 @@ async function verifyWebhookSignature(
     return false;
   }
 
-  // Check timestamp is not too old (5 minutes)
+  // Check timestamp is not too old (30 minutes - generous to handle clock skew & retries)
   const webhookTime = parseInt(timestamp, 10);
   const currentTime = Math.floor(Date.now() / 1000);
-  if (Math.abs(currentTime - webhookTime) > 300) {
-    console.error("Webhook timestamp too old");
+  if (Math.abs(currentTime - webhookTime) > 1800) {
+    console.error("Webhook timestamp too old", { webhookTime, currentTime, diff: Math.abs(currentTime - webhookTime) });
     return false;
   }
 

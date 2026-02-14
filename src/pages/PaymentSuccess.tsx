@@ -71,7 +71,6 @@ const PaymentSuccess = () => {
             customerEmail: metadata.customer_email || "",
           });
           
-          // Track purchase event in GA4
           analytics.purchase(
             orderId,
             slug || payment.course_id || '',
@@ -81,16 +80,47 @@ const PaymentSuccess = () => {
         } else if (payment?.status === "failed") {
           setStatus("failed");
         } else {
-          // Payment still pending
+          // Payment still pending - try server-side verification with Cashfree
           retryCount.current += 1;
           
           if (retryCount.current >= MAX_RETRY_COUNT) {
-            // After max retries, treat as cancelled/timeout
+            // Last attempt: use server-side Cashfree API verification
+            try {
+              const { data: verifyResult } = await supabase.functions.invoke("verify-payment", {
+                body: { orderId },
+              });
+              
+              if (verifyResult?.status === "completed") {
+                // Re-run to pick up updated data
+                retryCount.current = 0;
+                setTimeout(verifyPayment, 1000);
+                return;
+              }
+            } catch (e) {
+              console.error("Server verify failed:", e);
+            }
+            
             setStatus("cancelled");
             return;
           }
           
-          // Wait and retry
+          // On retry 5 and 10, also try server-side verification
+          if (retryCount.current === 5 || retryCount.current === 10) {
+            try {
+              const { data: verifyResult } = await supabase.functions.invoke("verify-payment", {
+                body: { orderId },
+              });
+              
+              if (verifyResult?.status === "completed") {
+                retryCount.current = 0;
+                setTimeout(verifyPayment, 1000);
+                return;
+              }
+            } catch (e) {
+              console.error("Server verify failed:", e);
+            }
+          }
+          
           setTimeout(verifyPayment, 2000);
         }
       } catch (error) {
@@ -110,7 +140,7 @@ const PaymentSuccess = () => {
       setRedirectCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          navigate(`/course-player/${courseSlug}`);
+          navigate(`/learn/${courseSlug}`);
           return 0;
         }
         return prev - 1;
@@ -273,7 +303,7 @@ const PaymentSuccess = () => {
                 className="flex flex-col sm:flex-row gap-4"
               >
                 <Button asChild size="lg" className="flex-1">
-                  <Link to={`/course-player/${courseSlug}`}>
+                  <Link to={`/learn/${courseSlug}`}>
                     <Play className="h-4 w-4 mr-2" />
                     Start Learning Now
                     <ArrowRight className="h-4 w-4 ml-2" />
