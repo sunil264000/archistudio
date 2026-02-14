@@ -1,5 +1,8 @@
 project_id = "ddvfcymvhnlvqcbhozpc"
 
+[functions.generate-certificate]
+verify_jwt = false
+
 [functions.verify-certificate]
 verify_jwt = false
 
