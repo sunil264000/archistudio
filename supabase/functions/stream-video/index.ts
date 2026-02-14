@@ -114,32 +114,69 @@ function isGoogleDriveUrl(url: string): boolean {
   return /drive\.google\.com|docs\.google\.com/i.test(url);
 }
 
-// HIGH PERFORMANCE Google Drive streaming - optimized for speed
+// HIGH PERFORMANCE Google Drive streaming - tries multiple methods
 async function getGoogleDriveStream(fileId: string, apiKey: string, rangeHeader?: string | null): Promise<Response> {
-  // Use the fastest streaming endpoint
-  const streamUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${apiKey}`;
-  
   const headers: HeadersInit = {
     'Accept': '*/*',
-    'Accept-Encoding': 'identity', // No compression = faster for video
+    'Accept-Encoding': 'identity',
     'Connection': 'keep-alive',
   };
-  
   if (rangeHeader) {
     headers['Range'] = rangeHeader;
   }
 
-  const response = await fetch(streamUrl, { 
-    headers,
-    // Disable automatic decompression for faster streaming
-  });
-  
-  if (!response.ok) {
-    console.error(`Google Drive API error: ${response.status} ${response.statusText}`);
-    throw new Error(`Failed to fetch from Google Drive: ${response.status}`);
+  // Method 1: Google Drive API with API key (works for public files)
+  try {
+    const apiUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${apiKey}`;
+    const apiResponse = await fetch(apiUrl, { headers });
+    if (apiResponse.ok || apiResponse.status === 206) {
+      console.log("Google Drive API method succeeded");
+      return apiResponse;
+    }
+    console.warn(`Google Drive API method failed: ${apiResponse.status}`);
+    // Consume body to release connection
+    await apiResponse.text().catch(() => {});
+  } catch (e) {
+    console.warn("Google Drive API method error:", e);
   }
 
-  return response;
+  // Method 2: Direct download URL (works for "Anyone with the link" files)
+  try {
+    const directUrl = `https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`;
+    const directHeaders: HeadersInit = {
+      ...headers,
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    };
+    const directResponse = await fetch(directUrl, { headers: directHeaders, redirect: 'follow' });
+    if (directResponse.ok || directResponse.status === 206) {
+      console.log("Google Drive direct download method succeeded");
+      return directResponse;
+    }
+    console.warn(`Google Drive direct method failed: ${directResponse.status}`);
+    await directResponse.text().catch(() => {});
+  } catch (e) {
+    console.warn("Google Drive direct method error:", e);
+  }
+
+  // Method 3: Export download with confirm bypass
+  try {
+    const exportUrl = `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t`;
+    const exportHeaders: HeadersInit = {
+      ...headers,
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+    };
+    const exportResponse = await fetch(exportUrl, { headers: exportHeaders, redirect: 'follow' });
+    if (exportResponse.ok || exportResponse.status === 206) {
+      console.log("Google Drive export method succeeded");
+      return exportResponse;
+    }
+    console.error(`All Google Drive methods failed. Last status: ${exportResponse.status}`);
+    await exportResponse.text().catch(() => {});
+  } catch (e) {
+    console.error("Google Drive export method error:", e);
+  }
+
+  throw new Error("Failed to fetch from Google Drive: all methods exhausted (403). Ensure the file is shared as 'Anyone with the link'.");
 }
 
 serve(async (req) => {
