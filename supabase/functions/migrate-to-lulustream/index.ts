@@ -156,7 +156,7 @@ serve(async (req) => {
 
     // ACTION: Migrate — auto-prepares missing records then processes batch
     if (action === "migrate") {
-      const batchSize = Math.min(customBatchSize || 10, 20);
+      const batchSize = Math.min(customBatchSize || 10, 50);
 
       // Auto-prepare: find Drive lessons without migration records and add them
       let lessonQuery = supabase
@@ -222,47 +222,55 @@ serve(async (req) => {
       let processed = 0;
       let failed = 0;
 
-      for (const migration of pending) {
-        try {
-          await supabase.from("video_migrations")
-            .update({ status: "uploading", updated_at: new Date().toISOString() })
-            .eq("id", migration.id);
-
-          const fileId = extractFileId(migration.original_url);
-          if (!fileId) throw new Error("Could not extract file ID from URL");
-
-          const fileInfoRes = await fetch(
-            `https://www.googleapis.com/drive/v3/files/${fileId}?key=${GOOGLE_API_KEY}&fields=name,size`
-          );
-          const fileInfo = await fileInfoRes.json();
-          const fileName = fileInfo.name || "video";
-
-          const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${GOOGLE_API_KEY}`;
-          const courseTitle = migration.course_id ? courseTitleMap[migration.course_id] || "" : "";
-          const organizedTitle = courseTitle ? `[${courseTitle}] ${fileName}` : fileName;
-
-          const uploadRes = await fetch(
-            `${LULUSTREAM_API_BASE}/upload/url?key=${LULUSTREAM_API_KEY}&url=${encodeURIComponent(downloadUrl)}&new_title=${encodeURIComponent(organizedTitle)}`
-          );
-          const uploadData = await uploadRes.json();
-
-          console.log(`LuluStream upload response for ${organizedTitle}:`, JSON.stringify(uploadData));
-
-          if (uploadData.status === 200 && uploadData.result) {
-            const fileCode = uploadData.result.filecode || uploadData.result.file_code || "";
+      // Process concurrently in chunks of 10 for speed
+      const chunkSize = 10;
+      for (let i = 0; i < pending.length; i += chunkSize) {
+        const chunk = pending.slice(i, i + chunkSize);
+        const results = await Promise.allSettled(chunk.map(async (migration) => {
+          try {
             await supabase.from("video_migrations")
-              .update({ status: "uploading", lulustream_file_code: fileCode, updated_at: new Date().toISOString() })
+              .update({ status: "uploading", updated_at: new Date().toISOString() })
               .eq("id", migration.id);
-            processed++;
-          } else {
-            throw new Error(uploadData.msg || "LuluStream API error");
+
+            const fileId = extractFileId(migration.original_url);
+            if (!fileId) throw new Error("Could not extract file ID from URL");
+
+            const fileInfoRes = await fetch(
+              `https://www.googleapis.com/drive/v3/files/${fileId}?key=${GOOGLE_API_KEY}&fields=name,size`
+            );
+            const fileInfo = await fileInfoRes.json();
+            const fileName = fileInfo.name || "video";
+
+            const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${GOOGLE_API_KEY}`;
+            const courseTitle = migration.course_id ? courseTitleMap[migration.course_id] || "" : "";
+            const organizedTitle = courseTitle ? `[${courseTitle}] ${fileName}` : fileName;
+
+            const uploadRes = await fetch(
+              `${LULUSTREAM_API_BASE}/upload/url?key=${LULUSTREAM_API_KEY}&url=${encodeURIComponent(downloadUrl)}&new_title=${encodeURIComponent(organizedTitle)}`
+            );
+            const uploadData = await uploadRes.json();
+
+            if (uploadData.status === 200 && uploadData.result) {
+              const fileCode = uploadData.result.filecode || uploadData.result.file_code || "";
+              await supabase.from("video_migrations")
+                .update({ status: "uploading", lulustream_file_code: fileCode, updated_at: new Date().toISOString() })
+                .eq("id", migration.id);
+              return "ok";
+            } else {
+              throw new Error(uploadData.msg || "LuluStream API error");
+            }
+          } catch (err: any) {
+            console.error(`Migration failed for lesson ${migration.lesson_id}:`, err.message);
+            await supabase.from("video_migrations")
+              .update({ status: "failed", error_message: err.message, updated_at: new Date().toISOString() })
+              .eq("id", migration.id);
+            throw err;
           }
-        } catch (err: any) {
-          console.error(`Migration failed for lesson ${migration.lesson_id}:`, err.message);
-          await supabase.from("video_migrations")
-            .update({ status: "failed", error_message: err.message, updated_at: new Date().toISOString() })
-            .eq("id", migration.id);
-          failed++;
+        }));
+
+        for (const r of results) {
+          if (r.status === "fulfilled") processed++;
+          else failed++;
         }
       }
 
