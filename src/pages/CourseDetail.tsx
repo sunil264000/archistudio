@@ -466,7 +466,7 @@ export default function CourseDetail() {
       <AnimatedBackground intensity="light" />
       
        {/* Hero Section */}
-       <section className="pt-20 pb-6 relative">
+       <section className="pt-20 pb-2 relative">
         <div className="container mx-auto px-4">
            <Link to="/courses" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-4 transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -527,6 +527,47 @@ export default function CourseDetail() {
                   Proof of Completion included
                 </span>
               </div>
+
+              {/* Linked eBooks - inside left column */}
+              <LinkedEbooksHighlight courseId={dbCourseId} courseTitle={course.title} />
+
+              {/* About */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>About This Studio</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {course.description}
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* What You'll Learn */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>What You'll Learn</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {[
+                      'Master core concepts and fundamentals',
+                      'Build real-world professional projects',
+                      'Industry-standard workflows and techniques',
+                      'Advanced tips and best practices',
+                      'Optimize your workflow for efficiency',
+                      'Create portfolio-ready work',
+                      'Understand professional standards',
+                      'Troubleshoot common issues',
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <CheckCircle className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             {/* Purchase Card */}
@@ -705,55 +746,12 @@ export default function CourseDetail() {
         </div>
       </section>
 
-      {/* Linked eBooks Highlight */}
-      <section className="py-4">
-        <div className="container mx-auto px-4">
-          <LinkedEbooksHighlight courseId={dbCourseId} courseTitle={course.title} />
-        </div>
-      </section>
 
       {/* Course Description */}
-      <section className="py-12">
+      <section className="py-8">
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
-              {/* About */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>About This Studio</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {course.description}
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* What You'll Learn */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>What You'll Learn</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {[
-                      'Master core concepts and fundamentals',
-                      'Build real-world professional projects',
-                      'Industry-standard workflows and techniques',
-                      'Advanced tips and best practices',
-                      'Optimize your workflow for efficiency',
-                      'Create portfolio-ready work',
-                      'Understand professional standards',
-                      'Troubleshoot common issues',
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <CheckCircle className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">{item}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
 
               {/* Curriculum */}
               <Card className="border-accent/20">
