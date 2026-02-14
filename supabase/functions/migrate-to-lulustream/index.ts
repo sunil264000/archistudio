@@ -245,7 +245,7 @@ serve(async (req) => {
     // No separate check-progress needed — files complete instantly.
     // =====================================================
     if (action === "migrate") {
-      // Find a working API key (rotates through all keys, skips rate-limited ones)
+      // Find a working API key
       const workingKey = await getWorkingApiKey();
       if (!workingKey) {
         return jsonResponse({ 
@@ -258,7 +258,87 @@ serve(async (req) => {
       const ACTIVE_KEY = workingKey.key;
       const keyLabel = `Key #${workingKey.index + 1}`;
 
-      // Get upload server URL (1 API call)
+      // ---- STEP 1: Check progress on existing "uploading" items FIRST ----
+      let progressCompleted = 0;
+      try {
+        const { data: uploading } = await supabase
+          .from("video_migrations")
+          .select("id, lesson_id, lulustream_file_code, updated_at")
+          .eq("status", "uploading")
+          .not("lulustream_file_code", "is", null)
+          .limit(100);
+
+        if (uploading && uploading.length > 0) {
+          // Check LuluStream remote upload queue
+          const statusRes = await fetch(`${LULUSTREAM_API_BASE}/urlupload/list?key=${ACTIVE_KEY}`);
+          const statusData = await statusRes.json();
+
+          if (isDailyLimitError(statusData.msg || "")) {
+            await markKeyLimited(workingKey.index);
+            return jsonResponse({ success: true, message: `${keyLabel} hit limit during progress check.`, processed: 0, keyLimited: keyLabel });
+          }
+
+          if (statusData.status === 200 && statusData.result) {
+            const queueItems = statusData.result;
+            for (const migration of uploading) {
+              const match = queueItems.find((r: any) =>
+                r.filecode === migration.lulustream_file_code || r.file_code === migration.lulustream_file_code
+              );
+              if (match) {
+                if (match.status === "completed" || (match.status === "working" && match.bytes_loaded === match.bytes_total && match.bytes_total > 0)) {
+                  const embedUrl = `https://lulustream.com/e/${migration.lulustream_file_code}`;
+                  await supabase.from("video_migrations")
+                    .update({ status: "completed", lulustream_embed_url: embedUrl, updated_at: new Date().toISOString() })
+                    .eq("id", migration.id);
+                  await supabase.from("lessons").update({ video_url: embedUrl }).eq("id", migration.lesson_id);
+                  progressCompleted++;
+                }
+              } else {
+                // Not in queue at all — might have completed or expired. 
+                // If stuck >30 min, reset to pending
+                const stuckMinutes = (Date.now() - new Date(migration.updated_at).getTime()) / 60000;
+                if (stuckMinutes > 30) {
+                  await supabase.from("video_migrations")
+                    .update({ status: "pending", lulustream_file_code: null, error_message: "Auto-reset: not found in queue", updated_at: new Date().toISOString() })
+                    .eq("id", migration.id);
+                }
+              }
+            }
+          }
+        }
+
+        // Also reset uploads without file codes that are stuck >30 min
+        await supabase.from("video_migrations")
+          .update({ status: "pending", lulustream_file_code: null, error_message: "Auto-reset: stuck >30min", updated_at: new Date().toISOString() })
+          .eq("status", "uploading")
+          .is("lulustream_file_code", null)
+          .lt("updated_at", new Date(Date.now() - 30 * 60 * 1000).toISOString());
+      } catch (e) {
+        console.log("Progress check warning:", e);
+      }
+
+      // ---- STEP 2: Count current queue size, only submit if room ----
+      let currentQueueSize = 0;
+      try {
+        const { count } = await supabase
+          .from("video_migrations")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "uploading");
+        currentQueueSize = count || 0;
+      } catch {}
+
+      const MAX_QUEUE = 90; // LuluStream limit is 100, leave buffer
+      if (currentQueueSize >= MAX_QUEUE) {
+        return jsonResponse({ 
+          success: true, 
+          message: `Queue full (${currentQueueSize} uploading). ${progressCompleted} completed this run. Waiting for uploads to finish.`,
+          processed: 0, progressCompleted, queueSize: currentQueueSize
+        });
+      }
+
+      const availableSlots = MAX_QUEUE - currentQueueSize;
+
+      // Get upload server URL
       let uploadServerUrl = "";
       try {
         const serverRes = await fetch(`${LULUSTREAM_API_BASE}/upload/server?key=${ACTIVE_KEY}`);
@@ -267,21 +347,20 @@ serve(async (req) => {
           uploadServerUrl = serverData.result;
         } else if (isDailyLimitError(serverData.msg || "")) {
           await markKeyLimited(workingKey.index);
-          // Try the next key recursively by re-calling
-          return jsonResponse({ success: true, message: `${keyLabel} hit limit. Will try next key on next run.`, processed: 0, keyLimited: keyLabel });
+          return jsonResponse({ success: true, message: `${keyLabel} hit limit. Will try next key on next run.`, processed: 0, progressCompleted, keyLimited: keyLabel });
         } else {
           throw new Error(`Upload server error: ${serverData.msg || JSON.stringify(serverData)}`);
         }
       } catch (err: any) {
         if (isDailyLimitError(err.message)) {
           await markKeyLimited(workingKey.index);
-          return jsonResponse({ success: true, message: `${keyLabel} hit limit.`, processed: 0, keyLimited: keyLabel });
+          return jsonResponse({ success: true, message: `${keyLabel} hit limit.`, processed: 0, progressCompleted, keyLimited: keyLabel });
         }
         throw err;
       }
 
       // Auto-prepare: find Drive lessons without migration records
-      const batchSize = Math.min(customBatchSize || 3, 5); // Small batches — each upload takes time (downloading + uploading full video)
+      const batchSize = Math.min(customBatchSize || 3, availableSlots, 5);
       
       let lessonQuery = supabase
         .from("lessons")
@@ -315,7 +394,7 @@ serve(async (req) => {
       if (pendingError) throw pendingError;
 
       if (!pending || pending.length === 0) {
-        return jsonResponse({ success: true, message: "No pending migrations", processed: 0 });
+        return jsonResponse({ success: true, message: `No pending migrations. ${progressCompleted} completed this run.`, processed: 0, progressCompleted });
       }
 
       // Get course titles
@@ -334,12 +413,10 @@ serve(async (req) => {
           const fileId = extractFileId(migration.original_url);
           if (!fileId) throw new Error("Could not extract file ID");
 
-          // Mark as uploading
           await supabase.from("video_migrations")
             .update({ status: "uploading", updated_at: new Date().toISOString() })
             .eq("id", migration.id);
 
-          // Use remote URL upload — LuluStream's servers download from Drive (avoids our Drive quota)
           const downloadUrl = `https://drive.google.com/uc?id=${fileId}&export=download&confirm=t`;
           const courseTitle = migration.course_id ? courseTitleMap[migration.course_id] || "" : "";
           const organizedTitle = courseTitle ? `[${courseTitle}] ${fileId}` : fileId;
@@ -365,15 +442,23 @@ serve(async (req) => {
                 .eq("id", migration.id);
               return jsonResponse({ 
                 success: true, 
-                message: `${keyLabel} hit limit after ${processed} uploads. Will try next key on next run.`, 
-                processed, failed, keyLimited: keyLabel 
+                message: `${keyLabel} hit limit after ${processed} uploads. ${progressCompleted} completed from queue.`, 
+                processed, failed, progressCompleted, keyLimited: keyLabel 
               });
             }
-            // "Already in upload queue" means LuluStream is already processing it — treat as uploading, not failed
-            if (errMsg.toLowerCase().includes("already in upload queue")) {
+            // Queue full — reset to pending, NOT failed
+            if (errMsg.toLowerCase().includes("max urls limit") || errMsg.toLowerCase().includes("already in upload queue")) {
               await supabase.from("video_migrations")
-                .update({ status: "uploading", updated_at: new Date().toISOString() })
+                .update({ status: "pending", updated_at: new Date().toISOString() })
                 .eq("id", migration.id);
+              if (errMsg.toLowerCase().includes("max urls limit")) {
+                // Stop submitting — queue is full
+                return jsonResponse({ 
+                  success: true, 
+                  message: `Queue full. ${processed} submitted, ${progressCompleted} completed from queue. Waiting for space.`, 
+                  processed, progressCompleted, queueFull: true 
+                });
+              }
               processed++;
               continue;
             }
@@ -388,7 +473,7 @@ serve(async (req) => {
             return jsonResponse({ 
               success: true, 
               message: `${keyLabel} hit limit after ${processed} uploads.`, 
-              processed, failed, keyLimited: keyLabel 
+              processed, failed, progressCompleted, keyLimited: keyLabel 
             });
           }
           await supabase.from("video_migrations")
@@ -401,8 +486,8 @@ serve(async (req) => {
 
       return jsonResponse({ 
         success: true, 
-        message: `Direct upload: ${processed} completed, ${failed} failed`, 
-        processed, failed, 
+        message: `${processed} submitted, ${progressCompleted} completed from queue, ${failed} failed`, 
+        processed, failed, progressCompleted,
         errors: errors.length > 0 ? errors : undefined 
       });
     }
