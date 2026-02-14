@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { categoryImages } from '@/data/courses';
 
 /** Premium gradient SVG placeholder keyed by course title + category */
@@ -26,8 +26,8 @@ function generatePlaceholder(title: string, category: string): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="750" height="422" viewBox="0 0 750 422">
     <defs>
       <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style="stop-color:hsl(${h1},40%,10%)"/>
-        <stop offset="100%" style="stop-color:hsl(${h2},35%,14%)"/>
+        <stop offset="0%" style="stop-color:hsl(${h1},40%,12%)"/>
+        <stop offset="100%" style="stop-color:hsl(${h2},35%,18%)"/>
       </linearGradient>
       <linearGradient id="ac" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="0%" style="stop-color:hsl(18,70%,50%)"/>
@@ -35,13 +35,13 @@ function generatePlaceholder(title: string, category: string): string {
       </linearGradient>
     </defs>
     <rect width="750" height="422" fill="url(#bg)"/>
-    <rect x="0" y="0" width="750" height="3" fill="url(#ac)" opacity=".7"/>
-    <g transform="translate(335,120) scale(3)" fill="none" stroke="url(#ac)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".7">
+    <rect x="0" y="0" width="750" height="4" fill="url(#ac)" opacity=".8"/>
+    <g transform="translate(335,100) scale(3.5)" fill="none" stroke="url(#ac)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".9">
       <path d="${iconPath}"/>
     </g>
-    <text x="375" y="280" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" font-weight="600" fill="rgba(255,255,255,.85)" letter-spacing=".02em">${short}</text>
-    <text x="375" y="308" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" font-weight="500" fill="hsl(18,70%,55%)" letter-spacing=".12em">${category.toUpperCase().replace(/-/g,' ')}</text>
-    <text x="375" y="395" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,.2)" letter-spacing=".15em">ARCHISTUDIO</text>
+    <text x="375" y="275" text-anchor="middle" font-family="system-ui,sans-serif" font-size="22" font-weight="700" fill="rgba(255,255,255,.9)" letter-spacing=".03em">${short}</text>
+    <text x="375" y="305" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="hsl(18,70%,55%)" letter-spacing=".15em">${category.toUpperCase().replace(/-/g,' ')}</text>
+    <text x="375" y="400" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,.25)" letter-spacing=".15em">ARCHISTUDIO</text>
   </svg>`;
 
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
@@ -58,6 +58,7 @@ interface CourseThumbnailProps {
 export function CourseThumbnail({ src, alt, slug, category, className = '' }: CourseThumbnailProps) {
   // 0 = primary URL, 1 = category image, 2 = generated SVG
   const [stage, setStage] = useState(0);
+  const errorCountRef = useRef(0);
 
   const currentSrc = stage === 0
     ? src
@@ -66,6 +67,9 @@ export function CourseThumbnail({ src, alt, slug, category, className = '' }: Co
       : generatePlaceholder(alt, category);
 
   const handleError = useCallback(() => {
+    errorCountRef.current += 1;
+    // Safety: prevent infinite error loops
+    if (errorCountRef.current > 3) return;
     setStage(prev => {
       if (prev === 0) return categoryImages[category] ? 1 : 2;
       return 2; // final fallback

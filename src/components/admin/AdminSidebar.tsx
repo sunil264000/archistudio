@@ -5,7 +5,7 @@ import {
   BookOpen, Package, Video, Users, UserPlus, HelpCircle, Bell, 
   CreditCard, Sparkles, Award, BarChart3, MessageSquare, Settings,
   ChevronLeft, ChevronRight, LayoutDashboard, Timer, Mail, Send, Library, FileText, KeyRound,
-  Gift, Wallet, Rocket, Zap, Shield, History, Wrench
+  Gift, Wallet, Rocket, Zap, Shield, History, Wrench, Inbox
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logo from '@/assets/logo.png';
@@ -82,6 +82,7 @@ const menuGroups: MenuGroup[] = [
       { id: 'support', label: 'Support', icon: MessageSquare, color: 'text-teal-500' },
       { id: 'email-testing', label: 'Email Testing', icon: Mail, color: 'text-violet-500' },
       { id: 'email-logs', label: 'Email Logs', icon: History, color: 'text-violet-500' },
+      { id: 'contact-messages', label: 'Messages', icon: Inbox, color: 'text-emerald-500' },
     ],
   },
   {

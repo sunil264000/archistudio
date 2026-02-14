@@ -33,6 +33,7 @@ import { RealtimeAnalytics } from '@/components/admin/RealtimeAnalytics';
 import { RoleManagement } from '@/components/admin/RoleManagement';
 import { EmailLogs } from '@/components/admin/EmailLogs';
 import { AutoFixLogs } from '@/components/admin/AutoFixLogs';
+import { ContactMessages } from '@/components/admin/ContactMessages';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
@@ -153,6 +154,8 @@ export default function Admin() {
         return <AnalyticsPanel />;
       case 'support':
         return <SupportPanel />;
+      case 'contact-messages':
+        return <ContactMessages />;
       case 'settings':
         return <SiteSettingsPanel />;
       default:
