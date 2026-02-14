@@ -419,6 +419,60 @@ serve(async (req) => {
       return jsonResponse({ success: true, account: data });
     }
 
+    // ACTION: Test single upload with full diagnostics
+    if (action === "test-upload") {
+      // Get one pending migration
+      const { data: testItem } = await supabase.from("video_migrations")
+        .select("id, lesson_id, original_url, course_id")
+        .eq("status", "pending")
+        .limit(1)
+        .single();
+      
+      if (!testItem) return jsonResponse({ success: false, error: "No pending items" });
+      
+      const fileId = extractFileId(testItem.original_url);
+      if (!fileId) return jsonResponse({ success: false, error: "Could not extract file ID", url: testItem.original_url });
+
+      // Test multiple URL formats
+      const urlFormats = [
+        { name: "uc_export", url: `https://drive.google.com/uc?id=${fileId}&export=download&confirm=t` },
+        { name: "usercontent", url: `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t` },
+        { name: "api_key", url: `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${GOOGLE_API_KEY}` },
+      ];
+
+      const results: any[] = [];
+      
+      for (const fmt of urlFormats) {
+        try {
+          // First test if URL is accessible
+          const testRes = await fetch(fmt.url, { method: "HEAD", redirect: "follow" });
+          const accessible = testRes.ok;
+          const contentType = testRes.headers.get("content-type");
+          const contentLength = testRes.headers.get("content-length");
+
+          // Try LuluStream upload with this URL
+          const uploadUrl = `${LULUSTREAM_API_BASE}/upload/url?key=${LULUSTREAM_API_KEY}&url=${encodeURIComponent(fmt.url)}&new_title=${encodeURIComponent(`test_${fileId}`)}`;
+          const uploadRes = await fetch(uploadUrl);
+          const uploadData = await uploadRes.json();
+          
+          results.push({
+            format: fmt.name,
+            url: fmt.url.substring(0, 80) + "...",
+            accessible,
+            contentType,
+            contentLength,
+            luluResponse: uploadData,
+          });
+          
+          await delay(2000);
+        } catch (err: any) {
+          results.push({ format: fmt.name, error: err.message });
+        }
+      }
+
+      return jsonResponse({ success: true, fileId, originalUrl: testItem.original_url, results });
+    }
+
     return jsonResponse({ success: false, error: "Invalid action" }, 400);
   } catch (error) {
     console.error("Error:", error);
