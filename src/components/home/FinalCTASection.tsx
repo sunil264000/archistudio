@@ -12,25 +12,29 @@ export function FinalCTASection() {
   const { user } = useAuth();
 
   return (
-    <section className="section-padding bg-foreground text-background relative overflow-hidden">
-      {/* Subtle grid */}
-      <div className="absolute inset-0 opacity-[0.04]">
+    <section className="section-padding relative overflow-hidden">
+      {/* Dark premium background */}
+      <div className="absolute inset-0 bg-gradient-to-b from-foreground via-foreground to-foreground" />
+      
+      {/* Accent orbs */}
+      <motion.div 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, hsl(var(--accent) / 0.08) 0%, transparent 70%)' }}
+        animate={{ scale: [1, 1.15, 1], opacity: [0.8, 1, 0.8] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      />
+      
+      {/* Grid overlay */}
+      <div className="absolute inset-0 opacity-[0.03]">
         <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern id="cta-grid" width="60" height="60" patternUnits="userSpaceOnUse">
-              <path d="M 60 0 L 0 0 0 60" fill="none" stroke="currentColor" strokeWidth="0.5" />
+              <path d="M 60 0 L 0 0 0 60" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-background" />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#cta-grid)" />
         </svg>
       </div>
-
-      {/* Accent glow */}
-      <motion.div 
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-accent/10 rounded-full blur-[150px] pointer-events-none"
-        animate={{ scale: [1, 1.15, 1], opacity: [0.1, 0.15, 0.1] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      />
 
       <div className="container-wide relative">
         <motion.div 
@@ -40,18 +44,20 @@ export function FinalCTASection() {
           whileInView="visible"
           viewport={{ once: true, margin: "-100px" }}
         >
-          <motion.div variants={fadeInUp} className="section-label !text-accent/80">Transform Your Career</motion.div>
+          <motion.div variants={fadeInUp} className="text-xs font-medium tracking-[0.15em] uppercase text-accent/80">
+            Transform Your Career
+          </motion.div>
           
           <motion.h2 
             variants={fadeInUp}
-            className="text-3xl sm:text-4xl md:text-5xl font-display font-bold leading-tight"
+            className="text-3xl sm:text-4xl md:text-5xl font-display font-bold leading-tight text-background"
           >
             Stop Guessing Architecture.
             <br />
-            <span className="opacity-60">Start Understanding It.</span>
+            <span className="opacity-50">Start Understanding It.</span>
           </motion.h2>
           
-          <motion.p variants={fadeInUp} className="text-lg opacity-70 max-w-lg mx-auto">
+          <motion.p variants={fadeInUp} className="text-lg text-background/60 max-w-lg mx-auto">
             You've spent years learning theory. Spend a few months learning practice. 
             The difference will last your entire career.
           </motion.p>
@@ -60,7 +66,7 @@ export function FinalCTASection() {
             <Link to={user ? "/courses" : "/auth?mode=signup"}>
               <Button 
                 size="xl" 
-                className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2 group shadow-[0_0_30px_hsl(var(--accent)/0.3)]"
+                className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2 group shadow-[0_0_40px_hsl(var(--accent)/0.3)] hover:shadow-[0_0_60px_hsl(var(--accent)/0.4)] transition-shadow duration-500"
               >
                 {user ? "Explore Studios" : "Start Your Free Account"}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -68,7 +74,7 @@ export function FinalCTASection() {
             </Link>
           </motion.div>
 
-          <motion.p variants={fadeInUp} className="text-sm opacity-50">
+          <motion.p variants={fadeInUp} className="text-sm text-background/40">
             {user ? "Explore 70+ studio programs" : "Free preview sessions available. No credit card required."}
           </motion.p>
         </motion.div>

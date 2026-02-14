@@ -14,7 +14,7 @@ export function Navbar() {
     if (typeof window !== 'undefined') {
       return document.documentElement.classList.contains('dark');
     }
-    return false;
+    return true;
   });
 
   useEffect(() => {
@@ -32,7 +32,11 @@ export function Navbar() {
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
+    if (savedTheme === 'light') {
+      document.documentElement.classList.remove('dark');
+      setIsDark(false);
+    } else {
+      // Default to dark
       document.documentElement.classList.add('dark');
       setIsDark(true);
     }
@@ -40,27 +44,29 @@ export function Navbar() {
 
   return (
     <motion.header 
-      className={`sticky top-0 z-50 transition-all duration-300 ${
+      className={`sticky top-0 z-50 transition-all duration-500 ${
         scrolled 
-          ? 'border-b border-border/60 bg-background/80 backdrop-blur-xl' 
+          ? 'border-b border-border/40 glass' 
           : 'border-b border-transparent bg-transparent'
       }`}
       initial={{ y: -80 }}
       animate={{ y: 0 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
     >
       <nav className="container-wide py-4 flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="group flex items-center gap-2">
-          <span className="font-display font-bold text-lg sm:text-xl tracking-tight text-foreground">
+        <Link to="/" className="group flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
+            <span className="text-accent-foreground font-bold text-sm">A</span>
+          </div>
+          <span className="font-display font-bold text-lg tracking-tight text-foreground">
             Archistudio
           </span>
-          <span className="hidden sm:inline-block w-1 h-1 rounded-full bg-accent mt-0.5" />
         </Link>
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-1">
-          <div className="flex items-center gap-1 text-sm">
+          <div className="flex items-center gap-0.5 text-sm">
             {[
               { to: '/courses', label: 'Studios' },
               { to: '/ebooks', label: 'eBooks', icon: Library },
@@ -113,7 +119,7 @@ export function Navbar() {
                 <Button variant="ghost" size="sm">Sign In</Button>
               </Link>
               <Link to="/auth?mode=signup">
-                <Button size="sm" className="gap-1.5 group">
+                <Button size="sm" className="gap-1.5 group bg-accent text-accent-foreground hover:bg-accent/90">
                   Get Started
                   <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                 </Button>
@@ -146,7 +152,7 @@ export function Navbar() {
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div 
-            className="md:hidden border-t border-border bg-background/98 backdrop-blur-xl overflow-hidden safe-area-inset"
+            className="md:hidden border-t border-border glass overflow-hidden safe-area-inset"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -204,7 +210,7 @@ export function Navbar() {
                       <Button variant="outline" className="w-full min-h-[48px] text-base">Sign In</Button>
                     </Link>
                     <Link to="/auth?mode=signup" onClick={() => setMobileMenuOpen(false)}>
-                      <Button className="w-full gap-2 min-h-[48px] text-base">
+                      <Button className="w-full gap-2 min-h-[48px] text-base bg-accent text-accent-foreground hover:bg-accent/90">
                         Get Started
                         <ArrowRight className="h-5 w-5" />
                       </Button>

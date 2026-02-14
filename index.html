@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" prefix="og: https://ogp.me/ns#">
+<html lang="en" class="dark" prefix="og: https://ogp.me/ns#">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
@@ -81,6 +81,10 @@
   </head>
 
   <body>
+    <script>
+      // Apply saved theme preference (dark is default)
+      (function(){var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.remove('dark')}})();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>

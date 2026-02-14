@@ -1,4 +1,4 @@
-import { Star } from 'lucide-react';
+import { Star, Quote } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { 
   staggerContainerFast,
@@ -63,8 +63,13 @@ export function TestimonialsSection() {
             <motion.div 
               key={i}
               variants={fadeInUp}
-              className="p-7 rounded-2xl bg-card border border-border hover:border-accent/20 transition-all duration-300 group hover:shadow-medium"
+              className="relative p-7 rounded-2xl card-glass group"
+              whileHover={{ y: -3 }}
+              transition={{ duration: 0.3 }}
             >
+              {/* Quote icon */}
+              <Quote className="h-8 w-8 text-accent/15 absolute top-5 right-5" />
+              
               {/* Star rating */}
               <div className="flex gap-0.5 mb-5">
                 {[...Array(testimonial.rating)].map((_, j) => (
@@ -78,7 +83,7 @@ export function TestimonialsSection() {
                 </p>
                 
                 <footer className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center border border-border">
+                  <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center border border-accent/20">
                     <span className="text-xs font-semibold text-accent">
                       {testimonial.name.split(' ').map(n => n[0]).join('')}
                     </span>

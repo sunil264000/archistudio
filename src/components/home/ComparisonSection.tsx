@@ -16,8 +16,11 @@ const comparisons = [
 
 export function ComparisonSection() {
   return (
-    <section className="section-padding bg-secondary/20 relative overflow-hidden">
-      <div className="container-wide">
+    <section className="section-padding relative overflow-hidden">
+      {/* Gradient bg */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-secondary/15 to-background" />
+      
+      <div className="container-wide relative">
         <motion.div 
           className="max-w-3xl mx-auto text-center mb-14 sm:mb-20"
           initial={{ opacity: 0, y: 20 }}
@@ -54,7 +57,7 @@ export function ComparisonSection() {
                 <motion.div 
                   key={i}
                   variants={fadeInUp}
-                  className="grid grid-cols-[1.2fr_1fr_1fr] gap-4 p-5 rounded-xl bg-card border border-border hover:border-accent/20 transition-all duration-200 items-center"
+                  className="grid grid-cols-[1.2fr_1fr_1fr] gap-4 p-5 rounded-xl card-glass items-center group"
                 >
                   <div className="font-medium text-sm">{item.aspect}</div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
@@ -79,7 +82,7 @@ export function ComparisonSection() {
             viewport={{ once: true }}
           >
             {comparisons.map((item, i) => (
-              <motion.div key={i} variants={fadeInUp} className="p-5 rounded-xl bg-card border border-border">
+              <motion.div key={i} variants={fadeInUp} className="p-5 rounded-xl card-glass">
                 <div className="font-medium text-accent text-sm mb-3">{item.aspect}</div>
                 <div className="flex items-start gap-2 text-sm text-muted-foreground mb-2">
                   <X className="h-4 w-4 text-destructive/60 shrink-0 mt-0.5" />
