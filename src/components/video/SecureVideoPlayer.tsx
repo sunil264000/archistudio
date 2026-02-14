@@ -213,10 +213,12 @@ export function SecureVideoPlayer({
           <p className="text-sm text-muted-foreground mb-4 max-w-md">
             {error.includes('Object not found') || error.includes('404') 
               ? 'The video file has not been uploaded yet. Please contact the administrator.' 
+              : error.includes('403') || error.includes('all methods exhausted')
+              ? 'The video file could not be accessed. It may not be shared properly on the storage service. Please contact support.'
               : error}
           </p>
           <p className="text-xs text-muted-foreground">
-            If you're the admin, please upload the video in the Admin Panel → Lessons section.
+            If you're the admin, ensure the video file is shared as "Anyone with the link" in Google Drive.
           </p>
         </div>
       </div>
