@@ -532,7 +532,7 @@ export default function CourseDetail() {
             {/* Purchase Card */}
             <div className="lg:col-span-1">
               <Card className="sticky top-24 overflow-hidden border-accent/20 shadow-lg">
-                <div className="aspect-video relative group">
+                <div className="aspect-[3/2] relative group bg-muted">
                   <img 
                     src={getThumbnail(course.slug, categoryImages[course.category] || '/placeholder.svg')} 
                     alt={course.title}
