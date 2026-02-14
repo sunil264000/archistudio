@@ -1,42 +1,52 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-// Gradient-based SVG placeholder generator based on course topic
+// Premium gradient-based SVG placeholder generator based on course topic
 const generatePlaceholderSvg = (title: string, category: string): string => {
   // Generate consistent color from title
   const hash = title.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
   const hue1 = hash % 360;
-  const hue2 = (hue1 + 40) % 360;
+  const hue2 = (hue1 + 45) % 360;
   
-  const iconMap: Record<string, string> = {
-    '3d-visualization': '🏗️',
-    'cad': '📐',
-    'bim': '🏢',
-    'rendering': '🎨',
-    'post-production': '🖥️',
-    'interior-design': '🏠',
-    'fundamentals': '📚',
-    'modeling': '🔷',
+  // Get category-specific icon path (SVG path data for sharp, architectural icons)
+  const iconPaths: Record<string, { path: string; label: string }> = {
+    '3d-visualization': { path: 'M40 28L52 20V36L40 44L28 36V20L40 28ZM40 28V44', label: '3D Viz' },
+    'cad': { path: 'M26 22H54M26 30H54M26 38H42M22 18H58V46H22V18Z', label: 'CAD' },
+    'bim': { path: 'M28 44V28L40 20L52 28V44H28ZM36 44V36H44V44', label: 'BIM' },
+    'rendering': { path: 'M40 20C46.627 20 52 25.373 52 32C52 38.627 46.627 44 40 44C33.373 44 28 38.627 28 32C28 25.373 33.373 20 40 20ZM40 24V32L46 38', label: 'Render' },
+    'post-production': { path: 'M24 24H56V44H24V24ZM32 24V20H48V24M30 32H50M30 38H42', label: 'Post-Pro' },
+    'interior-design': { path: 'M26 42V26H54V42H26ZM26 34H38V42M42 26V42', label: 'Interior' },
+    'fundamentals': { path: 'M40 18L56 28V42L40 52L24 42V28L40 18Z', label: 'Core' },
+    'modeling': { path: 'M28 40L40 20L52 40H28ZM34 40L40 28L46 40', label: 'Model' },
   };
   
-  const icon = iconMap[category] || '📘';
-  const shortTitle = title.length > 30 ? title.substring(0, 27) + '...' : title;
+  const iconData = iconPaths[category] || { path: 'M28 40L40 20L52 40H28Z', label: 'Studio' };
+  const shortTitle = title.length > 35 ? title.substring(0, 32) + '…' : title;
   
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
     <defs>
-      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" style="stop-color:hsl(${hue1},60%,15%)" />
-        <stop offset="100%" style="stop-color:hsl(${hue2},50%,25%)" />
+      <linearGradient id="bg-${hash}" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:hsl(${hue1},45%,12%)" />
+        <stop offset="50%" style="stop-color:hsl(${hue1},35%,8%)" />
+        <stop offset="100%" style="stop-color:hsl(${hue2},40%,14%)" />
       </linearGradient>
-      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <linearGradient id="accent-${hash}" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" style="stop-color:hsl(18,70%,50%)" />
+        <stop offset="100%" style="stop-color:hsl(30,80%,55%)" />
+      </linearGradient>
+      <pattern id="dots-${hash}" width="24" height="24" patternUnits="userSpaceOnUse">
+        <circle cx="2" cy="2" r="0.8" fill="rgba(255,255,255,0.04)"/>
       </pattern>
     </defs>
-    <rect width="640" height="360" fill="url(#bg)"/>
-    <rect width="640" height="360" fill="url(#grid)"/>
-    <text x="320" y="150" text-anchor="middle" font-size="64">${icon}</text>
-    <text x="320" y="210" text-anchor="middle" font-family="system-ui,sans-serif" font-size="18" font-weight="600" fill="rgba(255,255,255,0.9)">${shortTitle}</text>
-    <text x="320" y="240" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" fill="rgba(255,255,255,0.5)">Archistudio</text>
+    <rect width="640" height="360" fill="url(#bg-${hash})"/>
+    <rect width="640" height="360" fill="url(#dots-${hash})"/>
+    <rect x="0" y="0" width="640" height="3" fill="url(#accent-${hash})" opacity="0.7"/>
+    <g transform="translate(280,100) scale(2.8)" fill="none" stroke="url(#accent-${hash})" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.8">
+      <path d="${iconData.path}"/>
+    </g>
+    <text x="320" y="240" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="17" font-weight="600" fill="rgba(255,255,255,0.88)" letter-spacing="0.02em">${shortTitle}</text>
+    <text x="320" y="268" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="11" font-weight="500" fill="hsl(18,70%,55%)" letter-spacing="0.12em" text-transform="uppercase">${iconData.label}</text>
+    <text x="320" y="330" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-size="10" fill="rgba(255,255,255,0.25)" letter-spacing="0.15em">ARCHISTUDIO</text>
   </svg>`;
   
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
