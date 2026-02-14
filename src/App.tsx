@@ -39,6 +39,7 @@ import Contact from "./pages/Contact";
 import Terms from "./pages/Terms";
 import EbookBundle from "./pages/EbookBundle";
 import NotFound from "./pages/NotFound";
+import VerifyCertificate from "./pages/VerifyCertificate";
 
 const queryClient = new QueryClient();
 
@@ -318,6 +319,7 @@ function AnimatedRoutes() {
           <Route path="/ebooks" element={<EbookBundle />} />
           <Route path="/ebook-payment-success" element={<EbookPaymentSuccess />} />
           <Route path="/ebook-payment-failed" element={<EbookPaymentFailed />} />
+          <Route path="/verify/:certNumber" element={<VerifyCertificate />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </motion.div>

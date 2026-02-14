@@ -293,7 +293,7 @@ body{font-family:'Inter',sans-serif;background:#e8e2d8;min-height:100vh;display:
       </div>
     </div>
 
-    <p class="verify">Verify at: https://archistudio.lovable.app/verify/${certNumber}</p>
+    <p class="verify">Verify at: https://archistudio.shop/verify/${certNumber}</p>
   </div>
 
   <!-- Authentication stamp - positioned on cert container -->
