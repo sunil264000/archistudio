@@ -140,215 +140,208 @@ function generateCertificateHtml(
   s: CertificateSettings, studentName: string, courseName: string,
   issueDate: string, certNumber: string
 ): string {
-  const pc = s.primary_color;
-
   return `<!DOCTYPE html><html><head>
 <meta charset="UTF-8">
 <title>Proof of Completion – ${studentName} – ${courseName}</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Great+Vibes&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Great+Vibes&family=Inter:wght@300;400;500;600&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 @page{size:landscape;margin:0}
-body{font-family:'Inter',sans-serif;background:#f5f0eb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:'Inter',sans-serif;background:#3d1c2e;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 
-.cert{width:1120px;min-height:790px;position:relative;overflow:hidden;background:#fffbf7;box-shadow:0 30px 100px rgba(120,80,50,.12),0 4px 20px rgba(0,0,0,.05)}
+.cert-wrapper{width:1120px;min-height:790px;position:relative;background:#3d1c2e;padding:16px;box-shadow:0 40px 120px rgba(0,0,0,.4)}
+.cert{width:100%;min-height:758px;position:relative;overflow:hidden;background:#fffdf9}
 
-/* Rose gold gradient top & bottom bars */
-.bar-top{height:6px;background:linear-gradient(90deg,#b76e79,#e8c4b8,#d4a574,#e8c4b8,#b76e79)}
-.bar-bottom{height:4px;background:linear-gradient(90deg,#b76e79,#e8c4b8,#d4a574,#e8c4b8,#b76e79);position:absolute;bottom:0;left:0;right:0}
+/* Gold double border */
+.gold-border-outer{position:absolute;top:8px;left:8px;right:8px;bottom:8px;border:3px solid #c9a84c;pointer-events:none}
+.gold-border-inner{position:absolute;top:14px;left:14px;right:14px;bottom:14px;border:1.5px solid #c9a84c;pointer-events:none}
 
-/* Elegant border system */
-.border-outer{position:absolute;top:14px;left:14px;right:14px;bottom:14px;border:1.5px solid #d4a57440;pointer-events:none}
-.border-inner{position:absolute;top:20px;left:20px;right:20px;bottom:20px;border:0.5px solid #d4a57420;pointer-events:none}
-.border-accent{position:absolute;top:17px;left:17px;right:17px;bottom:17px;border:0.5px solid #b76e7918;pointer-events:none}
+/* Left maroon decorative wave panel */
+.wave-panel{position:absolute;left:0;top:0;bottom:0;width:180px;overflow:hidden;z-index:2}
+.wave-bg{position:absolute;inset:0;background:linear-gradient(180deg,#6b1d3a,#4a1228,#7a2244)}
+.wave-shape1{position:absolute;right:-40px;top:0;bottom:0;width:120px;background:#fffdf9;border-radius:60% 0 0 50%/50% 0 0 50%}
+.wave-shape2{position:absolute;right:-20px;top:0;bottom:0;width:100px;background:rgba(255,253,249,0.15);border-radius:50% 0 0 60%/40% 0 0 50%}
+.wave-shape3{position:absolute;right:10px;top:0;bottom:0;width:80px;background:rgba(255,253,249,0.08);border-radius:60% 0 0 40%/50% 0 0 50%}
 
-/* Side filigree lines */
-.filigree-l,.filigree-r{position:absolute;top:60px;bottom:60px;width:1px}
-.filigree-l{left:36px;background:linear-gradient(180deg,transparent,#d4a57425 15%,#d4a57435 50%,#d4a57425 85%,transparent)}
-.filigree-r{right:36px;background:linear-gradient(180deg,transparent,#d4a57425 15%,#d4a57435 50%,#d4a57425 85%,transparent)}
+/* Gold dotted wave accents */
+.dot-wave{position:absolute;z-index:3}
+.dot-wave1{right:30px;top:80px;bottom:80px;width:60px}
+.dot-wave2{right:55px;top:120px;bottom:120px;width:40px}
+.dot-wave1 .dw,.dot-wave2 .dw{width:3px;height:3px;border-radius:50%;background:#c9a84c;position:absolute}
 
-/* Dotted accents on sides */
-.dots-l,.dots-r{position:absolute;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;opacity:0.2}
-.dots-l{left:30px}.dots-r{right:30px}
-.dot{width:3px;height:3px;border-radius:50%;background:#b76e79}
-
-/* Watermark */
-.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-18deg);font-family:'Playfair Display',serif;font-size:110px;font-weight:800;color:rgba(180,130,100,0.025);letter-spacing:24px;white-space:nowrap;pointer-events:none;text-transform:uppercase}
-
-/* Corner flourishes */
-.corner{position:absolute;width:70px;height:70px;opacity:0.5}
-.corner svg{width:100%;height:100%}
-.c-tl{top:10px;left:10px}
-.c-tr{top:10px;right:10px;transform:scaleX(-1)}
-.c-bl{bottom:10px;left:10px;transform:scaleY(-1)}
-.c-br{bottom:10px;right:10px;transform:scale(-1)}
-
-.cert-body{position:relative;padding:46px 90px 30px}
+/* Certificate content */
+.cert-content{position:relative;z-index:4;padding:50px 60px 40px 200px;min-height:658px;display:flex;flex-direction:column}
 
 /* Header */
-.header{text-align:center;margin-bottom:6px}
-.brand{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;letter-spacing:12px;color:#2c1810;text-transform:uppercase;margin-bottom:4px}
-.tagline{font-size:9px;color:#8b7355;letter-spacing:6px;text-transform:uppercase;font-weight:400}
+.cert-header{margin-bottom:8px}
+.cert-main-title{font-family:'Playfair Display',serif;font-size:52px;font-weight:900;color:#2c1810;letter-spacing:4px;line-height:1}
+.cert-sub-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;color:#6b1d3a;letter-spacing:8px;text-transform:uppercase;margin-top:2px}
 
-/* Ornamental divider */
-.divider{display:flex;align-items:center;justify-content:center;gap:14px;margin:18px 0 14px}
-.div-line{flex:1;max-width:160px;height:1px;background:linear-gradient(90deg,transparent,#d4a574)}
-.div-line.r{background:linear-gradient(90deg,#d4a574,transparent)}
-.div-diamond{width:8px;height:8px;background:#d4a574;transform:rotate(45deg);opacity:0.6}
-.div-dot{width:4px;height:4px;border-radius:50%;background:#b76e79;opacity:0.5}
+/* Divider line */
+.gold-divider{width:100%;height:2px;background:linear-gradient(90deg,#c9a84c,#e8d48b,#c9a84c);margin:20px 0;opacity:0.6}
+.gold-divider-thin{width:100%;height:1px;background:linear-gradient(90deg,transparent,#c9a84c60,transparent);margin:12px 0}
 
-/* Title */
-.title{font-family:'Cormorant Garamond',serif;font-size:44px;font-weight:300;text-align:center;color:#2c1810;margin:6px 0 2px;letter-spacing:5px;font-style:italic}
-.presented{text-align:center;font-size:10.5px;color:#8b7355;letter-spacing:7px;text-transform:uppercase;margin-bottom:22px;font-weight:300}
+/* Presented to text */
+.presented-text{font-family:'Inter',sans-serif;font-size:11px;color:#8b7355;letter-spacing:6px;text-transform:uppercase;font-weight:400;margin-bottom:6px}
 
 /* Student name */
-.student-name{font-family:'Great Vibes',cursive;font-size:56px;color:#2c1810;text-align:center;line-height:1.1;margin-bottom:6px}
-.name-line{width:340px;height:2px;margin:0 auto 20px;background:linear-gradient(90deg,transparent,#b76e7960,#d4a574,#b76e7960,transparent);border-radius:1px}
+.student-name{font-family:'Great Vibes',cursive;font-size:58px;color:#2c1810;line-height:1.15;margin-bottom:4px}
+.name-underline{width:400px;height:2px;background:linear-gradient(90deg,#c9a84c,#e8d48b,#c9a84c);margin-bottom:18px}
 
-/* Course */
-.for-text{text-align:center;font-size:11px;color:#8b7355;margin-bottom:8px;letter-spacing:3px;font-weight:300;text-transform:uppercase}
-.course-name{font-family:'Playfair Display',serif;font-size:23px;font-weight:600;text-align:center;color:#b76e79;margin-bottom:8px;letter-spacing:2px}
-.course-desc{text-align:center;font-size:10.5px;color:#8b735590;max-width:520px;margin:0 auto;line-height:1.9;font-weight:300;font-family:'Cormorant Garamond',serif;font-size:13px}
+/* Description */
+.cert-description{font-family:'Cormorant Garamond',serif;font-size:14px;color:#5a4a3a;line-height:1.9;max-width:560px;margin-bottom:8px;font-style:italic}
 
-/* Wishes */
-.wishes{text-align:center;margin-top:16px;font-family:'Cormorant Garamond',serif;font-size:14px;font-style:italic;color:#d4a574;letter-spacing:2px}
+/* Course name */
+.for-completing{font-family:'Inter',sans-serif;font-size:10px;color:#8b7355;letter-spacing:4px;text-transform:uppercase;margin-bottom:6px}
+.course-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#6b1d3a;letter-spacing:2px;margin-bottom:20px}
+
+/* Award badge */
+.award-badge{position:absolute;top:50px;right:60px;width:110px;height:110px;z-index:5}
+.badge-outer{width:110px;height:110px;border-radius:50%;background:linear-gradient(135deg,#c9a84c,#e8d48b,#c9a84c,#a67c30);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(201,168,76,0.3)}
+.badge-ring{width:96px;height:96px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center}
+.badge-inner{width:82px;height:82px;border-radius:50%;background:linear-gradient(135deg,#6b1d3a,#4a1228);display:flex;flex-direction:column;align-items:center;justify-content:center;border:1.5px solid #c9a84c60}
+.badge-year{font-family:'Playfair Display',serif;font-size:18px;font-weight:800;color:#e8d48b;letter-spacing:2px}
+.badge-award{font-family:'Inter',sans-serif;font-size:7px;font-weight:700;color:#c9a84c;letter-spacing:3px;text-transform:uppercase;margin-top:2px}
+
+/* Ribbon tails */
+.badge-ribbon{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);width:70px;height:30px;overflow:hidden}
+.ribbon-left,.ribbon-right{position:absolute;bottom:0;width:28px;height:30px}
+.ribbon-left{left:5px;background:linear-gradient(135deg,#c9a84c,#a67c30);clip-path:polygon(0 0,100% 0,60% 100%,0 70%)}
+.ribbon-right{right:5px;background:linear-gradient(135deg,#c9a84c,#a67c30);clip-path:polygon(0 0,100% 0,100% 70%,40% 100%)}
+
+/* Laurel wreath around badge */
+.laurel{position:absolute;inset:-10px;pointer-events:none}
+.laurel svg{width:100%;height:100%}
 
 /* Footer */
-.footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:34px;padding:18px 40px 0;border-top:1px solid #d4a57415}
-.footer-col{text-align:center;min-width:150px}
-.footer-label{font-size:7px;color:#8b735560;letter-spacing:3.5px;text-transform:uppercase;margin-bottom:6px;font-weight:600}
-.footer-val{font-size:12px;font-weight:600;color:#2c1810;letter-spacing:0.5px}
+.cert-footer{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;padding-top:20px}
+.footer-block{text-align:center;min-width:180px}
+.footer-line{width:180px;height:1px;background:#2c1810;margin:0 auto 8px}
+.footer-label{font-family:'Inter',sans-serif;font-size:10px;font-weight:600;color:#2c1810;letter-spacing:4px;text-transform:uppercase}
+.footer-value{font-family:'Inter',sans-serif;font-size:12px;color:#5a4a3a;margin-top:2px}
 
 /* Signature */
-.sig-cursive{font-family:'Great Vibes',cursive;font-size:32px;color:#2c1810;margin-bottom:3px}
-.sig-line{width:180px;height:1px;background:linear-gradient(90deg,transparent,#b76e7940,transparent);margin:0 auto 6px}
-.sig-name{font-size:11.5px;font-weight:600;color:#2c1810;letter-spacing:0.5px}
-.sig-title{font-size:8px;color:#8b735570;letter-spacing:2px;font-weight:400}
+.sig-block{text-align:center}
+.sig-cursive{font-family:'Great Vibes',cursive;font-size:34px;color:#2c1810;margin-bottom:2px}
+.sig-line2{width:200px;height:1px;background:#2c1810;margin:0 auto 6px}
+.sig-name2{font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:#2c1810;letter-spacing:1px}
+.sig-title2{font-family:'Inter',sans-serif;font-size:9px;color:#8b7355;letter-spacing:2px;margin-top:2px}
 
-/* Rose gold ribbon badge */
-.ribbon{position:absolute;top:18px;right:75px;width:52px;text-align:center;filter:drop-shadow(0 4px 12px rgba(183,110,121,0.2))}
-.ribbon-shape{width:52px;height:68px;background:linear-gradient(165deg,#d4a574,#b76e79,#c4917a);clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%);display:flex;align-items:center;justify-content:center;padding-bottom:14px}
-.ribbon-icon{color:#fff;font-size:20px;text-shadow:0 1px 4px rgba(0,0,0,0.15)}
+/* Verify */
+.verify{font-family:'Inter',sans-serif;font-size:7.5px;color:#8b735540;text-align:center;margin-top:14px;letter-spacing:1.5px}
 
-/* Verified seal */
-.seal{position:absolute;bottom:14px;right:24px;width:90px;height:90px}
-.seal-outer{width:90px;height:90px;border-radius:50%;border:2px solid #b76e7935;display:flex;align-items:center;justify-content:center;position:relative;transform:rotate(-10deg);background:radial-gradient(circle,#b76e7906,transparent)}
-.seal-ring{position:absolute;inset:5px;border-radius:50%;border:1px dashed #d4a57425}
-.seal-ring2{position:absolute;inset:9px;border-radius:50%;border:0.5px solid #b76e7912}
-.seal-inner{width:56px;height:56px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1px}
-.seal-star{font-size:14px;color:#b76e79;margin-bottom:2px}
-.seal-text{font-size:6px;font-weight:700;color:#b76e79;letter-spacing:2px;text-transform:uppercase;line-height:1.2}
-.seal-brand{font-size:5px;color:#b76e7970;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;font-weight:600}
+/* Seal */
+.seal-stamp{position:absolute;bottom:30px;right:40px;width:80px;height:80px;z-index:5}
+.seal-circle{width:80px;height:80px;border-radius:50%;border:2px solid #c9a84c40;display:flex;align-items:center;justify-content:center;transform:rotate(-12deg)}
+.seal-inner-circle{width:64px;height:64px;border-radius:50%;border:1px dashed #c9a84c30;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.seal-icon{font-size:16px;color:#c9a84c;margin-bottom:2px}
+.seal-txt{font-size:6px;font-weight:700;color:#c9a84c;letter-spacing:2px;text-transform:uppercase}
 
-/* Shield badge */
-.shield{position:absolute;bottom:18px;left:24px;text-align:center}
-.shield-box{width:60px;height:60px;border:1px solid #d4a57420;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#d4a57408,#b76e7904);gap:3px}
-.shield-icon{font-size:16px}
-.shield-text{font-size:5px;font-weight:700;color:#8b735570;letter-spacing:1.5px;text-transform:uppercase}
+/* Cert number at bottom */
+.cert-number{position:absolute;bottom:18px;left:200px;font-family:'Inter',sans-serif;font-size:8px;color:#8b735540;letter-spacing:2px}
 
-/* Verify URL */
-.verify{font-family:'Inter',sans-serif;font-size:8px;color:#8b735530;text-align:center;margin-top:14px;letter-spacing:1.5px}
-
-@media print{body{background:#fff;padding:0}.cert{box-shadow:none;width:100%;min-height:100vh}.no-print{display:none}}
+@media print{body{background:#fff;padding:0}.cert-wrapper{box-shadow:none;padding:0;width:100%}.cert{min-height:100vh}}
 </style></head>
 <body>
-<div class="cert">
-  <div class="bar-top"></div>
-  <div class="bar-bottom"></div>
-  <div class="border-outer"></div>
-  <div class="border-inner"></div>
-  <div class="border-accent"></div>
-  <div class="filigree-l"></div>
-  <div class="filigree-r"></div>
+<div class="cert-wrapper">
+  <div class="cert">
+    <!-- Gold double border -->
+    <div class="gold-border-outer"></div>
+    <div class="gold-border-inner"></div>
 
-  <!-- Side dots -->
-  <div class="dots-l">${Array(7).fill('<div class="dot"></div>').join('')}</div>
-  <div class="dots-r">${Array(7).fill('<div class="dot"></div>').join('')}</div>
-
-  <div class="watermark">${s.institution_name}</div>
-
-  <!-- Corner flourishes -->
-  <div class="corner c-tl"><svg viewBox="0 0 70 70"><path d="M0,0 Q35,3 70,0 L70,4 Q35,7 0,4 Z" fill="#d4a574" opacity="0.4"/><path d="M0,0 Q3,35 0,70 L4,70 Q7,35 4,0 Z" fill="#d4a574" opacity="0.4"/><circle cx="6" cy="6" r="2.5" fill="#b76e79" opacity="0.3"/><path d="M0,12 Q20,14 40,12" stroke="#d4a574" stroke-width="0.5" fill="none" opacity="0.25"/><path d="M12,0 Q14,20 12,40" stroke="#d4a574" stroke-width="0.5" fill="none" opacity="0.25"/></svg></div>
-  <div class="corner c-tr"><svg viewBox="0 0 70 70"><path d="M0,0 Q35,3 70,0 L70,4 Q35,7 0,4 Z" fill="#d4a574" opacity="0.4"/><path d="M0,0 Q3,35 0,70 L4,70 Q7,35 4,0 Z" fill="#d4a574" opacity="0.4"/><circle cx="6" cy="6" r="2.5" fill="#b76e79" opacity="0.3"/><path d="M0,12 Q20,14 40,12" stroke="#d4a574" stroke-width="0.5" fill="none" opacity="0.25"/><path d="M12,0 Q14,20 12,40" stroke="#d4a574" stroke-width="0.5" fill="none" opacity="0.25"/></svg></div>
-  <div class="corner c-bl"><svg viewBox="0 0 70 70"><path d="M0,0 Q35,3 70,0 L70,4 Q35,7 0,4 Z" fill="#d4a574" opacity="0.4"/><path d="M0,0 Q3,35 0,70 L4,70 Q7,35 4,0 Z" fill="#d4a574" opacity="0.4"/><circle cx="6" cy="6" r="2.5" fill="#b76e79" opacity="0.3"/><path d="M0,12 Q20,14 40,12" stroke="#d4a574" stroke-width="0.5" fill="none" opacity="0.25"/><path d="M12,0 Q14,20 12,40" stroke="#d4a574" stroke-width="0.5" fill="none" opacity="0.25"/></svg></div>
-  <div class="corner c-br"><svg viewBox="0 0 70 70"><path d="M0,0 Q35,3 70,0 L70,4 Q35,7 0,4 Z" fill="#d4a574" opacity="0.4"/><path d="M0,0 Q3,35 0,70 L4,70 Q7,35 4,0 Z" fill="#d4a574" opacity="0.4"/><circle cx="6" cy="6" r="2.5" fill="#b76e79" opacity="0.3"/><path d="M0,12 Q20,14 40,12" stroke="#d4a574" stroke-width="0.5" fill="none" opacity="0.25"/><path d="M12,0 Q14,20 12,40" stroke="#d4a574" stroke-width="0.5" fill="none" opacity="0.25"/></svg></div>
-
-  <!-- Rose gold ribbon -->
-  <div class="ribbon"><div class="ribbon-shape"><span class="ribbon-icon">★</span></div></div>
-
-  <div class="cert-body">
-    <div class="header">
-      ${s.logo_url ? `<img src="${s.logo_url}" alt="Logo" style="max-height:44px;margin-bottom:8px" />` : ''}
-      <div class="brand">${s.institution_name}</div>
-      <div class="tagline">${s.institution_tagline}</div>
-    </div>
-
-    <div class="divider">
-      <div class="div-dot"></div>
-      <div class="div-line"></div>
-      <div class="div-diamond"></div>
-      <div class="div-line r"></div>
-      <div class="div-dot"></div>
-    </div>
-
-    <h1 class="title">Proof of Completion</h1>
-    <p class="presented">This is proudly presented to</p>
-
-    <div class="student-name">${studentName}</div>
-    <div class="name-line"></div>
-
-    <p class="for-text">for successfully completing the studio program</p>
-    <p class="course-name">${courseName}</p>
-    <p class="course-desc">
-      Having demonstrated dedication, discipline, and commitment to professional growth
-      in architecture and design practice at ${s.institution_name}.
-    </p>
-
-    <p class="wishes">✦ Wishing you the very best in all your future endeavors ✦</p>
-
-    <div class="footer">
-      <div class="footer-col">
-        <p class="footer-label">Date of Completion</p>
-        <p class="footer-val">${issueDate}</p>
+    <!-- Left maroon wave panel -->
+    <div class="wave-panel">
+      <div class="wave-bg"></div>
+      <div class="wave-shape3"></div>
+      <div class="wave-shape2"></div>
+      <div class="wave-shape1"></div>
+      <!-- Gold dot accents -->
+      <div class="dot-wave dot-wave1">
+        ${Array.from({length:30}, (_,i) => {
+          const y = 10 + (i * 2.8);
+          const x = 20 + Math.sin(i * 0.3) * 18;
+          return `<div class="dw" style="top:${y}%;left:${x}px"></div>`;
+        }).join('')}
       </div>
-
-      <div class="footer-col">
-        <div class="sig-cursive">${s.signature_name}</div>
-        <div class="sig-line"></div>
-        <p class="sig-name">${s.signature_name}</p>
-        <p class="sig-title">${s.signature_title}</p>
-      </div>
-
-      <div class="footer-col">
-        <p class="footer-label">Certificate No.</p>
-        <p class="footer-val">${certNumber}</p>
+      <div class="dot-wave dot-wave2">
+        ${Array.from({length:20}, (_,i) => {
+          const y = 15 + (i * 3.5);
+          const x = 10 + Math.sin(i * 0.4 + 1) * 12;
+          return `<div class="dw" style="top:${y}%;left:${x}px"></div>`;
+        }).join('')}
       </div>
     </div>
 
-    <p class="verify">Verify at: https://archistudio.shop/verify/${certNumber}</p>
-  </div>
-
-  <!-- Verified seal -->
-  <div class="seal">
-    <div class="seal-outer">
-      <div class="seal-ring"></div>
-      <div class="seal-ring2"></div>
-      <div class="seal-inner">
-        <span class="seal-star">✦</span>
-        <span class="seal-text">Verified</span>
-        <span class="seal-text">Authentic</span>
-        <span class="seal-brand">Archistudio</span>
+    <!-- Award badge with ribbons -->
+    <div class="award-badge">
+      <div class="badge-outer">
+        <div class="badge-ring">
+          <div class="badge-inner">
+            <span class="badge-year">${new Date().getFullYear()}</span>
+            <span class="badge-award">Award</span>
+          </div>
+        </div>
+      </div>
+      <div class="badge-ribbon">
+        <div class="ribbon-left"></div>
+        <div class="ribbon-right"></div>
       </div>
     </div>
-  </div>
 
-  <!-- Shield badge -->
-  <div class="shield">
-    <div class="shield-box">
-      <span class="shield-icon">🛡️</span>
-      <span class="shield-text">Digitally</span>
-      <span class="shield-text">Verified</span>
+    <!-- Certificate content -->
+    <div class="cert-content">
+      <div class="cert-header">
+        ${s.logo_url ? `<img src="${s.logo_url}" alt="Logo" style="max-height:40px;margin-bottom:10px;display:block" />` : ''}
+        <div class="cert-main-title">CERTIFICATE</div>
+        <div class="cert-sub-title">of Achievement</div>
+      </div>
+
+      <div class="gold-divider"></div>
+
+      <p class="presented-text">This certificate is proudly presented to</p>
+
+      <div class="student-name">${studentName}</div>
+      <div class="name-underline"></div>
+
+      <p class="cert-description">
+        Having demonstrated exceptional dedication, discipline, and commitment to mastering 
+        professional architecture and design skills through the ${s.institution_name} platform.
+      </p>
+
+      <p class="for-completing">For successfully completing</p>
+      <p class="course-title">${courseName}</p>
+
+      <div class="cert-footer">
+        <div class="footer-block">
+          <div class="sig-cursive">${s.signature_name}</div>
+          <div class="sig-line2"></div>
+          <p class="sig-name2">${s.signature_name}</p>
+          <p class="sig-title2">${s.signature_title}</p>
+        </div>
+
+        <div class="footer-block">
+          <div class="footer-line"></div>
+          <p class="footer-label">Date</p>
+          <p class="footer-value">${issueDate}</p>
+        </div>
+      </div>
+
+      <p class="verify">Verify at: https://archistudio.shop/verify/${certNumber}</p>
     </div>
+
+    <!-- Seal stamp -->
+    <div class="seal-stamp">
+      <div class="seal-circle">
+        <div class="seal-inner-circle">
+          <span class="seal-icon">✦</span>
+          <span class="seal-txt">Verified</span>
+          <span class="seal-txt">Authentic</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Certificate number -->
+    <div class="cert-number">NO. ${certNumber}</div>
   </div>
 </div>
 
