@@ -393,22 +393,12 @@ export default function CoursePlayer() {
           <div className="mt-4 p-3 rounded-xl bg-muted/30 border border-border/50">
             <div className="flex justify-between items-center mb-2">
               <span className="text-xs font-medium text-muted-foreground">Your Progress</span>
-              <span className="text-sm font-bold text-accent">{Math.round(overallProgress)}%</span>
+              <span className="text-sm font-bold text-accent">{completedLessons}/{totalLessons}</span>
             </div>
-            <div className="relative">
-              <Progress value={overallProgress} className="h-2.5" />
-              {overallProgress > 0 && (
-                <div 
-                  className="absolute top-0 h-2.5 bg-gradient-to-r from-accent to-accent/80 rounded-full transition-all duration-500"
-                  style={{ width: `${overallProgress}%` }}
-                />
-              )}
-            </div>
-            {completedLessons > 0 && (
-              <p className="text-[10px] text-muted-foreground mt-1.5">
-                {completedLessons} of {totalLessons} sessions completed
-              </p>
-            )}
+            <Progress value={overallProgress} className="h-2.5" />
+            <p className="text-[10px] text-muted-foreground mt-1.5">
+              {completedLessons} of {totalLessons} sessions completed
+            </p>
           </div>
         )}
       </div>
@@ -664,15 +654,15 @@ export default function CoursePlayer() {
                       )}
                     </div>
                     
-                    {/* Finish Button - more prominent on mobile */}
-                    {showFinishButton && !progress[currentLesson.id]?.completed && (
+                    {/* Mark as Complete Button - always available for incomplete lessons */}
+                    {isEnrolled && !progress[currentLesson.id]?.completed && (
                       <Button 
                         size="sm" 
                         onClick={handleFinishLesson}
-                        className="bg-success hover:bg-success/90 text-success-foreground shrink-0 text-xs md:text-sm"
+                        className="bg-success hover:bg-success/90 text-success-foreground shrink-0 text-xs md:text-sm gap-1"
                       >
-                        <CheckCircle2 className="h-4 w-4 md:mr-1" />
-                        <span className="hidden md:inline">Finish Session</span>
+                        <CheckCircle2 className="h-4 w-4" />
+                        <span>Mark Complete</span>
                       </Button>
                     )}
                   </div>
