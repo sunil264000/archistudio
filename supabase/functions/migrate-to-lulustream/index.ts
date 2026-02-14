@@ -8,7 +8,6 @@ const corsHeaders = {
 
 const LULUSTREAM_API_BASE = "https://api.lulustream.com/api";
 
-// Rate-limit safe delay
 function delay(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
 serve(async (req) => {
@@ -30,7 +29,7 @@ serve(async (req) => {
     const { action, courseId, courseIds, batchSize: customBatchSize, fromCron } = await req.json();
     const filterCourseIds: string[] = courseIds?.length ? courseIds : courseId ? [courseId] : [];
 
-    // If called from cron, check if cron is enabled in site_settings
+    // If called from cron, check if cron is enabled
     if (fromCron) {
       const { data: setting } = await supabase
         .from("site_settings")
@@ -40,6 +39,43 @@ serve(async (req) => {
       if (setting?.value !== "true") {
         return jsonResponse({ success: true, message: "Cron disabled by admin", skipped: true });
       }
+    }
+
+    // Helper: check daily limit cooldown (returns true if still in cooldown)
+    async function isDailyLimitActive(): Promise<{ active: boolean; hoursLeft: number }> {
+      const { data } = await supabase
+        .from("site_settings")
+        .select("value, updated_at")
+        .eq("key", "lulustream_daily_limit_hit")
+        .maybeSingle();
+      if (data?.value === "true") {
+        const hitAt = new Date(data.updated_at || 0).getTime();
+        const hoursSince = (Date.now() - hitAt) / (1000 * 60 * 60);
+        if (hoursSince < 8) {
+          return { active: true, hoursLeft: Math.ceil(8 - hoursSince) };
+        }
+        // Cooldown expired, clear it
+        await supabase.from("site_settings")
+          .update({ value: "false", updated_at: new Date().toISOString() })
+          .eq("key", "lulustream_daily_limit_hit");
+      }
+      return { active: false, hoursLeft: 0 };
+    }
+
+    // Helper: set daily limit flag
+    async function setDailyLimitHit() {
+      const { data: existing } = await supabase.from("site_settings").select("id").eq("key", "lulustream_daily_limit_hit").maybeSingle();
+      if (existing) {
+        await supabase.from("site_settings").update({ value: "true", updated_at: new Date().toISOString() }).eq("key", "lulustream_daily_limit_hit");
+      } else {
+        await supabase.from("site_settings").insert({ key: "lulustream_daily_limit_hit", value: "true", description: "Tracks when LuluStream daily API limit was hit" });
+      }
+    }
+
+    // Helper: detect if error is daily limit
+    function isDailyLimitError(msg: string): boolean {
+      const lower = msg.toLowerCase();
+      return lower.includes("5000") || lower.includes("requests limit") || lower.includes("per day");
     }
 
     // Helper: fetch all rows with pagination
@@ -59,7 +95,9 @@ serve(async (req) => {
       return all;
     }
 
-    // ACTION: Status
+    // =====================================================
+    // ACTION: Status (NO LuluStream API calls — DB only)
+    // =====================================================
     if (action === "status") {
       const migrations = await fetchAllPaginated("video_migrations", "status, course_id", (q) => {
         if (filterCourseIds.length > 0) return q.in("course_id", filterCourseIds);
@@ -72,10 +110,14 @@ serve(async (req) => {
         completed: migrations.filter(s => s.status === "completed").length,
         failed: migrations.filter(s => s.status === "failed").length,
       };
-      return jsonResponse({ success: true, counts });
+      // Also return daily limit info
+      const limitInfo = await isDailyLimitActive();
+      return jsonResponse({ success: true, counts, dailyLimit: limitInfo });
     }
 
-    // ACTION: Sync
+    // =====================================================
+    // ACTION: Sync (NO LuluStream API calls — DB only)
+    // =====================================================
     if (action === "sync") {
       const allMigrations = await fetchAllPaginated("video_migrations", "id, lesson_id, created_at");
       const seen = new Map<string, { id: string; created_at: string }>();
@@ -142,72 +184,46 @@ serve(async (req) => {
       });
     }
 
-    // ACTION: Migrate — sends batch to LuluStream remote upload
+    // =====================================================
+    // ACTION: Migrate — DIRECT UPLOAD (streams Drive → Edge → LuluStream)
+    // This is the primary migration method. Each video uses ~2 API calls.
+    // No separate check-progress needed — files complete instantly.
+    // =====================================================
     if (action === "migrate") {
-      // Check if we're in a daily-limit cooldown
-      const { data: cooldownSetting } = await supabase
-        .from("site_settings")
-        .select("value, updated_at")
-        .eq("key", "lulustream_daily_limit_hit")
-        .maybeSingle();
-      
-      if (cooldownSetting?.value === "true") {
-        const hitAt = new Date(cooldownSetting.updated_at || 0).getTime();
-        const hoursSince = (Date.now() - hitAt) / (1000 * 60 * 60);
-        if (hoursSince < 6) {
-          return jsonResponse({ 
-            success: true, 
-            message: `Daily API limit reached. Auto-retry in ${Math.ceil(6 - hoursSince)}h. Last hit: ${new Date(hitAt).toISOString()}`,
-            processed: 0, dailyLimitCooldown: true, cooldownHoursLeft: Math.ceil(6 - hoursSince)
-          });
-        } else {
-          // Cooldown expired, clear it
-          await supabase.from("site_settings")
-            .update({ value: "false", updated_at: new Date().toISOString() })
-            .eq("key", "lulustream_daily_limit_hit");
-        }
-      }
-
-      // Check LuluStream remote queue capacity FIRST
-      let queueSize = 0;
-      try {
-        const queueRes = await fetch(`${LULUSTREAM_API_BASE}/urlupload/list?key=${LULUSTREAM_API_KEY}`);
-        const queueData = await queueRes.json();
-        if (queueData.status === 200 && Array.isArray(queueData.result)) {
-          queueSize = queueData.result.length;
-        }
-      } catch {}
-
-      const MAX_QUEUE = 100;
-      const availableSlots = Math.max(0, MAX_QUEUE - queueSize);
-
-      if (availableSlots === 0) {
-        const { count: uploadingCount } = await supabase
-          .from("video_migrations")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "uploading");
+      // Check daily limit cooldown FIRST
+      const limitCheck = await isDailyLimitActive();
+      if (limitCheck.active) {
         return jsonResponse({ 
           success: true, 
-          message: `Queue full (${queueSize}/${MAX_QUEUE}). Waiting for uploads to finish before sending more.`,
-          processed: 0, queueSize, currentUploading: uploadingCount || 0, availableSlots: 0
+          message: `Daily API limit active. Auto-retry in ${limitCheck.hoursLeft}h.`,
+          processed: 0, dailyLimitCooldown: true, cooldownHoursLeft: limitCheck.hoursLeft
         });
       }
 
-      const { count: uploadingCount } = await supabase
-        .from("video_migrations")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "uploading");
-      const currentUploading = uploadingCount || 0;
-
-      // Auto-reset ONLY queue/retry-safe failures — NOT daily limit errors
-      await supabase.from("video_migrations")
-        .update({ status: "pending", error_message: null, updated_at: new Date().toISOString() })
-        .eq("status", "failed")
-        .or("error_message.ilike.%queue%,error_message.ilike.%already%,error_message.ilike.%stuck%,error_message.ilike.%auto-reset%");
-
-      const batchSize = Math.min(customBatchSize || 50, availableSlots);
+      // Get upload server URL (1 API call)
+      let uploadServerUrl = "";
+      try {
+        const serverRes = await fetch(`${LULUSTREAM_API_BASE}/upload/server?key=${LULUSTREAM_API_KEY}`);
+        const serverData = await serverRes.json();
+        if (serverData.status === 200 && serverData.result) {
+          uploadServerUrl = serverData.result;
+        } else if (isDailyLimitError(serverData.msg || "")) {
+          await setDailyLimitHit();
+          return jsonResponse({ success: true, message: "Daily limit hit. Will auto-retry later.", processed: 0, dailyLimitCooldown: true });
+        } else {
+          throw new Error(`Upload server error: ${serverData.msg || JSON.stringify(serverData)}`);
+        }
+      } catch (err: any) {
+        if (isDailyLimitError(err.message)) {
+          await setDailyLimitHit();
+          return jsonResponse({ success: true, message: "Daily limit hit. Will auto-retry later.", processed: 0, dailyLimitCooldown: true });
+        }
+        throw err;
+      }
 
       // Auto-prepare: find Drive lessons without migration records
+      const batchSize = Math.min(customBatchSize || 3, 5); // Small batches — each upload takes time (downloading + uploading full video)
+      
       let lessonQuery = supabase
         .from("lessons")
         .select("id, title, video_url, module_id, modules!inner(course_id, courses!inner(title))")
@@ -240,7 +256,7 @@ serve(async (req) => {
       if (pendingError) throw pendingError;
 
       if (!pending || pending.length === 0) {
-        return jsonResponse({ success: true, message: "No pending migrations", processed: 0, queueSize, availableSlots });
+        return jsonResponse({ success: true, message: "No pending migrations", processed: 0 });
       }
 
       // Get course titles
@@ -253,79 +269,112 @@ serve(async (req) => {
 
       let processed = 0, failed = 0;
       const errors: string[] = [];
-      let dailyLimitHit = false;
-      
+
       for (const migration of pending) {
-        if (dailyLimitHit) break; // Stop immediately if daily limit detected
-        
         try {
           const fileId = extractFileId(migration.original_url);
           if (!fileId) throw new Error("Could not extract file ID");
 
-          const downloadUrl = `https://drive.google.com/uc?id=${fileId}&export=download&confirm=t`;
-          const courseTitle = migration.course_id ? courseTitleMap[migration.course_id] || "" : "";
-          const organizedTitle = courseTitle ? `[${courseTitle}] ${fileId}` : fileId;
+          // Mark as uploading
+          await supabase.from("video_migrations")
+            .update({ status: "uploading", updated_at: new Date().toISOString() })
+            .eq("id", migration.id);
 
-          const uploadRes = await fetch(
-            `${LULUSTREAM_API_BASE}/upload/url?key=${LULUSTREAM_API_KEY}&url=${encodeURIComponent(downloadUrl)}&new_title=${encodeURIComponent(organizedTitle)}`
-          );
+          // Download from Google Drive
+          const downloadUrl = `https://drive.google.com/uc?id=${fileId}&export=download&confirm=t`;
+          const driveRes = await fetch(downloadUrl, { redirect: "follow" });
+          
+          if (!driveRes.ok) throw new Error(`Drive download failed: ${driveRes.status}`);
+          if (!driveRes.body) throw new Error("No response body from Drive");
+
+          const courseTitle = migration.course_id ? courseTitleMap[migration.course_id] || "" : "";
+          const fileName = courseTitle ? `${courseTitle}_${fileId}.mp4` : `${fileId}.mp4`;
+
+          // Read file into blob and upload to LuluStream
+          const fileBlob = await driveRes.blob();
+          const formData = new FormData();
+          formData.append("key", LULUSTREAM_API_KEY);
+          formData.append("file", fileBlob, fileName);
+
+          const uploadRes = await fetch(uploadServerUrl, {
+            method: "POST",
+            body: formData,
+          });
           const uploadData = await uploadRes.json();
 
           if (uploadData.status === 200 && uploadData.result) {
             const fileCode = uploadData.result.filecode || uploadData.result.file_code || "";
+            const embedUrl = `https://lulustream.com/e/${fileCode}`;
+            
+            // Direct upload = completed immediately (no remote queue)
             await supabase.from("video_migrations")
-              .update({ status: "uploading", lulustream_file_code: fileCode, updated_at: new Date().toISOString() })
+              .update({ 
+                status: "completed", 
+                lulustream_file_code: fileCode, 
+                lulustream_embed_url: embedUrl,
+                updated_at: new Date().toISOString() 
+              })
               .eq("id", migration.id);
+            
+            await supabase.from("lessons").update({ video_url: embedUrl }).eq("id", migration.lesson_id);
             processed++;
           } else {
             const errMsg = uploadData.msg || JSON.stringify(uploadData);
-            
-            // Detect daily limit hit
-            if (errMsg.toLowerCase().includes("5000") || errMsg.toLowerCase().includes("requests limit") || errMsg.toLowerCase().includes("per day")) {
-              dailyLimitHit = true;
-              // Set cooldown flag in site_settings
-              const { data: existing } = await supabase.from("site_settings").select("id").eq("key", "lulustream_daily_limit_hit").maybeSingle();
-              if (existing) {
-                await supabase.from("site_settings").update({ value: "true", updated_at: new Date().toISOString() }).eq("key", "lulustream_daily_limit_hit");
-              } else {
-                await supabase.from("site_settings").insert({ key: "lulustream_daily_limit_hit", value: "true", description: "Tracks when LuluStream daily API limit was hit" });
-              }
-              // Don't mark this video as failed — leave it pending for retry after cooldown
-              if (errors.length < 3) errors.push("Daily API limit reached (5000/day). Will auto-retry in ~6 hours.");
-              break;
+            if (isDailyLimitError(errMsg)) {
+              await setDailyLimitHit();
+              // Reset this video to pending
+              await supabase.from("video_migrations")
+                .update({ status: "pending", updated_at: new Date().toISOString() })
+                .eq("id", migration.id);
+              return jsonResponse({ 
+                success: true, 
+                message: `Daily limit hit after ${processed} uploads. Auto-retry later.`, 
+                processed, failed, dailyLimitHit: true 
+              });
             }
-            
             throw new Error(errMsg);
           }
         } catch (err: any) {
-          if (!dailyLimitHit) {
+          if (isDailyLimitError(err.message)) {
+            await setDailyLimitHit();
             await supabase.from("video_migrations")
-              .update({ status: "failed", error_message: err.message, updated_at: new Date().toISOString() })
+              .update({ status: "pending", updated_at: new Date().toISOString() })
               .eq("id", migration.id);
-            failed++;
-            if (errors.length < 3) errors.push(err.message);
+            return jsonResponse({ 
+              success: true, 
+              message: `Daily limit hit after ${processed} uploads.`, 
+              processed, failed, dailyLimitHit: true 
+            });
           }
+          await supabase.from("video_migrations")
+            .update({ status: "failed", error_message: err.message, updated_at: new Date().toISOString() })
+            .eq("id", migration.id);
+          failed++;
+          if (errors.length < 5) errors.push(err.message);
         }
-        if (!dailyLimitHit) await delay(500);
       }
 
       return jsonResponse({ 
         success: true, 
-        message: dailyLimitHit 
-          ? `Daily limit hit after ${processed} sent. Auto-retry in ~6h.` 
-          : `Sent ${processed}, failed ${failed}`, 
-        processed, failed, currentUploading, queueSize, availableSlots, dailyLimitHit,
+        message: `Direct upload: ${processed} completed, ${failed} failed`, 
+        processed, failed, 
         errors: errors.length > 0 ? errors : undefined 
       });
     }
 
-    // ACTION: Check remote upload status — RATE-LIMIT SAFE: checks max 20 files per run
+    // =====================================================
+    // ACTION: Check progress — for legacy remote uploads still in "uploading" state
+    // Also respects daily limit to avoid wasting API calls
+    // =====================================================
     if (action === "check-progress") {
-      // Auto-reset uploads stuck for more than 20 minutes
+      // Check daily limit first
+      const limitCheck = await isDailyLimitActive();
+      
+      // Auto-reset uploads stuck for more than 30 minutes (back to pending for direct upload)
       await supabase.from("video_migrations")
-        .update({ status: "pending", lulustream_file_code: null, error_message: "Auto-reset: stuck >20min", updated_at: new Date().toISOString() })
+        .update({ status: "pending", lulustream_file_code: null, error_message: "Auto-reset: stuck >30min", updated_at: new Date().toISOString() })
         .eq("status", "uploading")
-        .lt("updated_at", new Date(Date.now() - 20 * 60 * 1000).toISOString());
+        .lt("updated_at", new Date(Date.now() - 30 * 60 * 1000).toISOString());
 
       const { data: uploading } = await supabase
         .from("video_migrations")
@@ -337,12 +386,25 @@ serve(async (req) => {
         return jsonResponse({ success: true, message: "No uploads in progress", checked: 0 });
       }
 
+      // If daily limit is active, DON'T make any LuluStream API calls
+      if (limitCheck.active) {
+        return jsonResponse({ 
+          success: true, 
+          message: `Daily limit active (${limitCheck.hoursLeft}h left). ${uploading.length} uploads pending check.`,
+          checked: 0, dailyLimitCooldown: true 
+        });
+      }
+
       // 1 API call: get the remote upload queue status
       const statusRes = await fetch(`${LULUSTREAM_API_BASE}/urlupload/list?key=${LULUSTREAM_API_KEY}`);
       const statusData = await statusRes.json();
 
-      let completed = 0, stillUploading = 0, apiCallsUsed = 1;
-      const checkedIds = new Set<string>();
+      if (isDailyLimitError(statusData.msg || "")) {
+        await setDailyLimitHit();
+        return jsonResponse({ success: true, message: "Daily limit hit during check.", checked: 0, dailyLimitHit: true });
+      }
+
+      let completed = 0, stillUploading = 0;
 
       if (statusData.status === 200 && statusData.result) {
         for (const migration of uploading) {
@@ -360,46 +422,16 @@ serve(async (req) => {
             } else {
               stillUploading++;
             }
-            checkedIds.add(migration.id);
           }
         }
       }
 
-      // For unchecked files, use file/info API — but limit to 20 calls max to respect rate limit
-      const unchecked = uploading.filter(m => !checkedIds.has(m.id) && m.lulustream_file_code);
-      const maxFileInfoChecks = Math.min(unchecked.length, 10);
-      
-      for (let i = 0; i < maxFileInfoChecks; i++) {
-        const migration = unchecked[i];
-        try {
-          const fileRes = await fetch(`${LULUSTREAM_API_BASE}/file/info?key=${LULUSTREAM_API_KEY}&file_code=${migration.lulustream_file_code}`);
-          const fileData = await fileRes.json();
-          apiCallsUsed++;
-          
-          if (fileData.status === 200 && fileData.result?.[0]?.status === 200) {
-            const embedUrl = `https://lulustream.com/e/${migration.lulustream_file_code}`;
-            await supabase.from("video_migrations")
-              .update({ status: "completed", lulustream_embed_url: embedUrl, updated_at: new Date().toISOString() })
-              .eq("id", migration.id);
-            await supabase.from("lessons").update({ video_url: embedUrl }).eq("id", migration.lesson_id);
-            completed++;
-            stillUploading = Math.max(0, stillUploading - 1);
-          } else {
-            stillUploading++;
-          }
-          // 1.5s delay between file info calls
-          await delay(1500);
-        } catch { stillUploading++; }
-      }
-
-      const totalUploading = uploading.length;
-      return jsonResponse({ 
-        success: true, checked: totalUploading, completed, stillUploading, 
-        uncheckedRemaining: unchecked.length - maxFileInfoChecks, apiCallsUsed 
-      });
+      return jsonResponse({ success: true, checked: uploading.length, completed, stillUploading });
     }
 
-    // ACTION: Retry failed
+    // =====================================================
+    // ACTION: Retry failed (DB only — no API calls)
+    // =====================================================
     if (action === "retry-failed") {
       let query = supabase.from("video_migrations")
         .update({ status: "pending", error_message: null, updated_at: new Date().toISOString() })
@@ -410,7 +442,9 @@ serve(async (req) => {
       return jsonResponse({ success: true, message: "Failed migrations reset to pending" });
     }
 
-    // ACTION: Reset completed
+    // =====================================================
+    // ACTION: Reset completed (DB only)
+    // =====================================================
     if (action === "reset-completed") {
       let query = supabase.from("video_migrations")
         .update({ status: "pending", lulustream_file_code: null, lulustream_embed_url: null, error_message: null, updated_at: new Date().toISOString() })
@@ -426,7 +460,9 @@ serve(async (req) => {
       return jsonResponse({ success: true, message: `Reset ${data?.length || 0} completed`, reset: data?.length || 0 });
     }
 
-    // ACTION: Per-course stats
+    // =====================================================
+    // ACTION: Per-course stats (DB only — no API calls)
+    // =====================================================
     if (action === "course-stats") {
       const allMigrations = await fetchAllPaginated("video_migrations", "status, course_id");
       const courseMap: Record<string, any> = {};
@@ -439,78 +475,23 @@ serve(async (req) => {
       return jsonResponse({ success: true, courseStats: courseMap });
     }
 
-    // ACTION: Clear LuluStream remote upload queue
-    if (action === "clear-queue") {
-      // Get the remote upload list
-      const listRes = await fetch(`${LULUSTREAM_API_BASE}/urlupload/list?key=${LULUSTREAM_API_KEY}`);
-      const listData = await listRes.json();
-      let removed = 0;
-      
-      if (listData.status === 200 && listData.result && Array.isArray(listData.result)) {
-        for (const item of listData.result) {
-          const fileCode = item.filecode || item.file_code;
-          if (fileCode) {
-            try {
-              // Try to remove from queue
-              await fetch(`${LULUSTREAM_API_BASE}/urlupload/remove?key=${LULUSTREAM_API_KEY}&file_code=${fileCode}`);
-              removed++;
-              await delay(500);
-            } catch {}
-          }
-        }
-      }
-      
-      return jsonResponse({ success: true, message: `Cleared ${removed} items from LuluStream queue`, removed, queueItems: listData.result?.length || 0 });
-    }
-
-    // ACTION: Account info
+    // =====================================================
+    // ACTION: Account info (1 API call)
+    // =====================================================
     if (action === "account-info") {
       const res = await fetch(`${LULUSTREAM_API_BASE}/account/info?key=${LULUSTREAM_API_KEY}`);
       const data = await res.json();
       return jsonResponse({ success: true, account: data });
     }
 
-    // ACTION: Test single upload — actually submits to LuluStream and shows result
-    if (action === "test-upload") {
-      const { data: testItem } = await supabase.from("video_migrations")
-        .select("id, lesson_id, original_url, course_id")
-        .eq("status", "pending")
-        .limit(1)
-        .maybeSingle();
-      
-      if (!testItem) return jsonResponse({ success: false, error: "No pending items" });
-      
-      const fileId = extractFileId(testItem.original_url);
-      if (!fileId) return jsonResponse({ success: false, error: "Could not extract file ID", url: testItem.original_url });
-
-      const downloadUrl = `https://drive.google.com/uc?id=${fileId}&export=download&confirm=t`;
-      
-      // Actually submit to LuluStream
-      const uploadUrl = `${LULUSTREAM_API_BASE}/upload/url?key=${LULUSTREAM_API_KEY}&url=${encodeURIComponent(downloadUrl)}&new_title=${encodeURIComponent(`TEST_${fileId}`)}`;
-      const uploadRes = await fetch(uploadUrl);
-      const uploadData = await uploadRes.json();
-      
-      let fileCode = "";
-      if (uploadData.status === 200 && uploadData.result) {
-        fileCode = uploadData.result.filecode || uploadData.result.file_code || "";
-        // Mark as uploading
-        await supabase.from("video_migrations")
-          .update({ status: "uploading", lulustream_file_code: fileCode, updated_at: new Date().toISOString() })
-          .eq("id", testItem.id);
-      }
-
-      // Check remote upload queue status
-      await delay(3000);
-      const queueRes = await fetch(`${LULUSTREAM_API_BASE}/urlupload/list?key=${LULUSTREAM_API_KEY}`);
-      const queueData = await queueRes.json();
-
-      return jsonResponse({ 
-        success: true, fileId, downloadUrl,
-        luluResponse: uploadData,
-        fileCode,
-        queueAfter3s: queueData,
-        migrationId: testItem.id,
-      });
+    // =====================================================
+    // ACTION: Clear daily limit cooldown manually
+    // =====================================================
+    if (action === "clear-cooldown") {
+      await supabase.from("site_settings")
+        .update({ value: "false", updated_at: new Date().toISOString() })
+        .eq("key", "lulustream_daily_limit_hit");
+      return jsonResponse({ success: true, message: "Cooldown cleared" });
     }
 
     return jsonResponse({ success: false, error: "Invalid action" }, 400);
