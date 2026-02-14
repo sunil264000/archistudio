@@ -220,8 +220,10 @@ export function SecureVideoPlayer({
         src={videoUrl ?? undefined}
         className="w-full h-full object-contain"
         controls
+        controlsList="nodownload"
         playsInline
         preload="auto"
+        crossOrigin="anonymous"
         onTimeUpdate={() => {
           const v = videoRef.current;
           if (!v) return;
