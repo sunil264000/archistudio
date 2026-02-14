@@ -143,8 +143,10 @@ function generateCertificateHtml(
   return `<!DOCTYPE html><html><head>
 <meta charset="UTF-8">
 <title>Proof of Completion – ${studentName} – ${courseName}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Dancing+Script:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Dancing+Script:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 @page{size:landscape;margin:0}
 body{font-family:'Inter',sans-serif;background:#3d1c2e;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:30px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -286,6 +288,10 @@ body{font-family:'Inter',sans-serif;background:#3d1c2e;min-height:100vh;display:
     <div class="cid">NO. ${certNumber}</div>
   </div>
 </div>
-<script>window.onload=function(){setTimeout(function(){window.print()},600)}</script>
+<script>
+document.fonts.ready.then(function(){
+  setTimeout(function(){window.print()},800);
+});
+</script>
 </body></html>`;
 }
