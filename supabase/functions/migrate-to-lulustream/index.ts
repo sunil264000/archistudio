@@ -221,8 +221,8 @@ serve(async (req) => {
           const fileId = extractFileId(migration.original_url);
           if (!fileId) throw new Error("Could not extract file ID");
 
-          // Use direct download link - works for files shared with "anyone with link"
-          const downloadUrl = `https://drive.google.com/uc?id=${fileId}&export=download&confirm=t`;
+          // Use Google Drive API with key - returns actual video, not HTML virus scan page
+          const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${GOOGLE_API_KEY}`;
           const courseTitle = migration.course_id ? courseTitleMap[migration.course_id] || "" : "";
           const organizedTitle = courseTitle ? `[${courseTitle}] ${fileId}` : fileId;
 
@@ -421,7 +421,6 @@ serve(async (req) => {
 
     // ACTION: Test single upload with full diagnostics
     if (action === "test-upload") {
-      // Get one pending migration
       const { data: testItem } = await supabase.from("video_migrations")
         .select("id, lesson_id, original_url, course_id")
         .eq("status", "pending")
@@ -433,42 +432,41 @@ serve(async (req) => {
       const fileId = extractFileId(testItem.original_url);
       if (!fileId) return jsonResponse({ success: false, error: "Could not extract file ID", url: testItem.original_url });
 
-      // Test multiple URL formats
-      const urlFormats = [
-        { name: "uc_export", url: `https://drive.google.com/uc?id=${fileId}&export=download&confirm=t` },
-        { name: "usercontent", url: `https://drive.usercontent.google.com/download?id=${fileId}&export=download&confirm=t` },
-        { name: "api_key", url: `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${GOOGLE_API_KEY}` },
-      ];
-
       const results: any[] = [];
-      
-      for (const fmt of urlFormats) {
-        try {
-          // First test if URL is accessible
-          const testRes = await fetch(fmt.url, { method: "HEAD", redirect: "follow" });
-          const accessible = testRes.ok;
-          const contentType = testRes.headers.get("content-type");
-          const contentLength = testRes.headers.get("content-length");
 
-          // Try LuluStream upload with this URL
-          const uploadUrl = `${LULUSTREAM_API_BASE}/upload/url?key=${LULUSTREAM_API_KEY}&url=${encodeURIComponent(fmt.url)}&new_title=${encodeURIComponent(`test_${fileId}`)}`;
-          const uploadRes = await fetch(uploadUrl);
-          const uploadData = await uploadRes.json();
-          
-          results.push({
-            format: fmt.name,
-            url: fmt.url.substring(0, 80) + "...",
-            accessible,
-            contentType,
-            contentLength,
-            luluResponse: uploadData,
-          });
-          
-          await delay(2000);
-        } catch (err: any) {
-          results.push({ format: fmt.name, error: err.message });
+      // Test 1: Google API with key (GET to see actual error)
+      try {
+        const apiUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${GOOGLE_API_KEY}`;
+        const res = await fetch(apiUrl, { redirect: "follow" });
+        const contentType = res.headers.get("content-type") || "";
+        if (!res.ok) {
+          const errBody = await res.text();
+          results.push({ format: "api_key_GET", status: res.status, contentType, error: errBody.substring(0, 500) });
+        } else {
+          results.push({ format: "api_key_GET", status: 200, contentType, size: res.headers.get("content-length"), works: true });
         }
-      }
+      } catch (e: any) { results.push({ format: "api_key_GET", error: e.message }); }
+
+      // Test 2: Google API - file metadata (to verify file exists and is shared)
+      try {
+        const metaUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?key=${GOOGLE_API_KEY}&fields=id,name,mimeType,size,shared,webContentLink`;
+        const res = await fetch(metaUrl);
+        const data = await res.json();
+        results.push({ format: "metadata", data });
+      } catch (e: any) { results.push({ format: "metadata", error: e.message }); }
+
+      // Test 3: uc export with GET
+      try {
+        const ucUrl = `https://drive.google.com/uc?id=${fileId}&export=download&confirm=t`;
+        const res = await fetch(ucUrl, { redirect: "follow" });
+        const contentType = res.headers.get("content-type") || "";
+        const isVideo = contentType.includes("video") || contentType.includes("octet-stream");
+        results.push({ 
+          format: "uc_export_GET", status: res.status, contentType, 
+          size: res.headers.get("content-length"),
+          isVideo, finalUrl: res.url?.substring(0, 100)
+        });
+      } catch (e: any) { results.push({ format: "uc_export_GET", error: e.message }); }
 
       return jsonResponse({ success: true, fileId, originalUrl: testItem.original_url, results });
     }
