@@ -22,6 +22,7 @@ import {
   Menu, X, List
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { CourseCompletionModal } from '@/components/course/CourseCompletionModal';
 
 interface Module {
   id: string;
@@ -60,6 +61,7 @@ export default function CoursePlayer() {
   const [watchProgress, setWatchProgress] = useState(0);
   const [showFinishButton, setShowFinishButton] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
   
   // Use access control hook for proper access checking (enrollment, gift, EMI, launch free)
   const accessInfo = useAccessControl(user?.id, course?.id);
@@ -274,12 +276,14 @@ export default function CoursePlayer() {
     // Check for course completion
     const allLessons = modules.flatMap(m => m.lessons);
     const newCompletedCount = Object.values(progress).filter(p => p.completed).length + 1;
-    if (newCompletedCount >= allLessons.length) {
-      toast.success('🏆 Congratulations! You completed this studio program!');
-      // Trigger certificate generation
+    if (newCompletedCount >= allLessons.length && course?.id) {
+      // Trigger certificate generation in background
       supabase.functions.invoke('check-course-completion', {
-        body: { userId: user.id, courseId: course?.id }
+        body: { userId: user.id, courseId: course.id }
       }).catch(console.error);
+      
+      // Show completion modal
+      setTimeout(() => setShowCompletionModal(true), 800);
     }
   }, [currentLesson, user, modules, progress, course]);
 
@@ -726,6 +730,16 @@ export default function CoursePlayer() {
           )}
         </main>
       </div>
+      {/* Course Completion Celebration Modal */}
+      {user && course && (
+        <CourseCompletionModal
+          open={showCompletionModal}
+          onOpenChange={setShowCompletionModal}
+          courseName={course.title}
+          courseId={course.id}
+          userId={user.id}
+        />
+      )}
     </div>
   );
 }

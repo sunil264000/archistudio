@@ -27,11 +27,11 @@ const defaultSettings: CertificateSettings = {
   accent_color: '#c45a32',
   font_family: 'Playfair Display',
   institution_name: 'Concrete Logic',
-  institution_tagline: 'Architecture Learning Platform',
-  signature_name: 'Course Director',
-  signature_title: 'Concrete Logic',
+  institution_tagline: 'Architecture & Design Learning Platform',
+  signature_name: 'Sunil Kumar',
+  signature_title: 'Founder & Lead Instructor, Concrete Logic',
   show_border: true,
-  border_style: 'classic',
+  border_style: 'elegant',
 };
 
 function getBorderStyles(settings: CertificateSettings): string {
@@ -252,28 +252,65 @@ function generateCertificateHtml(
   <meta charset="UTF-8">
   <title>Certificate - ${certificateNumber}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=${settings.font_family.replace(/ /g, '+')}:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=${settings.font_family.replace(/ /g, '+')}:wght@400;600;700&family=Open+Sans:wght@400;600&family=Great+Vibes&display=swap');
     
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
+    @page {
+      size: landscape;
+      margin: 0;
+    }
+    
     body {
       font-family: 'Open Sans', sans-serif;
-      background: #f5f5f5;
+      background: #f0ebe3;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     
     .certificate {
-      width: 900px;
-      min-height: 636px;
+      width: 1100px;
+      min-height: 780px;
       background: ${settings.background_color};
-      padding: 60px;
+      padding: 0;
       position: relative;
-      ${borderStyles}
+      box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+      overflow: hidden;
     }
+    
+    /* Decorative top accent bar */
+    .top-accent {
+      height: 8px;
+      background: linear-gradient(90deg, ${settings.accent_color}, ${settings.primary_color}, ${settings.accent_color});
+    }
+    
+    .certificate-inner {
+      padding: 50px 70px 40px;
+      position: relative;
+    }
+    
+    /* Watermark */
+    .watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-30deg);
+      font-family: '${settings.font_family}', serif;
+      font-size: 120px;
+      font-weight: 700;
+      color: ${settings.primary_color}06;
+      letter-spacing: 20px;
+      white-space: nowrap;
+      pointer-events: none;
+      text-transform: uppercase;
+    }
+    
+    ${borderStyles}
     
     .inner-border {
       position: absolute;
@@ -281,193 +318,296 @@ function generateCertificateHtml(
       left: 10px;
       right: 10px;
       bottom: 10px;
-      border: 1px solid ${settings.primary_color}40;
+      border: 1px solid ${settings.primary_color}15;
       pointer-events: none;
     }
     
     .corner {
       position: absolute;
-      width: 40px;
-      height: 40px;
+      width: 50px;
+      height: 50px;
       border-color: ${settings.accent_color};
     }
-    .corner-tl { top: 10px; left: 10px; border-top: 3px solid ${settings.accent_color}; border-left: 3px solid ${settings.accent_color}; }
-    .corner-tr { top: 10px; right: 10px; border-top: 3px solid ${settings.accent_color}; border-right: 3px solid ${settings.accent_color}; }
-    .corner-bl { bottom: 10px; left: 10px; border-bottom: 3px solid ${settings.accent_color}; border-left: 3px solid ${settings.accent_color}; }
-    .corner-br { bottom: 10px; right: 10px; border-bottom: 3px solid ${settings.accent_color}; border-right: 3px solid ${settings.accent_color}; }
+    .corner-tl { top: 15px; left: 15px; border-top: 3px solid ${settings.accent_color}; border-left: 3px solid ${settings.accent_color}; }
+    .corner-tr { top: 15px; right: 15px; border-top: 3px solid ${settings.accent_color}; border-right: 3px solid ${settings.accent_color}; }
+    .corner-bl { bottom: 15px; left: 15px; border-bottom: 3px solid ${settings.accent_color}; border-left: 3px solid ${settings.accent_color}; }
+    .corner-br { bottom: 15px; right: 15px; border-bottom: 3px solid ${settings.accent_color}; border-right: 3px solid ${settings.accent_color}; }
     
     .header {
       text-align: center;
-      margin-bottom: 40px;
+      margin-bottom: 10px;
     }
     
     .logo {
-      max-height: 60px;
-      margin-bottom: 15px;
+      max-height: 55px;
+      margin-bottom: 12px;
     }
     
     .institution-name {
       font-family: '${settings.font_family}', serif;
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 700;
-      letter-spacing: 4px;
+      letter-spacing: 6px;
       color: ${settings.primary_color};
       text-transform: uppercase;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     
     .institution-tagline {
-      font-size: 12px;
-      color: ${settings.primary_color}80;
-      letter-spacing: 2px;
+      font-size: 11px;
+      color: ${settings.primary_color}70;
+      letter-spacing: 3px;
       text-transform: uppercase;
+    }
+    
+    .divider {
+      width: 80px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, ${settings.accent_color}, transparent);
+      margin: 20px auto;
     }
     
     .title {
       font-family: '${settings.font_family}', serif;
-      font-size: 42px;
+      font-size: 46px;
       text-align: center;
-      margin: 30px 0;
+      margin: 15px 0;
       font-weight: 400;
       color: ${settings.primary_color};
+      letter-spacing: 2px;
+    }
+    
+    .subtitle {
+      text-align: center;
+      font-size: 13px;
+      color: ${settings.primary_color}80;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 30px;
     }
     
     .content {
       text-align: center;
-      margin: 40px 0;
+      margin: 25px 0;
     }
     
     .label {
-      font-size: 14px;
-      color: ${settings.primary_color}80;
-      margin-bottom: 10px;
+      font-size: 13px;
+      color: ${settings.primary_color}70;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
     }
     
     .name {
-      font-family: '${settings.font_family}', serif;
-      font-size: 36px;
-      font-weight: 700;
+      font-family: 'Great Vibes', cursive;
+      font-size: 52px;
       color: ${settings.primary_color};
-      margin-bottom: 30px;
+      margin-bottom: 25px;
+      line-height: 1.2;
+    }
+    
+    .name-underline {
+      width: 300px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, ${settings.accent_color}60, transparent);
+      margin: -10px auto 25px;
     }
     
     .course {
-      font-size: 16px;
-      color: ${settings.primary_color}90;
+      font-size: 14px;
+      color: ${settings.primary_color}80;
       margin-bottom: 8px;
     }
     
     .course-name {
       font-family: '${settings.font_family}', serif;
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 600;
       color: ${settings.accent_color};
+      margin-bottom: 8px;
+    }
+    
+    .course-description {
+      font-size: 12px;
+      color: ${settings.primary_color}60;
+      max-width: 500px;
+      margin: 0 auto;
+      line-height: 1.6;
     }
     
     .footer {
       display: flex;
       justify-content: space-between;
-      margin-top: 60px;
-      padding-top: 30px;
-      border-top: 1px solid ${settings.primary_color}20;
+      align-items: flex-end;
+      margin-top: 50px;
+      padding-top: 25px;
+      border-top: 1px solid ${settings.primary_color}10;
     }
     
     .footer-item {
       text-align: center;
+      min-width: 160px;
     }
     
     .footer-label {
-      font-size: 11px;
-      color: ${settings.primary_color}60;
-      margin-bottom: 5px;
+      font-size: 9px;
+      color: ${settings.primary_color}50;
+      margin-bottom: 6px;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 2px;
     }
     
     .footer-value {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       color: ${settings.primary_color};
     }
     
     .signature-section {
-      text-align: right;
+      text-align: center;
+    }
+    
+    .signature-cursive {
+      font-family: 'Great Vibes', cursive;
+      font-size: 32px;
+      color: ${settings.primary_color};
+      margin-bottom: 4px;
     }
     
     .signature-line {
-      width: 150px;
+      width: 180px;
       height: 1px;
-      background: ${settings.primary_color};
-      margin-left: auto;
-      margin-bottom: 8px;
+      background: ${settings.primary_color}40;
+      margin: 0 auto 8px;
     }
     
     .signature-name {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       color: ${settings.primary_color};
     }
     
     .signature-title {
-      font-size: 12px;
-      color: ${settings.primary_color}70;
+      font-size: 10px;
+      color: ${settings.primary_color}60;
+      letter-spacing: 1px;
     }
     
     .cert-number {
       font-family: monospace;
-      font-size: 11px;
-      color: ${settings.primary_color}50;
+      font-size: 9px;
+      color: ${settings.primary_color}35;
       text-align: center;
-      margin-top: 30px;
+      margin-top: 25px;
+      letter-spacing: 1px;
+    }
+
+    .seal {
+      position: absolute;
+      bottom: 80px;
+      right: 80px;
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      border: 2px solid ${settings.accent_color}40;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.6;
+    }
+
+    .seal-inner {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: 1px solid ${settings.accent_color}30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      color: ${settings.accent_color};
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .seal-text {
+      font-weight: 700;
+      font-size: 10px;
     }
     
     @media print {
       body { background: white; padding: 0; }
-      .certificate { box-shadow: none; }
+      .certificate { box-shadow: none; width: 100%; min-height: 100vh; }
+      .no-print { display: none; }
     }
   </style>
 </head>
 <body>
   <div class="certificate">
+    <div class="top-accent"></div>
     ${borderHTML}
+    <div class="watermark">${settings.institution_name}</div>
     
-    <div class="header">
-      ${settings.logo_url ? `<img src="${settings.logo_url}" alt="Logo" class="logo" />` : ''}
-      <div class="institution-name">${settings.institution_name}</div>
-      <div class="institution-tagline">${settings.institution_tagline}</div>
-    </div>
-    
-    <h1 class="title">Certificate of Completion</h1>
-    
-    <div class="content">
-      <p class="label">This is to certify that</p>
-      <p class="name">${studentName}</p>
-      <p class="course">has successfully completed the course</p>
-      <p class="course-name">${courseName}</p>
-    </div>
-    
-    <div class="footer">
-      <div class="footer-item">
-        <p class="footer-label">Date of Completion</p>
-        <p class="footer-value">${issueDate}</p>
+    <div class="certificate-inner">
+      <div class="header">
+        ${settings.logo_url ? `<img src="${settings.logo_url}" alt="Logo" class="logo" />` : ''}
+        <div class="institution-name">${settings.institution_name}</div>
+        <div class="institution-tagline">${settings.institution_tagline}</div>
       </div>
-      <div class="footer-item">
-        <p class="footer-label">Certificate Number</p>
-        <p class="footer-value">${certificateNumber}</p>
+      
+      <div class="divider"></div>
+      
+      <h1 class="title">Certificate of Completion</h1>
+      <p class="subtitle">This certificate is proudly presented to</p>
+      
+      <div class="content">
+        <p class="name">${studentName}</p>
+        <div class="name-underline"></div>
+        <p class="course">for successfully completing the program</p>
+        <p class="course-name">${courseName}</p>
+        <p class="course-description">
+          Having demonstrated dedication and commitment to professional growth in architecture and design education.
+        </p>
       </div>
-      <div class="footer-item signature-section">
-        <div class="signature-line"></div>
-        <p class="signature-name">${settings.signature_name}</p>
-        <p class="signature-title">${settings.signature_title}</p>
+      
+      <div class="footer">
+        <div class="footer-item">
+          <p class="footer-label">Date of Completion</p>
+          <p class="footer-value">${issueDate}</p>
+        </div>
+        
+        <div class="footer-item signature-section">
+          <div class="signature-cursive">${settings.signature_name}</div>
+          <div class="signature-line"></div>
+          <p class="signature-name">${settings.signature_name}</p>
+          <p class="signature-title">${settings.signature_title}</p>
+        </div>
+        
+        <div class="footer-item">
+          <p class="footer-label">Certificate No.</p>
+          <p class="footer-value">${certificateNumber}</p>
+        </div>
       </div>
+
+      <!-- Verification seal -->
+      <div class="seal">
+        <div class="seal-inner">
+          <span class="seal-text">Verified</span>
+          <span>Authentic</span>
+        </div>
+      </div>
+      
+      <p class="cert-number">Verify at: https://archistudio.lovable.app/verify/${certificateNumber}</p>
     </div>
-    
-    <p class="cert-number">Verify at: https://concrete-logic.lovable.app/verify/${certificateNumber}</p>
   </div>
   
   <script>
+    // Auto-trigger print dialog for easy PDF saving
     window.onload = function() {
-      window.print();
+      setTimeout(function() { window.print(); }, 500);
     }
   </script>
 </body>

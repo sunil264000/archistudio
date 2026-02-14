@@ -55,7 +55,6 @@ export function Certificates() {
       return;
     }
 
-    // Generate certificate PDF
     setGenerating(cert.id);
     try {
       const { data, error } = await supabase.functions.invoke('generate-certificate', {
@@ -64,9 +63,14 @@ export function Certificates() {
 
       if (error) throw error;
       
-      if (data?.pdfUrl) {
+      if (typeof data === 'string') {
+        const blob = new Blob([data], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        toast.success('Certificate opened! Use Ctrl+P to save as PDF.');
+      } else if (data?.pdfUrl) {
         window.open(data.pdfUrl, '_blank');
-        fetchCertificates(); // Refresh to get the URL
+        fetchCertificates();
       }
     } catch (error) {
       toast.error('Failed to generate certificate');
