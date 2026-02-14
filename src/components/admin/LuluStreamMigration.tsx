@@ -92,7 +92,7 @@ export function LuluStreamMigration() {
         setAutoMigrate(false);
         toast.success("Migration complete! All videos have been processed.");
       }
-    }, 12000);
+    }, 6000);
     return () => clearInterval(interval);
   }, [autoMigrate, stats, courseIdsParam, batchSize, fetchStats]);
 
@@ -310,9 +310,9 @@ export function LuluStreamMigration() {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Batch size */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <span className="text-sm font-medium">Batch Size:</span>
-            {[5, 10, 15, 20].map(size => (
+            {[10, 20, 30, 50].map(size => (
               <Button key={size} variant={batchSize === size ? "default" : "outline"} size="sm" onClick={() => setBatchSize(size)}>
                 {size}
               </Button>
