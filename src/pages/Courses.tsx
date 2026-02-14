@@ -431,9 +431,19 @@ function CourseCard({
     });
   };
 
+  // Loading timeout — after 2s, show Buy button instead of spinner
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+  useEffect(() => {
+    if (accessInfo.loading) {
+      const timer = setTimeout(() => setLoadingTimedOut(true), 2000);
+      return () => clearTimeout(timer);
+    }
+    setLoadingTimedOut(false);
+  }, [accessInfo.loading]);
+
   // Determine CTA based on access status
   const getCTAContent = () => {
-    if (accessInfo.loading) {
+    if (accessInfo.loading && !loadingTimedOut) {
       return { text: 'Loading...', icon: Loader2, action: () => {}, disabled: true };
     }
     

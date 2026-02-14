@@ -10,6 +10,7 @@ import { Mail, Phone, MapPin, Send, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { SEOHead } from '@/components/seo/SEOHead';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Contact() {
   const [loading, setLoading] = useState(false);
@@ -26,15 +27,28 @@ export default function Contact() {
     e.preventDefault();
     setLoading(true);
     
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({
-      title: 'Message Sent!',
-      description: 'We will get back to you within 24 hours.',
+    const { error } = await supabase.from('contact_messages').insert({
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone || null,
+      subject: formData.subject,
+      message: formData.message,
     });
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to send message. Please try again.',
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Message Sent!',
+        description: 'We will get back to you within 24 hours.',
+      });
+      setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+    }
     
-    setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
     setLoading(false);
   };
 
