@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 
 interface SecureVideoPlayerProps {
   lessonId: string;
@@ -31,6 +32,10 @@ export function SecureVideoPlayer({
   const [error, setError] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [hasAppliedInitialPosition, setHasAppliedInitialPosition] = useState(false);
+  const [iframeMarkedComplete, setIframeMarkedComplete] = useState(false);
+  const [iframeWatchMinutes, setIframeWatchMinutes] = useState(0);
+  const iframeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const iframeWatchTimeRef = useRef(0);
   const { user, session } = useAuth();
 
   const isExternalUrl = useMemo(() => /^https?:\/\//i.test(videoPath || ''), [videoPath]);
@@ -42,6 +47,7 @@ export function SecureVideoPlayer({
     () => /lulustream\.com/i.test(videoPath || ''),
     [videoPath],
   );
+  const isIframeVideo = (isLuluStreamUrl || isGoogleDriveUrl);
 
   useEffect(() => {
     const fetchVideoUrl = async () => {
@@ -154,10 +160,40 @@ export function SecureVideoPlayer({
     }
   }, [videoUrl, initialPosition, hasAppliedInitialPosition]);
 
-  // Reset applied position flag when lesson changes
+  // Reset applied position flag and iframe state when lesson changes
   useEffect(() => {
     setHasAppliedInitialPosition(false);
+    setIframeMarkedComplete(false);
+    iframeWatchTimeRef.current = 0;
+    setIframeWatchMinutes(0);
   }, [lessonId]);
+
+  // Start timer when iframe video is visible
+  useEffect(() => {
+    if (!isIframeVideo || !videoUrl || loading || error) return;
+
+    iframeTimerRef.current = setInterval(() => {
+      iframeWatchTimeRef.current += 10;
+      const mins = Math.floor(iframeWatchTimeRef.current / 60);
+      setIframeWatchMinutes(mins);
+      
+      const estimatedDuration = 15 * 60;
+      const progressPercent = Math.min((iframeWatchTimeRef.current / estimatedDuration) * 100, 95);
+      if (onProgress) {
+        onProgress(progressPercent, iframeWatchTimeRef.current);
+      }
+    }, 10000);
+
+    return () => {
+      if (iframeTimerRef.current) clearInterval(iframeTimerRef.current);
+    };
+  }, [isIframeVideo, videoUrl, loading, error, onProgress]);
+
+  const handleIframeComplete = useCallback(() => {
+    setIframeMarkedComplete(true);
+    if (onProgress) onProgress(100, iframeWatchTimeRef.current);
+    if (onComplete) onComplete();
+  }, [onComplete, onProgress]);
 
   if (loading) {
     return (
@@ -188,7 +224,7 @@ export function SecureVideoPlayer({
   }
 
   // LuluStream or Google Drive: render as iframe embed
-  if ((isLuluStreamUrl || isGoogleDriveUrl) && videoUrl) {
+  if (isIframeVideo) {
     return (
       <div 
         className="aspect-video rounded-lg overflow-hidden bg-black relative select-none"
@@ -207,6 +243,27 @@ export function SecureVideoPlayer({
           style={{ pointerEvents: 'all' }}
           onContextMenu={(e) => e.preventDefault()}
         />
+        {/* Mark Complete button for iframe videos */}
+        {!iframeMarkedComplete && iframeWatchMinutes >= 1 && (
+          <div className="absolute bottom-4 right-4 z-10">
+            <Button
+              onClick={handleIframeComplete}
+              size="sm"
+              className="bg-success hover:bg-success/90 text-success-foreground shadow-lg gap-2"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Mark as Complete
+            </Button>
+          </div>
+        )}
+        {iframeMarkedComplete && (
+          <div className="absolute bottom-4 right-4 z-10">
+            <div className="bg-success/90 text-success-foreground text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Completed
+            </div>
+          </div>
+        )}
       </div>
     );
   }
