@@ -11,16 +11,12 @@ interface SecureVideoPlayerProps {
   onProgress?: (progress: number, currentTime: number) => void;
   onComplete?: () => void;
   initialPosition?: number;
-  /**
-   * If true, allows embedding external video URLs (e.g., Google Drive iframe).
-   * WARNING: external hosts can be captured by download extensions.
-   */
   allowExternal?: boolean;
 }
 
-export function SecureVideoPlayer({ 
-  lessonId, 
-  videoPath, 
+export function SecureVideoPlayer({
+  lessonId,
+  videoPath,
   isFreePreview = false,
   onProgress,
   onComplete,
@@ -32,11 +28,12 @@ export function SecureVideoPlayer({
   const [error, setError] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [hasAppliedInitialPosition, setHasAppliedInitialPosition] = useState(false);
+  const [useIframe, setUseIframe] = useState(false);
   const [iframeMarkedComplete, setIframeMarkedComplete] = useState(false);
   const [iframeWatchMinutes, setIframeWatchMinutes] = useState(0);
   const iframeTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const iframeWatchTimeRef = useRef(0);
-  const { user, session } = useAuth();
+  const { user, session, isAdmin } = useAuth();
 
   const isExternalUrl = useMemo(() => /^https?:\/\//i.test(videoPath || ''), [videoPath]);
   const isGoogleDriveUrl = useMemo(
@@ -47,13 +44,13 @@ export function SecureVideoPlayer({
     () => /lulustream\.com/i.test(videoPath || ''),
     [videoPath],
   );
-  const isIframeVideo = (isLuluStreamUrl || isGoogleDriveUrl);
 
   useEffect(() => {
     const fetchVideoUrl = async () => {
       try {
         setLoading(true);
         setError(null);
+        setUseIframe(false);
 
         if (!videoPath) {
           setVideoUrl(null);
@@ -61,42 +58,70 @@ export function SecureVideoPlayer({
           return;
         }
 
-        // External hosts: only allow if explicitly enabled.
-        if (isExternalUrl) {
-          // LuluStream embed URLs — always allow, render as iframe
-          if (isLuluStreamUrl) {
-            setVideoUrl(videoPath);
-            return;
-          }
+        // LuluStream: always iframe
+        if (isLuluStreamUrl) {
+          setVideoUrl(videoPath);
+          setUseIframe(true);
+          return;
+        }
 
-          // Google Drive — render as iframe embed directly (no proxy needed)
-          if (isGoogleDriveUrl) {
-            let embedUrl = videoPath;
-            if (!embedUrl.endsWith('/preview')) {
-              embedUrl = embedUrl.replace(/\/(view|edit)(\?.*)?$/, '/preview');
-              if (!embedUrl.endsWith('/preview')) {
-                const match = embedUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-                if (match) {
-                  embedUrl = `https://drive.google.com/file/d/${match[1]}/preview`;
-                }
+        // Google Drive: use stream-video proxy for native HTML5 playback
+        if (isGoogleDriveUrl) {
+          // Authenticated users: mint a ticket for the proxy
+          if (user && session?.access_token) {
+            try {
+              let accessToken = session.access_token;
+              // Refresh if needed
+              if (!accessToken) {
+                await supabase.auth.refreshSession().catch(() => undefined);
+                const { data: { session: refreshed } } = await supabase.auth.getSession();
+                accessToken = refreshed?.access_token || '';
               }
+
+              const { data, error: ticketError } = await supabase.functions.invoke('mint-video-ticket', {
+                body: { lessonId, videoPath },
+                headers: { Authorization: `Bearer ${accessToken}` },
+              });
+
+              if (ticketError || !data?.ticket) {
+                console.warn('Ticket mint failed, falling back to iframe:', ticketError);
+                // Fallback to iframe
+                setVideoUrl(toGoogleDriveEmbed(videoPath));
+                setUseIframe(true);
+                return;
+              }
+
+              // Build stream-video proxy URL
+              const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+              const streamUrl = `${supabaseUrl}/functions/v1/stream-video?ticket=${encodeURIComponent(data.ticket)}&l=${encodeURIComponent(lessonId)}&p=${encodeURIComponent(videoPath)}`;
+              setVideoUrl(streamUrl);
+              return;
+            } catch (err) {
+              console.warn('Stream proxy setup failed, falling back to iframe:', err);
+              setVideoUrl(toGoogleDriveEmbed(videoPath));
+              setUseIframe(true);
+              return;
             }
-            setVideoUrl(embedUrl);
-            return;
           }
 
+          // Free preview or unauthenticated: use iframe embed
+          setVideoUrl(toGoogleDriveEmbed(videoPath));
+          setUseIframe(true);
+          return;
+        }
+
+        // Other external URLs
+        if (isExternalUrl) {
           if (!allowExternal) {
             setVideoUrl(null);
             setError('This video is hosted externally and is disabled for this lesson.');
             return;
           }
-
-          // Other external URLs can be played directly.
           setVideoUrl(videoPath);
           return;
         }
 
-        // Signed URL flow (normal HTML5 video, no proxy/protection)
+        // Supabase Storage signed URL flow
         if (user) {
           let accessToken = session?.access_token;
           if (!accessToken) {
@@ -104,7 +129,6 @@ export function SecureVideoPlayer({
             const { data: { session: refreshed } } = await supabase.auth.getSession();
             accessToken = refreshed?.access_token;
           }
-
           if (!accessToken) throw new Error('Please sign in again to continue.');
 
           const { data, error: fnError } = await supabase.functions.invoke('get-video-url', {
@@ -142,25 +166,21 @@ export function SecureVideoPlayer({
 
   // Apply initial position when video is ready - only once
   useEffect(() => {
-    if (videoRef.current && videoUrl && initialPosition > 0 && !hasAppliedInitialPosition) {
+    if (videoRef.current && videoUrl && initialPosition > 0 && !hasAppliedInitialPosition && !useIframe) {
       const applyInitialPosition = () => {
         if (videoRef.current && videoRef.current.readyState >= 1) {
           videoRef.current.currentTime = initialPosition;
           setHasAppliedInitialPosition(true);
         }
       };
-      
-      // Try immediately if ready
       applyInitialPosition();
-      
-      // Also listen for loadedmetadata in case video isn't ready yet
       const video = videoRef.current;
       video.addEventListener('loadedmetadata', applyInitialPosition);
       return () => video.removeEventListener('loadedmetadata', applyInitialPosition);
     }
-  }, [videoUrl, initialPosition, hasAppliedInitialPosition]);
+  }, [videoUrl, initialPosition, hasAppliedInitialPosition, useIframe]);
 
-  // Reset applied position flag and iframe state when lesson changes
+  // Reset state when lesson changes
   useEffect(() => {
     setHasAppliedInitialPosition(false);
     setIframeMarkedComplete(false);
@@ -168,32 +188,40 @@ export function SecureVideoPlayer({
     setIframeWatchMinutes(0);
   }, [lessonId]);
 
-  // Start timer when iframe video is visible
+  // Iframe watch timer
   useEffect(() => {
-    if (!isIframeVideo || !videoUrl || loading || error) return;
+    if (!useIframe || !videoUrl || loading || error) return;
 
     iframeTimerRef.current = setInterval(() => {
       iframeWatchTimeRef.current += 10;
       const mins = Math.floor(iframeWatchTimeRef.current / 60);
       setIframeWatchMinutes(mins);
-      
+
       const estimatedDuration = 15 * 60;
       const progressPercent = Math.min((iframeWatchTimeRef.current / estimatedDuration) * 100, 95);
-      if (onProgress) {
-        onProgress(progressPercent, iframeWatchTimeRef.current);
-      }
+      if (onProgress) onProgress(progressPercent, iframeWatchTimeRef.current);
     }, 10000);
 
     return () => {
       if (iframeTimerRef.current) clearInterval(iframeTimerRef.current);
     };
-  }, [isIframeVideo, videoUrl, loading, error, onProgress]);
+  }, [useIframe, videoUrl, loading, error, onProgress]);
 
   const handleIframeComplete = useCallback(() => {
     setIframeMarkedComplete(true);
     if (onProgress) onProgress(100, iframeWatchTimeRef.current);
     if (onComplete) onComplete();
   }, [onComplete, onProgress]);
+
+  // Handle video error - fallback to iframe for Google Drive
+  const handleVideoError = useCallback(() => {
+    if (isGoogleDriveUrl && !useIframe) {
+      console.warn('Native video failed for Google Drive, falling back to iframe');
+      setVideoUrl(toGoogleDriveEmbed(videoPath));
+      setUseIframe(true);
+      setError(null);
+    }
+  }, [isGoogleDriveUrl, useIframe, videoPath]);
 
   if (loading) {
     return (
@@ -209,8 +237,8 @@ export function SecureVideoPlayer({
         <div className="text-center text-foreground px-4">
           <p className="text-destructive mb-2 text-lg font-medium">Video Not Available</p>
           <p className="text-sm text-muted-foreground mb-4 max-w-md">
-            {error.includes('Object not found') || error.includes('404') 
-              ? 'The video file has not been uploaded yet. Please contact the administrator.' 
+            {error.includes('Object not found') || error.includes('404')
+              ? 'The video file has not been uploaded yet. Please contact the administrator.'
               : error.includes('403') || error.includes('all methods exhausted')
               ? 'The video file could not be accessed. It may not be shared properly on the storage service. Please contact support.'
               : error}
@@ -223,27 +251,35 @@ export function SecureVideoPlayer({
     );
   }
 
-  // LuluStream or Google Drive: render as iframe embed
-  if (isIframeVideo) {
+  // Iframe rendering (LuluStream or fallback)
+  if (useIframe) {
     return (
-      <div 
+      <div
         className="aspect-video rounded-lg overflow-hidden bg-black relative select-none"
         onContextMenu={(e) => e.preventDefault()}
       >
         <iframe
-          src={videoUrl}
+          src={videoUrl!}
           className="w-full h-full border-0"
           allowFullScreen
           allow="autoplay; encrypted-media; picture-in-picture"
           sandbox="allow-scripts allow-same-origin"
         />
-        {/* Overlay to block the pop-out/download button in top-right corner */}
-        <div 
-          className="absolute top-0 right-0 w-16 h-16 z-10" 
+        {/* Overlay to block download button */}
+        <div
+          className="absolute top-0 right-0 w-16 h-16 z-10"
           style={{ pointerEvents: 'all' }}
           onContextMenu={(e) => e.preventDefault()}
         />
-        {/* Mark Complete button for iframe videos */}
+        {/* Watermark overlay for content protection */}
+        {user && !isAdmin && (
+          <div className="absolute inset-0 pointer-events-none z-[5] flex items-center justify-center opacity-[0.04]">
+            <div className="text-white text-lg font-mono rotate-[-30deg] select-none whitespace-nowrap">
+              {user.email}
+            </div>
+          </div>
+        )}
+        {/* Mark Complete button */}
         {!iframeMarkedComplete && iframeWatchMinutes >= 1 && (
           <div className="absolute bottom-4 right-4 z-10">
             <Button
@@ -268,17 +304,22 @@ export function SecureVideoPlayer({
     );
   }
 
+  // Native HTML5 video player (proxy stream or signed URL)
   return (
-    <div className="aspect-video rounded-lg overflow-hidden bg-black">
+    <div
+      className="aspect-video rounded-lg overflow-hidden bg-black relative select-none"
+      onContextMenu={(e) => e.preventDefault()}
+    >
       <video
         ref={videoRef}
         src={videoUrl ?? undefined}
         className="w-full h-full object-contain"
         controls
-        controlsList="nodownload"
+        controlsList="nodownload noremoteplayback"
+        disablePictureInPicture
         playsInline
         preload="auto"
-        crossOrigin="anonymous"
+        onError={handleVideoError}
         onTimeUpdate={() => {
           const v = videoRef.current;
           if (!v) return;
@@ -288,6 +329,29 @@ export function SecureVideoPlayer({
           if (onComplete && total > 0 && current / total >= 0.9) onComplete();
         }}
       />
+      {/* Watermark overlay for content protection */}
+      {user && !isAdmin && (
+        <div className="absolute inset-0 pointer-events-none z-[5] flex items-center justify-center opacity-[0.03]">
+          <div className="text-white text-sm font-mono rotate-[-30deg] select-none whitespace-nowrap">
+            {user.email}
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+/** Convert any Google Drive URL to an embeddable /preview URL */
+function toGoogleDriveEmbed(url: string): string {
+  let embedUrl = url;
+  if (!embedUrl.endsWith('/preview')) {
+    embedUrl = embedUrl.replace(/\/(view|edit)(\?.*)?$/, '/preview');
+    if (!embedUrl.endsWith('/preview')) {
+      const match = embedUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (match) {
+        embedUrl = `https://drive.google.com/file/d/${match[1]}/preview`;
+      }
+    }
+  }
+  return embedUrl;
 }
