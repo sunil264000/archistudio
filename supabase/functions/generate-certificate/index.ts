@@ -197,8 +197,8 @@ body{font-family:'Inter',sans-serif;background:#e8e2d8;min-height:100vh;display:
 .best-wishes{text-align:center;margin-top:16px;font-family:'Cormorant Garamond',serif;font-size:15px;font-style:italic;color:${ac};letter-spacing:1px}
 
 /* Footer */
-.footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:36px;padding-top:18px;border-top:1px solid ${pc}0a}
-.footer-col{text-align:center;min-width:170px}
+.footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:36px;padding:18px 100px 0;border-top:1px solid ${pc}0a}
+.footer-col{text-align:center;min-width:150px}
 .footer-label{font-size:8px;color:${pc}45;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:6px}
 .footer-val{font-size:13px;font-weight:600;color:${pc}}
 
@@ -213,20 +213,20 @@ body{font-family:'Inter',sans-serif;background:#e8e2d8;min-height:100vh;display:
 .badge-ribbon{width:56px;height:70px;background:linear-gradient(135deg,${gold},#c9973b);clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%);display:flex;align-items:center;justify-content:center;padding-bottom:12px}
 .badge-star{color:#fff;font-size:22px}
 
-/* Authentication stamp */
-.stamp{position:absolute;bottom:70px;right:80px;width:110px;height:110px}
-.stamp-outer{width:110px;height:110px;border-radius:50%;border:3px solid ${ac}40;display:flex;align-items:center;justify-content:center;position:relative;transform:rotate(-15deg)}
-.stamp-ring{position:absolute;inset:6px;border-radius:50%;border:1.5px dashed ${ac}30}
-.stamp-inner{width:70px;height:70px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:2px}
-.stamp-icon{font-size:18px;color:${ac}}
-.stamp-text{font-size:7.5px;font-weight:700;color:${ac};letter-spacing:1.5px;text-transform:uppercase;line-height:1.2}
-.stamp-sub{font-size:6px;color:${ac}90;letter-spacing:1px;text-transform:uppercase}
+/* Authentication stamp - bottom right, clear of footer */
+.stamp{position:absolute;bottom:18px;right:30px;width:90px;height:90px}
+.stamp-outer{width:90px;height:90px;border-radius:50%;border:2.5px solid ${ac}40;display:flex;align-items:center;justify-content:center;position:relative;transform:rotate(-15deg)}
+.stamp-ring{position:absolute;inset:5px;border-radius:50%;border:1.5px dashed ${ac}30}
+.stamp-inner{width:58px;height:58px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1px}
+.stamp-icon{font-size:14px;color:${ac}}
+.stamp-text{font-size:7px;font-weight:700;color:${ac};letter-spacing:1.5px;text-transform:uppercase;line-height:1.2}
+.stamp-sub{font-size:5.5px;color:${ac}90;letter-spacing:1px;text-transform:uppercase}
 
-/* QR-style authentication badge */
-.auth-badge{position:absolute;bottom:70px;left:85px;text-align:center}
-.auth-badge-box{width:70px;height:70px;border:2px solid ${pc}15;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:${pc}03;gap:3px}
-.auth-badge-icon{font-size:20px}
-.auth-badge-text{font-size:6px;font-weight:600;color:${pc}60;letter-spacing:1px;text-transform:uppercase}
+/* Auth badge - bottom left, clear of footer */
+.auth-badge{position:absolute;bottom:22px;left:32px;text-align:center}
+.auth-badge-box{width:60px;height:60px;border:1.5px solid ${pc}15;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:${pc}03;gap:2px}
+.auth-badge-icon{font-size:16px}
+.auth-badge-text{font-size:5.5px;font-weight:600;color:${pc}60;letter-spacing:1px;text-transform:uppercase}
 
 /* Verify */
 .verify{font-family:monospace;font-size:8.5px;color:${pc}28;text-align:center;margin-top:18px;letter-spacing:.8px}
@@ -293,29 +293,29 @@ body{font-family:'Inter',sans-serif;background:#e8e2d8;min-height:100vh;display:
       </div>
     </div>
 
-    <!-- Authentication stamp -->
-    <div class="stamp">
-      <div class="stamp-outer">
-        <div class="stamp-ring"></div>
-        <div class="stamp-inner">
-          <span class="stamp-icon">✦</span>
-          <span class="stamp-text">Verified</span>
-          <span class="stamp-text">Authentic</span>
-          <span class="stamp-sub">${s.institution_name}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Authenticated badge -->
-    <div class="auth-badge">
-      <div class="auth-badge-box">
-        <span class="auth-badge-icon">🛡️</span>
-        <span class="auth-badge-text">Digitally</span>
-        <span class="auth-badge-text">Authenticated</span>
-      </div>
-    </div>
-
     <p class="verify">Verify at: https://archistudio.lovable.app/verify/${certNumber}</p>
+  </div>
+
+  <!-- Authentication stamp - positioned on cert container -->
+  <div class="stamp">
+    <div class="stamp-outer">
+      <div class="stamp-ring"></div>
+      <div class="stamp-inner">
+        <span class="stamp-icon">✦</span>
+        <span class="stamp-text">Verified</span>
+        <span class="stamp-text">Authentic</span>
+        <span class="stamp-sub">Archistudio</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Authenticated badge -->
+  <div class="auth-badge">
+    <div class="auth-badge-box">
+      <span class="auth-badge-icon">🛡️</span>
+      <span class="auth-badge-text">Digitally</span>
+      <span class="auth-badge-text">Authenticated</span>
+    </div>
   </div>
 </div>
 
