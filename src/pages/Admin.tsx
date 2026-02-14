@@ -34,6 +34,7 @@ import { RoleManagement } from '@/components/admin/RoleManagement';
 import { EmailLogs } from '@/components/admin/EmailLogs';
 import { AutoFixLogs } from '@/components/admin/AutoFixLogs';
 import { ContactMessages } from '@/components/admin/ContactMessages';
+import { LuluStreamMigration } from '@/components/admin/LuluStreamMigration';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
@@ -158,6 +159,8 @@ export default function Admin() {
         return <ContactMessages />;
       case 'settings':
         return <SiteSettingsPanel />;
+      case 'video-migration':
+        return <LuluStreamMigration />;
       default:
         return <AdminOverview stats={stats} onNavigate={setActiveTab} />;
     }

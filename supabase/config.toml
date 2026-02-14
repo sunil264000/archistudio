@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.delete-user]
 verify_jwt = false
+
+[functions.migrate-to-lulustream]
+verify_jwt = false
