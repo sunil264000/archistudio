@@ -25,9 +25,15 @@ export function Navbar() {
 
   const toggleDarkMode = () => {
     const newDark = !isDark;
+    // Add a brief class to trigger the theme crossfade overlay
+    document.documentElement.style.setProperty('--theme-transition-active', '1');
     setIsDark(newDark);
     document.documentElement.classList.toggle('dark', newDark);
     localStorage.setItem('theme', newDark ? 'dark' : 'light');
+    // Remove after transition completes
+    setTimeout(() => {
+      document.documentElement.style.removeProperty('--theme-transition-active');
+    }, 700);
   };
 
   useEffect(() => {
@@ -87,8 +93,18 @@ export function Navbar() {
 
           <CartSheet />
 
-          <Button variant="ghost" size="icon" onClick={toggleDarkMode} className="rounded-lg">
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          <Button variant="ghost" size="icon" onClick={toggleDarkMode} className="rounded-lg overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={isDark ? 'sun' : 'moon'}
+                initial={{ rotate: -90, scale: 0, opacity: 0 }}
+                animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                exit={{ rotate: 90, scale: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </motion.div>
+            </AnimatePresence>
           </Button>
 
           {loading ? (

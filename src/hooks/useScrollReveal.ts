@@ -1,9 +1,11 @@
 import { useEffect } from 'react';
 
+const MOTION_SELECTORS = '.motion-section, .motion-stagger, .motion-from-left, .motion-from-right, .motion-scale, .motion-rotate';
+
 /**
- * Global scroll-reveal: automatically adds 'in-view' class to elements
- * with .motion-section or .motion-stagger when they enter the viewport.
- * Uses IntersectionObserver for performance.
+ * Ultra-smooth global scroll-reveal system.
+ * Automatically animates elements into view using IntersectionObserver.
+ * Supports: motion-section, motion-stagger, motion-from-left, motion-from-right, motion-scale, motion-rotate
  */
 export function useScrollReveal() {
   useEffect(() => {
@@ -11,20 +13,28 @@ export function useScrollReveal() {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('in-view');
+            // Small RAF delay for smoother paint
+            requestAnimationFrame(() => {
+              entry.target.classList.add('in-view');
+            });
           }
         });
       },
-      { threshold: 0.08, rootMargin: '0px 0px -60px 0px' }
+      { threshold: 0.06, rootMargin: '0px 0px -40px 0px' }
     );
 
-    const targets = document.querySelectorAll('.motion-section, .motion-stagger');
-    targets.forEach((el) => observer.observe(el));
+    const observe = () => {
+      const targets = document.querySelectorAll(
+        `${MOTION_SELECTORS}`.split(',').map(s => `${s.trim()}:not(.in-view)`).join(',')
+      );
+      targets.forEach((el) => observer.observe(el));
+    };
+
+    observe();
 
     // Re-observe on DOM changes (for dynamically added content)
     const mutationObserver = new MutationObserver(() => {
-      const newTargets = document.querySelectorAll('.motion-section:not(.in-view), .motion-stagger:not(.in-view)');
-      newTargets.forEach((el) => observer.observe(el));
+      requestAnimationFrame(observe);
     });
 
     mutationObserver.observe(document.body, { childList: true, subtree: true });
