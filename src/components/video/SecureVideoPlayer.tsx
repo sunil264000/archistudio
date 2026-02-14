@@ -190,13 +190,22 @@ export function SecureVideoPlayer({
   // LuluStream or Google Drive: render as iframe embed
   if ((isLuluStreamUrl || isGoogleDriveUrl) && videoUrl) {
     return (
-      <div className="aspect-video rounded-lg overflow-hidden bg-black">
+      <div 
+        className="aspect-video rounded-lg overflow-hidden bg-black relative select-none"
+        onContextMenu={(e) => e.preventDefault()}
+      >
         <iframe
           src={videoUrl}
           className="w-full h-full border-0"
           allowFullScreen
           allow="autoplay; encrypted-media; picture-in-picture"
-          sandbox="allow-scripts allow-same-origin allow-popups"
+          sandbox="allow-scripts allow-same-origin"
+        />
+        {/* Overlay to block the pop-out/download button in top-right corner */}
+        <div 
+          className="absolute top-0 right-0 w-16 h-16 z-10" 
+          style={{ pointerEvents: 'all' }}
+          onContextMenu={(e) => e.preventDefault()}
         />
       </div>
     );
