@@ -140,127 +140,141 @@ function generateCertificateHtml(
   s: CertificateSettings, studentName: string, courseName: string,
   issueDate: string, certNumber: string
 ): string {
-  const ac = s.accent_color;
   const pc = s.primary_color;
-  const gold = '#c8a55a';
-  const warmCream = '#faf6f0';
-  const softGold = '#e8d5a3';
 
   return `<!DOCTYPE html><html><head>
 <meta charset="UTF-8">
 <title>Proof of Completion – ${studentName} – ${courseName}</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500&family=Great+Vibes&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Great+Vibes&family=Inter:wght@300;400;500;600&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 @page{size:landscape;margin:0}
-body{font-family:'Inter',sans-serif;background:${warmCream};min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:'Inter',sans-serif;background:#f5f0eb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 
-.cert{width:1100px;min-height:770px;background:linear-gradient(145deg,#ffffff 0%,${warmCream} 40%,#fff9f0 100%);position:relative;overflow:hidden;box-shadow:0 25px 80px rgba(0,0,0,.08),0 4px 20px rgba(0,0,0,.04)}
+.cert{width:1120px;min-height:790px;position:relative;overflow:hidden;background:#fffbf7;box-shadow:0 30px 100px rgba(120,80,50,.12),0 4px 20px rgba(0,0,0,.05)}
 
-/* Decorative top bar */
-.top-bar{height:5px;background:linear-gradient(90deg,${ac},${gold},${ac})}
+/* Rose gold gradient top & bottom bars */
+.bar-top{height:6px;background:linear-gradient(90deg,#b76e79,#e8c4b8,#d4a574,#e8c4b8,#b76e79)}
+.bar-bottom{height:4px;background:linear-gradient(90deg,#b76e79,#e8c4b8,#d4a574,#e8c4b8,#b76e79);position:absolute;bottom:0;left:0;right:0}
 
-/* Subtle side accents */
-.side-accent-l,.side-accent-r{position:absolute;top:0;bottom:0;width:2px}
-.side-accent-l{left:32px;background:linear-gradient(180deg,transparent 5%,${gold}25 20%,${gold}40 50%,${gold}25 80%,transparent 95%)}
-.side-accent-r{right:32px;background:linear-gradient(180deg,transparent 5%,${gold}25 20%,${gold}40 50%,${gold}25 80%,transparent 95%)}
+/* Elegant border system */
+.border-outer{position:absolute;top:14px;left:14px;right:14px;bottom:14px;border:1.5px solid #d4a57440;pointer-events:none}
+.border-inner{position:absolute;top:20px;left:20px;right:20px;bottom:20px;border:0.5px solid #d4a57420;pointer-events:none}
+.border-accent{position:absolute;top:17px;left:17px;right:17px;bottom:17px;border:0.5px solid #b76e7918;pointer-events:none}
 
-/* Inner frame */
-.inner-frame{position:absolute;top:22px;left:22px;right:22px;bottom:22px;border:1.5px solid ${gold}30;pointer-events:none}
-.inner-frame-2{position:absolute;top:26px;left:26px;right:26px;bottom:26px;border:0.5px solid ${gold}18;pointer-events:none}
+/* Side filigree lines */
+.filigree-l,.filigree-r{position:absolute;top:60px;bottom:60px;width:1px}
+.filigree-l{left:36px;background:linear-gradient(180deg,transparent,#d4a57425 15%,#d4a57435 50%,#d4a57425 85%,transparent)}
+.filigree-r{right:36px;background:linear-gradient(180deg,transparent,#d4a57425 15%,#d4a57435 50%,#d4a57425 85%,transparent)}
+
+/* Dotted accents on sides */
+.dots-l,.dots-r{position:absolute;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;opacity:0.2}
+.dots-l{left:30px}.dots-r{right:30px}
+.dot{width:3px;height:3px;border-radius:50%;background:#b76e79}
 
 /* Watermark */
-.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-20deg);font-family:'Playfair Display',serif;font-size:100px;font-weight:700;color:${pc}03;letter-spacing:20px;white-space:nowrap;pointer-events:none;text-transform:uppercase}
+.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-18deg);font-family:'Playfair Display',serif;font-size:110px;font-weight:800;color:rgba(180,130,100,0.025);letter-spacing:24px;white-space:nowrap;pointer-events:none;text-transform:uppercase}
 
-/* Corner ornaments */
-.corner{position:absolute;width:50px;height:50px;opacity:0.35}
+/* Corner flourishes */
+.corner{position:absolute;width:70px;height:70px;opacity:0.5}
 .corner svg{width:100%;height:100%}
-.c-tl{top:14px;left:14px}.c-tr{top:14px;right:14px;transform:scaleX(-1)}
-.c-bl{bottom:14px;left:14px;transform:scaleY(-1)}.c-br{bottom:14px;right:14px;transform:scale(-1)}
+.c-tl{top:10px;left:10px}
+.c-tr{top:10px;right:10px;transform:scaleX(-1)}
+.c-bl{bottom:10px;left:10px;transform:scaleY(-1)}
+.c-br{bottom:10px;right:10px;transform:scale(-1)}
 
-.cert-body{position:relative;padding:44px 80px 36px}
+.cert-body{position:relative;padding:46px 90px 30px}
 
 /* Header */
-.header{text-align:center;margin-bottom:4px}
-.brand{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;letter-spacing:10px;color:${pc};text-transform:uppercase;margin-bottom:3px}
-.tagline{font-size:9.5px;color:${pc}55;letter-spacing:5px;text-transform:uppercase;font-weight:400}
+.header{text-align:center;margin-bottom:6px}
+.brand{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;letter-spacing:12px;color:#2c1810;text-transform:uppercase;margin-bottom:4px}
+.tagline{font-size:9px;color:#8b7355;letter-spacing:6px;text-transform:uppercase;font-weight:400}
 
-/* Decorative divider */
-.divider{text-align:center;margin:16px 0 12px;position:relative;display:flex;align-items:center;justify-content:center;gap:12px}
-.divider-line{flex:1;max-width:140px;height:0.5px;background:linear-gradient(90deg,transparent,${gold}60,${gold})}
-.divider-line.right{background:linear-gradient(90deg,${gold},${gold}60,transparent)}
-.divider-icon{color:${gold};font-size:14px;line-height:1}
+/* Ornamental divider */
+.divider{display:flex;align-items:center;justify-content:center;gap:14px;margin:18px 0 14px}
+.div-line{flex:1;max-width:160px;height:1px;background:linear-gradient(90deg,transparent,#d4a574)}
+.div-line.r{background:linear-gradient(90deg,#d4a574,transparent)}
+.div-diamond{width:8px;height:8px;background:#d4a574;transform:rotate(45deg);opacity:0.6}
+.div-dot{width:4px;height:4px;border-radius:50%;background:#b76e79;opacity:0.5}
 
 /* Title */
-.title{font-family:'Cormorant Garamond',serif;font-size:42px;font-weight:300;text-align:center;color:${pc};margin:8px 0 2px;letter-spacing:4px;font-style:italic}
-.presented{text-align:center;font-size:11px;color:${pc}60;letter-spacing:6px;text-transform:uppercase;margin-bottom:20px;font-weight:300}
+.title{font-family:'Cormorant Garamond',serif;font-size:44px;font-weight:300;text-align:center;color:#2c1810;margin:6px 0 2px;letter-spacing:5px;font-style:italic}
+.presented{text-align:center;font-size:10.5px;color:#8b7355;letter-spacing:7px;text-transform:uppercase;margin-bottom:22px;font-weight:300}
 
-/* Student */
-.student-name{font-family:'Great Vibes',cursive;font-size:52px;color:${pc};text-align:center;line-height:1.15;margin-bottom:4px}
-.name-underline{width:300px;height:1.5px;margin:0 auto 18px;background:linear-gradient(90deg,transparent,${gold}80,${gold},${gold}80,transparent)}
+/* Student name */
+.student-name{font-family:'Great Vibes',cursive;font-size:56px;color:#2c1810;text-align:center;line-height:1.1;margin-bottom:6px}
+.name-line{width:340px;height:2px;margin:0 auto 20px;background:linear-gradient(90deg,transparent,#b76e7960,#d4a574,#b76e7960,transparent);border-radius:1px}
 
 /* Course */
-.for-text{text-align:center;font-size:12px;color:${pc}70;margin-bottom:6px;letter-spacing:2px;font-weight:300;text-transform:uppercase}
-.course-name{font-family:'Playfair Display',serif;font-size:22px;font-weight:600;text-align:center;color:${ac};margin-bottom:6px;letter-spacing:1.5px}
-.course-desc{text-align:center;font-size:11px;color:${pc}50;max-width:500px;margin:0 auto;line-height:1.8;font-weight:300}
+.for-text{text-align:center;font-size:11px;color:#8b7355;margin-bottom:8px;letter-spacing:3px;font-weight:300;text-transform:uppercase}
+.course-name{font-family:'Playfair Display',serif;font-size:23px;font-weight:600;text-align:center;color:#b76e79;margin-bottom:8px;letter-spacing:2px}
+.course-desc{text-align:center;font-size:10.5px;color:#8b735590;max-width:520px;margin:0 auto;line-height:1.9;font-weight:300;font-family:'Cormorant Garamond',serif;font-size:13px}
 
-/* Best wishes */
-.wishes{text-align:center;margin-top:14px;font-family:'Cormorant Garamond',serif;font-size:14px;font-style:italic;color:${gold};letter-spacing:1.5px}
+/* Wishes */
+.wishes{text-align:center;margin-top:16px;font-family:'Cormorant Garamond',serif;font-size:14px;font-style:italic;color:#d4a574;letter-spacing:2px}
 
 /* Footer */
-.footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:32px;padding:16px 60px 0;border-top:0.5px solid ${gold}20}
-.footer-col{text-align:center;min-width:140px}
-.footer-label{font-size:7.5px;color:${pc}40;letter-spacing:3px;text-transform:uppercase;margin-bottom:5px;font-weight:500}
-.footer-val{font-size:12.5px;font-weight:600;color:${pc}}
+.footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:34px;padding:18px 40px 0;border-top:1px solid #d4a57415}
+.footer-col{text-align:center;min-width:150px}
+.footer-label{font-size:7px;color:#8b735560;letter-spacing:3.5px;text-transform:uppercase;margin-bottom:6px;font-weight:600}
+.footer-val{font-size:12px;font-weight:600;color:#2c1810;letter-spacing:0.5px}
 
 /* Signature */
-.sig-cursive{font-family:'Great Vibes',cursive;font-size:30px;color:${pc};margin-bottom:2px}
-.sig-line{width:170px;height:0.5px;background:linear-gradient(90deg,transparent,${pc}30,transparent);margin:0 auto 5px}
-.sig-name{font-size:12px;font-weight:600;color:${pc};letter-spacing:0.5px}
-.sig-title{font-size:8.5px;color:${pc}50;letter-spacing:1.5px;font-weight:300}
+.sig-cursive{font-family:'Great Vibes',cursive;font-size:32px;color:#2c1810;margin-bottom:3px}
+.sig-line{width:180px;height:1px;background:linear-gradient(90deg,transparent,#b76e7940,transparent);margin:0 auto 6px}
+.sig-name{font-size:11.5px;font-weight:600;color:#2c1810;letter-spacing:0.5px}
+.sig-title{font-size:8px;color:#8b735570;letter-spacing:2px;font-weight:400}
 
-/* Gold ribbon badge */
-.ribbon-badge{position:absolute;top:22px;right:80px;width:48px;text-align:center}
-.ribbon-shape{width:48px;height:62px;background:linear-gradient(160deg,${gold},#b8923d);clip-path:polygon(0 0,100% 0,100% 100%,50% 85%,0 100%);display:flex;align-items:center;justify-content:center;padding-bottom:10px;box-shadow:0 4px 12px ${gold}30}
-.ribbon-star{color:#fff;font-size:18px;text-shadow:0 1px 3px rgba(0,0,0,0.2)}
+/* Rose gold ribbon badge */
+.ribbon{position:absolute;top:18px;right:75px;width:52px;text-align:center;filter:drop-shadow(0 4px 12px rgba(183,110,121,0.2))}
+.ribbon-shape{width:52px;height:68px;background:linear-gradient(165deg,#d4a574,#b76e79,#c4917a);clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%);display:flex;align-items:center;justify-content:center;padding-bottom:14px}
+.ribbon-icon{color:#fff;font-size:20px;text-shadow:0 1px 4px rgba(0,0,0,0.15)}
 
-/* Authentication seal */
-.seal{position:absolute;bottom:16px;right:28px;width:82px;height:82px}
-.seal-outer{width:82px;height:82px;border-radius:50%;border:2px solid ${ac}30;display:flex;align-items:center;justify-content:center;position:relative;transform:rotate(-12deg);background:radial-gradient(circle,${ac}04,transparent)}
-.seal-ring{position:absolute;inset:4px;border-radius:50%;border:1px dashed ${ac}22}
-.seal-inner{width:52px;height:52px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1px}
-.seal-icon{font-size:12px;color:${ac};margin-bottom:1px}
-.seal-text{font-size:6.5px;font-weight:700;color:${ac};letter-spacing:1.5px;text-transform:uppercase;line-height:1.15}
-.seal-sub{font-size:5px;color:${ac}70;letter-spacing:1px;text-transform:uppercase;margin-top:1px}
+/* Verified seal */
+.seal{position:absolute;bottom:14px;right:24px;width:90px;height:90px}
+.seal-outer{width:90px;height:90px;border-radius:50%;border:2px solid #b76e7935;display:flex;align-items:center;justify-content:center;position:relative;transform:rotate(-10deg);background:radial-gradient(circle,#b76e7906,transparent)}
+.seal-ring{position:absolute;inset:5px;border-radius:50%;border:1px dashed #d4a57425}
+.seal-ring2{position:absolute;inset:9px;border-radius:50%;border:0.5px solid #b76e7912}
+.seal-inner{width:56px;height:56px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1px}
+.seal-star{font-size:14px;color:#b76e79;margin-bottom:2px}
+.seal-text{font-size:6px;font-weight:700;color:#b76e79;letter-spacing:2px;text-transform:uppercase;line-height:1.2}
+.seal-brand{font-size:5px;color:#b76e7970;letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;font-weight:600}
 
-/* Authenticated badge */
-.auth-mark{position:absolute;bottom:20px;left:28px;text-align:center}
-.auth-box{width:54px;height:54px;border:1px solid ${gold}20;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,${gold}06,${gold}02);gap:2px}
-.auth-icon{font-size:14px}
-.auth-text{font-size:5px;font-weight:600;color:${pc}50;letter-spacing:1.2px;text-transform:uppercase}
+/* Shield badge */
+.shield{position:absolute;bottom:18px;left:24px;text-align:center}
+.shield-box{width:60px;height:60px;border:1px solid #d4a57420;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#d4a57408,#b76e7904);gap:3px}
+.shield-icon{font-size:16px}
+.shield-text{font-size:5px;font-weight:700;color:#8b735570;letter-spacing:1.5px;text-transform:uppercase}
 
-/* Verify */
-.verify{font-family:monospace;font-size:8px;color:${pc}22;text-align:center;margin-top:16px;letter-spacing:1px}
+/* Verify URL */
+.verify{font-family:'Inter',sans-serif;font-size:8px;color:#8b735530;text-align:center;margin-top:14px;letter-spacing:1.5px}
 
 @media print{body{background:#fff;padding:0}.cert{box-shadow:none;width:100%;min-height:100vh}.no-print{display:none}}
 </style></head>
 <body>
 <div class="cert">
-  <div class="top-bar"></div>
-  <div class="side-accent-l"></div>
-  <div class="side-accent-r"></div>
-  <div class="inner-frame"></div>
-  <div class="inner-frame-2"></div>
+  <div class="bar-top"></div>
+  <div class="bar-bottom"></div>
+  <div class="border-outer"></div>
+  <div class="border-inner"></div>
+  <div class="border-accent"></div>
+  <div class="filigree-l"></div>
+  <div class="filigree-r"></div>
+
+  <!-- Side dots -->
+  <div class="dots-l">${Array(7).fill('<div class="dot"></div>').join('')}</div>
+  <div class="dots-r">${Array(7).fill('<div class="dot"></div>').join('')}</div>
+
   <div class="watermark">${s.institution_name}</div>
 
-  <!-- Corner ornaments -->
-  <div class="corner c-tl"><svg viewBox="0 0 50 50"><path d="M0,0 L50,0 L50,3 L3,3 L3,50 L0,50 Z" fill="${gold}" opacity="0.6"/><path d="M0,6 L44,6 L44,3 L6,3 L6,44 L3,44 L3,6 Z" fill="${gold}" opacity="0.2"/></svg></div>
-  <div class="corner c-tr"><svg viewBox="0 0 50 50"><path d="M0,0 L50,0 L50,3 L3,3 L3,50 L0,50 Z" fill="${gold}" opacity="0.6"/><path d="M0,6 L44,6 L44,3 L6,3 L6,44 L3,44 L3,6 Z" fill="${gold}" opacity="0.2"/></svg></div>
-  <div class="corner c-bl"><svg viewBox="0 0 50 50"><path d="M0,0 L50,0 L50,3 L3,3 L3,50 L0,50 Z" fill="${gold}" opacity="0.6"/><path d="M0,6 L44,6 L44,3 L6,3 L6,44 L3,44 L3,6 Z" fill="${gold}" opacity="0.2"/></svg></div>
-  <div class="corner c-br"><svg viewBox="0 0 50 50"><path d="M0,0 L50,0 L50,3 L3,3 L3,50 L0,50 Z" fill="${gold}" opacity="0.6"/><path d="M0,6 L44,6 L44,3 L6,3 L6,44 L3,44 L3,6 Z" fill="${gold}" opacity="0.2"/></svg></div>
+  <!-- Corner flourishes -->
+  <div class="corner c-tl"><svg viewBox="0 0 70 70"><path d="M0,0 Q35,3 70,0 L70,4 Q35,7 0,4 Z" fill="#d4a574" opacity="0.4"/><path d="M0,0 Q3,35 0,70 L4,70 Q7,35 4,0 Z" fill="#d4a574" opacity="0.4"/><circle cx="6" cy="6" r="2.5" fill="#b76e79" opacity="0.3"/><path d="M0,12 Q20,14 40,12" stroke="#d4a574" stroke-width="0.5" fill="none" opacity="0.25"/><path d="M12,0 Q14,20 12,40" stroke="#d4a574" stroke-width="0.5" fill="none" opacity="0.25"/></svg></div>
+  <div class="corner c-tr"><svg viewBox="0 0 70 70"><path d="M0,0 Q35,3 70,0 L70,4 Q35,7 0,4 Z" fill="#d4a574" opacity="0.4"/><path d="M0,0 Q3,35 0,70 L4,70 Q7,35 4,0 Z" fill="#d4a574" opacity="0.4"/><circle cx="6" cy="6" r="2.5" fill="#b76e79" opacity="0.3"/><path d="M0,12 Q20,14 40,12" stroke="#d4a574" stroke-width="0.5" fill="none" opacity="0.25"/><path d="M12,0 Q14,20 12,40" stroke="#d4a574" stroke-width="0.5" fill="none" opacity="0.25"/></svg></div>
+  <div class="corner c-bl"><svg viewBox="0 0 70 70"><path d="M0,0 Q35,3 70,0 L70,4 Q35,7 0,4 Z" fill="#d4a574" opacity="0.4"/><path d="M0,0 Q3,35 0,70 L4,70 Q7,35 4,0 Z" fill="#d4a574" opacity="0.4"/><circle cx="6" cy="6" r="2.5" fill="#b76e79" opacity="0.3"/><path d="M0,12 Q20,14 40,12" stroke="#d4a574" stroke-width="0.5" fill="none" opacity="0.25"/><path d="M12,0 Q14,20 12,40" stroke="#d4a574" stroke-width="0.5" fill="none" opacity="0.25"/></svg></div>
+  <div class="corner c-br"><svg viewBox="0 0 70 70"><path d="M0,0 Q35,3 70,0 L70,4 Q35,7 0,4 Z" fill="#d4a574" opacity="0.4"/><path d="M0,0 Q3,35 0,70 L4,70 Q7,35 4,0 Z" fill="#d4a574" opacity="0.4"/><circle cx="6" cy="6" r="2.5" fill="#b76e79" opacity="0.3"/><path d="M0,12 Q20,14 40,12" stroke="#d4a574" stroke-width="0.5" fill="none" opacity="0.25"/><path d="M12,0 Q14,20 12,40" stroke="#d4a574" stroke-width="0.5" fill="none" opacity="0.25"/></svg></div>
 
-  <!-- Gold ribbon -->
-  <div class="ribbon-badge"><div class="ribbon-shape"><span class="ribbon-star">★</span></div></div>
+  <!-- Rose gold ribbon -->
+  <div class="ribbon"><div class="ribbon-shape"><span class="ribbon-icon">★</span></div></div>
 
   <div class="cert-body">
     <div class="header">
@@ -270,16 +284,18 @@ body{font-family:'Inter',sans-serif;background:${warmCream};min-height:100vh;dis
     </div>
 
     <div class="divider">
-      <span class="divider-line"></span>
-      <span class="divider-icon">◆</span>
-      <span class="divider-line right"></span>
+      <div class="div-dot"></div>
+      <div class="div-line"></div>
+      <div class="div-diamond"></div>
+      <div class="div-line r"></div>
+      <div class="div-dot"></div>
     </div>
 
     <h1 class="title">Proof of Completion</h1>
     <p class="presented">This is proudly presented to</p>
 
     <div class="student-name">${studentName}</div>
-    <div class="name-underline"></div>
+    <div class="name-line"></div>
 
     <p class="for-text">for successfully completing the studio program</p>
     <p class="course-name">${courseName}</p>
@@ -312,25 +328,26 @@ body{font-family:'Inter',sans-serif;background:${warmCream};min-height:100vh;dis
     <p class="verify">Verify at: https://archistudio.shop/verify/${certNumber}</p>
   </div>
 
-  <!-- Authentication seal -->
+  <!-- Verified seal -->
   <div class="seal">
     <div class="seal-outer">
       <div class="seal-ring"></div>
+      <div class="seal-ring2"></div>
       <div class="seal-inner">
-        <span class="seal-icon">✦</span>
+        <span class="seal-star">✦</span>
         <span class="seal-text">Verified</span>
         <span class="seal-text">Authentic</span>
-        <span class="seal-sub">Archistudio</span>
+        <span class="seal-brand">Archistudio</span>
       </div>
     </div>
   </div>
 
-  <!-- Authenticated mark -->
-  <div class="auth-mark">
-    <div class="auth-box">
-      <span class="auth-icon">🛡️</span>
-      <span class="auth-text">Digitally</span>
-      <span class="auth-text">Verified</span>
+  <!-- Shield badge -->
+  <div class="shield">
+    <div class="shield-box">
+      <span class="shield-icon">🛡️</span>
+      <span class="shield-text">Digitally</span>
+      <span class="shield-text">Verified</span>
     </div>
   </div>
 </div>
