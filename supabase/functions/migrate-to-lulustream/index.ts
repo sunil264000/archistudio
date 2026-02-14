@@ -369,6 +369,14 @@ serve(async (req) => {
                 processed, failed, keyLimited: keyLabel 
               });
             }
+            // "Already in upload queue" means LuluStream is already processing it — treat as uploading, not failed
+            if (errMsg.toLowerCase().includes("already in upload queue")) {
+              await supabase.from("video_migrations")
+                .update({ status: "uploading", updated_at: new Date().toISOString() })
+                .eq("id", migration.id);
+              processed++;
+              continue;
+            }
             throw new Error(errMsg);
           }
         } catch (err: any) {
