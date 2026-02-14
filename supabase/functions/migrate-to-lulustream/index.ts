@@ -16,8 +16,12 @@ serve(async (req) => {
   }
 
   try {
-    const LULUSTREAM_API_KEY = Deno.env.get("LULUSTREAM_API_KEY");
-    if (!LULUSTREAM_API_KEY) throw new Error("LULUSTREAM_API_KEY not configured");
+    const LULUSTREAM_API_KEY_1 = Deno.env.get("LULUSTREAM_API_KEY");
+    const LULUSTREAM_API_KEY_2 = Deno.env.get("LULUSTREAM_API_KEY_2");
+    if (!LULUSTREAM_API_KEY_1 && !LULUSTREAM_API_KEY_2) throw new Error("No LULUSTREAM_API_KEY configured");
+    
+    // Build list of available API keys for rotation
+    const apiKeys = [LULUSTREAM_API_KEY_1, LULUSTREAM_API_KEY_2].filter(Boolean) as string[];
 
     const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY");
     if (!GOOGLE_API_KEY) throw new Error("GOOGLE_API_KEY not configured");
@@ -25,6 +29,51 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Helper: get a working API key (tries each key, skips rate-limited ones)
+    async function getWorkingApiKey(): Promise<{ key: string; index: number } | null> {
+      for (let i = 0; i < apiKeys.length; i++) {
+        const key = apiKeys[i];
+        // Check if this specific key is rate-limited
+        const { data } = await supabase.from("site_settings")
+          .select("value, updated_at")
+          .eq("key", `lulustream_limit_key_${i}`)
+          .maybeSingle();
+        if (data?.value === "true") {
+          const hitAt = new Date(data.updated_at || 0).getTime();
+          const hoursSince = (Date.now() - hitAt) / (1000 * 60 * 60);
+          if (hoursSince < 8) continue; // Still in cooldown
+          // Cooldown expired, clear it
+          await supabase.from("site_settings")
+            .update({ value: "false", updated_at: new Date().toISOString() })
+            .eq("key", `lulustream_limit_key_${i}`);
+        }
+        // Test this key with a lightweight call
+        try {
+          const res = await fetch(`${LULUSTREAM_API_BASE}/account/info?key=${key}`);
+          const data = await res.json();
+          if (data.status === 200) return { key, index: i };
+          if (data.status === 403 || isDailyLimitError(data.msg || "")) {
+            await markKeyLimited(i);
+            continue;
+          }
+          return { key, index: i }; // Unknown status, try anyway
+        } catch {
+          continue;
+        }
+      }
+      return null;
+    }
+
+    async function markKeyLimited(keyIndex: number) {
+      const settingKey = `lulustream_limit_key_${keyIndex}`;
+      const { data: existing } = await supabase.from("site_settings").select("id").eq("key", settingKey).maybeSingle();
+      if (existing) {
+        await supabase.from("site_settings").update({ value: "true", updated_at: new Date().toISOString() }).eq("key", settingKey);
+      } else {
+        await supabase.from("site_settings").insert({ key: settingKey, value: "true", description: `Rate limit tracker for LuluStream API key ${keyIndex}` });
+      }
+    }
 
     const { action, courseId, courseIds, batchSize: customBatchSize, fromCron } = await req.json();
     const filterCourseIds: string[] = courseIds?.length ? courseIds : courseId ? [courseId] : [];
@@ -110,9 +159,15 @@ serve(async (req) => {
         completed: migrations.filter(s => s.status === "completed").length,
         failed: migrations.filter(s => s.status === "failed").length,
       };
-      // Also return daily limit info
-      const limitInfo = await isDailyLimitActive();
-      return jsonResponse({ success: true, counts, dailyLimit: limitInfo });
+      // Return key status info
+      const keyStatuses: any[] = [];
+      for (let i = 0; i < apiKeys.length; i++) {
+        const { data: ks } = await supabase.from("site_settings").select("value, updated_at").eq("key", `lulustream_limit_key_${i}`).maybeSingle();
+        const limited = ks?.value === "true";
+        const hoursLeft = limited ? Math.max(0, 8 - (Date.now() - new Date(ks?.updated_at || 0).getTime()) / 3600000) : 0;
+        keyStatuses.push({ index: i, limited, hoursLeft: Math.ceil(hoursLeft) });
+      }
+      return jsonResponse({ success: true, counts, keyStatuses, totalKeys: apiKeys.length });
     }
 
     // =====================================================
@@ -190,33 +245,37 @@ serve(async (req) => {
     // No separate check-progress needed — files complete instantly.
     // =====================================================
     if (action === "migrate") {
-      // Check daily limit cooldown FIRST
-      const limitCheck = await isDailyLimitActive();
-      if (limitCheck.active) {
+      // Find a working API key (rotates through all keys, skips rate-limited ones)
+      const workingKey = await getWorkingApiKey();
+      if (!workingKey) {
         return jsonResponse({ 
           success: true, 
-          message: `Daily API limit active. Auto-retry in ${limitCheck.hoursLeft}h.`,
-          processed: 0, dailyLimitCooldown: true, cooldownHoursLeft: limitCheck.hoursLeft
+          message: `All ${apiKeys.length} API keys are rate-limited. Auto-retry when a key resets.`,
+          processed: 0, allKeysLimited: true, totalKeys: apiKeys.length
         });
       }
+
+      const ACTIVE_KEY = workingKey.key;
+      const keyLabel = `Key #${workingKey.index + 1}`;
 
       // Get upload server URL (1 API call)
       let uploadServerUrl = "";
       try {
-        const serverRes = await fetch(`${LULUSTREAM_API_BASE}/upload/server?key=${LULUSTREAM_API_KEY}`);
+        const serverRes = await fetch(`${LULUSTREAM_API_BASE}/upload/server?key=${ACTIVE_KEY}`);
         const serverData = await serverRes.json();
         if (serverData.status === 200 && serverData.result) {
           uploadServerUrl = serverData.result;
         } else if (isDailyLimitError(serverData.msg || "")) {
-          await setDailyLimitHit();
-          return jsonResponse({ success: true, message: "Daily limit hit. Will auto-retry later.", processed: 0, dailyLimitCooldown: true });
+          await markKeyLimited(workingKey.index);
+          // Try the next key recursively by re-calling
+          return jsonResponse({ success: true, message: `${keyLabel} hit limit. Will try next key on next run.`, processed: 0, keyLimited: keyLabel });
         } else {
           throw new Error(`Upload server error: ${serverData.msg || JSON.stringify(serverData)}`);
         }
       } catch (err: any) {
         if (isDailyLimitError(err.message)) {
-          await setDailyLimitHit();
-          return jsonResponse({ success: true, message: "Daily limit hit. Will auto-retry later.", processed: 0, dailyLimitCooldown: true });
+          await markKeyLimited(workingKey.index);
+          return jsonResponse({ success: true, message: `${keyLabel} hit limit.`, processed: 0, keyLimited: keyLabel });
         }
         throw err;
       }
@@ -280,70 +339,48 @@ serve(async (req) => {
             .update({ status: "uploading", updated_at: new Date().toISOString() })
             .eq("id", migration.id);
 
-          // Download from Google Drive
+          // Use remote URL upload — LuluStream's servers download from Drive (avoids our Drive quota)
           const downloadUrl = `https://drive.google.com/uc?id=${fileId}&export=download&confirm=t`;
-          const driveRes = await fetch(downloadUrl, { redirect: "follow" });
-          
-          if (!driveRes.ok) throw new Error(`Drive download failed: ${driveRes.status}`);
-          if (!driveRes.body) throw new Error("No response body from Drive");
-
           const courseTitle = migration.course_id ? courseTitleMap[migration.course_id] || "" : "";
-          const fileName = courseTitle ? `${courseTitle}_${fileId}.mp4` : `${fileId}.mp4`;
+          const organizedTitle = courseTitle ? `[${courseTitle}] ${fileId}` : fileId;
 
-          // Read file into blob and upload to LuluStream
-          const fileBlob = await driveRes.blob();
-          const formData = new FormData();
-          formData.append("key", LULUSTREAM_API_KEY);
-          formData.append("file", fileBlob, fileName);
-
-          const uploadRes = await fetch(uploadServerUrl, {
-            method: "POST",
-            body: formData,
-          });
+          const uploadRes = await fetch(
+            `${LULUSTREAM_API_BASE}/upload/url?key=${ACTIVE_KEY}&url=${encodeURIComponent(downloadUrl)}&new_title=${encodeURIComponent(organizedTitle)}`
+          );
           const uploadData = await uploadRes.json();
+          console.log(`Upload response for ${fileId}:`, JSON.stringify(uploadData).substring(0, 300));
 
           if (uploadData.status === 200 && uploadData.result) {
             const fileCode = uploadData.result.filecode || uploadData.result.file_code || "";
-            const embedUrl = `https://lulustream.com/e/${fileCode}`;
-            
-            // Direct upload = completed immediately (no remote queue)
             await supabase.from("video_migrations")
-              .update({ 
-                status: "completed", 
-                lulustream_file_code: fileCode, 
-                lulustream_embed_url: embedUrl,
-                updated_at: new Date().toISOString() 
-              })
+              .update({ status: "uploading", lulustream_file_code: fileCode, updated_at: new Date().toISOString() })
               .eq("id", migration.id);
-            
-            await supabase.from("lessons").update({ video_url: embedUrl }).eq("id", migration.lesson_id);
             processed++;
           } else {
             const errMsg = uploadData.msg || JSON.stringify(uploadData);
             if (isDailyLimitError(errMsg)) {
-              await setDailyLimitHit();
-              // Reset this video to pending
+              await markKeyLimited(workingKey.index);
               await supabase.from("video_migrations")
                 .update({ status: "pending", updated_at: new Date().toISOString() })
                 .eq("id", migration.id);
               return jsonResponse({ 
                 success: true, 
-                message: `Daily limit hit after ${processed} uploads. Auto-retry later.`, 
-                processed, failed, dailyLimitHit: true 
+                message: `${keyLabel} hit limit after ${processed} uploads. Will try next key on next run.`, 
+                processed, failed, keyLimited: keyLabel 
               });
             }
             throw new Error(errMsg);
           }
         } catch (err: any) {
           if (isDailyLimitError(err.message)) {
-            await setDailyLimitHit();
+            await markKeyLimited(workingKey.index);
             await supabase.from("video_migrations")
               .update({ status: "pending", updated_at: new Date().toISOString() })
               .eq("id", migration.id);
             return jsonResponse({ 
               success: true, 
-              message: `Daily limit hit after ${processed} uploads.`, 
-              processed, failed, dailyLimitHit: true 
+              message: `${keyLabel} hit limit after ${processed} uploads.`, 
+              processed, failed, keyLimited: keyLabel 
             });
           }
           await supabase.from("video_migrations")
@@ -386,22 +423,23 @@ serve(async (req) => {
         return jsonResponse({ success: true, message: "No uploads in progress", checked: 0 });
       }
 
-      // If daily limit is active, DON'T make any LuluStream API calls
-      if (limitCheck.active) {
+      // Find a working key for API calls
+      const workingKey = await getWorkingApiKey();
+      if (!workingKey) {
         return jsonResponse({ 
           success: true, 
-          message: `Daily limit active (${limitCheck.hoursLeft}h left). ${uploading.length} uploads pending check.`,
-          checked: 0, dailyLimitCooldown: true 
+          message: `All API keys rate-limited. ${uploading.length} uploads pending check.`,
+          checked: 0, allKeysLimited: true 
         });
       }
 
       // 1 API call: get the remote upload queue status
-      const statusRes = await fetch(`${LULUSTREAM_API_BASE}/urlupload/list?key=${LULUSTREAM_API_KEY}`);
+      const statusRes = await fetch(`${LULUSTREAM_API_BASE}/urlupload/list?key=${workingKey.key}`);
       const statusData = await statusRes.json();
 
       if (isDailyLimitError(statusData.msg || "")) {
-        await setDailyLimitHit();
-        return jsonResponse({ success: true, message: "Daily limit hit during check.", checked: 0, dailyLimitHit: true });
+        await markKeyLimited(workingKey.index);
+        return jsonResponse({ success: true, message: "Key hit limit during check.", checked: 0 });
       }
 
       let completed = 0, stillUploading = 0;
@@ -476,22 +514,35 @@ serve(async (req) => {
     }
 
     // =====================================================
-    // ACTION: Account info (1 API call)
+    // ACTION: Account info — shows status of ALL keys
     // =====================================================
     if (action === "account-info") {
-      const res = await fetch(`${LULUSTREAM_API_BASE}/account/info?key=${LULUSTREAM_API_KEY}`);
-      const data = await res.json();
-      return jsonResponse({ success: true, account: data });
+      const results: any[] = [];
+      for (let i = 0; i < apiKeys.length; i++) {
+        try {
+          const res = await fetch(`${LULUSTREAM_API_BASE}/account/info?key=${apiKeys[i]}`);
+          const data = await res.json();
+          results.push({ keyIndex: i, label: `Key #${i + 1}`, ...data });
+        } catch (err: any) {
+          results.push({ keyIndex: i, label: `Key #${i + 1}`, error: err.message });
+        }
+      }
+      return jsonResponse({ success: true, accounts: results, totalKeys: apiKeys.length });
     }
 
     // =====================================================
-    // ACTION: Clear daily limit cooldown manually
+    // ACTION: Clear all key cooldowns manually
     // =====================================================
     if (action === "clear-cooldown") {
+      for (let i = 0; i < apiKeys.length; i++) {
+        await supabase.from("site_settings")
+          .update({ value: "false", updated_at: new Date().toISOString() })
+          .eq("key", `lulustream_limit_key_${i}`);
+      }
       await supabase.from("site_settings")
         .update({ value: "false", updated_at: new Date().toISOString() })
         .eq("key", "lulustream_daily_limit_hit");
-      return jsonResponse({ success: true, message: "Cooldown cleared" });
+      return jsonResponse({ success: true, message: `Cleared cooldown for ${apiKeys.length} keys` });
     }
 
     return jsonResponse({ success: false, error: "Invalid action" }, 400);
