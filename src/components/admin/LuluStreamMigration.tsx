@@ -27,7 +27,7 @@ export function LuluStreamMigration() {
   const [isResetting, setIsResetting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [autoMigrate, setAutoMigrate] = useState(false);
-  const [batchSize, setBatchSize] = useState(10);
+  const [batchSize, setBatchSize] = useState(50);
   const [courseStats, setCourseStats] = useState<Record<string, MigrationStats>>({});
 
   const courseIdsParam = selectedCourses.length > 0 ? selectedCourses : undefined;
@@ -73,26 +73,29 @@ export function LuluStreamMigration() {
   useEffect(() => {
     if (!autoMigrate) return;
     const interval = setInterval(async () => {
+      // Fire migrate + check-progress simultaneously for max speed
+      const promises: Promise<any>[] = [];
       if (stats.pending > 0) {
-        try {
-          await supabase.functions.invoke("migrate-to-lulustream", {
+        promises.push(
+          supabase.functions.invoke("migrate-to-lulustream", {
             body: { action: "migrate", courseIds: courseIdsParam, batchSize },
-          });
-        } catch (err) { console.error("Auto-migrate error:", err); }
+          }).catch(err => console.error("Auto-migrate error:", err))
+        );
       }
       if (stats.uploading > 0) {
-        try {
-          await supabase.functions.invoke("migrate-to-lulustream", {
+        promises.push(
+          supabase.functions.invoke("migrate-to-lulustream", {
             body: { action: "check-progress" },
-          });
-        } catch (err) { console.error("Auto-check error:", err); }
+          }).catch(err => console.error("Auto-check error:", err))
+        );
       }
+      await Promise.all(promises);
       await fetchStats();
       if (stats.pending === 0 && stats.uploading === 0) {
         setAutoMigrate(false);
         toast.success("Migration complete! All videos have been processed.");
       }
-    }, 6000);
+    }, 3000);
     return () => clearInterval(interval);
   }, [autoMigrate, stats, courseIdsParam, batchSize, fetchStats]);
 
@@ -312,7 +315,7 @@ export function LuluStreamMigration() {
           {/* Batch size */}
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-sm font-medium">Batch Size:</span>
-            {[10, 20, 30, 50].map(size => (
+            {[20, 50, 100, 200].map(size => (
               <Button key={size} variant={batchSize === size ? "default" : "outline"} size="sm" onClick={() => setBatchSize(size)}>
                 {size}
               </Button>
