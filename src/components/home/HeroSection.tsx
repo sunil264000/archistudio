@@ -112,13 +112,13 @@ export function HeroSection() {
                 {/* Headline */}
                 <motion.h1 
                   custom={1} variants={fadeUp} initial="hidden" animate="visible"
-                  className="font-display font-bold"
+                  className="font-display font-bold leading-[1.1]"
                 >
                   Learn Architecture
                   <br />
-                  <span className="text-gradient-accent">the Way It Is</span>
+                  <span className="text-gradient-accent">the Way It Is Actually</span>
                   <br />
-                  <span className="text-gradient-accent">Actually Practiced</span>
+                  <span className="text-gradient-accent">Practiced</span>
                 </motion.h1>
                 
                 {/* Positioning statement */}
