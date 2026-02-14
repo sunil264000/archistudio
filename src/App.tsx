@@ -15,6 +15,7 @@ import { WelcomePopup } from "@/components/welcome/WelcomePopup";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { useContentProtection } from "@/hooks/useContentProtection";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { useVisitorTracking } from "@/hooks/useVisitorTracking";
 import { initializeGA4 } from "@/hooks/useGoogleAnalytics";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +59,7 @@ initAnalytics();
 
 const AppContent = () => {
   useContentProtection();
+  useScrollReveal(); // Global scroll-reveal animations
   useVisitorTracking(); // Track real visitor sessions
   const { user } = useAuth();
   const [giftData, setGiftData] = useState<any>(null);
