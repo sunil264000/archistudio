@@ -25,6 +25,7 @@ export function LuluStreamMigration() {
   const [isMigrating, setIsMigrating] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [autoMigrate, setAutoMigrate] = useState(false);
   const [batchSize, setBatchSize] = useState(10);
   const [courseStats, setCourseStats] = useState<Record<string, MigrationStats>>({});
@@ -179,6 +180,25 @@ export function LuluStreamMigration() {
       toast.error(err.message || "Failed to retry");
     } finally {
       setIsRetrying(false);
+    }
+  };
+
+  const handleResetCompleted = async () => {
+    setIsResetting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("migrate-to-lulustream", {
+        body: { action: "reset-completed", courseIds: courseIdsParam },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        toast.success(data.message);
+        await fetchStats();
+        await fetchCourseStats();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to reset");
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -384,11 +404,17 @@ export function LuluStreamMigration() {
           </div>
 
           {/* Secondary actions */}
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             {stats.failed > 0 && (
               <Button onClick={handleRetryFailed} disabled={isRetrying} variant="outline" size="sm">
                 {isRetrying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <AlertTriangle className="mr-2 h-4 w-4" />}
                 Retry Failed ({stats.failed})
+              </Button>
+            )}
+            {stats.completed > 0 && (
+              <Button onClick={handleResetCompleted} disabled={isResetting} variant="destructive" size="sm">
+                {isResetting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                Reset Completed ({stats.completed}) — Re-upload
               </Button>
             )}
             <Button onClick={() => { fetchStats(); fetchCourseStats(); }} variant="ghost" size="sm">

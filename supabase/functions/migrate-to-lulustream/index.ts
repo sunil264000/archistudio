@@ -363,6 +363,39 @@ serve(async (req) => {
       return jsonResponse({ success: true, message: "Failed migrations reset to pending" });
     }
 
+    // ACTION: Reset completed migrations back to pending (for re-upload)
+    if (action === "reset-completed") {
+      let query = supabase
+        .from("video_migrations")
+        .update({
+          status: "pending",
+          lulustream_file_code: null,
+          lulustream_embed_url: null,
+          error_message: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("status", "completed");
+
+      if (filterCourseIds.length > 0) {
+        query = query.in("course_id", filterCourseIds);
+      }
+
+      const { data, error } = await query.select("lesson_id, original_url");
+      if (error) throw error;
+
+      // Restore original Google Drive URLs on lessons
+      if (data && data.length > 0) {
+        for (const row of data) {
+          await supabase
+            .from("lessons")
+            .update({ video_url: row.original_url })
+            .eq("id", row.lesson_id);
+        }
+      }
+
+      return jsonResponse({ success: true, message: `Reset ${data?.length || 0} completed migrations to pending. Original Drive URLs restored.`, reset: data?.length || 0 });
+    }
+
     // ACTION: Get per-course breakdown
     if (action === "course-stats") {
       const allMigrations: any[] = [];
