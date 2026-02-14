@@ -21,7 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
 import { AccessBadge } from '@/components/course/AccessBadge';
 import { useAccessControlBySlug } from '@/hooks/useAccessControlBySlug';
-import { useThumbnailFallback } from '@/hooks/useThumbnailFallback';
+import { CourseThumbnail } from '@/components/course/CourseThumbnail';
 import { 
   staggerContainer, 
   staggerContainerFast, 
@@ -361,7 +361,7 @@ function CourseCard({
   const [isHovered, setIsHovered] = useState(false);
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
   const [pendingPaymentData, setPendingPaymentData] = useState<any>(null);
-  const { handleThumbnailError } = useThumbnailFallback();
+  
 
   // Access control - check if user has access to this course
   const accessInfo = useAccessControlBySlug(user?.id, course.slug);
@@ -505,19 +505,12 @@ function CourseCard({
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className="aspect-video relative overflow-hidden bg-secondary">
-        <img 
-          src={getThumbnail(course.slug, categoryImages[course.category] || '/placeholder.svg')} 
+        <CourseThumbnail
+          src={getThumbnail(course.slug, categoryImages[course.category] || '/placeholder.svg')}
           alt={course.title}
-          loading="lazy"
-          decoding="async"
+          slug={course.slug}
+          category={course.category}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-          onError={(e) => {
-            const img = e.currentTarget;
-            // Prevent infinite loop
-            if (img.dataset.fallbackApplied) return;
-            img.dataset.fallbackApplied = 'true';
-            handleThumbnailError(e, course.slug, course.title, course.category, categoryImages[course.category]);
-          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
