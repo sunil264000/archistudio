@@ -19,10 +19,7 @@ serve(async (req) => {
 
   try {
     const { email, name, courseName, certificateNumber, issueDate } = await req.json();
-
-    if (!email || !courseName || !certificateNumber) {
-      throw new Error("email, courseName, and certificateNumber are required");
-    }
+    if (!email || !courseName || !certificateNumber) throw new Error("email, courseName, and certificateNumber are required");
 
     const userName = name || "there";
     const formattedDate = issueDate
@@ -62,13 +59,12 @@ serve(async (req) => {
             <td>
               <table width="100%" cellpadding="0" cellspacing="0" style="background:#fffdf9;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.3);border:2px solid #c9a84c;">
 
-                <!-- Maroon hero header -->
+                <!-- Hero -->
                 <tr>
                   <td style="padding:0;">
                     <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#6b1d3a,#4a1228,#7a2244);">
                       <tr>
                         <td style="padding:40px 32px;text-align:center;">
-                          <!-- Gold award circle -->
                           <div style="width:80px;height:80px;margin:0 auto 16px;border-radius:50%;background:linear-gradient(135deg,#c9a84c,#e8d48b,#c9a84c);display:inline-block;line-height:80px;box-shadow:0 4px 20px rgba(201,168,76,0.4);">
                             <span style="font-size:40px;line-height:80px;">🏆</span>
                           </div>
@@ -83,12 +79,10 @@ serve(async (req) => {
                 <!-- Content -->
                 <tr>
                   <td style="padding:32px;">
-
-                    <!-- Greeting -->
                     <p style="color:#2c1810;font-size:16px;margin:0 0 24px 0;line-height:1.6;">Dear <strong>${userName}</strong>,</p>
                     <p style="color:#5a4a3a;font-size:15px;margin:0 0 28px 0;line-height:1.7;">We are delighted to inform you that you have successfully completed your studio program. Your dedication and commitment to mastering professional architecture skills is truly commendable.</p>
 
-                    <!-- Certificate Details Card -->
+                    <!-- Certificate Details -->
                     <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#fefcf3,#fffdf9);border:1.5px solid #c9a84c;border-radius:12px;overflow:hidden;margin-bottom:28px;">
                       <tr>
                         <td style="padding:16px 20px;background:linear-gradient(135deg,#6b1d3a,#4a1228);border-bottom:2px solid #c9a84c;">
@@ -129,7 +123,7 @@ serve(async (req) => {
                       <tr><td style="padding:7px 0;color:#5a4a3a;font-size:14px;">📚 Explore more studio programs to continue learning</td></tr>
                     </table>
 
-                    <!-- CTA Buttons -->
+                    <!-- CTA -->
                     <table width="100%" cellpadding="0" cellspacing="0">
                       <tr><td align="center" style="padding:0 0 12px 0;">
                         <a href="${dashboardUrl}" style="display:inline-block;background:linear-gradient(135deg,#6b1d3a,#4a1228);color:#e8d48b;text-decoration:none;padding:14px 36px;border-radius:10px;font-weight:700;font-size:15px;box-shadow:0 4px 16px rgba(107,29,58,0.3);letter-spacing:1px;">
@@ -150,7 +144,6 @@ serve(async (req) => {
                       </p>
                       <p style="color:#8b7355;font-size:13px;margin:10px 0 0 0;">— Sunil Kumar, Founder & Lead Instructor</p>
                     </div>
-
                   </td>
                 </tr>
               </table>
@@ -180,30 +173,17 @@ serve(async (req) => {
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: "Archistudio <hello@archistudio.shop>",
-        to: [email],
-        subject,
-        html,
-      }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
+      body: JSON.stringify({ from: "Archistudio <hello@archistudio.shop>", to: [email], subject, html }),
     });
 
     const resData = await emailResponse.json();
     console.log("Certificate email sent:", resData);
 
-    // Log email
     try {
       await supabase.from("email_logs").insert({
-        recipient_email: email,
-        recipient_name: userName,
-        email_type: "certificate",
-        subject,
-        status: emailResponse.ok ? "sent" : "failed",
-        metadata: { courseName, certificateNumber },
+        recipient_email: email, recipient_name: userName, email_type: "certificate", subject,
+        status: emailResponse.ok ? "sent" : "failed", metadata: { courseName, certificateNumber },
         error_message: emailResponse.ok ? null : JSON.stringify(resData),
       });
     } catch (logErr) {
@@ -211,14 +191,12 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ success: true, data: resData }), {
-      status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+      status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: any) {
     console.error("Error sending certificate email:", error);
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
-    );
+    return new Response(JSON.stringify({ success: false, error: error.message }), {
+      status: 500, headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 });
