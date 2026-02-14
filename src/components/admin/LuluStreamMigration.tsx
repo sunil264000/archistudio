@@ -112,6 +112,15 @@ export function LuluStreamMigration() {
     fetchCronStatus();
   }, [fetchStats, fetchCourses, fetchCourseStats, fetchCronStatus]);
 
+  // Real-time stats polling every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchStats();
+      fetchCourseStats();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [fetchStats, fetchCourseStats]);
+
   useEffect(() => {
     fetchStats();
   }, [selectedCourses, fetchStats]);
