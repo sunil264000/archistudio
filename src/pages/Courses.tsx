@@ -21,6 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
 import { AccessBadge } from '@/components/course/AccessBadge';
 import { useAccessControlBySlug } from '@/hooks/useAccessControlBySlug';
+import { useThumbnailFallback } from '@/hooks/useThumbnailFallback';
 import { 
   staggerContainer, 
   staggerContainerFast, 
@@ -360,6 +361,7 @@ function CourseCard({
   const [isHovered, setIsHovered] = useState(false);
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
   const [pendingPaymentData, setPendingPaymentData] = useState<any>(null);
+  const { handleThumbnailError } = useThumbnailFallback();
 
   // Access control - check if user has access to this course
   const accessInfo = useAccessControlBySlug(user?.id, course.slug);
@@ -509,9 +511,7 @@ function CourseCard({
           loading="lazy"
           decoding="async"
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-          onError={(e) => {
-            e.currentTarget.src = categoryImages[course.category] || '/placeholder.svg';
-          }}
+          onError={(e) => handleThumbnailError(e, course.slug, course.title, course.category, categoryImages[course.category])}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
