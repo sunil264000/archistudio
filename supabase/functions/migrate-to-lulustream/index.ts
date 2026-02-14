@@ -65,7 +65,6 @@ serve(async (req) => {
     // ACTION: Sync — clean duplicates, remove orphans, add missing lessons
     if (action === "sync") {
       // 1. Remove duplicates (keep newest per lesson_id)
-      await supabase.rpc("cleanup_migration_duplicates").catch(() => {});
       // Manual fallback: fetch all, find dupes, delete
       const allMigrations = await fetchAllPaginated("video_migrations", "id, lesson_id, created_at");
       const seen = new Map<string, { id: string; created_at: string }>();
