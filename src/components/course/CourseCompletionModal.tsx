@@ -78,19 +78,19 @@ export function CourseCompletionModal({
               {courseName}
             </p>
             <p className="text-muted-foreground text-xs">
-              Your certificate of completion is ready!
+              Your Proof of Completion is ready!
             </p>
           </div>
 
           {/* Certificate preview card */}
           <div className="mx-auto max-w-xs p-4 rounded-xl border bg-gradient-to-br from-background to-muted/30 shadow-inner">
             <div className="border border-dashed border-accent/30 rounded-lg p-3 space-y-1">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Certificate of Completion</p>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Proof of Completion</p>
               <p className="text-sm font-semibold text-foreground">{courseName}</p>
               <p className="text-[10px] text-muted-foreground">
                 Issued on {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
               </p>
-              <p className="text-[10px] text-muted-foreground italic">Signed by Sunil Kumar</p>
+              <p className="text-[10px] text-muted-foreground italic">Signed by Sunil Kumar • Archistudio</p>
             </div>
           </div>
 
