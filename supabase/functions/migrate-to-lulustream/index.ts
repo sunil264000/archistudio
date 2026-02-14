@@ -144,20 +144,46 @@ serve(async (req) => {
 
     // ACTION: Migrate — sends batch to LuluStream remote upload
     if (action === "migrate") {
+      // Check LuluStream remote queue capacity FIRST
+      let queueSize = 0;
+      try {
+        const queueRes = await fetch(`${LULUSTREAM_API_BASE}/urlupload/list?key=${LULUSTREAM_API_KEY}`);
+        const queueData = await queueRes.json();
+        if (queueData.status === 200 && Array.isArray(queueData.result)) {
+          queueSize = queueData.result.length;
+        }
+      } catch {}
+
+      const MAX_QUEUE = 100;
+      const availableSlots = Math.max(0, MAX_QUEUE - queueSize);
+
+      if (availableSlots === 0) {
+        // Don't send anything — queue is full, just report status
+        const { count: uploadingCount } = await supabase
+          .from("video_migrations")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "uploading");
+        return jsonResponse({ 
+          success: true, 
+          message: `Queue full (${queueSize}/${MAX_QUEUE}). Waiting for uploads to finish before sending more.`,
+          processed: 0, queueSize, currentUploading: uploadingCount || 0, availableSlots: 0
+        });
+      }
+
       const { count: uploadingCount } = await supabase
         .from("video_migrations")
         .select("id", { count: "exact", head: true })
         .eq("status", "uploading");
-
       const currentUploading = uploadingCount || 0;
 
-      // Auto-reset rate-limit failures
+      // Auto-reset rate-limit failures (only if queue has space)
       await supabase.from("video_migrations")
         .update({ status: "pending", error_message: null, updated_at: new Date().toISOString() })
         .eq("status", "failed")
         .or("error_message.ilike.%limit%,error_message.ilike.%queue%,error_message.ilike.%already%");
 
-      const batchSize = customBatchSize || 50;
+      // Limit batch to available queue slots
+      const batchSize = Math.min(customBatchSize || 50, availableSlots);
 
       // Auto-prepare: find Drive lessons without migration records
       let lessonQuery = supabase
@@ -183,7 +209,7 @@ serve(async (req) => {
         }
       }
 
-      // Fetch pending
+      // Fetch pending — limited to available slots
       let query = supabase.from("video_migrations")
         .select("id, lesson_id, original_url, course_id")
         .eq("status", "pending").limit(batchSize);
@@ -192,7 +218,7 @@ serve(async (req) => {
       if (pendingError) throw pendingError;
 
       if (!pending || pending.length === 0) {
-        return jsonResponse({ success: true, message: "No pending migrations", processed: 0 });
+        return jsonResponse({ success: true, message: "No pending migrations", processed: 0, queueSize, availableSlots });
       }
 
       // Get course titles
@@ -240,7 +266,7 @@ serve(async (req) => {
         await delay(500);
       }
 
-      return jsonResponse({ success: true, message: `Sent ${processed}, failed ${failed}`, processed, failed, currentUploading, errors: errors.length > 0 ? errors : undefined });
+      return jsonResponse({ success: true, message: `Sent ${processed}, failed ${failed}`, processed, failed, currentUploading, queueSize, availableSlots, errors: errors.length > 0 ? errors : undefined });
     }
 
     // ACTION: Check remote upload status — RATE-LIMIT SAFE: checks max 20 files per run
