@@ -142,7 +142,7 @@ serve(async (req) => {
       });
     }
 
-    // ACTION: Migrate — RATE-LIMIT SAFE: max 10 uploads per run, sequential with 1.5s delay
+    // ACTION: Migrate — sends batch to LuluStream remote upload
     if (action === "migrate") {
       const { count: uploadingCount } = await supabase
         .from("video_migrations")
@@ -151,19 +151,13 @@ serve(async (req) => {
 
       const currentUploading = uploadingCount || 0;
 
-      // LuluStream has 100 concurrent remote uploads max
-      if (currentUploading >= 95) {
-        return jsonResponse({ success: true, message: `Queue full (${currentUploading} uploading). Waiting.`, processed: 0, currentUploading });
-      }
-
       // Auto-reset rate-limit failures
       await supabase.from("video_migrations")
         .update({ status: "pending", error_message: null, updated_at: new Date().toISOString() })
         .eq("status", "failed")
         .or("error_message.ilike.%limit%,error_message.ilike.%queue%,error_message.ilike.%already%");
 
-      // Only 10 per batch to stay under 60 req/min
-      const batchSize = Math.min(customBatchSize || 10, 10, 95 - currentUploading);
+      const batchSize = customBatchSize || 50;
 
       // Auto-prepare: find Drive lessons without migration records
       let lessonQuery = supabase
@@ -209,20 +203,15 @@ serve(async (req) => {
         courses?.forEach(c => { courseTitleMap[c.id] = c.title; });
       }
 
-      // SEQUENTIAL processing with delay to respect 60 req/min
       let processed = 0, failed = 0;
-      let hitDailyLimit = false;
+      const errors: string[] = [];
       for (const migration of pending) {
-        if (hitDailyLimit) {
-          // Skip remaining, don't mark as failed
-          break;
-        }
         try {
           const fileId = extractFileId(migration.original_url);
           if (!fileId) throw new Error("Could not extract file ID");
 
-          // Use Google Drive API with key - returns actual video, not HTML virus scan page
-          const downloadUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${GOOGLE_API_KEY}`;
+          // Use Google Drive direct download link - LuluStream's servers handle the redirect
+          const downloadUrl = `https://drive.google.com/uc?id=${fileId}&export=download&confirm=t`;
           const courseTitle = migration.course_id ? courseTitleMap[migration.course_id] || "" : "";
           const organizedTitle = courseTitle ? `[${courseTitle}] ${fileId}` : fileId;
 
@@ -238,34 +227,20 @@ serve(async (req) => {
               .eq("id", migration.id);
             processed++;
           } else {
-            const errMsg = uploadData.msg || "LuluStream API error";
-            // Detect daily limit hit — stop sending more, don't mark as failed
-            if (errMsg.toLowerCase().includes("limit") || errMsg.toLowerCase().includes("max url")) {
-              hitDailyLimit = true;
-              console.log("Daily URL upload limit reached, stopping batch");
-              break;
-            }
+            const errMsg = uploadData.msg || JSON.stringify(uploadData);
             throw new Error(errMsg);
           }
         } catch (err: any) {
-          if (err.message?.toLowerCase().includes("limit")) {
-            hitDailyLimit = true;
-            break;
-          }
           await supabase.from("video_migrations")
             .update({ status: "failed", error_message: err.message, updated_at: new Date().toISOString() })
             .eq("id", migration.id);
           failed++;
+          if (errors.length < 3) errors.push(err.message);
         }
-        // Wait 1.5s between API calls to stay under 60/min
-        await delay(1500);
+        await delay(500);
       }
 
-      const msg = hitDailyLimit 
-        ? `Daily limit reached after ${processed} uploads. Will resume tomorrow automatically.`
-        : `Processed ${processed}, failed ${failed} (${currentUploading} already uploading)`;
-
-      return jsonResponse({ success: true, message: msg, processed, failed, currentUploading, hitDailyLimit });
+      return jsonResponse({ success: true, message: `Sent ${processed}, failed ${failed}`, processed, failed, currentUploading, errors: errors.length > 0 ? errors : undefined });
     }
 
     // ACTION: Check remote upload status — RATE-LIMIT SAFE: checks max 20 files per run
@@ -419,56 +394,47 @@ serve(async (req) => {
       return jsonResponse({ success: true, account: data });
     }
 
-    // ACTION: Test single upload with full diagnostics
+    // ACTION: Test single upload — actually submits to LuluStream and shows result
     if (action === "test-upload") {
       const { data: testItem } = await supabase.from("video_migrations")
         .select("id, lesson_id, original_url, course_id")
         .eq("status", "pending")
         .limit(1)
-        .single();
+        .maybeSingle();
       
       if (!testItem) return jsonResponse({ success: false, error: "No pending items" });
       
       const fileId = extractFileId(testItem.original_url);
       if (!fileId) return jsonResponse({ success: false, error: "Could not extract file ID", url: testItem.original_url });
 
-      const results: any[] = [];
+      const downloadUrl = `https://drive.google.com/uc?id=${fileId}&export=download&confirm=t`;
+      
+      // Actually submit to LuluStream
+      const uploadUrl = `${LULUSTREAM_API_BASE}/upload/url?key=${LULUSTREAM_API_KEY}&url=${encodeURIComponent(downloadUrl)}&new_title=${encodeURIComponent(`TEST_${fileId}`)}`;
+      const uploadRes = await fetch(uploadUrl);
+      const uploadData = await uploadRes.json();
+      
+      let fileCode = "";
+      if (uploadData.status === 200 && uploadData.result) {
+        fileCode = uploadData.result.filecode || uploadData.result.file_code || "";
+        // Mark as uploading
+        await supabase.from("video_migrations")
+          .update({ status: "uploading", lulustream_file_code: fileCode, updated_at: new Date().toISOString() })
+          .eq("id", testItem.id);
+      }
 
-      // Test 1: Google API with key (GET to see actual error)
-      try {
-        const apiUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${GOOGLE_API_KEY}`;
-        const res = await fetch(apiUrl, { redirect: "follow" });
-        const contentType = res.headers.get("content-type") || "";
-        if (!res.ok) {
-          const errBody = await res.text();
-          results.push({ format: "api_key_GET", status: res.status, contentType, error: errBody.substring(0, 500) });
-        } else {
-          results.push({ format: "api_key_GET", status: 200, contentType, size: res.headers.get("content-length"), works: true });
-        }
-      } catch (e: any) { results.push({ format: "api_key_GET", error: e.message }); }
+      // Check remote upload queue status
+      await delay(3000);
+      const queueRes = await fetch(`${LULUSTREAM_API_BASE}/urlupload/list?key=${LULUSTREAM_API_KEY}`);
+      const queueData = await queueRes.json();
 
-      // Test 2: Google API - file metadata (to verify file exists and is shared)
-      try {
-        const metaUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?key=${GOOGLE_API_KEY}&fields=id,name,mimeType,size,shared,webContentLink`;
-        const res = await fetch(metaUrl);
-        const data = await res.json();
-        results.push({ format: "metadata", data });
-      } catch (e: any) { results.push({ format: "metadata", error: e.message }); }
-
-      // Test 3: uc export with GET
-      try {
-        const ucUrl = `https://drive.google.com/uc?id=${fileId}&export=download&confirm=t`;
-        const res = await fetch(ucUrl, { redirect: "follow" });
-        const contentType = res.headers.get("content-type") || "";
-        const isVideo = contentType.includes("video") || contentType.includes("octet-stream");
-        results.push({ 
-          format: "uc_export_GET", status: res.status, contentType, 
-          size: res.headers.get("content-length"),
-          isVideo, finalUrl: res.url?.substring(0, 100)
-        });
-      } catch (e: any) { results.push({ format: "uc_export_GET", error: e.message }); }
-
-      return jsonResponse({ success: true, fileId, originalUrl: testItem.original_url, results });
+      return jsonResponse({ 
+        success: true, fileId, downloadUrl,
+        luluResponse: uploadData,
+        fileCode,
+        queueAfter3s: queueData,
+        migrationId: testItem.id,
+      });
     }
 
     return jsonResponse({ success: false, error: "Invalid action" }, 400);
