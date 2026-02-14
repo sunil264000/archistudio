@@ -25,20 +25,20 @@ export function CourseCompletionModal({
   const handleDownloadCertificate = async () => {
     setGenerating(true);
     try {
-      // Open the edge function URL directly so external resources (fonts) can load
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const certUrl = `${supabaseUrl}/functions/v1/generate-certificate`;
-      
-      // First invoke to ensure certificate record exists
-      const { error } = await supabase.functions.invoke('generate-certificate', {
+      const { data, error } = await supabase.functions.invoke('generate-certificate', {
         body: { userId, courseId },
       });
 
       if (error) throw error;
 
-      // Now open directly with query params so it returns HTML with fonts loading properly
-      const directUrl = `${certUrl}?userId=${userId}&courseId=${courseId}`;
-      window.open(directUrl, '_blank');
+      // Open a new window and write the HTML directly so fonts load properly
+      const html = typeof data === 'string' ? data : '';
+      if (!html) throw new Error('Empty certificate response');
+      const win = window.open('', '_blank');
+      if (win) {
+        win.document.write(html);
+        win.document.close();
+      }
 
       toast.success('Certificate opened! Use Ctrl+P to save as PDF.');
     } catch (err) {
