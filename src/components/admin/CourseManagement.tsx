@@ -149,6 +149,15 @@ export function CourseManagement() {
   // Thumbnail editing state (local only, saves on button click)
   const [thumbnailEdits, setThumbnailEdits] = useState<Record<string, string>>({});
   const [savingThumbnail, setSavingThumbnail] = useState<string | null>(null);
+  
+  // Bulk thumbnail download state
+  const [downloadingAllThumbnails, setDownloadingAllThumbnails] = useState(false);
+  const [thumbnailProgress, setThumbnailProgress] = useState({ current: 0, total: 0 });
+  
+  // Auto-update courses state
+  const [autoUpdateEnabled, setAutoUpdateEnabled] = useState(false);
+  const [loadingAutoUpdate, setLoadingAutoUpdate] = useState(true);
+  const [autoUpdateRunning, setAutoUpdateRunning] = useState(false);
 
   const handleThumbnailChange = (courseId: string, url: string) => {
     setThumbnailEdits(prev => ({ ...prev, [courseId]: url }));
@@ -266,6 +275,102 @@ export function CourseManagement() {
   useEffect(() => {
     fetchCourses();
   }, []);
+
+  // Load auto-update setting
+  useEffect(() => {
+    const loadAutoUpdate = async () => {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'auto_update_courses')
+        .maybeSingle();
+      setAutoUpdateEnabled(data?.value === 'true');
+      setLoadingAutoUpdate(false);
+    };
+    loadAutoUpdate();
+  }, []);
+
+  const handleDownloadAllThumbnails = async () => {
+    // Find courses with external (non-storage) thumbnail URLs
+    const coursesWithExternalThumbs = courses.filter(c => 
+      c.thumbnail_url && 
+      !c.thumbnail_url.includes('/storage/v1/object/public/course-thumbnails/')
+    );
+
+    if (coursesWithExternalThumbs.length === 0) {
+      toast.info('All thumbnails are already stored permanently!');
+      return;
+    }
+
+    setDownloadingAllThumbnails(true);
+    setThumbnailProgress({ current: 0, total: coursesWithExternalThumbs.length });
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const course of coursesWithExternalThumbs) {
+      try {
+        const { data, error } = await supabase.functions.invoke('upload-thumbnail', {
+          body: { courseId: course.id, imageUrl: course.thumbnail_url }
+        });
+
+        if (error || data?.error) {
+          failCount++;
+        } else {
+          successCount++;
+          setCourses(prev => prev.map(c => 
+            c.id === course.id ? { ...c, thumbnail_url: data.thumbnailUrl } : c
+          ));
+        }
+      } catch {
+        failCount++;
+      }
+      setThumbnailProgress(prev => ({ ...prev, current: prev.current + 1 }));
+    }
+
+    setDownloadingAllThumbnails(false);
+    toast.success(`Thumbnails stored: ${successCount} saved, ${failCount} failed`);
+  };
+
+  const handleToggleAutoUpdate = async (enabled: boolean) => {
+    setAutoUpdateEnabled(enabled);
+    try {
+      await supabase
+        .from('site_settings')
+        .upsert({
+          key: 'auto_update_courses',
+          value: enabled ? 'true' : 'false',
+          description: 'Auto-update courses (scan links & durations) periodically',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'key' });
+      
+      toast.success(enabled ? 'Auto-update enabled' : 'Auto-update disabled');
+    } catch {
+      setAutoUpdateEnabled(!enabled);
+      toast.error('Failed to update setting');
+    }
+  };
+
+  const handleRunAutoUpdate = async () => {
+    setAutoUpdateRunning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('auto-scan-courses', {
+        body: { action: 'refresh-all' }
+      });
+      
+      if (error) throw error;
+      toast.success(
+        `Auto-update complete: ${data.validLinks || 0} valid, ${data.brokenLinks || 0} broken, ${data.durationsUpdated || 0} durations updated`,
+        { duration: 5000 }
+      );
+      fetchCourses();
+      fetchCourseContent();
+    } catch (err: any) {
+      toast.error(err.message || 'Auto-update failed');
+    } finally {
+      setAutoUpdateRunning(false);
+    }
+  };
 
   useEffect(() => {
     if (courses.length > 0) {
@@ -1308,6 +1413,54 @@ export function CourseManagement() {
                 )}
                 Refresh Links
               </Button>
+
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleDownloadAllThumbnails}
+                disabled={downloadingAllThumbnails}
+                className="gap-2"
+              >
+                {downloadingAllThumbnails ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {thumbnailProgress.current}/{thumbnailProgress.total}
+                  </>
+                ) : (
+                  <>
+                    <ImageIcon className="h-4 w-4" />
+                    Store All Thumbnails
+                  </>
+                )}
+              </Button>
+
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleRunAutoUpdate}
+                disabled={autoUpdateRunning}
+                className="gap-2"
+              >
+                {autoUpdateRunning ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <FolderSync className="h-4 w-4" />
+                )}
+                Auto Update All
+              </Button>
+
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 border border-border/50">
+                <Switch 
+                  id="auto-update"
+                  checked={autoUpdateEnabled}
+                  onCheckedChange={handleToggleAutoUpdate}
+                  disabled={loadingAutoUpdate}
+                  className="scale-90"
+                />
+                <Label htmlFor="auto-update" className="text-xs font-medium cursor-pointer whitespace-nowrap">
+                  Auto-Update
+                </Label>
+              </div>
             </div>
           </div>
 
