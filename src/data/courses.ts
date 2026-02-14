@@ -1586,6 +1586,24 @@ export const courses: Course[] = [
     isPublished: true,
     tags: ['after effects', 'animation', 'presentation'],
   },
+  {
+    id: 'demo-test-course',
+    title: 'Demo Test Course - Payment Flow',
+    slug: 'demo-test-course',
+    shortDescription: 'Demo course to test payment flow end-to-end. Priced at ₹1 for testing.',
+    description: 'This is a demo course created for testing the complete payment flow. It includes sample content to verify payment integration, enrollment, and course access. Use this to test Cashfree payments with a ₹1 charge.',
+    category: 'fundamentals',
+    subcategory: 'Testing',
+    level: 'beginner',
+    durationHours: 1,
+    totalLessons: 3,
+    priceUsd: 1,
+    priceInr: 1,
+    thumbnail: '/placeholder.svg',
+    isFeatured: false,
+    isPublished: true,
+    tags: ['demo', 'test', 'payment'],
+  },
 ];
 
 export const getFeaturedCourses = () => courses.filter(c => c.isFeatured && c.isPublished);
