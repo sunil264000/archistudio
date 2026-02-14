@@ -4,13 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { Mail, Send, Loader2, CheckCircle, Gift, CreditCard, Sparkles, AlertCircle } from 'lucide-react';
+import { Mail, Send, Loader2, CheckCircle, Gift, CreditCard, Sparkles, Award } from 'lucide-react';
 
-type EmailType = 'paid' | 'free' | 'gift' | 'welcome';
+type EmailType = 'paid' | 'free' | 'gift' | 'welcome' | 'certificate';
 
 interface EmailTypeConfig {
   id: EmailType;
@@ -49,6 +48,13 @@ const emailTypes: EmailTypeConfig[] = [
     icon: <Mail className="h-5 w-5" />,
     color: 'text-amber-500',
   },
+  {
+    id: 'certificate',
+    label: 'Certificate Email',
+    description: 'Proof of Completion notification',
+    icon: <Award className="h-5 w-5" />,
+    color: 'text-rose-500',
+  },
 ];
 
 export function EmailTesting() {
@@ -74,22 +80,26 @@ export function EmailTesting() {
       let result;
       
       if (selectedType === 'welcome') {
-        // Send welcome email
         result = await supabase.functions.invoke('send-welcome-email', {
+          body: { email: testEmail, name: testName, isTest: true }
+        });
+      } else if (selectedType === 'certificate') {
+        result = await supabase.functions.invoke('send-certificate-email', {
           body: {
             email: testEmail,
             name: testName,
-            isTest: true,
+            courseName: 'Corona Rendering Masterclass',
+            certificateNumber: `ARCH-TEST-${Date.now().toString().slice(-6)}`,
+            issueDate: new Date().toISOString(),
           }
         });
       } else {
-        // Send enrollment emails
         const emailData: any = {
           email: testEmail,
           name: testName,
           courseName: 'Corona Rendering Masterclass',
           courseSlug: 'corona-rendering',
-          isTest: true, // Mark as test email
+          isTest: true,
         };
 
         if (selectedType === 'paid') {
@@ -110,14 +120,11 @@ export function EmailTesting() {
         });
       }
 
-      if (result.error) {
-        throw result.error;
-      }
+      if (result.error) throw result.error;
 
-      // Check for Resend sandbox mode error
       if (result.data?.data?.statusCode === 403) {
         toast.warning(
-          'Email sent in sandbox mode - Only works for verified email (p27373872827@gmail.com). Verify a domain at resend.com/domains to send to all addresses.',
+          'Email sent in sandbox mode - Only works for verified email. Verify a domain at resend.com/domains to send to all addresses.',
           { duration: 8000 }
         );
       } else {
@@ -144,12 +151,12 @@ export function EmailTesting() {
             Email Template Testing
           </CardTitle>
           <CardDescription>
-            Send test emails to verify templates before production. All emails will show "[TEST]" indicators.
+            Send test emails to verify templates. All emails use the premium maroon & gold design system.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Email Type Selection */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {emailTypes.map((type) => (
               <motion.button
                 key={type.id}
@@ -199,11 +206,12 @@ export function EmailTesting() {
               <div className="flex items-center gap-2 mb-2">
                 <div className={selectedTypeConfig.color}>{selectedTypeConfig.icon}</div>
                 <span className="font-medium">{selectedTypeConfig.label} Preview</span>
+                <Badge variant="outline" className="text-xs">Maroon & Gold Theme</Badge>
               </div>
               <div className="text-sm text-muted-foreground space-y-1">
                 {selectedType === 'paid' && (
                   <>
-                    <p>📧 Subject: Payment Confirmed - Invoice for Corona Rendering Masterclass 🎉</p>
+                    <p>📧 Subject: ✅ Payment Confirmed — Corona Rendering Masterclass</p>
                     <p>💰 Amount: ₹1,999</p>
                     <p>🆔 Order ID: ARCH[timestamp]</p>
                   </>
@@ -226,6 +234,12 @@ export function EmailTesting() {
                     <p>👋 New user onboarding email</p>
                   </>
                 )}
+                {selectedType === 'certificate' && (
+                  <>
+                    <p>📧 Subject: 🏆 Congratulations! Your Proof of Completion is Ready</p>
+                    <p>📜 Certificate Number: ARCH-TEST-XXXXXX</p>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -242,7 +256,7 @@ export function EmailTesting() {
             ) : (
               <Send className="h-4 w-4" />
             )}
-            Send Test {selectedTypeConfig?.label} Email
+            Send Test {selectedTypeConfig?.label}
           </Button>
 
           {/* Last Sent Indicator */}
@@ -272,7 +286,7 @@ export function EmailTesting() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <p className="text-muted-foreground">
-            Your domain is verified and ready to send emails to all users.
+            All email templates use the unified premium maroon & gold design system.
           </p>
           <div className="pt-2 flex gap-2 flex-wrap">
             <Badge variant="outline" className="text-green-600 border-green-500/30">
@@ -280,6 +294,9 @@ export function EmailTesting() {
             </Badge>
             <Badge variant="outline" className="text-green-600 border-green-500/30">
               ✓ From: hello@archistudio.shop
+            </Badge>
+            <Badge variant="outline" className="text-green-600 border-green-500/30">
+              ✓ 8 Templates Unified
             </Badge>
           </div>
         </CardContent>

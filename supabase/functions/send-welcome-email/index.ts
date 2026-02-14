@@ -16,26 +16,9 @@ interface WelcomeEmailRequest {
   isTest?: boolean;
 }
 
-async function logEmail(
-  supabase: any,
-  recipient_email: string,
-  recipient_name: string | null,
-  email_type: string,
-  subject: string,
-  status: string,
-  metadata?: any,
-  error_message?: string
-) {
+async function logEmail(supabase: any, recipient_email: string, recipient_name: string | null, email_type: string, subject: string, status: string, metadata?: any, error_message?: string) {
   try {
-    await supabase.from('email_logs').insert({
-      recipient_email,
-      recipient_name,
-      email_type,
-      subject,
-      status,
-      metadata,
-      error_message,
-    });
+    await supabase.from('email_logs').insert({ recipient_email, recipient_name, email_type, subject, status, metadata, error_message });
   } catch (err) {
     console.error('Failed to log email:', err);
   }
@@ -50,203 +33,150 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const { email, name, isTest }: WelcomeEmailRequest = await req.json();
-
-    if (!email) {
-      throw new Error("Email is required");
-    }
+    if (!email) throw new Error("Email is required");
 
     const userName = name || "there";
     const currentYear = new Date().getFullYear();
+    const subject = isTest ? `[TEST] Welcome to Archistudio, ${userName}!` : `Welcome to Archistudio, ${userName}!`;
 
-    const subject = isTest 
-      ? `[TEST] Welcome to Archistudio, ${userName}!` 
-      : `Welcome to Archistudio, ${userName}!`;
-
-    const textContent = `
-Hi ${userName},
-
-Thank you for joining Archistudio! We're excited to have you as part of our community of aspiring architects and designers.
-
-With Archistudio, you'll have access to:
-- Industry-leading architectural visualization courses
-- Expert instructors with real-world experience  
-- Hands-on projects and practical exercises
-- Certificate of completion for each course
-
-Start exploring our courses: https://archistudio.lovable.app/courses
-
-If you have any questions, feel free to reach out to us at hello@archistudio.shop
-
-Best regards,
-The Archistudio Team
-
----
-© ${currentYear} Archistudio. All rights reserved.
-https://archistudio.lovable.app
-
-You received this email because you signed up for an account at Archistudio.
-    `.trim();
-
-    const htmlContent = `
-<!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="x-apple-disable-message-reformatting">
-  <meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no">
-  <title>Welcome to Archistudio</title>
-  <style>
-    body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-    table, td { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
-    img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
-    a { text-decoration: none; }
-    @media only screen and (max-width: 600px) {
-      .container { width: 100% !important; padding: 20px !important; }
-      .content { padding: 24px !important; }
-    }
-  </style>
+  <title>${subject}</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-  
-  <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">
-    Welcome aboard! Start your architectural visualization journey with Archistudio.
-  </div>
-  
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f4f4f5;">
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background-color:#2d1520;-webkit-font-smoothing:antialiased;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#2d1520;padding:40px 16px;">
     <tr>
-      <td align="center" style="padding: 40px 20px;">
-        <table role="presentation" class="container" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+          <!-- Logo -->
           <tr>
-            <td align="center" style="padding: 40px 40px 30px; background: linear-gradient(135deg, #1a1a2e 0%, #0f172a 100%); border-radius: 16px 16px 0 0;">
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                <tr>
-                  <td align="center">
-                    <div style="display: inline-block; padding: 12px 24px; background: rgba(34, 197, 94, 0.15); border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.3);">
-                      <span style="font-size: 22px; font-weight: 700; color: #22c55e; letter-spacing: 0.5px;">ARCHISTUDIO</span>
-                    </div>
-                    <p style="color: #94a3b8; font-size: 12px; margin: 10px 0 0 0; letter-spacing: 1.5px; text-transform: uppercase;">Premium Architecture Education</p>
-                  </td>
-                </tr>
-              </table>
+            <td align="center" style="padding:0 0 28px 0;">
+              <div style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#c9a84c,#e8d48b,#c9a84c);border-radius:10px;">
+                <span style="font-size:22px;font-weight:800;color:#2c1810;letter-spacing:2px;">ARCHISTUDIO</span>
+              </div>
+              <p style="color:#c9a84c80;font-size:11px;margin:10px 0 0 0;letter-spacing:3px;text-transform:uppercase;">Architecture & Design Learning Platform</p>
             </td>
           </tr>
+
+          <!-- Main Card -->
           <tr>
-            <td class="content" style="padding: 40px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+            <td>
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#fffdf9;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.3);border:2px solid #c9a84c;">
+
+                <!-- Hero -->
                 <tr>
-                  <td align="center" style="padding-bottom: 24px;">
-                    <div style="width: 72px; height: 72px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); border-radius: 50%; line-height: 72px; font-size: 32px; text-align: center;">
-                      &#127881;
-                    </div>
-                  </td>
-                </tr>
-              </table>
-              <h1 style="color: #18181b; font-size: 28px; font-weight: 700; margin: 0 0 24px 0; text-align: center; line-height: 1.3;">
-                Welcome to Archistudio!
-              </h1>
-              <p style="color: #3f3f46; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                Hi <strong style="color: #18181b;">${userName}</strong>,
-              </p>
-              <p style="color: #52525b; font-size: 16px; line-height: 1.7; margin: 0 0 28px 0;">
-                Thank you for joining our community! We're excited to help you master architectural visualization with industry-leading courses designed by professionals.
-              </p>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 32px;">
-                <tr>
-                  <td style="padding: 24px;">
-                    <p style="color: #18181b; font-size: 14px; font-weight: 600; margin: 0 0 16px 0; text-transform: uppercase; letter-spacing: 0.5px;">What you get with Archistudio</p>
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-                      <tr><td style="padding: 8px 0; color: #52525b; font-size: 15px;"><span style="color: #22c55e; font-weight: bold; margin-right: 10px;">&#10003;</span>Professional visualization courses</td></tr>
-                      <tr><td style="padding: 8px 0; color: #52525b; font-size: 15px;"><span style="color: #22c55e; font-weight: bold; margin-right: 10px;">&#10003;</span>Expert instructors with real-world experience</td></tr>
-                      <tr><td style="padding: 8px 0; color: #52525b; font-size: 15px;"><span style="color: #22c55e; font-weight: bold; margin-right: 10px;">&#10003;</span>Hands-on projects and downloadable resources</td></tr>
-                      <tr><td style="padding: 8px 0; color: #52525b; font-size: 15px;"><span style="color: #22c55e; font-weight: bold; margin-right: 10px;">&#10003;</span>Certificate upon course completion</td></tr>
+                  <td style="padding:0;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#6b1d3a,#4a1228,#7a2244);">
+                      <tr>
+                        <td style="padding:40px 32px;text-align:center;">
+                          <div style="width:80px;height:80px;margin:0 auto 16px;border-radius:50%;background:linear-gradient(135deg,#c9a84c,#e8d48b,#c9a84c);display:inline-block;line-height:80px;box-shadow:0 4px 20px rgba(201,168,76,0.4);">
+                            <span style="font-size:40px;line-height:80px;">🎉</span>
+                          </div>
+                          <h1 style="color:#fffdf9;font-size:26px;margin:0 0 8px 0;font-weight:800;letter-spacing:1px;">Welcome Aboard!</h1>
+                          <p style="color:#e8d48b;font-size:14px;margin:0;letter-spacing:2px;text-transform:uppercase;">Your Creative Journey Begins Now</p>
+                        </td>
+                      </tr>
                     </table>
                   </td>
                 </tr>
-              </table>
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+
+                <!-- Content -->
                 <tr>
-                  <td align="center" style="padding-bottom: 32px;">
-                    <a href="https://archistudio.lovable.app/courses" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: #ffffff; font-size: 16px; font-weight: 600; padding: 16px 36px; border-radius: 10px; text-decoration: none;">
-                      Explore Courses
-                    </a>
+                  <td style="padding:32px;">
+                    <p style="color:#2c1810;font-size:16px;margin:0 0 24px 0;line-height:1.6;">Dear <strong>${userName}</strong>,</p>
+                    <p style="color:#5a4a3a;font-size:15px;margin:0 0 28px 0;line-height:1.7;">Thank you for joining Archistudio! We're thrilled to welcome you to our community of aspiring architects and designers. Get ready to master industry-standard skills with our professionally crafted studio programs.</p>
+
+                    <!-- Features Card -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#fefcf3,#fffdf9);border:1.5px solid #c9a84c;border-radius:12px;overflow:hidden;margin-bottom:28px;">
+                      <tr>
+                        <td style="padding:16px 20px;background:linear-gradient(135deg,#6b1d3a,#4a1228);border-bottom:2px solid #c9a84c;">
+                          <span style="font-size:14px;font-weight:700;color:#e8d48b;letter-spacing:2px;">✦ WHAT YOU GET</span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:20px;">
+                          <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr><td style="padding:10px 0;color:#5a4a3a;font-size:14px;border-bottom:1px solid #e8d48b40;">🏛️ Professional architectural visualization studio programs</td></tr>
+                            <tr><td style="padding:10px 0;color:#5a4a3a;font-size:14px;border-bottom:1px solid #e8d48b40;">👨‍🏫 Expert instructors with real-world office experience</td></tr>
+                            <tr><td style="padding:10px 0;color:#5a4a3a;font-size:14px;border-bottom:1px solid #e8d48b40;">📁 Downloadable project files & studio resources</td></tr>
+                            <tr><td style="padding:10px 0;color:#5a4a3a;font-size:14px;">🏆 Proof of Completion upon finishing each program</td></tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- CTA -->
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr><td align="center" style="padding:0 0 12px 0;">
+                        <a href="https://archistudio.lovable.app/courses" style="display:inline-block;background:linear-gradient(135deg,#6b1d3a,#4a1228);color:#e8d48b;text-decoration:none;padding:14px 36px;border-radius:10px;font-weight:700;font-size:15px;box-shadow:0 4px 16px rgba(107,29,58,0.3);letter-spacing:1px;">
+                          Explore Studio Programs →
+                        </a>
+                      </td></tr>
+                    </table>
+
+                    <!-- Warm note -->
+                    <div style="margin-top:28px;padding:20px;background:linear-gradient(135deg,#6b1d3a10,#c9a84c10);border-radius:10px;text-align:center;border:1px solid #c9a84c20;">
+                      <p style="color:#6b1d3a;font-size:15px;font-style:italic;margin:0;line-height:1.6;">
+                        ✦ We're excited to have you. Let's build something amazing together. ✦
+                      </p>
+                      <p style="color:#8b7355;font-size:13px;margin:10px 0 0 0;">— Team Archistudio</p>
+                    </div>
                   </td>
                 </tr>
               </table>
-              <p style="color: #71717a; font-size: 14px; line-height: 1.6; margin: 0; text-align: center;">
-                Have questions? Just reply to this email or contact us at <a href="mailto:hello@archistudio.shop" style="color: #6366f1;">hello@archistudio.shop</a>
-              </p>
             </td>
           </tr>
+
+          <!-- Footer -->
           <tr>
-            <td style="padding: 24px 40px 32px; background-color: #fafafa; border-radius: 0 0 16px 16px; border-top: 1px solid #f4f4f5;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-                <tr>
-                  <td align="center" style="padding-bottom: 16px;">
-                    <a href="https://instagram.com/archistudio.in" style="color: #71717a; font-size: 13px; margin: 0 12px;">Instagram</a>
-                    <span style="color: #d4d4d8;">|</span>
-                    <a href="https://t.me/archistudio_in" style="color: #71717a; font-size: 13px; margin: 0 12px;">Telegram</a>
-                    <span style="color: #d4d4d8;">|</span>
-                    <a href="https://archistudio.lovable.app" style="color: #71717a; font-size: 13px; margin: 0 12px;">Website</a>
-                  </td>
-                </tr>
-                <tr>
-                  <td align="center">
-                    <p style="color: #a1a1aa; font-size: 12px; margin: 0 0 4px 0;">&copy; ${currentYear} Archistudio. All rights reserved.</p>
-                    <p style="color: #d4d4d8; font-size: 11px; margin: 0;">You received this email because you signed up at archistudio.lovable.app</p>
-                  </td>
-                </tr>
-              </table>
+            <td style="padding:28px 0 0 0;text-align:center;">
+              <p style="margin:0 0 12px 0;">
+                <a href="https://instagram.com/archistudio.in" style="color:#c9a84c80;text-decoration:none;margin:0 10px;font-size:13px;">Instagram</a>
+                <span style="color:#c9a84c30;">•</span>
+                <a href="https://t.me/archistudio_in" style="color:#c9a84c80;text-decoration:none;margin:0 10px;font-size:13px;">Telegram</a>
+                <span style="color:#c9a84c30;">•</span>
+                <a href="https://archistudio.lovable.app" style="color:#c9a84c80;text-decoration:none;margin:0 10px;font-size:13px;">Website</a>
+              </p>
+              <p style="color:#c9a84c30;font-size:12px;margin:0;">© ${currentYear} Archistudio. All rights reserved.</p>
             </td>
           </tr>
+
         </table>
       </td>
     </tr>
   </table>
 </body>
-</html>
-    `.trim();
+</html>`;
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${RESEND_API_KEY}` },
       body: JSON.stringify({
         from: "Archistudio <hello@archistudio.shop>",
         to: [email],
         reply_to: "hello@archistudio.shop",
-        subject: subject,
-        text: textContent,
+        subject,
         html: htmlContent,
-        headers: {
-          "X-Entity-Ref-ID": `welcome-${Date.now()}`,
-          "List-Unsubscribe": "<mailto:unsubscribe@archistudio.shop>",
-        },
+        headers: { "X-Entity-Ref-ID": `welcome-${Date.now()}`, "List-Unsubscribe": "<mailto:unsubscribe@archistudio.shop>" },
       }),
     });
 
     const resData = await emailResponse.json();
-    console.log("Welcome email sent successfully:", resData);
-
-    // Log the email
+    console.log("Welcome email sent:", resData);
     await logEmail(supabase, email, userName, 'welcome', subject, 'sent', { isTest });
 
     return new Response(JSON.stringify({ success: true, data: resData }), {
-      status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+      status: 200, headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: any) {
     console.error("Error sending welcome email:", error);
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    return new Response(JSON.stringify({ success: false, error: error.message }), {
+      status: 500, headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 };
 
