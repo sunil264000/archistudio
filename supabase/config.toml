@@ -71,3 +71,12 @@ verify_jwt = false
 
 [functions.migrate-to-lulustream]
 verify_jwt = false
+
+[functions.stream-video]
+verify_jwt = false
+
+[functions.mint-video-ticket]
+verify_jwt = false
+
+[functions.mint-video-ticket-public]
+verify_jwt = false
