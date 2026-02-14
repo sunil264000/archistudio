@@ -80,13 +80,13 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Menlo', 'monospace'],
       },
       fontSize: {
-        'display-lg': ['4.5rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
-        'display': ['3.75rem', { lineHeight: '1.15', letterSpacing: '-0.02em' }],
-        'display-sm': ['3rem', { lineHeight: '1.2', letterSpacing: '-0.01em' }],
+        'display-lg': ['4.5rem', { lineHeight: '1.08', letterSpacing: '-0.03em', fontWeight: '700' }],
+        'display': ['3.75rem', { lineHeight: '1.1', letterSpacing: '-0.025em', fontWeight: '700' }],
+        'display-sm': ['3rem', { lineHeight: '1.15', letterSpacing: '-0.02em', fontWeight: '600' }],
       },
       spacing: {
         '18': '4.5rem',
@@ -98,6 +98,7 @@ export default {
         'medium': 'var(--shadow-medium)',
         'strong': 'var(--shadow-strong)',
         'elevated': 'var(--shadow-elevated)',
+        'metallic': '0 1px 0 0 hsl(0 0% 100% / 0.05) inset, var(--shadow-medium)',
       },
       keyframes: {
         "accordion-down": {

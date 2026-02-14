@@ -50,19 +50,19 @@ export function Navbar() {
 
   return (
     <motion.header 
-      className={`sticky top-0 z-50 transition-all duration-500 ${
+      className={`sticky top-0 z-50 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         scrolled 
-          ? 'border-b border-border/40 glass' 
+          ? 'border-b border-border/30 glass shadow-soft' 
           : 'border-b border-transparent bg-transparent'
       }`}
-      initial={{ y: -80 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ y: -80, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
     >
-      <nav className="container-wide py-4 flex items-center justify-between">
+      <nav className="container-wide py-3.5 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="group flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shadow-[0_0_16px_hsl(var(--accent)/0.2)] transition-shadow duration-500 group-hover:shadow-[0_0_24px_hsl(var(--accent)/0.35)]">
             <span className="text-accent-foreground font-bold text-sm">A</span>
           </div>
           <span className="font-display font-bold text-lg tracking-tight text-foreground">
