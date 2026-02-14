@@ -166,9 +166,27 @@ serve(async (req) => {
       });
     }
 
-    // ACTION: Migrate — auto-prepares missing records then processes batch
+    // ACTION: Migrate — respects LuluStream's 100 concurrent upload queue limit
     if (action === "migrate") {
-      const batchSize = Math.min(customBatchSize || 50, 50); // LuluStream limit: 60 req/min
+      // Check how many are currently uploading on LuluStream
+      const { count: uploadingCount } = await supabase
+        .from("video_migrations")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "uploading");
+
+      const currentUploading = uploadingCount || 0;
+      const availableSlots = Math.max(0, 95 - currentUploading); // Keep 5 slot buffer
+
+      if (availableSlots === 0) {
+        // Auto-reset any rate-limit/queue-limit failures to pending for next round
+        await supabase.from("video_migrations")
+          .update({ status: "pending", error_message: null, updated_at: new Date().toISOString() })
+          .in("status", ["failed"])
+          .or("error_message.ilike.%limit%,error_message.ilike.%queue%,error_message.ilike.%already%");
+        return jsonResponse({ success: true, message: `Upload queue full (${currentUploading}/100). Waiting for slots.`, processed: 0, currentUploading });
+      }
+
+      const batchSize = Math.min(customBatchSize || 30, 50, availableSlots);
 
       // Auto-prepare: find Drive lessons without migration records and add them
       let lessonQuery = supabase
@@ -205,6 +223,12 @@ serve(async (req) => {
         }
       }
 
+      // Auto-reset rate-limit/queue-limit failures before fetching pending
+      await supabase.from("video_migrations")
+        .update({ status: "pending", error_message: null, updated_at: new Date().toISOString() })
+        .eq("status", "failed")
+        .or("error_message.ilike.%limit%,error_message.ilike.%queue%,error_message.ilike.%already%");
+
       // Now fetch pending migrations
       let query = supabase
         .from("video_migrations")
@@ -231,7 +255,7 @@ serve(async (req) => {
         courses?.forEach(c => { courseTitleMap[c.id] = c.title; });
       }
 
-      // Process ALL concurrently
+      // Process concurrently (batch is already capped to available slots)
       const results = await Promise.allSettled(pending.map(async (migration) => {
         try {
           const fileId = extractFileId(migration.original_url);
@@ -269,7 +293,7 @@ serve(async (req) => {
         else failed++;
       }
 
-      return jsonResponse({ success: true, message: `Processed ${processed} uploads, ${failed} failed`, processed, failed });
+      return jsonResponse({ success: true, message: `Processed ${processed} uploads, ${failed} failed (${currentUploading} already uploading)`, processed, failed, currentUploading });
     }
 
     // ACTION: Check remote upload status
