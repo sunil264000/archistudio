@@ -256,6 +256,39 @@ export function LuluStreamMigration() {
 
   return (
     <div className="space-y-6">
+      {/* Background Cron Toggle — TOP of page */}
+      <Card className="border-2 border-primary/30">
+        <CardContent className="pt-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {cronEnabled ? <Timer className="h-6 w-6 text-green-500" /> : <TimerOff className="h-6 w-6 text-muted-foreground" />}
+              <div>
+                <Label className="text-base font-semibold">Background Auto-Migration (No Browser Needed)</Label>
+                <p className="text-sm text-muted-foreground">
+                  Runs in the backend every 2 min — migrates 50 videos/batch &amp; checks progress automatically. Toggle OFF to pause.
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={cronEnabled ?? false}
+              onCheckedChange={toggleCron}
+              disabled={cronLoading || cronEnabled === null}
+            />
+          </div>
+          {cronEnabled && (
+            <div className="p-3 bg-green-500/10 rounded-md text-sm flex items-center gap-2 text-green-700 dark:text-green-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span><strong>Background migration active.</strong> You can close your browser — videos are migrating automatically.</span>
+            </div>
+          )}
+          {cronEnabled === false && (
+            <div className="p-3 bg-muted rounded-md text-sm text-muted-foreground">
+              Background migration is <strong>paused</strong>. Toggle ON to resume automatic migration.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Stats Card */}
       <Card>
         <CardHeader>
@@ -285,32 +318,6 @@ export function LuluStreamMigration() {
               <Progress value={progressPercent} className="h-3" />
             </div>
           )}
-
-          {/* Background Cron Toggle */}
-          <div className="p-4 border rounded-lg space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {cronEnabled ? <Timer className="h-5 w-5 text-green-500" /> : <TimerOff className="h-5 w-5 text-muted-foreground" />}
-                <div>
-                  <Label className="text-sm font-semibold">Background Auto-Migration</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Runs in the backend every 2 min — no browser needed. Migrates 50 videos/batch & checks progress automatically.
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={cronEnabled ?? false}
-                onCheckedChange={toggleCron}
-                disabled={cronLoading || cronEnabled === null}
-              />
-            </div>
-            {cronEnabled && (
-              <div className="p-3 bg-green-500/10 rounded-md text-sm flex items-center gap-2 text-green-700 dark:text-green-400">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span><strong>Background migration active.</strong> You can close your browser — videos are migrating automatically.</span>
-              </div>
-            )}
-          </div>
 
           {autoMigrate && (
             <div className="p-3 bg-primary/10 rounded-md text-sm flex items-center gap-2">
