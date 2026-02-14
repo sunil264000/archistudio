@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
-import { CheckCircle, Loader2, XCircle, GraduationCap, Clock, Receipt, ArrowRight, Play, Download } from "lucide-react";
+import { CheckCircle, Loader2, XCircle, GraduationCap, Clock, Receipt, ArrowRight, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -13,8 +13,8 @@ import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { analytics } from "@/hooks/useGoogleAnalytics";
 
-const MAX_RETRY_COUNT = 15; // Max 30 seconds (15 * 2 seconds)
-const REDIRECT_DELAY = 8; // seconds
+const MAX_RETRY_COUNT = 20;
+const REDIRECT_DELAY = 8;
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -34,6 +34,7 @@ const PaymentSuccess = () => {
   } | null>(null);
   const [redirectCountdown, setRedirectCountdown] = useState(REDIRECT_DELAY);
   const retryCount = useRef(0);
+  const serverVerifyTriggered = useRef(false);
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -77,52 +78,42 @@ const PaymentSuccess = () => {
             dbTitle || localTitle || 'Unknown Course',
             Number(payment.amount) || 0
           );
+          return; // Done!
         } else if (payment?.status === "failed") {
           setStatus("failed");
-        } else {
-          // Payment still pending - try server-side verification with Cashfree
-          retryCount.current += 1;
-          
-          if (retryCount.current >= MAX_RETRY_COUNT) {
-            // Last attempt: use server-side Cashfree API verification
-            try {
-              const { data: verifyResult } = await supabase.functions.invoke("verify-payment", {
-                body: { orderId },
-              });
-              
-              if (verifyResult?.status === "completed") {
-                // Re-run to pick up updated data
-                retryCount.current = 0;
-                setTimeout(verifyPayment, 1000);
-                return;
-              }
-            } catch (e) {
-              console.error("Server verify failed:", e);
-            }
-            
-            setStatus("cancelled");
-            return;
-          }
-          
-          // On retry 5 and 10, also try server-side verification
-          if (retryCount.current === 5 || retryCount.current === 10) {
-            try {
-              const { data: verifyResult } = await supabase.functions.invoke("verify-payment", {
-                body: { orderId },
-              });
-              
-              if (verifyResult?.status === "completed") {
-                retryCount.current = 0;
-                setTimeout(verifyPayment, 1000);
-                return;
-              }
-            } catch (e) {
-              console.error("Server verify failed:", e);
-            }
-          }
-          
-          setTimeout(verifyPayment, 2000);
+          return;
         }
+
+        // Payment still pending - immediately trigger server-side verification
+        retryCount.current += 1;
+
+        // Call server-side Cashfree API verification on first attempt and every 3rd retry
+        if (!serverVerifyTriggered.current || retryCount.current % 3 === 0) {
+          serverVerifyTriggered.current = true;
+          try {
+            const { data: verifyResult } = await supabase.functions.invoke("verify-payment", {
+              body: { orderId },
+            });
+            
+            if (verifyResult?.status === "completed") {
+              // Payment confirmed! Re-check DB to get full data
+              setTimeout(verifyPayment, 500);
+              return;
+            } else if (verifyResult?.status === "failed") {
+              setStatus("failed");
+              return;
+            }
+          } catch (e) {
+            console.error("Server verify failed:", e);
+          }
+        }
+
+        if (retryCount.current >= MAX_RETRY_COUNT) {
+          setStatus("cancelled");
+          return;
+        }
+        
+        setTimeout(verifyPayment, 1500);
       } catch (error) {
         console.error("Error verifying payment:", error);
         setStatus("failed");
@@ -166,11 +157,9 @@ const PaymentSuccess = () => {
               <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto mb-6" />
               <h1 className="text-2xl font-bold mb-4">Verifying Payment...</h1>
               <p className="text-muted-foreground mb-4">
-                Please wait while we confirm your payment.
+                Please wait while we confirm your payment with Cashfree.
               </p>
-              <p className="text-sm text-muted-foreground">
-                Attempt {retryCount.current + 1} of {MAX_RETRY_COUNT}
-              </p>
+              <Progress value={(retryCount.current / MAX_RETRY_COUNT) * 100} className="h-2 max-w-xs mx-auto" />
             </motion.div>
           )}
 
@@ -225,7 +214,6 @@ const PaymentSuccess = () => {
                     </div>
                   </div>
                   <CardContent className="p-6 space-y-4">
-                    {/* Course Info */}
                     <div className="flex items-start gap-4">
                       <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                         <GraduationCap className="h-6 w-6 text-primary" />
@@ -238,7 +226,6 @@ const PaymentSuccess = () => {
 
                     <Separator />
 
-                    {/* Order Details */}
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground">Order ID</p>
@@ -262,7 +249,6 @@ const PaymentSuccess = () => {
 
                     <Separator />
 
-                    {/* Amount */}
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Amount Paid</span>
                       <span className="text-2xl font-bold text-green-500">
@@ -270,7 +256,6 @@ const PaymentSuccess = () => {
                       </span>
                     </div>
 
-                    {/* Invoice Note */}
                     <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
                       <p>📧 A confirmation email with invoice details has been sent to your email address.</p>
                     </div>
@@ -375,18 +360,19 @@ const PaymentSuccess = () => {
               className="text-center"
             >
               <XCircle className="h-16 w-16 text-amber-500 mx-auto mb-6" />
-              <h1 className="text-2xl font-bold mb-4">Payment Cancelled or Timed Out</h1>
-              <p className="text-muted-foreground mb-8">
-                Your payment was cancelled or could not be verified. No charges were made to your account.
+              <h1 className="text-2xl font-bold mb-4">Payment Verification Timeout</h1>
+              <p className="text-muted-foreground mb-4">
+                We couldn't verify your payment yet. If you completed the payment, don't worry — your access will be activated shortly.
+              </p>
+              <p className="text-sm text-muted-foreground mb-8">
+                Check your email or dashboard in a few minutes. Contact support if it doesn't resolve.
               </p>
               <div className="flex flex-col gap-4 max-w-xs mx-auto">
                 <Button asChild size="lg">
-                  <Link to={courseSlugParam ? `/course/${courseSlugParam}` : "/courses"}>
-                    Try Again
-                  </Link>
+                  <Link to="/dashboard">Go to Dashboard</Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link to="/courses">Browse Courses</Link>
+                  <Link to="/contact">Contact Support</Link>
                 </Button>
               </div>
             </motion.div>

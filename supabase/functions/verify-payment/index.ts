@@ -23,7 +23,7 @@ serve(async (req) => {
     // Check current payment status
     const { data: payment, error: paymentError } = await supabaseClient
       .from("payments")
-      .select("id, status, user_id, course_id, amount, metadata")
+      .select("id, status, user_id, course_id, amount, metadata, created_at")
       .eq("gateway_order_id", orderId)
       .single();
 
@@ -72,13 +72,13 @@ serve(async (req) => {
     console.log("Cashfree order status:", cfData.order_status, "for", orderId);
 
     if (cfData.order_status === "PAID") {
-      // Payment confirmed by Cashfree! Update our records
+      // Payment confirmed by Cashfree — update records + enroll + send email
       await supabaseClient
         .from("payments")
         .update({ status: "completed", updated_at: new Date().toISOString() })
         .eq("gateway_order_id", orderId);
 
-      // Create enrollment
+      // Create enrollment if not exists
       const { data: existingEnrollment } = await supabaseClient
         .from("enrollments")
         .select("id")
@@ -95,7 +95,7 @@ serve(async (req) => {
         });
       }
 
-      // Send enrollment email
+      // Send enrollment email (fire & forget)
       const { data: profile } = await supabaseClient
         .from("profiles")
         .select("email, full_name")
@@ -126,7 +126,7 @@ serve(async (req) => {
             isFree: false,
             amount: payment.amount,
             orderId: orderId,
-            paymentDate: new Date().toISOString(),
+            paymentDate: payment.created_at || new Date().toISOString(),
           }),
         }).catch(err => console.error("Enrollment email error:", err));
       }
