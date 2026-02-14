@@ -33,6 +33,7 @@ export function LuluStreamMigration() {
   const [courseStats, setCourseStats] = useState<Record<string, MigrationStats>>({});
   const [cronEnabled, setCronEnabled] = useState<boolean | null>(null);
   const [cronLoading, setCronLoading] = useState(false);
+  const [dailyLimitInfo, setDailyLimitInfo] = useState<{ hit: boolean; hoursLeft?: number } | null>(null);
 
   const courseIdsParam = selectedCourses.length > 0 ? selectedCourses : undefined;
 
@@ -45,6 +46,21 @@ export function LuluStreamMigration() {
     } catch (err) {
       console.error("Failed to fetch stats:", err);
     }
+    // Check daily limit cooldown
+    try {
+      const { data: limitSetting } = await supabase
+        .from("site_settings")
+        .select("value, updated_at")
+        .eq("key", "lulustream_daily_limit_hit")
+        .maybeSingle();
+      if (limitSetting?.value === "true") {
+        const hitAt = new Date(limitSetting.updated_at || 0).getTime();
+        const hoursLeft = Math.max(0, 6 - (Date.now() - hitAt) / (1000 * 60 * 60));
+        setDailyLimitInfo({ hit: true, hoursLeft: Math.ceil(hoursLeft) });
+      } else {
+        setDailyLimitInfo({ hit: false });
+      }
+    } catch {}
   }, [courseIdsParam]);
 
   const fetchCourseStats = useCallback(async () => {
@@ -317,6 +333,18 @@ export function LuluStreamMigration() {
             <StatBadge label="Completed" count={stats.completed} variant="secondary" icon={<CheckCircle className="h-3 w-3 text-green-500" />} />
             <StatBadge label="Failed" count={stats.failed} variant="destructive" icon={<XCircle className="h-3 w-3" />} />
           </div>
+
+          {dailyLimitInfo?.hit && (
+            <div className="p-3 bg-destructive/10 rounded-md text-sm flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span><strong>Daily API limit reached (5000/day).</strong> Auto-retry in ~{dailyLimitInfo.hoursLeft || 1}h. The cron will automatically resume when the limit resets.</span>
+              <Button variant="outline" size="sm" className="ml-auto shrink-0" onClick={async () => {
+                await supabase.from("site_settings").update({ value: "false", updated_at: new Date().toISOString() }).eq("key", "lulustream_daily_limit_hit");
+                setDailyLimitInfo({ hit: false });
+                toast.success("Cooldown cleared — will retry on next cron cycle");
+              }}>Force Retry Now</Button>
+            </div>
+          )}
 
           {stats.total > 0 && (
             <div className="space-y-2">
