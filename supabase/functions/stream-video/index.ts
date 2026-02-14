@@ -336,15 +336,16 @@ serve(async (req) => {
         const contentLength = driveResponse.headers.get("Content-Length");
         const contentRange = driveResponse.headers.get("Content-Range");
 
-        // OPTIMIZED HEADERS for fast streaming and seeking
+        // MAXIMUM PERFORMANCE HEADERS for fastest streaming and seeking
         const responseHeaders: HeadersInit = {
           ...corsHeaders,
           "Content-Type": contentType.startsWith("video/") ? contentType : "video/mp4",
           "Accept-Ranges": "bytes",
-          // Allow browser to cache chunks aggressively for smoother playback
-          "Cache-Control": "private, max-age=7200, immutable",
-          // Prevent buffering issues
+          // Aggressive caching: 24h private cache, immutable chunks
+          "Cache-Control": "private, max-age=86400, immutable",
           "X-Content-Type-Options": "nosniff",
+          // Allow Service Worker to cache
+          "Vary": "Range",
         };
 
         if (contentLength) {

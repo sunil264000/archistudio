@@ -1,73 +1,118 @@
-// Service Worker - Network First, No Aggressive Caching
-// This ensures users always get the latest content
+// Service Worker - Network First with Aggressive Video Caching
+// Videos are cached for instant replays and smooth seeking
 
-const CACHE_NAME = 'concrete-logic-v2';
+const APP_CACHE = 'archistudio-app-v3';
+const VIDEO_CACHE = 'archistudio-video-v1';
+const MAX_VIDEO_CACHE_SIZE = 50; // max cached video entries
 
-// Install event - skip caching to ensure fresh content
-self.addEventListener('install', (event) => {
-  // Immediately activate
-  self.skipWaiting();
-});
+// Install - skip waiting
+self.addEventListener('install', () => self.skipWaiting());
 
-// Activate event - clear ALL old caches
+// Activate - clean old caches, keep video cache
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((name) => caches.delete(name))
-      );
-    }).then(() => {
-      // Take control immediately
-      return self.clients.claim();
-    })
+    caches.keys().then((names) =>
+      Promise.all(
+        names
+          .filter((n) => n !== APP_CACHE && n !== VIDEO_CACHE)
+          .map((n) => caches.delete(n))
+      )
+    ).then(() => self.clients.claim())
   );
 });
 
-// Fetch event - ALWAYS go to network first, no fallback caching
+// Helper: is this a video/stream request?
+function isVideoRequest(url) {
+  return (
+    url.includes('/stream-video') ||
+    url.includes('/course-videos/') ||
+    url.includes('googleapis.com/drive') ||
+    /\.(mp4|webm|m4v|mov)(\?|$)/i.test(url)
+  );
+}
+
+// Helper: trim video cache to max size
+async function trimVideoCache() {
+  const cache = await caches.open(VIDEO_CACHE);
+  const keys = await cache.keys();
+  if (keys.length > MAX_VIDEO_CACHE_SIZE) {
+    // Delete oldest entries first
+    const toDelete = keys.slice(0, keys.length - MAX_VIDEO_CACHE_SIZE);
+    await Promise.all(toDelete.map((k) => cache.delete(k)));
+  }
+}
+
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
   if (event.request.method !== 'GET') return;
-  
-  // Skip API requests, Supabase, and function calls
-  if (event.request.url.includes('/api/') || 
-      event.request.url.includes('supabase') ||
-      event.request.url.includes('/functions/') ||
-      event.request.url.includes('/rest/')) {
+
+  const url = event.request.url;
+
+  // Skip API/auth requests entirely
+  if (
+    url.includes('/rest/') ||
+    url.includes('/auth/') ||
+    url.includes('supabase.co/auth')
+  ) {
     return;
   }
 
-  // For navigation requests (HTML pages), always fetch from network
-  if (event.request.mode === 'navigate') {
+  // === VIDEO REQUESTS: Cache-first for instant replay ===
+  if (isVideoRequest(url)) {
+    // Only cache full responses (no Range for simplicity & reliability)
+    const hasRange = event.request.headers.get('range');
+
+    if (hasRange) {
+      // Range requests: network only (browser handles partial content natively)
+      return;
+    }
+
     event.respondWith(
-      fetch(event.request, {
-        cache: 'no-store', // Bypass browser cache
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
+      caches.open(VIDEO_CACHE).then(async (cache) => {
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+
+        const response = await fetch(event.request);
+        if (response.ok || response.status === 206) {
+          // Clone and cache in background (don't block playback)
+          const clone = response.clone();
+          cache.put(event.request, clone).then(() => trimVideoCache());
         }
-      }).catch(() => {
-        // Only on network failure, try cache
-        return caches.match('/index.html');
-      })
+        return response;
+      }).catch(() => caches.match(event.request))
     );
     return;
   }
 
-  // For other assets (JS, CSS, images), use network first
+  // === EDGE FUNCTION / SUPABASE CALLS: always network ===
+  if (url.includes('/functions/') || url.includes('supabase')) {
+    return;
+  }
+
+  // === NAVIGATION: network first ===
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
+      }).catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
+  // === STATIC ASSETS: network first, cache fallback ===
   event.respondWith(
-    fetch(event.request, { cache: 'no-store' })
-      .catch(() => caches.match(event.request))
+    fetch(event.request, { cache: 'no-store' }).catch(() =>
+      caches.match(event.request)
+    )
   );
 });
 
 // Listen for skip waiting message
 self.addEventListener('message', (event) => {
-  if (event.data === 'skipWaiting') {
-    self.skipWaiting();
-  }
+  if (event.data === 'skipWaiting') self.skipWaiting();
 });
 
-// Background sync for offline submissions
+// Background sync
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-progress') {
     event.waitUntil(syncProgress());
