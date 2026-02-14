@@ -37,9 +37,10 @@ export function HeroSection() {
   const { user } = useAuth();
   
   return (
-    <section className="relative min-h-[100vh] flex items-center overflow-hidden">
-      {/* Deep gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-secondary/30 via-background to-background" />
+    <section className="relative min-h-[100vh] flex items-center overflow-hidden noise-overlay">
+      {/* Deep gradient background with metallic warmth */}
+      <div className="absolute inset-0 bg-gradient-to-b from-secondary/20 via-background to-background" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,hsl(var(--accent)/0.06),transparent)]" />
       
       {/* Accent orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -101,10 +102,10 @@ export function HeroSection() {
                 {/* Label */}
                 <motion.div 
                   custom={0} variants={fadeUp} initial="hidden" animate="visible"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border/50 card-glass"
+                  className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-border/40 card-glass metallic-surface"
                 >
-                  <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                  <span className="text-xs font-medium tracking-wide text-muted-foreground">
+                  <div className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_hsl(var(--accent)/0.5)] animate-pulse" />
+                  <span className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
                     For Students & Fresh Architects
                   </span>
                 </motion.div>
@@ -136,13 +137,13 @@ export function HeroSection() {
                   className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 justify-center lg:justify-start"
                 >
                   <Link to={user ? "/courses" : "/auth?mode=signup"} className="w-full sm:w-auto">
-                    <Button size="xl" className="gap-2 group w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_0_30px_hsl(var(--accent)/0.2)]">
+                    <Button size="xl" className="gap-2.5 group w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_4px_24px_hsl(var(--accent)/0.25)] hover:shadow-[0_8px_40px_hsl(var(--accent)/0.35)] relative overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,hsl(0_0%_100%/0.12)_0%,transparent_50%)] before:pointer-events-none">
                       {user ? "Explore Studios" : "Start Learning Free"}
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                     </Button>
                   </Link>
                   <Link to="/courses" className="w-full sm:w-auto">
-                    <Button variant="outline" size="xl" className="gap-2 w-full sm:w-auto border-border/50">
+                    <Button variant="outline" size="xl" className="gap-2 w-full sm:w-auto border-border/40 hover:border-accent/30 hover:bg-accent/5">
                       <Play className="h-4 w-4" />
                       Preview Sessions
                     </Button>
@@ -175,12 +176,13 @@ export function HeroSection() {
                 <div className="relative">
                   {/* Main card */}
                   <motion.div 
-                    className="relative rounded-2xl card-glass p-8 space-y-6 overflow-hidden border-glow"
-                    whileHover={{ y: -4 }}
-                    transition={{ duration: 0.4 }}
+                    className="relative rounded-2xl card-glass p-8 space-y-6 overflow-hidden border-glow metallic-surface"
+                    whileHover={{ y: -6, scale: 1.01 }}
+                    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    {/* Accent line top */}
-                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-accent/60 to-transparent" />
+                    {/* Polished accent line top */}
+                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-accent/50 to-transparent" />
+                    <div className="absolute top-[2px] left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                     
                     <div className="space-y-5">
                       <div className="text-xs font-mono tracking-[0.15em] uppercase text-accent">What You'll Master</div>
