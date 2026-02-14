@@ -394,7 +394,7 @@ export function LuluStreamMigration() {
           {/* Batch size */}
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-sm font-medium">Batch Size:</span>
-            {[10, 20, 30, 50].map(size => (
+            {[10, 25, 50, 100].map(size => (
               <Button key={size} variant={batchSize === size ? "default" : "outline"} size="sm" onClick={() => setBatchSize(size)}>
                 {size}
               </Button>
