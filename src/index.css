@@ -143,22 +143,26 @@
     scroll-behavior: smooth;
   }
 
-  /* Smooth dark/light theme transition */
+  /* Ultra-smooth dark/light theme transition — cinematic grade */
   html, html *,
   html *::before, html *::after {
-    transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-                color 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-                border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-                fill 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-                stroke 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                color 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+                fill 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                stroke 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                backdrop-filter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  /* Exclude elements that need instant transitions (animations, transforms) */
+  /* Exclude elements that need instant transitions (animations, transforms, media) */
   html [class*="animate-"],
   html [class*="transition-transform"],
-  html video, html canvas, html iframe {
-    transition: none;
+  html video, html canvas, html iframe,
+  html .no-theme-transition,
+  html .framer-motion-config-transition {
+    transition: none !important;
   }
 
   body {
@@ -464,47 +468,152 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Global motion smoothness: subtle fade+lift on scroll-revealed sections */
+  /* ========== GLOBAL MOTION SYSTEM — ULTRA SMOOTH ========== */
+
+  /* Motion section: cinematic fade + lift + slight scale */
   .motion-section {
     opacity: 0;
-    transform: translateY(24px);
-    transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
-                transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    transform: translateY(32px) scale(0.98);
+    filter: blur(4px);
+    transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+                filter 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform, filter;
   }
 
   .motion-section.in-view {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
+    filter: blur(0);
   }
 
-  /* Staggered children inside motion sections */
+  /* Motion from left */
+  .motion-from-left {
+    opacity: 0;
+    transform: translateX(-40px);
+    filter: blur(3px);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                filter 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform, filter;
+  }
+
+  .motion-from-left.in-view {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+
+  /* Motion from right */
+  .motion-from-right {
+    opacity: 0;
+    transform: translateX(40px);
+    filter: blur(3px);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                filter 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform, filter;
+  }
+
+  .motion-from-right.in-view {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+
+  /* Motion scale-up */
+  .motion-scale {
+    opacity: 0;
+    transform: scale(0.9);
+    filter: blur(6px);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                filter 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform, filter;
+  }
+
+  .motion-scale.in-view {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+
+  /* Motion rotate-in */
+  .motion-rotate {
+    opacity: 0;
+    transform: rotate(-3deg) translateY(20px);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+
+  .motion-rotate.in-view {
+    opacity: 1;
+    transform: rotate(0deg) translateY(0);
+  }
+
+  /* Staggered children — cascading reveal */
   .motion-stagger > * {
     opacity: 0;
-    transform: translateY(16px);
-    transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
-                transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    transform: translateY(20px) scale(0.97);
+    filter: blur(2px);
+    transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                filter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform, filter;
   }
 
-  .motion-stagger.in-view > *:nth-child(1) { transition-delay: 0.05s; opacity: 1; transform: translateY(0); }
-  .motion-stagger.in-view > *:nth-child(2) { transition-delay: 0.1s; opacity: 1; transform: translateY(0); }
-  .motion-stagger.in-view > *:nth-child(3) { transition-delay: 0.15s; opacity: 1; transform: translateY(0); }
-  .motion-stagger.in-view > *:nth-child(4) { transition-delay: 0.2s; opacity: 1; transform: translateY(0); }
-  .motion-stagger.in-view > *:nth-child(5) { transition-delay: 0.25s; opacity: 1; transform: translateY(0); }
-  .motion-stagger.in-view > *:nth-child(6) { transition-delay: 0.3s; opacity: 1; transform: translateY(0); }
-  .motion-stagger.in-view > *:nth-child(7) { transition-delay: 0.35s; opacity: 1; transform: translateY(0); }
-  .motion-stagger.in-view > *:nth-child(8) { transition-delay: 0.4s; opacity: 1; transform: translateY(0); }
+  .motion-stagger.in-view > *:nth-child(1) { transition-delay: 0.05s; opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  .motion-stagger.in-view > *:nth-child(2) { transition-delay: 0.12s; opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  .motion-stagger.in-view > *:nth-child(3) { transition-delay: 0.19s; opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  .motion-stagger.in-view > *:nth-child(4) { transition-delay: 0.26s; opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  .motion-stagger.in-view > *:nth-child(5) { transition-delay: 0.33s; opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  .motion-stagger.in-view > *:nth-child(6) { transition-delay: 0.40s; opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  .motion-stagger.in-view > *:nth-child(7) { transition-delay: 0.47s; opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  .motion-stagger.in-view > *:nth-child(8) { transition-delay: 0.54s; opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  .motion-stagger.in-view > *:nth-child(9) { transition-delay: 0.61s; opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  .motion-stagger.in-view > *:nth-child(10) { transition-delay: 0.68s; opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  .motion-stagger.in-view > *:nth-child(11) { transition-delay: 0.75s; opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  .motion-stagger.in-view > *:nth-child(12) { transition-delay: 0.82s; opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 
-  /* Smooth hover micro-interactions for all interactive elements */
+  /* ========== MICRO-INTERACTIONS — BUTTERY SMOOTH ========== */
   a, button, [role="button"] {
-    transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-                opacity 0.2s ease,
-                box-shadow 0.3s ease;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.25s ease,
+                box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                background-color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                color 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   @media (min-width: 769px) {
-    a:active, button:active, [role="button"]:active {
-      transform: scale(0.97);
+    a:hover, button:hover, [role="button"]:hover {
+      transform: translateY(-1px);
     }
+
+    a:active, button:active, [role="button"]:active {
+      transform: scale(0.97) translateY(0);
+      transition-duration: 0.1s;
+    }
+  }
+
+  /* Magnetic hover for cards */
+  .magnetic-hover {
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @media (min-width: 769px) {
+    .magnetic-hover:hover {
+      transform: translateY(-6px) scale(1.01);
+      box-shadow: var(--shadow-elevated), var(--glow-accent);
+    }
+  }
+
+  /* Smooth parallax layer */
+  .parallax-slow {
+    will-change: transform;
+    transition: transform 0.1s linear;
   }
 
   .line-draw {

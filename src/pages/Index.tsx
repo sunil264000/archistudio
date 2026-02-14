@@ -62,32 +62,46 @@ export default function Index() {
       {/* Hero */}
       <HeroSection />
       
-      {/* Below-the-fold sections */}
+      {/* Below-the-fold sections with motion classes */}
       <Suspense fallback={<SectionLoader />}>
-        <ProblemSection />
+        <div className="motion-section">
+          <ProblemSection />
+        </div>
       </Suspense>
       
       <Suspense fallback={<SectionLoader />}>
-        <WhatYouLearnSection />
+        <div className="motion-from-left">
+          <WhatYouLearnSection />
+        </div>
       </Suspense>
       
       <Suspense fallback={<SectionLoader />}>
-        <CourseStructureSection />
+        <div className="motion-section">
+          <CourseStructureSection />
+        </div>
       </Suspense>
       
       <Suspense fallback={<SectionLoader />}>
-        <ComparisonSection />
+        <div className="motion-from-right">
+          <ComparisonSection />
+        </div>
       </Suspense>
       
       <Suspense fallback={<SectionLoader />}>
-        <TestimonialsSection />
+        <div className="motion-scale">
+          <TestimonialsSection />
+        </div>
       </Suspense>
       
       <Suspense fallback={<SectionLoader />}>
-        <FinalCTASection />
+        <div className="motion-section">
+          <FinalCTASection />
+        </div>
       </Suspense>
       
-      <Footer />
+      <div className="motion-section">
+        <Footer />
+      </div>
     </div>
   );
 }
