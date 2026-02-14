@@ -24,8 +24,20 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { action, courseId, courseIds, batchSize: customBatchSize } = await req.json();
+    const { action, courseId, courseIds, batchSize: customBatchSize, fromCron } = await req.json();
     const filterCourseIds: string[] = courseIds?.length ? courseIds : courseId ? [courseId] : [];
+
+    // If called from cron, check if cron is enabled in site_settings
+    if (fromCron) {
+      const { data: setting } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "lulustream_cron_enabled")
+        .maybeSingle();
+      if (setting?.value !== "true") {
+        return jsonResponse({ success: true, message: "Cron disabled by admin", skipped: true });
+      }
+    }
 
     // Helper: fetch all rows with pagination
     async function fetchAllPaginated(table: string, select: string, filters?: (q: any) => any) {
