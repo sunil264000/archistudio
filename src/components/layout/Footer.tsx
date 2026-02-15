@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Instagram, Facebook, Twitter, Youtube, Linkedin, ArrowUpRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface SocialLinks {
   instagram_url: string;
@@ -43,7 +44,10 @@ export function Footer() {
   const activeSocials = socialIcons.filter(s => socialLinks[s.key as keyof SocialLinks]);
 
   return (
-    <footer className="relative border-t border-border/30 bg-card/20 backdrop-blur-xl transition-all duration-700">
+    <footer className="relative border-t border-border/20 glass">
+      {/* Top accent line */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-accent/20 to-transparent" />
+      
       <div className="container-wide py-16 sm:py-20">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-12 mb-12 motion-stagger">
           {/* Brand */}
@@ -56,16 +60,19 @@ export function Footer() {
             {activeSocials.length > 0 && (
               <div className="flex gap-2">
                 {activeSocials.map((social) => (
-                  <a
+                  <motion.a
                     key={social.key}
                     href={socialLinks[social.key as keyof SocialLinks]}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2.5 rounded-lg bg-secondary/60 hover:bg-accent hover:text-accent-foreground transition-all duration-200 border border-border/50 hover:border-accent/50 touch-target min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    className="p-2.5 rounded-xl bg-secondary/40 hover:bg-accent hover:text-accent-foreground transition-all duration-300 border border-border/30 hover:border-accent/40 touch-target min-w-[44px] min-h-[44px] flex items-center justify-center"
                     aria-label={social.label}
+                    whileHover={{ scale: 1.08, y: -2 }}
+                    whileTap={{ scale: 0.92 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 20 }}
                   >
                     <social.icon className="h-4 w-4" />
-                  </a>
+                  </motion.a>
                 ))}
               </div>
             )}
@@ -95,10 +102,10 @@ export function Footer() {
                   <li key={link.to}>
                     <Link 
                       to={link.to} 
-                      className="text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 group py-0.5"
+                      className="text-muted-foreground hover:text-foreground transition-colors duration-300 inline-flex items-center gap-1 group py-0.5"
                     >
                       {link.label}
-                      <ArrowUpRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block" />
+                      <ArrowUpRight className="h-3 w-3 opacity-0 -translate-y-0.5 translate-x-0.5 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all duration-300 hidden sm:block" />
                     </Link>
                   </li>
                 ))}
@@ -107,11 +114,13 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="border-t border-border pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 pb-safe">
+        <div className="divider-metallic mb-8" />
+
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-safe">
           <div className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} Archistudio. All rights reserved.
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground/60">
             For architects who want to build, not just design.
           </div>
         </div>
