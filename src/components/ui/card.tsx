@@ -7,10 +7,15 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
     <div
       ref={ref}
       className={cn(
-        "rounded-xl border bg-card text-card-foreground shadow-soft transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-elevated hover:shadow-accent/[0.03] relative overflow-hidden",
-        "before:absolute before:inset-0 before:bg-[linear-gradient(135deg,hsl(var(--foreground)/0.02)_0%,transparent_40%,transparent_60%,hsl(var(--foreground)/0.01)_100%)] before:pointer-events-none before:rounded-[inherit]",
+        "rounded-2xl border bg-card text-card-foreground shadow-soft",
+        "transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+        "hover:shadow-elevated hover:translate-y-[-2px]",
+        "relative overflow-hidden",
+        "before:absolute before:inset-0 before:bg-[var(--glass-sheen)] before:pointer-events-none before:rounded-[inherit] before:opacity-60",
+        "after:absolute after:inset-0 after:shadow-[var(--glass-inner-glow)] after:pointer-events-none after:rounded-[inherit]",
         className
       )}
+      style={{ willChange: 'transform, box-shadow' }}
       {...props}
     />
   )

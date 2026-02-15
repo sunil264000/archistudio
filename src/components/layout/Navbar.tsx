@@ -6,6 +6,9 @@ import { useState, useEffect } from 'react';
 import { CartSheet } from '@/components/cart/CartSheet';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const spring = { type: "spring", stiffness: 300, damping: 30 } as const;
+const springBouncy = { type: "spring", stiffness: 400, damping: 25 } as const;
+
 export function Navbar() {
   const { user, profile, signOut, loading, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -19,21 +22,15 @@ export function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const toggleDarkMode = () => {
     const newDark = !isDark;
-    // Add a brief class to trigger the theme crossfade overlay
-    document.documentElement.style.setProperty('--theme-transition-active', '1');
     setIsDark(newDark);
     document.documentElement.classList.toggle('dark', newDark);
     localStorage.setItem('theme', newDark ? 'dark' : 'light');
-    // Remove after transition completes
-    setTimeout(() => {
-      document.documentElement.style.removeProperty('--theme-transition-active');
-    }, 700);
   };
 
   useEffect(() => {
@@ -42,7 +39,6 @@ export function Navbar() {
       document.documentElement.classList.remove('dark');
       setIsDark(false);
     } else {
-      // Default to dark
       document.documentElement.classList.add('dark');
       setIsDark(true);
     }
@@ -50,21 +46,26 @@ export function Navbar() {
 
   return (
     <motion.header 
-      className={`sticky top-0 z-50 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+      className={`sticky top-0 z-50 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
         scrolled 
-          ? 'border-b border-border/30 glass shadow-soft' 
+          ? 'glass shadow-soft' 
           : 'border-b border-transparent bg-transparent'
       }`}
-      initial={{ y: -80, opacity: 0 }}
+      initial={{ y: -60, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ ...spring, delay: 0.1 }}
     >
-      <nav className="container-wide py-3.5 flex items-center justify-between">
+      <nav className="container-wide py-3 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="group flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center shadow-[0_0_16px_hsl(var(--accent)/0.2)] transition-shadow duration-500 group-hover:shadow-[0_0_24px_hsl(var(--accent)/0.35)]">
+          <motion.div 
+            className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shadow-[0_0_16px_hsl(var(--accent)/0.2)]"
+            whileHover={{ scale: 1.08, rotate: 3 }}
+            whileTap={{ scale: 0.95 }}
+            transition={springBouncy}
+          >
             <span className="text-accent-foreground font-bold text-sm">A</span>
-          </div>
+          </motion.div>
           <span className="font-display font-bold text-lg tracking-tight text-foreground">
             Archistudio
           </span>
@@ -81,7 +82,7 @@ export function Navbar() {
               <Link 
                 key={link.to}
                 to={link.to} 
-                className="px-4 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all duration-200 flex items-center gap-1.5"
+                className="px-4 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all duration-300 flex items-center gap-1.5"
               >
                 {link.icon && <link.icon className="h-3.5 w-3.5" />}
                 {link.label}
@@ -89,26 +90,28 @@ export function Navbar() {
             ))}
           </div>
 
-          <div className="w-px h-6 bg-border mx-2" />
+          <div className="w-px h-5 bg-border/50 mx-2" />
 
           <CartSheet />
 
-          <Button variant="ghost" size="icon" onClick={toggleDarkMode} className="rounded-lg overflow-hidden">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={isDark ? 'sun' : 'moon'}
-                initial={{ rotate: -90, scale: 0, opacity: 0 }}
-                animate={{ rotate: 0, scale: 1, opacity: 1 }}
-                exit={{ rotate: 90, scale: 0, opacity: 0 }}
-                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              >
-                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </motion.div>
-            </AnimatePresence>
-          </Button>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.9 }} transition={springBouncy}>
+            <Button variant="ghost" size="icon" onClick={toggleDarkMode} className="rounded-xl overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={isDark ? 'sun' : 'moon'}
+                  initial={{ y: -16, opacity: 0, rotate: -45 }}
+                  animate={{ y: 0, opacity: 1, rotate: 0 }}
+                  exit={{ y: 16, opacity: 0, rotate: 45 }}
+                  transition={spring}
+                >
+                  {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </motion.div>
+              </AnimatePresence>
+            </Button>
+          </motion.div>
 
           {loading ? (
-            <div className="h-9 w-20 animate-pulse rounded-lg bg-muted" />
+            <div className="h-9 w-20 animate-pulse rounded-xl bg-muted" />
           ) : user ? (
             <div className="flex items-center gap-2 ml-1">
               {isAdmin && (
@@ -135,68 +138,81 @@ export function Navbar() {
                 <Button variant="ghost" size="sm">Sign In</Button>
               </Link>
               <Link to="/auth?mode=signup">
-                <Button size="sm" className="gap-1.5 group bg-accent text-accent-foreground hover:bg-accent/90">
-                  Get Started
-                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                </Button>
+                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} transition={springBouncy}>
+                  <Button size="sm" className="gap-1.5 group bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_0_16px_hsl(var(--accent)/0.2)]">
+                    Get Started
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+                  </Button>
+                </motion.div>
               </Link>
             </div>
           )}
         </div>
 
         {/* Mobile Menu Button */}
-        <button
-          className="md:hidden p-3 -mr-2 rounded-lg hover:bg-muted transition-colors touch-target min-w-[48px] min-h-[48px] flex items-center justify-center"
+        <motion.button
+          className="md:hidden p-3 -mr-2 rounded-xl hover:bg-muted transition-colors touch-target min-w-[48px] min-h-[48px] flex items-center justify-center"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+          whileTap={{ scale: 0.9 }}
+          transition={springBouncy}
         >
           <AnimatePresence mode="wait">
             <motion.div
               key={mobileMenuOpen ? 'close' : 'open'}
-              initial={{ rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: 90, opacity: 0 }}
-              transition={{ duration: 0.15 }}
+              initial={{ scale: 0, opacity: 0, rotate: -90 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              exit={{ scale: 0, opacity: 0, rotate: 90 }}
+              transition={spring}
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </motion.div>
           </AnimatePresence>
-        </button>
+        </motion.button>
       </nav>
 
       {/* Mobile Menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div 
-            className="md:hidden border-t border-border glass overflow-hidden safe-area-inset"
+            className="md:hidden border-t border-border/30 glass-strong overflow-hidden safe-area-inset"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="p-5 space-y-2">
               {[
                 { to: '/courses', label: 'Studios' },
                 { to: '/ebooks', label: 'eBooks' },
                 { to: '/#pricing', label: 'Pricing' },
-              ].map((link) => (
-                <Link 
+              ].map((link, i) => (
+                <motion.div
                   key={link.to}
-                  to={link.to} 
-                  className="block text-foreground py-3.5 px-4 rounded-xl hover:bg-secondary transition-colors text-base font-medium touch-target"
-                  onClick={() => setMobileMenuOpen(false)}
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ ...spring, delay: i * 0.05 }}
                 >
-                  {link.label}
-                </Link>
+                  <Link 
+                    to={link.to} 
+                    className="block text-foreground py-3.5 px-4 rounded-xl hover:bg-secondary transition-colors text-base font-medium touch-target"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {link.label}
+                  </Link>
+                </motion.div>
               ))}
               
-              <button 
+              <motion.button 
                 onClick={() => { toggleDarkMode(); setMobileMenuOpen(false); }}
                 className="w-full text-left text-foreground py-3.5 px-4 rounded-xl hover:bg-secondary transition-colors flex items-center gap-2.5 text-base font-medium touch-target"
+                initial={{ opacity: 0, x: -16 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ ...spring, delay: 0.15 }}
               >
                 {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                 {isDark ? 'Light Mode' : 'Dark Mode'}
-              </button>
+              </motion.button>
               
               <div className="pt-4 border-t border-border space-y-2">
                 {!loading && user ? (

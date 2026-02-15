@@ -4,12 +4,15 @@ import { ArrowRight, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 
+const spring = { type: "spring" as const, stiffness: 200, damping: 24 };
+
 const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 24, filter: 'blur(4px)' },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.8, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] as const }
+    filter: 'blur(0px)',
+    transition: { ...spring, delay: i * 0.1 }
   })
 };
 
@@ -21,10 +24,10 @@ function MarqueeStrip() {
   ];
   
   return (
-    <div className="absolute bottom-0 left-0 right-0 overflow-hidden border-t border-border/20 glass-strong">
+    <div className="absolute bottom-0 left-0 right-0 overflow-hidden border-t border-border/15 glass-strong">
       <div className="flex animate-marquee whitespace-nowrap py-3 sm:py-4">
         {[...words, ...words].map((word, i) => (
-          <span key={i} className="mx-4 sm:mx-8 text-[10px] sm:text-xs font-mono tracking-[0.2em] text-muted-foreground/50">
+          <span key={i} className="mx-4 sm:mx-8 text-[10px] sm:text-xs font-mono tracking-[0.2em] text-muted-foreground/40">
             {word}
           </span>
         ))}
@@ -37,54 +40,46 @@ export function HeroSection() {
   const { user } = useAuth();
   
   return (
-    <section className="relative min-h-[100vh] flex items-center overflow-hidden noise-overlay">
-      {/* Deep gradient background with metallic warmth */}
-      <div className="absolute inset-0 bg-gradient-to-b from-secondary/20 via-background to-background" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,hsl(var(--accent)/0.06),transparent)]" />
+    <section className="relative min-h-[100vh] flex items-center overflow-hidden">
+      {/* Ambient gradient layers */}
+      <div className="absolute inset-0 bg-gradient-to-b from-secondary/15 via-background to-background" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-15%,hsl(var(--accent)/0.05),transparent)]" />
       
-      {/* Accent orbs */}
+      {/* Breathing orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div 
-          className="orb orb-accent w-[500px] h-[500px] top-[-10%] right-[-10%]"
-          animate={{ scale: [1, 1.1, 1], opacity: [0.06, 0.1, 0.06] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="orb orb-accent w-[600px] h-[600px] top-[-15%] right-[-10%]"
+          animate={{ scale: [1, 1.08, 1], opacity: [0.05, 0.08, 0.05] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div 
-          className="orb orb-blue w-[400px] h-[400px] bottom-[10%] left-[-5%]"
-          animate={{ scale: [1, 1.15, 1], opacity: [0.04, 0.08, 0.04] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          className="orb orb-blue w-[500px] h-[500px] bottom-[5%] left-[-8%]"
+          animate={{ scale: [1, 1.12, 1], opacity: [0.03, 0.06, 0.03] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 3 }}
         />
       </div>
       
-      {/* Geometric elements - desktop only */}
+      {/* Geometric elements — desktop only */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none hidden md:block">
         <motion.div 
-          className="absolute top-[15%] right-[8%] w-[300px] h-[300px] rounded-full border border-border/20"
+          className="absolute top-[15%] right-[8%] w-[300px] h-[300px] rounded-full border border-border/10"
           animate={{ rotate: 360 }}
-          transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+          transition={{ duration: 80, repeat: Infinity, ease: "linear" }}
         />
         <motion.div 
-          className="absolute bottom-[20%] left-[5%] w-[200px] h-[200px] border border-border/10 rotate-45"
+          className="absolute bottom-[20%] left-[5%] w-[180px] h-[180px] border border-border/8 rotate-45 rounded-2xl"
           animate={{ rotate: [45, 135, 45] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-        />
-        {/* Accent dots */}
-        <motion.div 
-          className="absolute top-[40%] right-[25%] w-2 h-2 rounded-full bg-accent/30"
-          animate={{ scale: [1, 1.5, 1], opacity: [0.3, 0.7, 0.3] }}
-          transition={{ duration: 3, repeat: Infinity }}
+          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div 
-          className="absolute top-[25%] left-[30%] w-1.5 h-1.5 rounded-full bg-accent/20"
-          animate={{ scale: [1, 2, 1], opacity: [0.2, 0.5, 0.2] }}
-          transition={{ duration: 4, repeat: Infinity, delay: 1 }}
+          className="absolute top-[40%] right-[25%] w-1.5 h-1.5 rounded-full bg-accent/25"
+          animate={{ scale: [1, 1.8, 1], opacity: [0.25, 0.6, 0.25] }}
+          transition={{ duration: 4, repeat: Infinity }}
         />
-        {/* Spotlight sweep */}
-        <div className="absolute top-0 left-0 w-[600px] h-full bg-gradient-to-r from-accent/[0.03] to-transparent animate-spotlight" />
       </div>
       
-      {/* Grid lines - desktop */}
-      <svg className="absolute inset-0 w-full h-full opacity-[0.02] hidden lg:block" xmlns="http://www.w3.org/2000/svg">
+      {/* Subtle grid — desktop */}
+      <svg className="absolute inset-0 w-full h-full opacity-[0.015] hidden lg:block" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="hero-grid" width="80" height="80" patternUnits="userSpaceOnUse">
             <path d="M 80 0 L 0 0 0 80" fill="none" stroke="currentColor" strokeWidth="0.5" />
@@ -93,7 +88,7 @@ export function HeroSection() {
         <rect width="100%" height="100%" fill="url(#hero-grid)" />
       </svg>
       
-      <div className="relative section-padding w-full">
+      <div className="relative section-padding w-full z-10">
         <div className="container-wide">
           <div className="max-w-5xl mx-auto">
             <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-12 lg:gap-16 items-center">
@@ -102,9 +97,13 @@ export function HeroSection() {
                 {/* Label */}
                 <motion.div 
                   custom={0} variants={fadeUp} initial="hidden" animate="visible"
-                  className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-border/40 card-glass metallic-surface"
+                  className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full card-glass border-glow"
                 >
-                  <div className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_8px_hsl(var(--accent)/0.5)] animate-pulse" />
+                  <motion.div 
+                    className="w-1.5 h-1.5 rounded-full bg-accent"
+                    animate={{ scale: [1, 1.4, 1], opacity: [0.6, 1, 0.6], boxShadow: ['0 0 4px hsl(var(--accent)/0.3)', '0 0 12px hsl(var(--accent)/0.6)', '0 0 4px hsl(var(--accent)/0.3)'] }}
+                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                  />
                   <span className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
                     For Students & Fresh Architects
                   </span>
@@ -113,7 +112,7 @@ export function HeroSection() {
                 {/* Headline */}
                 <motion.h1 
                   custom={1} variants={fadeUp} initial="hidden" animate="visible"
-                  className="font-display font-bold leading-[1.1]"
+                  className="font-display font-bold leading-[1.08]"
                 >
                   Learn Architecture
                   <br />
@@ -122,7 +121,7 @@ export function HeroSection() {
                   <span className="text-gradient-accent">Practiced</span>
                 </motion.h1>
                 
-                {/* Positioning statement */}
+                {/* Positioning */}
                 <motion.p 
                   custom={2} variants={fadeUp} initial="hidden" animate="visible"
                   className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed"
@@ -137,20 +136,24 @@ export function HeroSection() {
                   className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 justify-center lg:justify-start"
                 >
                   <Link to={user ? "/courses" : "/auth?mode=signup"} className="w-full sm:w-auto">
-                    <Button size="xl" className="gap-2.5 group w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_4px_24px_hsl(var(--accent)/0.25)] hover:shadow-[0_8px_40px_hsl(var(--accent)/0.35)] relative overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,hsl(0_0%_100%/0.12)_0%,transparent_50%)] before:pointer-events-none">
-                      {user ? "Explore Studios" : "Start Learning Free"}
-                      <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 400, damping: 20 }}>
+                      <Button size="xl" className="gap-2.5 group w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_4px_20px_hsl(var(--accent)/0.2)] hover:shadow-[0_8px_32px_hsl(var(--accent)/0.3)] relative overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,hsl(0_0%_100%/0.1)_0%,transparent_50%)] before:pointer-events-none">
+                        {user ? "Explore Studios" : "Start Learning Free"}
+                        <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                      </Button>
+                    </motion.div>
                   </Link>
                   <Link to="/courses" className="w-full sm:w-auto">
-                    <Button variant="outline" size="xl" className="gap-2 w-full sm:w-auto border-border/40 hover:border-accent/30 hover:bg-accent/5">
-                      <Play className="h-4 w-4" />
-                      Preview Sessions
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 400, damping: 20 }}>
+                      <Button variant="glass" size="xl" className="gap-2 w-full sm:w-auto">
+                        <Play className="h-4 w-4" />
+                        Preview Sessions
+                      </Button>
+                    </motion.div>
                   </Link>
                 </motion.div>
                 
-                {/* Stats row */}
+                {/* Stats */}
                 <motion.div 
                   custom={4} variants={fadeUp} initial="hidden" animate="visible"
                   className="flex items-center gap-6 sm:gap-10 justify-center lg:justify-start pt-4"
@@ -159,30 +162,33 @@ export function HeroSection() {
                     { value: '70+', label: 'Studio Programs' },
                     { value: '2,000+', label: 'Students' },
                     { value: '4.9', label: 'Avg Rating' },
-                  ].map((stat) => (
-                    <div key={stat.label} className="text-center lg:text-left">
+                  ].map((stat, i) => (
+                    <motion.div 
+                      key={stat.label} 
+                      className="text-center lg:text-left"
+                      whileHover={{ y: -2 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                    >
                       <div className="text-xl sm:text-2xl font-bold text-foreground">{stat.value}</div>
                       <div className="text-[11px] sm:text-xs text-muted-foreground tracking-wide">{stat.label}</div>
-                    </div>
+                    </motion.div>
                   ))}
                 </motion.div>
               </div>
               
-              {/* Right - Premium visual card */}
+              {/* Right — liquid glass card */}
               <motion.div
                 custom={2} variants={fadeUp} initial="hidden" animate="visible"
                 className="hidden lg:block"
               >
                 <div className="relative">
-                  {/* Main card */}
                   <motion.div 
-                    className="relative rounded-2xl card-glass p-8 space-y-6 overflow-hidden border-glow metallic-surface"
+                    className="relative rounded-2xl card-glass p-8 space-y-6 overflow-hidden border-glow"
                     whileHover={{ y: -6, scale: 1.01 }}
-                    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                    transition={{ type: "spring", stiffness: 200, damping: 20 }}
                   >
-                    {/* Polished accent line top */}
-                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-accent/50 to-transparent" />
-                    <div className="absolute top-[2px] left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                    {/* Glass top accent */}
+                    <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
                     
                     <div className="space-y-5">
                       <div className="text-xs font-mono tracking-[0.15em] uppercase text-accent">What You'll Master</div>
@@ -198,22 +204,25 @@ export function HeroSection() {
                         <motion.div 
                           key={item}
                           className="flex items-center gap-3 text-sm text-muted-foreground"
-                          initial={{ opacity: 0, x: -10 }}
+                          initial={{ opacity: 0, x: -12 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.8 + i * 0.1 }}
+                          transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.6 + i * 0.08 }}
                         >
-                          <div className="w-1 h-1 rounded-full bg-accent shrink-0" />
+                          <motion.div 
+                            className="w-1 h-1 rounded-full bg-accent shrink-0"
+                            animate={{ scale: [1, 1.3, 1] }}
+                            transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
+                          />
                           {item}
                         </motion.div>
                       ))}
                     </div>
                     
-                    {/* Decorative corner */}
-                    <div className="absolute bottom-0 right-0 w-24 h-24 border-t border-l border-border/30 rounded-tl-3xl" />
+                    <div className="absolute bottom-0 right-0 w-20 h-20 border-t border-l border-border/20 rounded-tl-2xl" />
                   </motion.div>
                   
-                  {/* Shadow card behind */}
-                  <div className="absolute -bottom-3 -right-3 inset-x-3 h-full rounded-2xl border border-border/30 bg-secondary/20 -z-10" />
+                  {/* Depth shadow */}
+                  <div className="absolute -bottom-3 -right-3 inset-x-3 h-full rounded-2xl border border-border/20 bg-secondary/10 -z-10" />
                 </div>
               </motion.div>
             </div>
