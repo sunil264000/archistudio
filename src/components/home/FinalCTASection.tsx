@@ -14,27 +14,13 @@ export function FinalCTASection() {
   return (
     <section className="section-padding relative overflow-hidden">
       {/* Dark premium background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-foreground via-foreground to-foreground" />
+      <div className="absolute inset-0 bg-foreground" />
       
-      {/* Accent orbs */}
-      <motion.div 
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle, hsl(var(--accent) / 0.08) 0%, transparent 70%)' }}
-        animate={{ scale: [1, 1.15, 1], opacity: [0.8, 1, 0.8] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      {/* Static accent glow */}
+      <div 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, hsl(var(--accent) / 0.06) 0%, transparent 70%)' }}
       />
-      
-      {/* Grid overlay */}
-      <div className="absolute inset-0 opacity-[0.03]">
-        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="cta-grid" width="60" height="60" patternUnits="userSpaceOnUse">
-              <path d="M 60 0 L 0 0 0 60" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-background" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#cta-grid)" />
-        </svg>
-      </div>
 
       <div className="container-wide relative">
         <motion.div 
@@ -66,7 +52,7 @@ export function FinalCTASection() {
             <Link to={user ? "/courses" : "/auth?mode=signup"}>
               <Button 
                 size="xl" 
-                className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2 group shadow-[0_0_40px_hsl(var(--accent)/0.3)] hover:shadow-[0_0_60px_hsl(var(--accent)/0.4)] transition-shadow duration-500"
+                className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2 group shadow-lg"
               >
                 {user ? "Explore Studios" : "Start Your Free Account"}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />

@@ -173,28 +173,17 @@ interface FloatingBadgeProps {
 
 export function FloatingBadge({ children, className = '', icon }: FloatingBadgeProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.9 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+    <div
       className={`
         inline-flex items-center gap-2 px-5 py-2.5 rounded-full 
-        bg-gradient-to-r from-secondary/80 to-secondary/60
-        backdrop-blur-xl text-foreground text-sm font-medium 
-        border border-accent/20 shadow-[0_0_30px_-5px_hsl(var(--accent)/0.3)]
+        bg-secondary/80 text-foreground text-sm font-medium 
+        border border-accent/20
         ${className}
       `}
     >
-      {icon && (
-        <motion.span
-          animate={{ rotate: [0, 10, -10, 0] }}
-          transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-        >
-          {icon}
-        </motion.span>
-      )}
+      {icon && <span>{icon}</span>}
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -245,19 +234,12 @@ export function GlowCard({ children, className = '', delay = 0 }: GlowCardProps)
       whileInView="visible"
       viewport={{ once: true, margin: "-50px" }}
       transition={{ delay }}
-      whileHover={{ 
-        scale: 1.02, 
-        boxShadow: '0 20px 40px -15px hsl(var(--accent) / 0.15), 0 0 0 1px hsl(var(--accent) / 0.2)',
-        y: -5
-      }}
       className={`
         relative overflow-hidden rounded-xl bg-card border border-border
-        transition-colors duration-300 hover:border-accent/40
+        transition-colors duration-300 hover:border-accent/40 hover:shadow-lg
         ${className}
       `}
     >
-      {/* Subtle gradient overlay on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
       {children}
     </motion.div>
   );
@@ -297,29 +279,7 @@ export function AnimatedCounter({ value, suffix = '', prefix = '', className = '
 
 // Sparkle animation for icons - simplified on mobile
 export function SparkleIcon({ children, className = '' }: { children: ReactNode; className?: string }) {
-  const isMobile = useIsMobile();
-  
-  if (isMobile || prefersReducedMotion) {
-    return <span className={`inline-flex ${className}`}>{children}</span>;
-  }
-  
-  return (
-    <motion.span
-      className={`inline-flex ${className}`}
-      animate={{
-        scale: [1, 1.2, 1],
-        rotate: [0, 5, -5, 0],
-      }}
-      transition={{
-        duration: 2,
-        repeat: Infinity,
-        repeatDelay: 4,
-        ease: "easeInOut"
-      }}
-    >
-      {children}
-    </motion.span>
-  );
+  return <span className={`inline-flex ${className}`}>{children}</span>;
 }
 
 // Parallax floating element - disabled on mobile

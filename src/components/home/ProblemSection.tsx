@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowDown } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { 
   fadeInUp, 
@@ -17,12 +17,9 @@ export function ProblemSection() {
 
   return (
     <section className="section-padding relative overflow-hidden">
-      {/* Subtle orb */}
-      <div className="absolute top-[20%] right-[-10%] w-[400px] h-[400px] rounded-full bg-accent/[0.03] blur-[100px] pointer-events-none" />
-      
       <div className="container-wide">
         <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             {/* Left - heading */}
             <motion.div 
               className="space-y-6"
@@ -60,14 +57,14 @@ export function ProblemSection() {
                 <motion.div 
                   key={i}
                   variants={fadeInRight}
-                  className="flex items-start gap-4 p-5 rounded-xl card-glass group"
+                  className="flex items-start gap-4 p-4 sm:p-5 rounded-xl card-glass group"
                 >
                   <div className="shrink-0 mt-0.5">
-                    <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center group-hover:bg-warning/20 transition-colors">
+                    <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
                       <AlertTriangle className="h-4 w-4 text-warning" />
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed group-hover:text-foreground transition-colors">{problem}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{problem}</p>
                 </motion.div>
               ))}
             </motion.div>
@@ -75,11 +72,11 @@ export function ProblemSection() {
 
           {/* Transition */}
           <motion.div 
-            className="mt-16 sm:mt-20 text-center"
-            initial={{ opacity: 0, y: 20 }}
+            className="mt-14 sm:mt-16 text-center"
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            transition={{ duration: 0.5 }}
           >
             <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full card-glass">
               <div className="w-1.5 h-1.5 rounded-full bg-accent" />

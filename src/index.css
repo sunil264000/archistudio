@@ -242,117 +242,54 @@
 
   /* ═══ LIQUID GLASS SYSTEM ═══ */
 
-  /* Primary glass — Apple frosted panel */
+  /* Glass — lightweight frosted panel (no backdrop-filter for perf) */
   .glass {
-    background: hsl(var(--glass-bg));
-    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    border: 1px solid hsl(var(--glass-border));
-    box-shadow: var(--glass-inner-glow), var(--shadow-soft);
-    position: relative;
+    background: hsl(var(--card) / 0.92);
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-soft);
   }
 
-  .glass::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--glass-sheen);
-    pointer-events: none;
-    border-radius: inherit;
-  }
-
-  /* Stronger glass for overlays */
+  /* Stronger glass for overlays — minimal blur */
   .glass-strong {
-    background: hsl(var(--glass-bg));
-    backdrop-filter: blur(60px) saturate(2);
-    -webkit-backdrop-filter: blur(60px) saturate(2);
-    border: 1px solid hsl(var(--glass-border));
-    box-shadow: var(--glass-inner-glow), var(--shadow-medium);
+    background: hsl(var(--card) / 0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-medium);
   }
 
-  /* Liquid glass card — interactive */
+  /* Liquid glass card — lightweight, no backdrop-filter */
   .card-glass {
-    background: hsl(var(--glass-bg));
-    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-    border: 1px solid hsl(var(--glass-border));
-    box-shadow: var(--glass-inner-glow), var(--shadow-medium);
-    transition: transform 0.6s var(--spring-smooth),
-                box-shadow 0.6s var(--spring-smooth),
-                border-color 0.4s ease;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-soft);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
     position: relative;
     overflow: hidden;
-    will-change: transform;
-  }
-
-  .card-glass::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--glass-sheen);
-    pointer-events: none;
-    border-radius: inherit;
-    opacity: 0.6;
-    transition: opacity 0.5s ease;
   }
 
   .card-glass:hover {
     border-color: hsl(var(--accent) / 0.2);
-    box-shadow: var(--glass-inner-glow), var(--shadow-elevated), var(--glow-accent);
-    transform: translateY(-4px) scale(1.005);
-  }
-
-  .card-glass:hover::after {
-    opacity: 1;
+    box-shadow: var(--shadow-medium);
   }
 
   /* Architectural card */
   .card-architectural {
     box-shadow: var(--shadow-medium);
-    transition: box-shadow 0.5s var(--spring-smooth),
-                transform 0.5s var(--spring-smooth),
-                border-color 0.5s var(--spring-smooth);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
     position: relative;
     overflow: hidden;
-    will-change: transform;
-  }
-
-  .card-architectural::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--glass-sheen);
-    pointer-events: none;
-    border-radius: inherit;
   }
 
   .card-architectural:hover {
     box-shadow: var(--shadow-elevated);
-    transform: translateY(-3px);
+    transform: translateY(-2px);
   }
 
-  /* Metallic surface with sweep */
+  /* Metallic surface — simplified */
   .metallic-surface {
     position: relative;
     overflow: hidden;
-  }
-
-  .metallic-surface::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 60%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.04), transparent);
-    transform: skewX(-20deg);
-    transition: left 0.8s var(--spring-smooth);
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  .metallic-surface:hover::before {
-    left: 150%;
   }
 
   .section-padding {

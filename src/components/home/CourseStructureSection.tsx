@@ -20,7 +20,6 @@ const tracks = [
     accentClass: 'text-success',
     bgClass: 'bg-success/8',
     borderClass: 'hover:border-success/30',
-    glowColor: 'hsl(var(--success) / 0.08)',
   },
   {
     level: 'Intermediate',
@@ -36,7 +35,6 @@ const tracks = [
     accentClass: 'text-accent',
     bgClass: 'bg-accent/8',
     borderClass: 'hover:border-accent/30',
-    glowColor: 'hsl(var(--accent) / 0.08)',
   },
   {
     level: 'Advanced',
@@ -52,7 +50,6 @@ const tracks = [
     accentClass: 'text-blueprint',
     bgClass: 'bg-blueprint/8',
     borderClass: 'hover:border-blueprint/30',
-    glowColor: 'hsl(var(--blueprint) / 0.08)',
   },
 ];
 
@@ -65,7 +62,7 @@ export function CourseStructureSection() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.5 }}
         >
           <div className="section-label mb-4">Learning Path</div>
           <h2 className="font-display font-bold mb-4">
@@ -77,7 +74,7 @@ export function CourseStructureSection() {
         </motion.div>
 
         <motion.div 
-          className="grid lg:grid-cols-3 gap-5 sm:gap-6 max-w-6xl mx-auto"
+          className="grid lg:grid-cols-3 gap-4 sm:gap-5 max-w-6xl mx-auto"
           variants={staggerContainer}
           initial="hidden"
           whileInView="visible"
@@ -87,21 +84,14 @@ export function CourseStructureSection() {
             <motion.div 
               key={i}
               variants={fadeInUp}
-              className={`relative flex flex-col p-7 rounded-2xl card-glass ${track.borderClass} transition-all duration-500 group`}
-              whileHover={{ y: -4 }}
+              className={`relative flex flex-col p-6 sm:p-7 rounded-2xl card-glass ${track.borderClass} transition-colors duration-300 group`}
             >
-              {/* Hover glow */}
-              <div 
-                className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                style={{ boxShadow: `0 0 60px ${track.glowColor}` }}
-              />
-
               {/* Level badge */}
-              <div className={`relative inline-flex self-start px-3 py-1 rounded-full text-xs font-medium ${track.accentClass} ${track.bgClass} border border-current/10`}>
+              <div className={`inline-flex self-start px-3 py-1 rounded-full text-xs font-medium ${track.accentClass} ${track.bgClass} border border-current/10`}>
                 {track.level}
               </div>
 
-              <div className="relative mt-5 flex-1">
+              <div className="mt-5 flex-1">
                 <h3 className="text-2xl font-bold mb-1">{track.title}</h3>
                 <p className={`text-sm ${track.accentClass} font-medium mb-4`}>{track.duration}</p>
                 <p className="text-muted-foreground text-sm mb-6 leading-relaxed">{track.description}</p>
