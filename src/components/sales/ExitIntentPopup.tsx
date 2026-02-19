@@ -4,25 +4,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Gift, Timer } from 'lucide-react';
 import { useExitDiscount } from '@/hooks/useExitDiscount';
+import { useAuth } from '@/contexts/AuthContext';
 
 const EXIT_INTENT_SHOWN_KEY = 'exit_intent_popup_shown';
 
 export function ExitIntentPopup() {
   const [open, setOpen] = useState(false);
-  const { activate, isActive, timeLeft, discountPercent, formatTime } = useExitDiscount();
+  const { activate, isActive, timeLeft, discountPercent, formatTime, loading } = useExitDiscount();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const shouldShow = useCallback(() => {
-    if (localStorage.getItem(EXIT_INTENT_SHOWN_KEY)) return false;
+    if (!user) return false; // Only for logged-in users
+    if (sessionStorage.getItem(EXIT_INTENT_SHOWN_KEY)) return false;
     return true;
-  }, []);
+  }, [user]);
 
   useEffect(() => {
-    if (!shouldShow()) return;
+    if (loading || !shouldShow()) return;
 
     const handleMouseLeave = (e: MouseEvent) => {
       if (e.clientY <= 0) {
-        localStorage.setItem(EXIT_INTENT_SHOWN_KEY, 'true');
+        sessionStorage.setItem(EXIT_INTENT_SHOWN_KEY, 'true');
         activate();
         setOpen(true);
       }
@@ -35,7 +38,7 @@ export function ExitIntentPopup() {
       const currentTime = Date.now();
       const speed = (lastScrollY - currentY) / (currentTime - lastTime);
       if (speed > 2 && currentY < 100) {
-        localStorage.setItem(EXIT_INTENT_SHOWN_KEY, 'true');
+        sessionStorage.setItem(EXIT_INTENT_SHOWN_KEY, 'true');
         activate();
         setOpen(true);
       }
@@ -53,7 +56,7 @@ export function ExitIntentPopup() {
       document.removeEventListener('mouseleave', handleMouseLeave);
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [shouldShow, activate]);
+  }, [shouldShow, activate, loading]);
 
   const handleShopNow = () => {
     setOpen(false);

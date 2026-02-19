@@ -1890,6 +1890,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_discount_timers: {
+        Row: {
+          activated_at: string
+          created_at: string
+          discount_percent: number
+          expired: boolean
+          extended: boolean
+          extended_at: string | null
+          extension_duration_seconds: number
+          id: string
+          initial_duration_seconds: number
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string
+          created_at?: string
+          discount_percent?: number
+          expired?: boolean
+          extended?: boolean
+          extended_at?: string | null
+          extension_duration_seconds?: number
+          id?: string
+          initial_duration_seconds?: number
+          user_id: string
+        }
+        Update: {
+          activated_at?: string
+          created_at?: string
+          discount_percent?: number
+          expired?: boolean
+          extended?: boolean
+          extended_at?: string | null
+          extension_duration_seconds?: number
+          id?: string
+          initial_duration_seconds?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_lesson_access: {
         Row: {
           access_type: string | null
