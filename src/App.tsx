@@ -9,6 +9,9 @@ import { CartProvider } from "@/contexts/CartContext";
 import { PurchaseNotification } from "@/components/social-proof/PurchaseNotification";
 import { FestivalDecorations } from "@/components/festival/FestivalDecorations";
 import { SalesPopup } from "@/components/sales/SalesPopup";
+import { SaleBanner } from "@/components/sales/SaleBanner";
+import { WhatsAppButton } from "@/components/sales/WhatsAppButton";
+import { ExitIntentPopup } from "@/components/sales/ExitIntentPopup";
 import { AmbientAudio } from "@/components/audio/AmbientAudio";
 import { LoginGiftModal } from "@/components/gift/LoginGiftModal";
 import { WelcomePopup } from "@/components/welcome/WelcomePopup";
@@ -341,7 +344,10 @@ const App = () => (
               <WelcomePopup />
               <FestivalDecorations />
               <PurchaseNotification />
+              <SaleBanner />
               <SalesPopup />
+              <WhatsAppButton />
+              <ExitIntentPopup />
               <AmbientAudio />
               <AnimatedRoutes />
             </ErrorBoundary>

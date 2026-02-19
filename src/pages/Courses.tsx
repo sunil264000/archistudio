@@ -21,6 +21,8 @@ import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
 import { AccessBadge } from '@/components/course/AccessBadge';
 import { useAccessControlBySlug } from '@/hooks/useAccessControlBySlug';
 import { CourseThumbnail } from '@/components/course/CourseThumbnail';
+import { BundleDiscountBanner } from '@/components/sales/BundleDiscountBanner';
+import { useCart } from '@/contexts/CartContext';
 
 export default function Courses() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -93,8 +95,13 @@ export default function Courses() {
       
       <Navbar />
       
+      {/* Bundle Discount Banner */}
+      <div className="container mx-auto px-4 pt-20 sm:pt-24">
+        <BundleDiscountBanner />
+      </div>
+
       {/* Hero Section - no continuous animations */}
-      <section className="pt-20 sm:pt-24 pb-8 sm:pb-12 relative overflow-hidden">
+      <section className="pt-6 sm:pt-8 pb-8 sm:pb-12 relative overflow-hidden">
         <div className="container mx-auto px-4 text-center relative">
           <div className="mb-4 sm:mb-6">
             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-secondary/60 text-foreground text-sm font-medium border border-accent/20">

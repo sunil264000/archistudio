@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Timer, Percent, Tag, Save, Play, Square } from 'lucide-react';
+import { Loader2, Timer, Percent, Tag, Save, Play, Square, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function SalesManagement() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [savingWhatsapp, setSavingWhatsapp] = useState(false);
   const [settings, setSettings] = useState({
     sale_active: false,
     sale_end_time: '',
@@ -27,7 +29,7 @@ export function SalesManagement() {
     const { data } = await supabase
       .from('site_settings')
       .select('key, value')
-      .in('key', ['sale_active', 'sale_end_time', 'sale_discount_percent', 'sale_title']);
+      .in('key', ['sale_active', 'sale_end_time', 'sale_discount_percent', 'sale_title', 'whatsapp_number']);
 
     if (data) {
       const newSettings = { ...settings };
@@ -36,6 +38,7 @@ export function SalesManagement() {
         if (item.key === 'sale_end_time') newSettings.sale_end_time = item.value || '';
         if (item.key === 'sale_discount_percent') newSettings.sale_discount_percent = parseInt(item.value || '50');
         if (item.key === 'sale_title') newSettings.sale_title = item.value || 'Flash Sale!';
+        if (item.key === 'whatsapp_number') setWhatsappNumber(item.value || '');
       });
       setSettings(newSettings);
     }
@@ -224,6 +227,47 @@ export function SalesManagement() {
           <Button onClick={saveSettings} disabled={saving} className="w-full gap-2">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save Sale Settings
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* WhatsApp Config */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-[#25D366]" />
+            WhatsApp Button
+          </CardTitle>
+          <CardDescription>
+            Configure the floating WhatsApp button for instant customer contact. Leave empty to hide.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp">WhatsApp Number (with country code)</Label>
+            <Input
+              id="whatsapp"
+              placeholder="919876543210"
+              value={whatsappNumber}
+              onChange={(e) => setWhatsappNumber(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">Example: 919876543210 for India (+91)</p>
+          </div>
+          <Button 
+            onClick={async () => {
+              setSavingWhatsapp(true);
+              const { error } = await supabase
+                .from('site_settings')
+                .upsert({ key: 'whatsapp_number', value: whatsappNumber, description: 'WhatsApp contact number' }, { onConflict: 'key' });
+              if (error) toast.error('Failed to save');
+              else toast.success('WhatsApp number saved!');
+              setSavingWhatsapp(false);
+            }} 
+            disabled={savingWhatsapp}
+            className="gap-2"
+          >
+            {savingWhatsapp ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Save WhatsApp Number
           </Button>
         </CardContent>
       </Card>

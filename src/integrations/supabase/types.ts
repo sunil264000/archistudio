@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      abandoned_carts: {
+        Row: {
+          amount: number
+          course_slug: string
+          course_title: string | null
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          email_sent: boolean
+          id: string
+          recovered: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          course_slug: string
+          course_title?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          email_sent?: boolean
+          id?: string
+          recovered?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          course_slug?: string
+          course_title?: string | null
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          email_sent?: boolean
+          id?: string
+          recovered?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       activity_history: {
         Row: {
           activity_type: string

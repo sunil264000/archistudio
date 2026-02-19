@@ -73,6 +73,20 @@ export const useCashfreePayment = () => {
         );
       }
 
+      // Track abandoned cart for recovery emails
+      try {
+        await supabase.from('abandoned_carts').insert({
+          user_id: session.user.id,
+          course_slug: details.courseId,
+          course_title: details.courseTitle || details.courseId,
+          amount: details.amount,
+          customer_email: details.customerEmail,
+          customer_name: details.customerName,
+        });
+      } catch (e) {
+        console.log('Abandoned cart tracking skipped:', e);
+      }
+
       // Create order via edge function
       const { data, error } = await supabase.functions.invoke("create-cashfree-order", {
         headers: {
