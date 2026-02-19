@@ -45,6 +45,8 @@ interface ManualEnrollmentEntry {
 export function ManualEnrollment() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('courses');
+  const [courseFilter, setCourseFilter] = useState('');
+  const [ebookFilter, setEbookFilter] = useState('');
 
   // Users
   const [searchQuery, setSearchQuery] = useState('');
@@ -449,9 +451,20 @@ export function ManualEnrollment() {
                     {selectedCourses.size === courses.length ? 'Deselect All' : 'Select All'}
                   </Button>
                 </div>
+                <div className="relative mb-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Filter courses..."
+                    value={courseFilter}
+                    onChange={(e) => setCourseFilter(e.target.value)}
+                    className="pl-10 h-9 text-sm"
+                  />
+                </div>
                 <ScrollArea className="h-[250px] border rounded-lg p-2">
                   <div className="space-y-1">
-                    {courses.map(course => (
+                    {courses
+                      .filter(c => c.title.toLowerCase().includes(courseFilter.toLowerCase()))
+                      .map(course => (
                       <div
                         key={course.id}
                         onClick={() => toggleCourse(course.id)}
@@ -474,10 +487,19 @@ export function ManualEnrollment() {
                     {selectedEbooks.size === ebooks.length ? 'Deselect All' : 'Select All'}
                   </Button>
                 </div>
+                <div className="relative mb-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Filter eBooks..."
+                    value={ebookFilter}
+                    onChange={(e) => setEbookFilter(e.target.value)}
+                    className="pl-10 h-9 text-sm"
+                  />
+                </div>
                 <ScrollArea className="h-[250px] border rounded-lg p-2">
                   <div className="space-y-3">
                     {ebookCategories.map(category => {
-                      const categoryBooks = ebooks.filter(e => e.category === category);
+                      const categoryBooks = ebooks.filter(e => e.category === category && e.title.toLowerCase().includes(ebookFilter.toLowerCase()));
                       return (
                         <div key={category}>
                           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
