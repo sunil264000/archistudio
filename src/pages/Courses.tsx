@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { courses, courseCategories, getFeaturedCourses, categoryImages } from '@/data/courses';
@@ -22,13 +21,6 @@ import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
 import { AccessBadge } from '@/components/course/AccessBadge';
 import { useAccessControlBySlug } from '@/hooks/useAccessControlBySlug';
 import { CourseThumbnail } from '@/components/course/CourseThumbnail';
-import { 
-  staggerContainer, 
-  staggerContainerFast, 
-  fadeInUp,
-  FloatingBadge,
-  AnimatedUnderline
-} from '@/components/animations/AnimatedSection';
 
 export default function Courses() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -38,54 +30,30 @@ export default function Courses() {
   const { getThumbnail, getPriceInr, isHighlighted, isFeatured } = useDynamicCourseData();
   const { isActive: saleActive, discountPercent, calculateDiscountedPrice } = useSaleDiscount();
 
-  // Fetch actual course count and stats from database
+  // Fetch actual course count and stats from database - single efficient query
   useEffect(() => {
     const fetchCourseData = async () => {
-      // Get course count
       const { count } = await supabase
         .from('courses')
         .select('*', { count: 'exact', head: true })
         .eq('is_published', true);
       setDbCourseCount(count);
 
-      // Get course stats (lessons and duration) for all courses
-      const { data: coursesData } = await supabase
-        .from('courses')
-        .select('slug')
-        .eq('is_published', true);
+      // Get all lessons with their module's course slug in one query
+      const { data: lessonsData } = await supabase
+        .from('lessons')
+        .select('duration_minutes, module_id, modules!inner(course_id, courses!inner(slug, is_published))')
+        .not('modules.courses.is_published', 'is', false);
 
-      if (coursesData) {
+      if (lessonsData) {
         const stats: Record<string, { totalLessons: number; totalDuration: number }> = {};
-        
-        for (const course of coursesData) {
-          // Get modules for this course
-          const { data: courseWithId } = await supabase
-            .from('courses')
-            .select('id')
-            .eq('slug', course.slug)
-            .single();
-            
-          if (courseWithId) {
-            const { data: modules } = await supabase
-              .from('modules')
-              .select('id')
-              .eq('course_id', courseWithId.id);
-              
-            if (modules && modules.length > 0) {
-              const moduleIds = modules.map(m => m.id);
-              const { data: lessons } = await supabase
-                .from('lessons')
-                .select('duration_minutes')
-                .in('module_id', moduleIds);
-                
-              if (lessons) {
-                stats[course.slug] = {
-                  totalLessons: lessons.length,
-                  totalDuration: lessons.reduce((sum, l) => sum + (l.duration_minutes || 0), 0)
-                };
-              }
-            }
-          }
+        for (const lesson of lessonsData) {
+          const mod = lesson.modules as any;
+          const slug = mod?.courses?.slug;
+          if (!slug) continue;
+          if (!stats[slug]) stats[slug] = { totalLessons: 0, totalDuration: 0 };
+          stats[slug].totalLessons++;
+          stats[slug].totalDuration += lesson.duration_minutes || 0;
         }
         setDbCourseStats(stats);
       }
@@ -128,84 +96,39 @@ export default function Courses() {
       {/* Animated Background */}
       <AnimatedBackground intensity="light" />
       
-      {/* Hero Section with Advanced Animation - mobile optimized */}
+      {/* Hero Section - no continuous animations */}
       <section className="pt-20 sm:pt-24 pb-8 sm:pb-12 relative overflow-hidden">
-        {/* Background gradient orbs - hidden on mobile */}
-        <motion.div 
-          className="absolute top-0 left-1/4 w-96 h-96 bg-accent/10 rounded-full blur-[120px] hidden md:block"
-          animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.2, 0.1] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        />
-        
         <div className="container mx-auto px-4 text-center relative">
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-          >
-            {/* Floating Badge */}
-            <motion.div variants={fadeInUp} className="mb-4 sm:mb-6">
-              <FloatingBadge 
-                icon={<GraduationCap className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />}
-                className="shadow-[0_0_40px_-10px_hsl(var(--accent)/0.4)] text-xs sm:text-sm"
-              >
-                {totalCourseCount}+ Studio Programs
-              </FloatingBadge>
-            </motion.div>
-            
-            <motion.h1 
-              variants={fadeInUp}
-              className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4"
-            >
-              <motion.span
-                className="bg-gradient-to-r from-foreground via-accent to-foreground bg-[length:200%_auto] bg-clip-text text-transparent"
-                animate={{ backgroundPosition: ['0% center', '200% center'] }}
-                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-              >
-                Master Architecture & Design
-              </motion.span>
-            </motion.h1>
-            
-            <motion.p 
-              variants={fadeInUp}
-              className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8 px-2"
-            >
-              Professional studio programs covering 3ds Max, Revit, SketchUp, AutoCAD, and more
-            </motion.p>
-          </motion.div>
+          <div className="mb-4 sm:mb-6">
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-secondary/60 text-foreground text-sm font-medium border border-accent/20">
+              <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />
+              {totalCourseCount}+ Studio Programs
+            </div>
+          </div>
           
-          {/* Animated Search Bar - mobile optimized */}
-          <motion.div 
-            className="max-w-xl mx-auto relative"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4">
+            Master Architecture & Design
+          </h1>
+          
+          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8 px-2">
+            Professional studio programs covering 3ds Max, Revit, SketchUp, AutoCAD, and more
+          </p>
+          
+          {/* Search Bar */}
+          <div className="max-w-xl mx-auto relative">
             <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             <Input
               placeholder="Search studios..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 sm:pl-12 h-12 sm:h-14 text-base sm:text-lg border-2 border-border/50 focus:border-accent transition-all duration-300 bg-background/80 backdrop-blur-sm shadow-lg"
+              className="pl-10 sm:pl-12 h-12 sm:h-14 text-base sm:text-lg border-2 border-border/50 focus:border-accent transition-colors duration-200 bg-background/80 shadow-lg"
             />
-          </motion.div>
+          </div>
           
-          {/* Confused? Help Banner */}
-          <motion.p 
-            className="text-xs sm:text-sm text-muted-foreground mt-4 sm:mt-6 px-2"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-          >
+          <p className="text-xs sm:text-sm text-muted-foreground mt-4 sm:mt-6 px-2">
             Confused about which studio to pick? 
-            <motion.span 
-              className="text-accent font-medium ml-1"
-              animate={{ opacity: [1, 0.6, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              Click the chat button below for help!
-            </motion.span>
-          </motion.p>
+            <span className="text-accent font-medium ml-1">Click the chat button below for help!</span>
+          </p>
         </div>
       </section>
 
@@ -249,13 +172,7 @@ export default function Courses() {
               <Star className="h-5 w-5 sm:h-6 sm:w-6 text-warning fill-warning" />
               <h2 className="text-xl sm:text-2xl font-bold">Featured Studios</h2>
             </div>
-            <motion.div 
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
-              variants={staggerContainerFast}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-50px" }}
-            >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {featuredCourses.slice(0, 6).map((course, index) => (
                 <CourseCard 
                   key={course.id} 
@@ -271,13 +188,13 @@ export default function Courses() {
                   realStats={dbCourseStats[course.slug]}
                 />
               ))}
-            </motion.div>
+            </div>
           </div>
         </section>
       )}
 
       {/* All Courses with Grid Animation - mobile optimized */}
-      <section className="py-8 sm:py-10 md:py-12 bg-muted/30 backdrop-blur-sm">
+      <section className="py-8 sm:py-10 md:py-12 bg-muted/30">
         <div className="container mx-auto px-4">
           <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 line-accent">
             {selectedCategory 
@@ -295,13 +212,7 @@ export default function Courses() {
               </Button>
             </div>
           ) : (
-            <motion.div 
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-              variants={staggerContainerFast}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-50px" }}
-            >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {sortedCourses.map((course, index) => (
                 <CourseCard 
                   key={course.id}
@@ -316,7 +227,7 @@ export default function Courses() {
                   realStats={dbCourseStats[course.slug]}
                 />
               ))}
-            </motion.div>
+            </div>
           )}
         </div>
       </section>
@@ -358,7 +269,6 @@ function CourseCard({
   const { user, profile } = useAuth();
   const { initiatePayment, isLoading } = useCashfreePayment();
   const { toast } = useToast();
-  const [isHovered, setIsHovered] = useState(false);
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
   const [pendingPaymentData, setPendingPaymentData] = useState<any>(null);
   
@@ -504,15 +414,9 @@ function CourseCard({
 
   return (
     <Card 
-      className={`group overflow-hidden transition-all duration-500 hover:shadow-xl border-border/50 bg-card/80 backdrop-blur-sm ${
+      className={`group overflow-hidden transition-shadow duration-300 hover:shadow-xl border-border/50 bg-card/80 hover:-translate-y-1 ${
         featured ? 'border-accent/50 shadow-accent/10' : ''
       } ${isHighlighted ? 'ring-2 ring-warning/50 shadow-warning/20' : ''}`}
-      style={{ 
-        animationDelay: `${index * 0.1}s`,
-        transform: isHovered ? 'translateY(-8px) scale(1.02)' : 'translateY(0) scale(1)',
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       <div className="aspect-video relative overflow-hidden bg-secondary">
         <CourseThumbnail
@@ -520,7 +424,7 @@ function CourseCard({
           alt={course.title}
           slug={course.slug}
           category={course.category}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
@@ -541,10 +445,8 @@ function CourseCard({
           </div>
         )}
         
-        {/* Quick action overlay */}
-        <div className={`absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm transition-all duration-300 ${
-          isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}>
+        {/* Quick action overlay — CSS only, no backdrop-blur */}
+        <div className="absolute inset-0 flex items-center justify-center bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
           <div className="flex flex-col gap-2">
             <Button 
               onClick={ctaContent.action} 
