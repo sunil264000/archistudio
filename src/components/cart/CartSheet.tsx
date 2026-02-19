@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ShoppingCart, Trash2, CreditCard, Loader2, Sparkles, Tag, Check, X } from 'lucide-react';
+import { ShoppingCart, Trash2, CreditCard, Loader2, Sparkles, Tag, Check, X, Timer } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +12,7 @@ import { useCashfreePayment } from '@/hooks/useCashfreePayment';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
+import { useExitDiscount } from '@/hooks/useExitDiscount';
 import { CourseThumbnail } from '@/components/course/CourseThumbnail';
 
 export function CartSheet() {
@@ -41,6 +42,9 @@ export function CartSheet() {
   const bundleDiscount = getBundleDiscount(itemCount);
   const bundleAmount = bundleDiscount > 0 ? Math.round(totalPrice * bundleDiscount / 100) : 0;
 
+  // Exit-intent discount (auto-applied)
+  const { isActive: exitDiscountActive, timeLeft: exitTimeLeft, discountPercent: exitDiscountPercent, formatTime } = useExitDiscount();
+
   // Coupon discount (applied after bundle)
   const priceAfterBundle = totalPrice - bundleAmount;
   let couponAmount = 0;
@@ -52,7 +56,11 @@ export function CartSheet() {
     }
   }
 
-  const finalPrice = priceAfterBundle - couponAmount;
+  // Exit discount (applied after bundle + coupon)
+  const priceAfterCoupon = priceAfterBundle - couponAmount;
+  const exitDiscountAmount = exitDiscountActive ? Math.round(priceAfterCoupon * exitDiscountPercent / 100) : 0;
+
+  const finalPrice = priceAfterCoupon - exitDiscountAmount;
 
   const applyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -258,10 +266,21 @@ export function CartSheet() {
                     </div>
                   )}
 
+                  {/* Exit-intent auto-discount */}
+                  {exitDiscountActive && exitDiscountAmount > 0 && (
+                    <div className="flex items-center justify-between text-sm p-2 rounded-lg bg-accent/10 border border-accent/20">
+                      <span className="flex items-center gap-1.5 text-accent font-medium">
+                        <Timer className="h-3.5 w-3.5" />
+                        {exitDiscountPercent}% OFF ({formatTime(exitTimeLeft)})
+                      </span>
+                      <span className="text-accent font-semibold">-₹{exitDiscountAmount.toLocaleString()}</span>
+                    </div>
+                  )}
+
                   <div className="flex justify-between text-lg font-semibold">
                     <span>Total</span>
                     <div className="text-right">
-                      {(bundleAmount + couponAmount) > 0 && (
+                      {(bundleAmount + couponAmount + exitDiscountAmount) > 0 && (
                         <span className="text-sm text-muted-foreground line-through mr-2">₹{totalPrice.toLocaleString()}</span>
                       )}
                       <span>₹{finalPrice.toLocaleString()}</span>
