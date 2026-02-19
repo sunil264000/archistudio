@@ -14,6 +14,7 @@ import { WhatsAppButton } from "@/components/sales/WhatsAppButton";
 import { ExitIntentPopup } from "@/components/sales/ExitIntentPopup";
 import { DiscountTimerBanner } from "@/components/sales/DiscountTimerBanner";
 import { AmbientAudio } from "@/components/audio/AmbientAudio";
+import { AIChatWidget } from "@/components/ai/AIChatWidget";
 import { LoginGiftModal } from "@/components/gift/LoginGiftModal";
 import { WelcomePopup } from "@/components/welcome/WelcomePopup";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -351,6 +352,7 @@ const App = () => (
               <ExitIntentPopup />
               <DiscountTimerBanner />
               <AmbientAudio />
+              <AIChatWidget />
               <AnimatedRoutes />
             </ErrorBoundary>
           </CartProvider>
