@@ -166,21 +166,7 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Theme crossfade — cinematic */
-  html, html *,
-  html *::before, html *::after {
-    transition-property: background-color, color, border-color, box-shadow, fill, stroke, backdrop-filter;
-    transition-duration: 0.5s;
-    transition-timing-function: var(--spring-smooth);
-  }
-
-  /* Exclude animated elements */
-  html [class*="animate-"],
-  html [class*="transition-transform"],
-  html video, html canvas, html iframe,
-  html .no-theme-transition {
-    transition: none !important;
-  }
+  /* Theme crossfade — only on key containers, not every element */
 
   body {
     @apply bg-background text-foreground antialiased;
@@ -579,131 +565,82 @@
 
   .motion-section {
     opacity: 0;
-    transform: translate3d(0, 28px, 0) scale(0.985);
-    filter: blur(3px);
-    transition: opacity 0.8s var(--spring-smooth),
-                transform 0.8s var(--spring-smooth),
-                filter 0.8s var(--spring-smooth);
-    will-change: transform, opacity;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
   }
 
   .motion-section.in-view {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-    filter: blur(0);
+    transform: translateY(0);
   }
 
   .motion-from-left {
     opacity: 0;
-    transform: translate3d(-32px, 0, 0);
-    filter: blur(2px);
-    transition: all 0.7s var(--spring-smooth);
-    will-change: transform, opacity;
+    transform: translateX(-24px);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
   }
 
   .motion-from-left.in-view {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
-    filter: blur(0);
+    transform: translateX(0);
   }
 
   .motion-from-right {
     opacity: 0;
-    transform: translate3d(32px, 0, 0);
-    filter: blur(2px);
-    transition: all 0.7s var(--spring-smooth);
-    will-change: transform, opacity;
+    transform: translateX(24px);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
   }
 
   .motion-from-right.in-view {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
-    filter: blur(0);
+    transform: translateX(0);
   }
 
   .motion-scale {
     opacity: 0;
-    transform: scale3d(0.92, 0.92, 1);
-    filter: blur(5px);
-    transition: all 0.7s var(--spring-smooth);
-    will-change: transform, opacity;
+    transform: scale(0.95);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
   }
 
   .motion-scale.in-view {
     opacity: 1;
-    transform: scale3d(1, 1, 1);
-    filter: blur(0);
+    transform: scale(1);
   }
 
   .motion-rotate {
     opacity: 0;
-    transform: rotate(-2deg) translate3d(0, 16px, 0);
-    transition: all 0.7s var(--spring-smooth);
-    will-change: transform, opacity;
+    transform: rotate(-1deg) translateY(12px);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
   }
 
   .motion-rotate.in-view {
     opacity: 1;
-    transform: rotate(0deg) translate3d(0, 0, 0);
+    transform: rotate(0deg) translateY(0);
   }
 
   /* Staggered reveal */
   .motion-stagger > * {
     opacity: 0;
-    transform: translate3d(0, 16px, 0);
-    filter: blur(2px);
-    transition: opacity 0.5s var(--spring-smooth),
-                transform 0.5s var(--spring-smooth),
-                filter 0.5s var(--spring-smooth);
-    will-change: transform, opacity;
+    transform: translateY(12px);
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out;
   }
 
-  .motion-stagger.in-view > *:nth-child(1) { transition-delay: 0.03s; opacity: 1; transform: translate3d(0,0,0); filter: blur(0); }
-  .motion-stagger.in-view > *:nth-child(2) { transition-delay: 0.08s; opacity: 1; transform: translate3d(0,0,0); filter: blur(0); }
-  .motion-stagger.in-view > *:nth-child(3) { transition-delay: 0.13s; opacity: 1; transform: translate3d(0,0,0); filter: blur(0); }
-  .motion-stagger.in-view > *:nth-child(4) { transition-delay: 0.18s; opacity: 1; transform: translate3d(0,0,0); filter: blur(0); }
-  .motion-stagger.in-view > *:nth-child(5) { transition-delay: 0.23s; opacity: 1; transform: translate3d(0,0,0); filter: blur(0); }
-  .motion-stagger.in-view > *:nth-child(6) { transition-delay: 0.28s; opacity: 1; transform: translate3d(0,0,0); filter: blur(0); }
-  .motion-stagger.in-view > *:nth-child(7) { transition-delay: 0.33s; opacity: 1; transform: translate3d(0,0,0); filter: blur(0); }
-  .motion-stagger.in-view > *:nth-child(8) { transition-delay: 0.38s; opacity: 1; transform: translate3d(0,0,0); filter: blur(0); }
-  .motion-stagger.in-view > *:nth-child(9) { transition-delay: 0.43s; opacity: 1; transform: translate3d(0,0,0); filter: blur(0); }
-  .motion-stagger.in-view > *:nth-child(10) { transition-delay: 0.48s; opacity: 1; transform: translate3d(0,0,0); filter: blur(0); }
-  .motion-stagger.in-view > *:nth-child(11) { transition-delay: 0.53s; opacity: 1; transform: translate3d(0,0,0); filter: blur(0); }
-  .motion-stagger.in-view > *:nth-child(12) { transition-delay: 0.58s; opacity: 1; transform: translate3d(0,0,0); filter: blur(0); }
+  .motion-stagger.in-view > *:nth-child(1) { transition-delay: 0.03s; opacity: 1; transform: translateY(0); }
+  .motion-stagger.in-view > *:nth-child(2) { transition-delay: 0.08s; opacity: 1; transform: translateY(0); }
+  .motion-stagger.in-view > *:nth-child(3) { transition-delay: 0.13s; opacity: 1; transform: translateY(0); }
+  .motion-stagger.in-view > *:nth-child(4) { transition-delay: 0.18s; opacity: 1; transform: translateY(0); }
+  .motion-stagger.in-view > *:nth-child(5) { transition-delay: 0.23s; opacity: 1; transform: translateY(0); }
+  .motion-stagger.in-view > *:nth-child(6) { transition-delay: 0.28s; opacity: 1; transform: translateY(0); }
 
-  /* ═══ MICRO-INTERACTIONS — Apple-like spring feel ═══ */
-  a, button, [role="button"] {
-    transition: transform 0.35s var(--spring-bounce),
-                opacity 0.25s ease,
-                box-shadow 0.4s var(--spring-smooth),
-                background-color 0.3s ease,
-                color 0.25s ease,
-                border-color 0.3s ease;
-    will-change: transform;
-  }
-
-  @media (min-width: 769px) {
-    a:hover, button:hover, [role="button"]:hover {
-      transform: translate3d(0, -1px, 0);
-    }
-
-    a:active, button:active, [role="button"]:active {
-      transform: scale3d(0.96, 0.96, 1);
-      transition-duration: 0.12s;
-    }
-  }
-
-  /* Magnetic hover */
+  /* ═══ MICRO-INTERACTIONS — lightweight ═══ */
   .magnetic-hover {
-    transition: transform 0.5s var(--spring-bounce),
-                box-shadow 0.5s var(--spring-smooth);
-    will-change: transform;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
 
   @media (min-width: 769px) {
     .magnetic-hover:hover {
-      transform: translate3d(0, -5px, 0) scale(1.008);
-      box-shadow: var(--shadow-elevated), var(--glow-accent);
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-elevated);
     }
   }
 
