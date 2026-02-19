@@ -12,6 +12,7 @@ import { SalesPopup } from "@/components/sales/SalesPopup";
 import { SaleBanner } from "@/components/sales/SaleBanner";
 import { WhatsAppButton } from "@/components/sales/WhatsAppButton";
 import { ExitIntentPopup } from "@/components/sales/ExitIntentPopup";
+import { DiscountTimerBanner } from "@/components/sales/DiscountTimerBanner";
 import { AmbientAudio } from "@/components/audio/AmbientAudio";
 import { LoginGiftModal } from "@/components/gift/LoginGiftModal";
 import { WelcomePopup } from "@/components/welcome/WelcomePopup";
@@ -348,6 +349,7 @@ const App = () => (
               <SalesPopup />
               <WhatsAppButton />
               <ExitIntentPopup />
+              <DiscountTimerBanner />
               <AmbientAudio />
               <AnimatedRoutes />
             </ErrorBoundary>
