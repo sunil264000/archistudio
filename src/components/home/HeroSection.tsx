@@ -4,15 +4,14 @@ import { ArrowRight, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 
-const spring = { type: "spring" as const, stiffness: 200, damping: 24 };
+const ease = [0.22, 1, 0.36, 1] as const;
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 24, filter: 'blur(4px)' },
+  hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    filter: 'blur(0px)',
-    transition: { ...spring, delay: i * 0.1 }
+    transition: { duration: 0.6, ease: ease as unknown as [number, number, number, number], delay: i * 0.1 }
   })
 };
 
@@ -24,7 +23,7 @@ function MarqueeStrip() {
   ];
   
   return (
-    <div className="absolute bottom-0 left-0 right-0 overflow-hidden border-t border-border/15 glass-strong">
+    <div className="absolute bottom-0 left-0 right-0 overflow-hidden border-t border-border/15 bg-background/60 backdrop-blur-sm">
       <div className="flex animate-marquee whitespace-nowrap py-3 sm:py-4">
         {[...words, ...words].map((word, i) => (
           <span key={i} className="mx-4 sm:mx-8 text-[10px] sm:text-xs font-mono tracking-[0.2em] text-muted-foreground/40">
@@ -41,44 +40,11 @@ export function HeroSection() {
   
   return (
     <section className="relative min-h-[100vh] flex items-center overflow-hidden">
-      {/* Ambient gradient layers */}
+      {/* Simple ambient gradients — no animations */}
       <div className="absolute inset-0 bg-gradient-to-b from-secondary/15 via-background to-background" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-15%,hsl(var(--accent)/0.05),transparent)]" />
       
-      {/* Breathing orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div 
-          className="orb orb-accent w-[600px] h-[600px] top-[-15%] right-[-10%]"
-          animate={{ scale: [1, 1.08, 1], opacity: [0.05, 0.08, 0.05] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div 
-          className="orb orb-blue w-[500px] h-[500px] bottom-[5%] left-[-8%]"
-          animate={{ scale: [1, 1.12, 1], opacity: [0.03, 0.06, 0.03] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 3 }}
-        />
-      </div>
-      
-      {/* Geometric elements — desktop only */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none hidden md:block">
-        <motion.div 
-          className="absolute top-[15%] right-[8%] w-[300px] h-[300px] rounded-full border border-border/10"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 80, repeat: Infinity, ease: "linear" }}
-        />
-        <motion.div 
-          className="absolute bottom-[20%] left-[5%] w-[180px] h-[180px] border border-border/8 rotate-45 rounded-2xl"
-          animate={{ rotate: [45, 135, 45] }}
-          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div 
-          className="absolute top-[40%] right-[25%] w-1.5 h-1.5 rounded-full bg-accent/25"
-          animate={{ scale: [1, 1.8, 1], opacity: [0.25, 0.6, 0.25] }}
-          transition={{ duration: 4, repeat: Infinity }}
-        />
-      </div>
-      
-      {/* Subtle grid — desktop */}
+      {/* Subtle grid — desktop only, static */}
       <svg className="absolute inset-0 w-full h-full opacity-[0.015] hidden lg:block" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="hero-grid" width="80" height="80" patternUnits="userSpaceOnUse">
@@ -99,11 +65,7 @@ export function HeroSection() {
                   custom={0} variants={fadeUp} initial="hidden" animate="visible"
                   className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full card-glass border-glow"
                 >
-                  <motion.div 
-                    className="w-1.5 h-1.5 rounded-full bg-accent"
-                    animate={{ scale: [1, 1.4, 1], opacity: [0.6, 1, 0.6], boxShadow: ['0 0 4px hsl(var(--accent)/0.3)', '0 0 12px hsl(var(--accent)/0.6)', '0 0 4px hsl(var(--accent)/0.3)'] }}
-                    transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                  />
+                  <div className="w-1.5 h-1.5 rounded-full bg-accent" />
                   <span className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
                     For Students & Fresh Architects
                   </span>
@@ -136,20 +98,16 @@ export function HeroSection() {
                   className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 justify-center lg:justify-start"
                 >
                   <Link to={user ? "/courses" : "/auth?mode=signup"} className="w-full sm:w-auto">
-                    <motion.div whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 400, damping: 20 }}>
-                      <Button size="xl" className="gap-2.5 group w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_4px_20px_hsl(var(--accent)/0.2)] hover:shadow-[0_8px_32px_hsl(var(--accent)/0.3)] relative overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,hsl(0_0%_100%/0.1)_0%,transparent_50%)] before:pointer-events-none">
-                        {user ? "Explore Studios" : "Start Learning Free"}
-                        <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                      </Button>
-                    </motion.div>
+                    <Button size="xl" className="gap-2.5 group w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_4px_20px_hsl(var(--accent)/0.2)]">
+                      {user ? "Explore Studios" : "Start Learning Free"}
+                      <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                    </Button>
                   </Link>
                   <Link to="/courses" className="w-full sm:w-auto">
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 400, damping: 20 }}>
-                      <Button variant="glass" size="xl" className="gap-2 w-full sm:w-auto">
-                        <Play className="h-4 w-4" />
-                        Preview Sessions
-                      </Button>
-                    </motion.div>
+                    <Button variant="glass" size="xl" className="gap-2 w-full sm:w-auto">
+                      <Play className="h-4 w-4" />
+                      Preview Sessions
+                    </Button>
                   </Link>
                 </motion.div>
                 
@@ -162,31 +120,22 @@ export function HeroSection() {
                     { value: '70+', label: 'Studio Programs' },
                     { value: '2,000+', label: 'Students' },
                     { value: '4.9', label: 'Avg Rating' },
-                  ].map((stat, i) => (
-                    <motion.div 
-                      key={stat.label} 
-                      className="text-center lg:text-left"
-                      whileHover={{ y: -2 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                    >
+                  ].map((stat) => (
+                    <div key={stat.label} className="text-center lg:text-left">
                       <div className="text-xl sm:text-2xl font-bold text-foreground">{stat.value}</div>
                       <div className="text-[11px] sm:text-xs text-muted-foreground tracking-wide">{stat.label}</div>
-                    </motion.div>
+                    </div>
                   ))}
                 </motion.div>
               </div>
               
-              {/* Right — liquid glass card */}
+              {/* Right — glass card, no continuous animations */}
               <motion.div
                 custom={2} variants={fadeUp} initial="hidden" animate="visible"
                 className="hidden lg:block"
               >
                 <div className="relative">
-                  <motion.div 
-                    className="relative rounded-2xl card-glass p-8 space-y-6 overflow-hidden border-glow"
-                    whileHover={{ y: -6, scale: 1.01 }}
-                    transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                  >
+                  <div className="relative rounded-2xl card-glass p-8 space-y-6 overflow-hidden border-glow">
                     {/* Glass top accent */}
                     <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
                     
@@ -206,20 +155,16 @@ export function HeroSection() {
                           className="flex items-center gap-3 text-sm text-muted-foreground"
                           initial={{ opacity: 0, x: -12 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.6 + i * 0.08 }}
+                          transition={{ duration: 0.4, ease: ease as unknown as [number, number, number, number], delay: 0.6 + i * 0.08 }}
                         >
-                          <motion.div 
-                            className="w-1 h-1 rounded-full bg-accent shrink-0"
-                            animate={{ scale: [1, 1.3, 1] }}
-                            transition={{ duration: 2, repeat: Infinity, delay: i * 0.3 }}
-                          />
+                          <div className="w-1 h-1 rounded-full bg-accent shrink-0" />
                           {item}
                         </motion.div>
                       ))}
                     </div>
                     
                     <div className="absolute bottom-0 right-0 w-20 h-20 border-t border-l border-border/20 rounded-tl-2xl" />
-                  </motion.div>
+                  </div>
                   
                   {/* Depth shadow */}
                   <div className="absolute -bottom-3 -right-3 inset-x-3 h-full rounded-2xl border border-border/20 bg-secondary/10 -z-10" />

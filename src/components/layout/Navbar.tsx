@@ -58,14 +58,9 @@ export function Navbar() {
       <nav className="container-wide py-3 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="group flex items-center gap-2.5">
-          <motion.div 
-            className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shadow-[0_0_16px_hsl(var(--accent)/0.2)]"
-            whileHover={{ scale: 1.08, rotate: 3 }}
-            whileTap={{ scale: 0.95 }}
-            transition={springBouncy}
-          >
+          <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shadow-[0_0_16px_hsl(var(--accent)/0.2)]">
             <span className="text-accent-foreground font-bold text-sm">A</span>
-          </motion.div>
+          </div>
           <span className="font-display font-bold text-lg tracking-tight text-foreground">
             Archistudio
           </span>
@@ -94,21 +89,9 @@ export function Navbar() {
 
           <CartSheet />
 
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.9 }} transition={springBouncy}>
-            <Button variant="ghost" size="icon" onClick={toggleDarkMode} className="rounded-xl overflow-hidden">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={isDark ? 'sun' : 'moon'}
-                  initial={{ y: -16, opacity: 0, rotate: -45 }}
-                  animate={{ y: 0, opacity: 1, rotate: 0 }}
-                  exit={{ y: 16, opacity: 0, rotate: 45 }}
-                  transition={spring}
-                >
-                  {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </motion.div>
-              </AnimatePresence>
-            </Button>
-          </motion.div>
+          <Button variant="ghost" size="icon" onClick={toggleDarkMode} className="rounded-xl">
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
 
           {loading ? (
             <div className="h-9 w-20 animate-pulse rounded-xl bg-muted" />
@@ -138,12 +121,10 @@ export function Navbar() {
                 <Button variant="ghost" size="sm">Sign In</Button>
               </Link>
               <Link to="/auth?mode=signup">
-                <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} transition={springBouncy}>
                   <Button size="sm" className="gap-1.5 group bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_0_16px_hsl(var(--accent)/0.2)]">
                     Get Started
                     <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
                   </Button>
-                </motion.div>
               </Link>
             </div>
           )}

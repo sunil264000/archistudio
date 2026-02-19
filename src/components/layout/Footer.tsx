@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Instagram, Facebook, Twitter, Youtube, Linkedin, ArrowUpRight } from 'lucide-react';
-import { motion } from 'framer-motion';
+
 
 interface SocialLinks {
   instagram_url: string;
@@ -59,21 +59,18 @@ export function Footer() {
             
             {activeSocials.length > 0 && (
               <div className="flex gap-2">
-                {activeSocials.map((social) => (
-                  <motion.a
-                    key={social.key}
-                    href={socialLinks[social.key as keyof SocialLinks]}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2.5 rounded-xl bg-secondary/40 hover:bg-accent hover:text-accent-foreground transition-all duration-300 border border-border/30 hover:border-accent/40 touch-target min-w-[44px] min-h-[44px] flex items-center justify-center"
-                    aria-label={social.label}
-                    whileHover={{ scale: 1.08, y: -2 }}
-                    whileTap={{ scale: 0.92 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                  >
-                    <social.icon className="h-4 w-4" />
-                  </motion.a>
-                ))}
+                  {activeSocials.map((social) => (
+                    <a
+                      key={social.key}
+                      href={socialLinks[social.key as keyof SocialLinks]}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2.5 rounded-xl bg-secondary/40 hover:bg-accent hover:text-accent-foreground transition-all duration-300 border border-border/30 hover:border-accent/40 touch-target min-w-[44px] min-h-[44px] flex items-center justify-center"
+                      aria-label={social.label}
+                    >
+                      <social.icon className="h-4 w-4" />
+                    </a>
+                  ))}
               </div>
             )}
           </div>
