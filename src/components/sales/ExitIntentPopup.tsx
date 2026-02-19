@@ -6,7 +6,7 @@ import { Gift, Timer, Copy, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-const EXIT_INTENT_KEY = 'exit_intent_shown';
+const EXIT_INTENT_KEY = 'exit_intent_shown_v2'; // localStorage so it persists across sessions
 const COUPON_CODE = 'STAYWITHUS10';
 const DISCOUNT_PERCENT = 10;
 const TIMER_SECONDS = 15 * 60; // 15 minutes
@@ -19,8 +19,8 @@ export function ExitIntentPopup() {
   const navigate = useNavigate();
 
   const shouldShow = useCallback(() => {
-    if (sessionStorage.getItem(EXIT_INTENT_KEY)) return false;
-    // Don't show to users who already purchased
+    // Use localStorage so it only shows ONCE ever (not per session)
+    if (localStorage.getItem(EXIT_INTENT_KEY)) return false;
     return true;
   }, []);
 
@@ -30,7 +30,7 @@ export function ExitIntentPopup() {
     // Desktop: mouse leave
     const handleMouseLeave = (e: MouseEvent) => {
       if (e.clientY <= 0) {
-        sessionStorage.setItem(EXIT_INTENT_KEY, 'true');
+        localStorage.setItem(EXIT_INTENT_KEY, 'true');
         setOpen(true);
       }
     };
@@ -43,8 +43,8 @@ export function ExitIntentPopup() {
       const currentTime = Date.now();
       const speed = (lastScrollY - currentY) / (currentTime - lastTime);
       
-      if (speed > 2 && currentY < 100) { // Fast scroll up near top
-        sessionStorage.setItem(EXIT_INTENT_KEY, 'true');
+      if (speed > 2 && currentY < 100) {
+        localStorage.setItem(EXIT_INTENT_KEY, 'true');
         setOpen(true);
       }
       lastScrollY = currentY;
