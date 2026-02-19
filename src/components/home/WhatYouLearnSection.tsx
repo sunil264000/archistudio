@@ -22,7 +22,6 @@ const modules = [
 export function WhatYouLearnSection() {
   return (
     <section className="section-padding relative overflow-hidden">
-      {/* Subtle background */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-secondary/20 to-background" />
       
       <div className="container-wide relative">
@@ -31,7 +30,7 @@ export function WhatYouLearnSection() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.5 }}
         >
           <div className="section-label mb-4">The Curriculum</div>
           <h2 className="font-display font-bold mb-4">What You'll Actually Learn</h2>
@@ -42,7 +41,7 @@ export function WhatYouLearnSection() {
         </motion.div>
 
         <motion.div 
-          className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
           variants={staggerContainerFast}
           initial="hidden"
           whileInView="visible"
@@ -52,21 +51,14 @@ export function WhatYouLearnSection() {
             <motion.div 
               key={i}
               variants={fadeInUp}
-              className="group relative p-6 rounded-xl card-glass hover:border-accent/30 transition-all duration-500"
+              className="group p-4 sm:p-6 rounded-xl card-glass hover:border-accent/30 transition-colors duration-300"
             >
-              {/* Hover glow */}
-              <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" 
-                style={{ boxShadow: 'var(--glow-accent)' }} 
-              />
-              
-              <div className="relative">
-                <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center mb-4 group-hover:bg-accent/10 transition-colors duration-300">
-                  <module.icon className="h-5 w-5 text-accent" />
-                </div>
-                
-                <h3 className="font-semibold text-base mb-2 group-hover:text-accent transition-colors duration-300">{module.title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{module.description}</p>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-secondary flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-accent/10 transition-colors duration-300">
+                <module.icon className="h-4 w-4 sm:h-5 sm:w-5 text-accent" />
               </div>
+              
+              <h3 className="font-semibold text-sm sm:text-base mb-1 sm:mb-2 group-hover:text-accent transition-colors duration-300">{module.title}</h3>
+              <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">{module.description}</p>
             </motion.div>
           ))}
         </motion.div>

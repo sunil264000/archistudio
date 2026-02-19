@@ -4,10 +4,6 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Library } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { CartSheet } from '@/components/cart/CartSheet';
-import { motion, AnimatePresence } from 'framer-motion';
-
-const spring = { type: "spring", stiffness: 300, damping: 30 } as const;
-const springBouncy = { type: "spring", stiffness: 400, damping: 25 } as const;
 
 export function Navbar() {
   const { user, profile, signOut, loading, isAdmin } = useAuth();
@@ -45,15 +41,12 @@ export function Navbar() {
   }, []);
 
   return (
-    <motion.header 
-      className={`sticky top-0 z-50 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+    <header 
+      className={`sticky top-0 z-50 transition-all duration-300 ${
         scrolled 
           ? 'glass shadow-soft' 
           : 'border-b border-transparent bg-transparent'
       }`}
-      initial={{ y: -60, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ ...spring, delay: 0.1 }}
     >
       <nav className="container-wide py-3 flex items-center justify-between">
         {/* Logo */}
@@ -131,110 +124,81 @@ export function Navbar() {
         </div>
 
         {/* Mobile Menu Button */}
-        <motion.button
+        <button
           className="md:hidden p-3 -mr-2 rounded-xl hover:bg-muted transition-colors touch-target min-w-[48px] min-h-[48px] flex items-center justify-center"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-          whileTap={{ scale: 0.9 }}
-          transition={springBouncy}
         >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={mobileMenuOpen ? 'close' : 'open'}
-              initial={{ scale: 0, opacity: 0, rotate: -90 }}
-              animate={{ scale: 1, opacity: 1, rotate: 0 }}
-              exit={{ scale: 0, opacity: 0, rotate: 90 }}
-              transition={spring}
-            >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </motion.div>
-          </AnimatePresence>
-        </motion.button>
+          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
       </nav>
 
       {/* Mobile Menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div 
-            className="md:hidden border-t border-border/30 glass-strong overflow-hidden safe-area-inset"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <div className="p-5 space-y-2">
-              {[
-                { to: '/courses', label: 'Studios' },
-                { to: '/ebooks', label: 'eBooks' },
-                { to: '/#pricing', label: 'Pricing' },
-              ].map((link, i) => (
-                <motion.div
-                  key={link.to}
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ ...spring, delay: i * 0.05 }}
-                >
-                  <Link 
-                    to={link.to} 
-                    className="block text-foreground py-3.5 px-4 rounded-xl hover:bg-secondary transition-colors text-base font-medium touch-target"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {link.label}
-                  </Link>
-                </motion.div>
-              ))}
-              
-              <motion.button 
-                onClick={() => { toggleDarkMode(); setMobileMenuOpen(false); }}
-                className="w-full text-left text-foreground py-3.5 px-4 rounded-xl hover:bg-secondary transition-colors flex items-center gap-2.5 text-base font-medium touch-target"
-                initial={{ opacity: 0, x: -16 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ ...spring, delay: 0.15 }}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-border/30 bg-card safe-area-inset">
+          <div className="p-5 space-y-2">
+            {[
+              { to: '/courses', label: 'Studios' },
+              { to: '/ebooks', label: 'eBooks' },
+              { to: '/#pricing', label: 'Pricing' },
+            ].map((link) => (
+              <Link 
+                key={link.to}
+                to={link.to} 
+                className="block text-foreground py-3.5 px-4 rounded-xl hover:bg-secondary transition-colors text-base font-medium touch-target"
+                onClick={() => setMobileMenuOpen(false)}
               >
-                {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                {isDark ? 'Light Mode' : 'Dark Mode'}
-              </motion.button>
-              
-              <div className="pt-4 border-t border-border space-y-2">
-                {!loading && user ? (
-                  <>
-                    {isAdmin && (
-                      <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
-                        <Button variant="outline" className="w-full gap-2 min-h-[48px] text-base text-accent">
-                          <ShieldCheck className="h-5 w-5" />
-                          Admin Panel
-                        </Button>
-                      </Link>
-                    )}
-                    <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="ghost" className="w-full gap-2 justify-start min-h-[48px] text-base">
-                        <User className="h-5 w-5" />
-                        {profile?.full_name || 'Dashboard'}
+                {link.label}
+              </Link>
+            ))}
+            
+            <button 
+              onClick={() => { toggleDarkMode(); setMobileMenuOpen(false); }}
+              className="w-full text-left text-foreground py-3.5 px-4 rounded-xl hover:bg-secondary transition-colors flex items-center gap-2.5 text-base font-medium touch-target"
+            >
+              {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              {isDark ? 'Light Mode' : 'Dark Mode'}
+            </button>
+            
+            <div className="pt-4 border-t border-border space-y-2">
+              {!loading && user ? (
+                <>
+                  {isAdmin && (
+                    <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
+                      <Button variant="outline" className="w-full gap-2 min-h-[48px] text-base text-accent">
+                        <ShieldCheck className="h-5 w-5" />
+                        Admin Panel
                       </Button>
                     </Link>
-                    <Button variant="outline" className="w-full gap-2 min-h-[48px] text-base" onClick={() => { signOut(); setMobileMenuOpen(false); }}>
-                      <LogOut className="h-5 w-5" />
-                      Sign Out
+                  )}
+                  <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full gap-2 justify-start min-h-[48px] text-base">
+                      <User className="h-5 w-5" />
+                      {profile?.full_name || 'Dashboard'}
                     </Button>
-                  </>
-                ) : !loading ? (
-                  <>
-                    <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="outline" className="w-full min-h-[48px] text-base">Sign In</Button>
-                    </Link>
-                    <Link to="/auth?mode=signup" onClick={() => setMobileMenuOpen(false)}>
-                      <Button className="w-full gap-2 min-h-[48px] text-base bg-accent text-accent-foreground hover:bg-accent/90">
-                        Get Started
-                        <ArrowRight className="h-5 w-5" />
-                      </Button>
-                    </Link>
-                  </>
-                ) : null}
-              </div>
+                  </Link>
+                  <Button variant="outline" className="w-full gap-2 min-h-[48px] text-base" onClick={() => { signOut(); setMobileMenuOpen(false); }}>
+                    <LogOut className="h-5 w-5" />
+                    Sign Out
+                  </Button>
+                </>
+              ) : !loading ? (
+                <>
+                  <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full min-h-[48px] text-base">Sign In</Button>
+                  </Link>
+                  <Link to="/auth?mode=signup" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="w-full gap-2 min-h-[48px] text-base bg-accent text-accent-foreground hover:bg-accent/90">
+                      Get Started
+                      <ArrowRight className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                </>
+              ) : null}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.header>
+          </div>
+        </div>
+      )}
+    </header>
   );
 }

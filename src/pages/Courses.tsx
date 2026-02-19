@@ -84,7 +84,7 @@ export default function Courses() {
   const featuredCourses = getFeaturedCourses();
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
+    <div className="min-h-screen bg-background">
       <SEOHead 
         title="All Studios - Archistudio"
         description="Browse our complete catalog of architecture and 3D visualization studio programs. Learn 3ds Max, AutoCAD, Revit, SketchUp and more."
@@ -92,9 +92,6 @@ export default function Courses() {
       />
       
       <Navbar />
-      
-      {/* Animated Background */}
-      <AnimatedBackground intensity="light" />
       
       {/* Hero Section - no continuous animations */}
       <section className="pt-20 sm:pt-24 pb-8 sm:pb-12 relative overflow-hidden">
@@ -133,7 +130,7 @@ export default function Courses() {
       </section>
 
       {/* Categories with Smooth Transitions - mobile scrollable */}
-      <section className="py-4 sm:py-6 md:py-8 border-b border-border/50 backdrop-blur-sm bg-background/50 sticky top-14 sm:top-16 z-40">
+      <section className="py-4 sm:py-6 md:py-8 border-b border-border/50 bg-background sticky top-14 sm:top-16 z-40">
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-2 mb-3 sm:mb-4">
             <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-accent shrink-0" />

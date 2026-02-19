@@ -4,10 +4,7 @@ import { Footer } from '@/components/layout/Footer';
 import { HeroSection } from '@/components/home/HeroSection';
 import { SEOHead, generateOrganizationSchema, generateWebsiteSchema } from '@/components/seo/SEOHead';
 import { SitelinkSchema } from '@/components/seo/SitelinkSchema';
-import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { useGoogleAnalytics, analytics, initializeGA4 } from '@/hooks/useGoogleAnalytics';
-
-// Lazy load below-the-fold sections for faster initial load
 
 // Lazy load below-the-fold sections for faster initial load
 const ProblemSection = lazy(() => import('@/components/home/ProblemSection').then(m => ({ default: m.ProblemSection })));
@@ -17,7 +14,6 @@ const ComparisonSection = lazy(() => import('@/components/home/ComparisonSection
 const TestimonialsSection = lazy(() => import('@/components/home/TestimonialsSection').then(m => ({ default: m.TestimonialsSection })));
 const FinalCTASection = lazy(() => import('@/components/home/FinalCTASection').then(m => ({ default: m.FinalCTASection })));
 
-
 // Minimal loading fallback
 const SectionLoader = () => (
   <div className="w-full py-12 flex items-center justify-center">
@@ -26,22 +22,19 @@ const SectionLoader = () => (
 );
 
 export default function Index() {
-  // Initialize Google Analytics (GA4 ID will be initialized via index.html or dynamically)
   useGoogleAnalytics();
 
-  // Track homepage view
   useEffect(() => {
     analytics.ctaClick('homepage_view', 'landing');
   }, []);
 
-  // Combined JSON-LD schemas
   const combinedSchema = [
     generateOrganizationSchema(),
     generateWebsiteSchema(),
   ];
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
+    <div className="min-h-screen bg-background">
       <SEOHead 
         title="Archistudio - Professional Architecture Training"
         description="This platform teaches what architecture colleges and CAD institutes don't: how real buildings are designed, detailed, and executed in offices. Master 3ds Max, AutoCAD, Revit, SketchUp and more."
@@ -56,52 +49,33 @@ export default function Index() {
       
       <Navbar />
       
-      {/* Animated Background - desktop only */}
-      <AnimatedBackground intensity="light" />
-      
-      {/* Hero */}
       <HeroSection />
       
-      {/* Below-the-fold sections with motion classes */}
       <Suspense fallback={<SectionLoader />}>
-        <div className="motion-section">
-          <ProblemSection />
-        </div>
+        <ProblemSection />
       </Suspense>
       
       <Suspense fallback={<SectionLoader />}>
-        <div className="motion-from-left">
-          <WhatYouLearnSection />
-        </div>
+        <WhatYouLearnSection />
       </Suspense>
       
       <Suspense fallback={<SectionLoader />}>
-        <div className="motion-section">
-          <CourseStructureSection />
-        </div>
+        <CourseStructureSection />
       </Suspense>
       
       <Suspense fallback={<SectionLoader />}>
-        <div className="motion-from-right">
-          <ComparisonSection />
-        </div>
+        <ComparisonSection />
       </Suspense>
       
       <Suspense fallback={<SectionLoader />}>
-        <div className="motion-scale">
-          <TestimonialsSection />
-        </div>
+        <TestimonialsSection />
       </Suspense>
       
       <Suspense fallback={<SectionLoader />}>
-        <div className="motion-section">
-          <FinalCTASection />
-        </div>
+        <FinalCTASection />
       </Suspense>
       
-      <div className="motion-section">
-        <Footer />
-      </div>
+      <Footer />
     </div>
   );
 }

@@ -41,7 +41,7 @@ export function TestimonialsSection() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.5 }}
         >
           <div className="section-label mb-4">What They Say</div>
           <h2 className="font-display font-bold mb-4">
@@ -53,7 +53,7 @@ export function TestimonialsSection() {
         </motion.div>
 
         <motion.div 
-          className="grid md:grid-cols-2 gap-5 max-w-5xl mx-auto"
+          className="grid md:grid-cols-2 gap-4 sm:gap-5 max-w-5xl mx-auto"
           variants={staggerContainerFast}
           initial="hidden"
           whileInView="visible"
@@ -63,9 +63,7 @@ export function TestimonialsSection() {
             <motion.div 
               key={i}
               variants={fadeInUp}
-              className="relative p-7 rounded-2xl card-glass group"
-              whileHover={{ y: -3 }}
-              transition={{ duration: 0.3 }}
+              className="relative p-6 sm:p-7 rounded-2xl card-glass"
             >
               {/* Quote icon */}
               <Quote className="h-8 w-8 text-accent/15 absolute top-5 right-5" />
