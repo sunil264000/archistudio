@@ -2,18 +2,17 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { courses, courseCategories, getFeaturedCourses, categoryImages } from '@/data/courses';
-import { useDynamicCourseData } from '@/hooks/useDynamicCourseData';
+import { courses as staticCourses, courseCategories, categoryImages } from '@/data/courses';
 import { useSaleDiscount } from '@/hooks/useSaleDiscount';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Clock, BookOpen, Search, Star, Filter, ShoppingCart, CreditCard, Loader2, Sparkles, GraduationCap, Flame, Play } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
 import { useToast } from '@/hooks/use-toast';
-import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { ContactSupportWidget } from '@/components/support/ContactSupportWidget';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,100 +23,144 @@ import { CourseThumbnail } from '@/components/course/CourseThumbnail';
 import { BundleDiscountBanner } from '@/components/sales/BundleDiscountBanner';
 import { useCart } from '@/contexts/CartContext';
 
+// Unified course shape used throughout this page
+export interface MergedCourse {
+  id: string;
+  title: string;
+  slug: string;
+  shortDescription: string;
+  description: string;
+  category: string;
+  level: 'beginner' | 'intermediate' | 'advanced';
+  durationHours: number;
+  totalLessons: number;
+  priceInr: number;
+  thumbnail: string;
+  isFeatured: boolean;
+  isHighlighted: boolean;
+  tags: string[];
+}
+
+function guessCategory(title: string): string {
+  const t = title.toLowerCase();
+  if (t.includes('autocad')) return 'autocad';
+  if (t.includes('sketchup') || t.includes('sketch up')) return 'sketchup';
+  if (t.includes('3ds max') || t.includes('3dsmax')) return '3ds-max';
+  if (t.includes('revit') || t.includes('bim')) return 'revit-bim';
+  if (t.includes('corona') || t.includes('v-ray') || t.includes('vray')) return 'corona-vray';
+  if (t.includes('rhino') || t.includes('grasshopper')) return 'rhino';
+  if (t.includes('lumion') || t.includes('twinmotion') || t.includes('d5 render')) return 'visualization';
+  if (t.includes('interior')) return 'interior-design';
+  if (t.includes('after effect') || t.includes('photoshop') || t.includes('post')) return 'post-production';
+  return 'fundamentals';
+}
+
 export default function Courses() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [dbCourseCount, setDbCourseCount] = useState<number | null>(null);
-  const [dbCourseStats, setDbCourseStats] = useState<Record<string, { totalLessons: number; totalDuration: number }>>({});
-  const { getThumbnail, getPriceInr, isHighlighted, isFeatured } = useDynamicCourseData();
+  const [allCourses, setAllCourses] = useState<MergedCourse[]>([]);
+  const [loading, setLoading] = useState(true);
   const { isActive: saleActive, discountPercent, calculateDiscountedPrice } = useSaleDiscount();
 
-  // Fetch actual course count and stats from database - single efficient query
+  // Fetch ALL published courses from DB and merge with static enrichment data
   useEffect(() => {
-    const fetchCourseData = async () => {
-      const { count } = await supabase
+    const fetchAllCourses = async () => {
+      setLoading(true);
+      const { data: dbCourses, error } = await supabase
         .from('courses')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_published', true);
-      setDbCourseCount(count);
+        .select('id, title, slug, description, short_description, level, duration_hours, total_lessons, price_inr, thumbnail_url, is_featured, is_highlighted, order_index')
+        .eq('is_published', true)
+        .order('order_index', { ascending: true });
 
-      // Get all lessons with their module's course slug in one query
-      const { data: lessonsData } = await supabase
-        .from('lessons')
-        .select('duration_minutes, module_id, modules!inner(course_id, courses!inner(slug, is_published))')
-        .not('modules.courses.is_published', 'is', false);
-
-      if (lessonsData) {
-        const stats: Record<string, { totalLessons: number; totalDuration: number }> = {};
-        for (const lesson of lessonsData) {
-          const mod = lesson.modules as any;
-          const slug = mod?.courses?.slug;
-          if (!slug) continue;
-          if (!stats[slug]) stats[slug] = { totalLessons: 0, totalDuration: 0 };
-          stats[slug].totalLessons++;
-          stats[slug].totalDuration += lesson.duration_minutes || 0;
-        }
-        setDbCourseStats(stats);
+      if (error) {
+        console.error('Error fetching courses:', error);
+        setLoading(false);
+        return;
       }
+
+      // Build a static lookup map for enrichment
+      const staticMap: Record<string, typeof staticCourses[0]> = {};
+      staticCourses.forEach(c => { staticMap[c.slug] = c; });
+
+      const merged: MergedCourse[] = (dbCourses || []).map(db => {
+        const stat = staticMap[db.slug];
+        const category = stat?.category || guessCategory(db.title);
+        return {
+          id: db.id,
+          title: db.title,
+          slug: db.slug,
+          shortDescription: db.short_description || stat?.shortDescription || db.description || '',
+          description: db.description || stat?.description || '',
+          category,
+          level: (db.level as MergedCourse['level']) || stat?.level || 'beginner',
+          durationHours: db.duration_hours || stat?.durationHours || 0,
+          totalLessons: db.total_lessons || stat?.totalLessons || 0,
+          priceInr: db.price_inr || stat?.priceInr || 0,
+          thumbnail: db.thumbnail_url || (stat ? (categoryImages[stat.category] || '') : ''),
+          isFeatured: db.is_featured || stat?.isFeatured || false,
+          isHighlighted: db.is_highlighted || false,
+          tags: stat?.tags || [],
+        };
+      });
+
+      setAllCourses(merged);
+      setLoading(false);
     };
-    fetchCourseData();
+
+    fetchAllCourses();
   }, []);
 
-  const totalCourseCount = dbCourseCount ?? courses.length;
-
-  const filteredCourses = courses.filter(course => {
+  const filteredCourses = allCourses.filter(course => {
     const matchesCategory = !selectedCategory || course.category === selectedCategory;
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.shortDescription.toLowerCase().includes(searchQuery.toLowerCase()) ||
       course.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesSearch && course.isPublished;
+    return matchesCategory && matchesSearch;
   });
 
-  // Sort highlighted courses first
+  // Sort: highlighted first, then featured, then rest
   const sortedCourses = [...filteredCourses].sort((a, b) => {
-    const aHighlighted = isHighlighted(a.slug);
-    const bHighlighted = isHighlighted(b.slug);
-    if (aHighlighted && !bHighlighted) return -1;
-    if (!aHighlighted && bHighlighted) return 1;
+    if (a.isHighlighted && !b.isHighlighted) return -1;
+    if (!a.isHighlighted && b.isHighlighted) return 1;
     return 0;
   });
 
-  const featuredCourses = getFeaturedCourses();
+  const featuredCourses = allCourses.filter(c => c.isFeatured);
 
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead 
+      <SEOHead
         title="All Studios - Archistudio"
         description="Browse our complete catalog of architecture and 3D visualization studio programs. Learn 3ds Max, AutoCAD, Revit, SketchUp and more."
         url="https://archistudio.shop/courses"
       />
-      
+
       <Navbar />
-      
+
       {/* Bundle Discount Banner */}
       <div className="container mx-auto px-4 pt-20 sm:pt-24">
         <BundleDiscountBanner />
       </div>
 
-      {/* Hero Section - no continuous animations */}
+      {/* Hero Section */}
       <section className="pt-6 sm:pt-8 pb-8 sm:pb-12 relative overflow-hidden">
         <div className="container mx-auto px-4 text-center relative">
           <div className="mb-4 sm:mb-6">
             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-secondary/60 text-foreground text-sm font-medium border border-accent/20">
               <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />
-              {totalCourseCount}+ Studio Programs
+              {loading ? '...' : `${allCourses.length}+`} Studio Programs
             </div>
           </div>
-          
+
           <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4">
             Master Architecture & Design
           </h1>
-          
+
           <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8 px-2">
             Professional studio programs covering 3ds Max, Revit, SketchUp, AutoCAD, and more
           </p>
-          
+
           {/* Search Bar */}
           <div className="max-w-xl mx-auto relative">
             <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
@@ -128,15 +171,15 @@ export default function Courses() {
               className="pl-10 sm:pl-12 h-12 sm:h-14 text-base sm:text-lg border-2 border-border/50 focus:border-accent transition-colors duration-200 bg-background/80 shadow-lg"
             />
           </div>
-          
+
           <p className="text-xs sm:text-sm text-muted-foreground mt-4 sm:mt-6 px-2">
-            Confused about which studio to pick? 
+            Confused about which studio to pick?{' '}
             <span className="text-accent font-medium ml-1">Click the chat button below for help!</span>
           </p>
         </div>
       </section>
 
-      {/* Categories with Smooth Transitions - mobile scrollable */}
+      {/* Categories */}
       <section className="py-4 sm:py-6 md:py-8 border-b border-border/50 bg-background sticky top-14 sm:top-16 z-40">
         <div className="container mx-auto px-4">
           <div className="flex items-center gap-2 mb-3 sm:mb-4">
@@ -145,7 +188,7 @@ export default function Courses() {
           </div>
           <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
             <Button
-              variant={selectedCategory === null ? "default" : "outline"}
+              variant={selectedCategory === null ? 'default' : 'outline'}
               size="sm"
               onClick={() => setSelectedCategory(null)}
               className="transition-all duration-300 hover:scale-105 shrink-0 min-h-[40px] text-sm"
@@ -155,7 +198,7 @@ export default function Courses() {
             {courseCategories.map((cat, index) => (
               <Button
                 key={cat.id}
-                variant={selectedCategory === cat.id ? "default" : "outline"}
+                variant={selectedCategory === cat.id ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSelectedCategory(cat.id)}
                 className="transition-all duration-300 hover:scale-105 shrink-0 min-h-[40px] text-sm whitespace-nowrap"
@@ -168,7 +211,7 @@ export default function Courses() {
         </div>
       </section>
 
-      {/* Featured Courses with Stagger Animation - mobile optimized */}
+      {/* Featured Courses */}
       {!selectedCategory && !searchQuery && (
         <section className="py-8 sm:py-10 md:py-12">
           <div className="container mx-auto px-4">
@@ -176,40 +219,46 @@ export default function Courses() {
               <Star className="h-5 w-5 sm:h-6 sm:w-6 text-warning fill-warning" />
               <h2 className="text-xl sm:text-2xl font-bold">Featured Studios</h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {featuredCourses.slice(0, 6).map((course, index) => (
-                <CourseCard 
-                  key={course.id} 
-                  course={course} 
-                  featured 
-                  index={index} 
-                  getThumbnail={getThumbnail}
-                  getPriceInr={getPriceInr}
-                  isHighlighted={isHighlighted(course.slug)}
-                  saleActive={saleActive}
-                  discountPercent={discountPercent}
-                  calculateDiscountedPrice={calculateDiscountedPrice}
-                  realStats={dbCourseStats[course.slug]}
-                />
-              ))}
-            </div>
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3].map(i => <CourseCardSkeleton key={i} />)}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {featuredCourses.slice(0, 6).map((course, index) => (
+                  <CourseCard
+                    key={course.id}
+                    course={course}
+                    featured
+                    index={index}
+                    saleActive={saleActive}
+                    discountPercent={discountPercent}
+                    calculateDiscountedPrice={calculateDiscountedPrice}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </section>
       )}
 
-      {/* All Courses with Grid Animation - mobile optimized */}
+      {/* All Courses */}
       <section className="py-8 sm:py-10 md:py-12 bg-muted/30">
         <div className="container mx-auto px-4">
           <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 line-accent">
-            {selectedCategory 
-              ? courseCategories.find(c => c.id === selectedCategory)?.name 
-              : searchQuery 
+            {selectedCategory
+              ? courseCategories.find(c => c.id === selectedCategory)?.name
+              : searchQuery
                 ? `Search Results (${filteredCourses.length})`
                 : 'All Studios'}
           </h2>
-          
-          {sortedCourses.length === 0 ? (
-            <div className="text-center py-8 sm:py-12 animate-fade-in">
+
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {Array.from({ length: 12 }).map((_, i) => <CourseCardSkeleton key={i} />)}
+            </div>
+          ) : sortedCourses.length === 0 ? (
+            <div className="text-center py-8 sm:py-12">
               <p className="text-muted-foreground text-base sm:text-lg">No studios found matching your criteria.</p>
               <Button variant="outline" className="mt-4 min-h-[44px]" onClick={() => { setSelectedCategory(null); setSearchQuery(''); }}>
                 Clear Filters
@@ -218,17 +267,13 @@ export default function Courses() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {sortedCourses.map((course, index) => (
-                <CourseCard 
+                <CourseCard
                   key={course.id}
-                  course={course} 
-                  index={index} 
-                  getThumbnail={getThumbnail}
-                  getPriceInr={getPriceInr}
-                  isHighlighted={isHighlighted(course.slug)}
+                  course={course}
+                  index={index}
                   saleActive={saleActive}
                   discountPercent={discountPercent}
                   calculateDiscountedPrice={calculateDiscountedPrice}
-                  realStats={dbCourseStats[course.slug]}
                 />
               ))}
             </div>
@@ -237,37 +282,57 @@ export default function Courses() {
       </section>
 
       <Footer />
-      
-      {/* Floating Contact Widget */}
       <ContactSupportWidget />
     </div>
   );
 }
 
+// ─── Skeleton ────────────────────────────────────────────────────────────────
+function CourseCardSkeleton() {
+  return (
+    <Card className="overflow-hidden border-border/50 bg-card/80">
+      <Skeleton className="aspect-video w-full" />
+      <CardHeader className="pb-2 space-y-2">
+        <div className="flex gap-2">
+          <Skeleton className="h-5 w-16 rounded-full" />
+          <Skeleton className="h-5 w-20 rounded-full" />
+        </div>
+        <Skeleton className="h-5 w-full rounded" />
+        <Skeleton className="h-5 w-4/5 rounded" />
+        <Skeleton className="h-4 w-full rounded" />
+        <Skeleton className="h-4 w-3/4 rounded" />
+      </CardHeader>
+      <CardContent>
+        <div className="flex gap-4 mb-4">
+          <Skeleton className="h-4 w-16 rounded" />
+          <Skeleton className="h-4 w-20 rounded" />
+        </div>
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-7 w-24 rounded" />
+          <Skeleton className="h-9 w-16 rounded" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Course Card ──────────────────────────────────────────────────────────────
 interface CourseCardProps {
-  course: typeof courses[0];
+  course: MergedCourse;
   featured?: boolean;
   index?: number;
-  getThumbnail: (slug: string, fallback: string) => string;
-  getPriceInr: (slug: string, fallbackPrice: number, durationHours?: number, totalLessons?: number) => number;
-  isHighlighted?: boolean;
   saleActive?: boolean;
   discountPercent?: number;
   calculateDiscountedPrice?: (price: number) => number;
-  realStats?: { totalLessons: number; totalDuration: number };
 }
 
-function CourseCard({ 
-  course, 
-  featured = false, 
-  index = 0, 
-  getThumbnail, 
-  getPriceInr,
-  isHighlighted = false,
+function CourseCard({
+  course,
+  featured = false,
+  index = 0,
   saleActive = false,
   discountPercent = 0,
   calculateDiscountedPrice = (p) => p,
-  realStats
 }: CourseCardProps) {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
@@ -275,16 +340,10 @@ function CourseCard({
   const { toast } = useToast();
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
   const [pendingPaymentData, setPendingPaymentData] = useState<any>(null);
-  
 
-  // Access control - check if user has access to this course
   const accessInfo = useAccessControlBySlug(user?.id, course.slug);
 
-  // Use real stats if available, otherwise fallback to static data
-  const displayLessons = realStats?.totalLessons || course.totalLessons;
-  const displayDuration = realStats ? Math.round(realStats.totalDuration / 60) : course.durationHours;
-
-  const effectivePriceInr = getPriceInr(course.slug, course.priceInr, displayDuration, displayLessons);
+  const effectivePriceInr = course.priceInr;
   const discountedPrice = calculateDiscountedPrice(effectivePriceInr);
 
   const levelColors: Record<string, string> = {
@@ -295,21 +354,13 @@ function CourseCard({
 
   const handleBuyNow = async () => {
     if (!user) {
-      toast({
-        title: "Login Required",
-        description: "Please login to purchase this course",
-        variant: "destructive",
-      });
+      toast({ title: 'Login Required', description: 'Please login to purchase this course', variant: 'destructive' });
       navigate('/auth');
       return;
     }
 
-    // Anti-double-purchase check
     if (accessInfo.hasAccess && !accessInfo.canPurchase) {
-      toast({
-        title: "Already Enrolled",
-        description: "You already have access to this course!",
-      });
+      toast({ title: 'Already Enrolled', description: 'You already have access to this course!' });
       navigate(`/learn/${course.slug}`);
       return;
     }
@@ -337,7 +388,7 @@ function CourseCard({
       amount: discountedPrice,
       customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
       customerEmail: user.email || '',
-      customerPhone: customerPhone,
+      customerPhone,
       courseTitle: course.title,
       courseShortDescription: course.shortDescription,
       courseDescription: course.description,
@@ -345,7 +396,6 @@ function CourseCard({
     });
   };
 
-  // Loading timeout — after 2s, show Buy button instead of spinner
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   useEffect(() => {
     if (accessInfo.loading) {
@@ -355,142 +405,88 @@ function CourseCard({
     setLoadingTimedOut(false);
   }, [accessInfo.loading]);
 
-  // Determine CTA based on access status
   const getCTAContent = () => {
-    if (accessInfo.loading && !loadingTimedOut) {
-      return { text: 'Loading...', icon: Loader2, action: () => {}, disabled: true };
-    }
-    
-    if (accessInfo.accessType === 'full') {
-      return { 
-        text: 'Continue Learning', 
-        icon: Play, 
-        action: () => navigate(`/learn/${course.slug}`),
-        disabled: false 
-      };
-    }
-    
-    if (accessInfo.accessType === 'gift' || accessInfo.accessType === 'launch_free') {
-      return { 
-        text: 'Access Now', 
-        icon: Play, 
-        action: () => navigate(`/learn/${course.slug}`),
-        disabled: false 
-      };
-    }
-    
-    if (accessInfo.accessType === 'partial') {
-      return { 
-        text: 'Unlock More', 
-        icon: ShoppingCart, 
-        action: () => navigate(`/course/${course.slug}`),
-        disabled: false 
-      };
-    }
-    
-    return { 
-      text: `Buy Now - ₹${discountedPrice.toLocaleString()}`, 
-      icon: CreditCard, 
-      action: handleBuyNow,
-      disabled: isLoading 
-    };
+    if (accessInfo.loading && !loadingTimedOut) return { text: 'Loading...', icon: Loader2, action: () => {}, disabled: true };
+    if (accessInfo.accessType === 'full') return { text: 'Continue Learning', icon: Play, action: () => navigate(`/learn/${course.slug}`), disabled: false };
+    if (accessInfo.accessType === 'gift' || accessInfo.accessType === 'launch_free') return { text: 'Access Now', icon: Play, action: () => navigate(`/learn/${course.slug}`), disabled: false };
+    if (accessInfo.accessType === 'partial') return { text: 'Unlock More', icon: ShoppingCart, action: () => navigate(`/courses/${course.slug}`), disabled: false };
+    return { text: `Buy Now - ₹${discountedPrice.toLocaleString()}`, icon: CreditCard, action: handleBuyNow, disabled: isLoading };
   };
 
   const ctaContent = getCTAContent();
 
   const handlePhoneSubmit = async (phone: string) => {
     if (!pendingPaymentData) return;
-    
-    if (user) {
-      await supabase
-        .from('profiles')
-        .update({ phone: phone })
-        .eq('user_id', user.id);
-    }
-    
+    if (user) await supabase.from('profiles').update({ phone }).eq('user_id', user.id);
     setShowPhoneDialog(false);
-    await initiatePayment({
-      ...pendingPaymentData,
-      customerPhone: phone,
-    });
+    await initiatePayment({ ...pendingPaymentData, customerPhone: phone });
     setPendingPaymentData(null);
   };
 
+  const thumbnailFallback = categoryImages[course.category] || '/placeholder.svg';
+
   return (
-    <Card 
+    <Card
       className={`group overflow-hidden transition-shadow duration-300 hover:shadow-xl border-border/50 bg-card/80 hover:-translate-y-1 ${
         featured ? 'border-accent/50 shadow-accent/10' : ''
-      } ${isHighlighted ? 'ring-2 ring-warning/50 shadow-warning/20' : ''}`}
+      } ${course.isHighlighted ? 'ring-2 ring-warning/50 shadow-warning/20' : ''}`}
     >
       <div className="aspect-video relative overflow-hidden bg-secondary">
         <CourseThumbnail
-          src={getThumbnail(course.slug, categoryImages[course.category] || '/placeholder.svg')}
+          src={course.thumbnail || thumbnailFallback}
           alt={course.title}
           slug={course.slug}
           category={course.category}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        
-        {/* Highlighted badge */}
-        {isHighlighted && (
+
+        {course.isHighlighted && (
           <div className="absolute top-2 left-2">
             <Badge className="bg-warning text-warning-foreground border-0 shadow-lg">
               <Sparkles className="h-3 w-3 mr-1" /> Recommended
             </Badge>
           </div>
         )}
-        
-        {featured && !isHighlighted && (
+
+        {featured && !course.isHighlighted && (
           <div className="absolute top-2 right-2">
             <Badge className="bg-warning text-warning-foreground border-0 animate-pulse">
               <Star className="h-3 w-3 mr-1 fill-current" /> Featured
             </Badge>
           </div>
         )}
-        
-        {/* Quick action overlay — CSS only, no backdrop-blur */}
+
         <div className="absolute inset-0 flex items-center justify-center bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
           <div className="flex flex-col gap-2">
-            <Button 
-              onClick={ctaContent.action} 
+            <Button
+              onClick={ctaContent.action}
               disabled={ctaContent.disabled}
-              className={`shadow-lg ${
-                accessInfo.hasAccess 
-                  ? 'bg-success hover:bg-success/90 text-success-foreground' 
-                  : 'bg-accent hover:bg-accent/90 text-accent-foreground'
-              }`}
+              className={`shadow-lg ${accessInfo.hasAccess ? 'bg-success hover:bg-success/90 text-success-foreground' : 'bg-accent hover:bg-accent/90 text-accent-foreground'}`}
             >
               {ctaContent.disabled && isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
-                </>
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</>
               ) : (
-                <>
-                  <ctaContent.icon className="h-4 w-4 mr-2" />
-                  {ctaContent.text}
-                </>
+                <><ctaContent.icon className="h-4 w-4 mr-2" />{ctaContent.text}</>
               )}
             </Button>
-            <Button variant="outline" className="bg-background/80" onClick={() => navigate(`/course/${course.slug}`)}>
+            <Button variant="outline" className="bg-background/80" onClick={() => navigate(`/courses/${course.slug}`)}>
               View Details
             </Button>
           </div>
         </div>
       </div>
-      
+
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           <Badge variant="outline" className={`${levelColors[course.level]} transition-colors duration-300`}>
             {course.level}
           </Badge>
           <Badge variant="secondary" className="text-xs">
-            {courseCategories.find(c => c.id === course.category)?.name}
+            {courseCategories.find(c => c.id === course.category)?.name || course.category}
           </Badge>
-          {/* Access Badge */}
           {accessInfo.accessType !== 'none' && (
-            <AccessBadge 
+            <AccessBadge
               accessType={accessInfo.accessType}
               unlockedPercent={accessInfo.unlockedPercent}
               expiryDate={accessInfo.giftExpiry || accessInfo.launchFreeExpiry}
@@ -504,14 +500,14 @@ function CourseCard({
           {course.shortDescription}
         </CardDescription>
       </CardHeader>
-      
+
       <CardContent>
         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
           <span className="flex items-center gap-1">
-            <Clock className="h-4 w-4" /> {displayDuration > 0 ? `${displayDuration}h` : 'Self-paced'}
+            <Clock className="h-4 w-4" /> {course.durationHours > 0 ? `${course.durationHours}h` : 'Self-paced'}
           </span>
           <span className="flex items-center gap-1">
-            <BookOpen className="h-4 w-4" /> {displayLessons} sessions
+            <BookOpen className="h-4 w-4" /> {course.totalLessons || '–'} sessions
           </span>
         </div>
         <div className="flex items-center justify-between">
@@ -529,30 +525,25 @@ function CourseCard({
               </>
             ) : (
               <div className="font-bold text-xl text-foreground">
-                ₹{effectivePriceInr.toLocaleString()}
+                {effectivePriceInr > 0 ? `₹${effectivePriceInr.toLocaleString()}` : 'Free'}
               </div>
             )}
           </div>
-          <Button 
-            size="sm" 
+          <Button
+            size="sm"
             onClick={ctaContent.action}
             disabled={ctaContent.disabled}
-            className={`transition-all duration-300 hover:scale-105 ${
-              accessInfo.hasAccess ? 'bg-success hover:bg-success/90' : ''
-            }`}
+            className={`transition-all duration-300 hover:scale-105 ${accessInfo.hasAccess ? 'bg-success hover:bg-success/90' : ''}`}
           >
             {ctaContent.disabled && isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <>
-                <ctaContent.icon className="h-4 w-4 mr-1" />
-                {accessInfo.hasAccess ? 'Continue' : 'Buy'}
-              </>
+              <><ctaContent.icon className="h-4 w-4 mr-1" />{accessInfo.hasAccess ? 'Continue' : 'Buy'}</>
             )}
           </Button>
         </div>
       </CardContent>
-      
+
       <PhoneNumberDialog
         open={showPhoneDialog}
         onOpenChange={setShowPhoneDialog}
