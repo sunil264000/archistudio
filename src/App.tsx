@@ -212,6 +212,7 @@ function AnimatedRoutes() {
           <Route path="/auth" element={<Auth />} />
           <Route path="/courses" element={<Courses />} />
           <Route path="/course/:slug" element={<CourseDetail />} />
+          <Route path="/courses/:slug" element={<CourseDetail />} />
           <Route path="/learn/:slug" element={<CoursePlayer />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/admin" element={<Admin />} />

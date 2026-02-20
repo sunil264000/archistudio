@@ -279,8 +279,56 @@ export default function CourseDetail() {
 
   if (dbCourseLoading && !staticCourse) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="pt-20 pb-16">
+          {/* Hero skeleton */}
+          <div className="bg-secondary/30 py-12 px-4">
+            <div className="container mx-auto max-w-6xl">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-4">
+                  <div className="h-4 w-24 rounded-full bg-muted animate-pulse" />
+                  <div className="h-9 w-3/4 rounded-xl bg-muted animate-pulse" />
+                  <div className="h-9 w-1/2 rounded-xl bg-muted animate-pulse" />
+                  <div className="h-4 w-full rounded-full bg-muted animate-pulse" />
+                  <div className="h-4 w-5/6 rounded-full bg-muted animate-pulse" />
+                  <div className="flex gap-4 pt-2">
+                    <div className="h-6 w-20 rounded-full bg-muted animate-pulse" />
+                    <div className="h-6 w-24 rounded-full bg-muted animate-pulse" />
+                    <div className="h-6 w-20 rounded-full bg-muted animate-pulse" />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="aspect-video rounded-2xl bg-muted animate-pulse" />
+                  <div className="h-12 w-full rounded-xl bg-muted animate-pulse" />
+                  <div className="h-12 w-full rounded-xl bg-muted/60 animate-pulse" />
+                  <div className="space-y-2 pt-2">
+                    {[1,2,3,4].map(i => (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className="h-4 w-4 rounded-full bg-muted animate-pulse" />
+                        <div className="h-4 flex-1 rounded-full bg-muted animate-pulse" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Curriculum skeleton */}
+          <div className="container mx-auto max-w-6xl px-4 py-10 space-y-3">
+            <div className="h-7 w-48 rounded-xl bg-muted animate-pulse mb-6" />
+            {[1,2,3,4,5].map(i => (
+              <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-muted/30 animate-pulse">
+                <div className="h-8 w-8 rounded-lg bg-muted" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-1/2 rounded-full bg-muted" />
+                  <div className="h-3 w-1/4 rounded-full bg-muted" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <Footer />
       </div>
     );
   }
