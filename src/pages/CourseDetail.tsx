@@ -218,14 +218,16 @@ export default function CourseDetail() {
     }
   }, [slug]);
 
-  // Track studio view in analytics
+  const course = courses.find(c => c.slug === slug);
+  
+
+  // Track studio view in analytics — fires once when course data is available
   useEffect(() => {
     if (slug && course) {
       analytics.viewStudio(slug, course.title, effectivePriceInr);
     }
-  }, [slug]);
-
-  const course = courses.find(c => c.slug === slug);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, course?.slug]);
 
   if (!course) {
     return (

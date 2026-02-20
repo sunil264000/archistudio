@@ -5,7 +5,9 @@ import { useSaleDiscount } from '@/hooks/useSaleDiscount';
 
 export function SaleBanner() {
   const { isActive, discountPercent, endTime, title, loading } = useSaleDiscount();
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    return sessionStorage.getItem('sale_banner_dismissed') === 'true';
+  });
   const [timeLeft, setTimeLeft] = useState('');
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export function SaleBanner() {
           <Link to="/courses" className="hidden sm:block text-xs font-medium underline underline-offset-2 hover:opacity-80">
             Shop Now →
           </Link>
-          <button onClick={() => setDismissed(true)} className="p-1 hover:opacity-70 transition-opacity">
+          <button onClick={() => { setDismissed(true); sessionStorage.setItem('sale_banner_dismissed', 'true'); }} className="p-1 hover:opacity-70 transition-opacity">
             <X className="h-4 w-4" />
           </button>
         </div>

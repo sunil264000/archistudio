@@ -19,12 +19,14 @@ export default function Auth() {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate('/', { replace: true });
+      const redirect = searchParams.get('redirect') || '/';
+      navigate(redirect, { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, searchParams]);
 
   const handleSuccess = () => {
-    navigate('/', { replace: true });
+    const redirect = searchParams.get('redirect') || '/';
+    navigate(redirect, { replace: true });
   };
 
   if (loading) {

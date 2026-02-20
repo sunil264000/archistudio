@@ -17,7 +17,7 @@ export function DiscountTimerBanner() {
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
-          className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50"
+          className="fixed bottom-24 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-50"
         >
           <div className="bg-card border border-border rounded-xl shadow-2xl p-4 space-y-2">
             <p className="text-sm font-semibold text-foreground">⏰ Your {discountPercent}% discount expired!</p>
@@ -41,7 +41,7 @@ export function DiscountTimerBanner() {
     <motion.div
       initial={{ y: 60, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-72 z-50"
+      className="fixed bottom-24 left-4 right-4 sm:left-auto sm:right-4 sm:w-72 z-50"
     >
       <div
         onClick={() => navigate('/courses')}

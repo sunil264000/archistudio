@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageCircle, X, Send, Loader2, Bot, User, Minimize2, Maximize2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -23,6 +24,7 @@ export function AIChatWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { session } = useAuth();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -45,7 +47,7 @@ export function AIChatWidget() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({ 
           messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content }))
@@ -118,16 +120,17 @@ export function AIChatWidget() {
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50"
+        className="fixed bottom-6 right-24 h-12 w-12 rounded-full shadow-lg z-[9998]"
         size="icon"
+        title="AI Learning Assistant"
       >
-        <MessageCircle className="h-6 w-6" />
+        <MessageCircle className="h-5 w-5" />
       </Button>
     );
   }
 
   return (
-    <Card className={`fixed bottom-6 right-6 shadow-2xl z-50 transition-all duration-200 ${isMinimized ? 'w-72' : 'w-96'}`}>
+    <Card className={`fixed bottom-20 right-4 shadow-2xl z-[9998] transition-all duration-200 ${isMinimized ? 'w-72' : 'w-96'}`}>
       <CardHeader className="p-3 border-b flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Bot className="h-4 w-4 text-primary" />

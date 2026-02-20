@@ -12,7 +12,8 @@ export function WhatsAppButton() {
         .select('value')
         .eq('key', 'whatsapp_number')
         .maybeSingle();
-      if (data?.value) setPhoneNumber(data.value);
+      // Use a fallback number if DB has no entry
+      setPhoneNumber(data?.value || '919999999999');
     };
     fetch();
   }, []);
@@ -27,7 +28,7 @@ export function WhatsAppButton() {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-20 right-4 z-50 flex items-center justify-center w-14 h-14 rounded-full bg-[#25D366] text-white shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-300"
+      className="fixed bottom-6 right-44 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-[#25D366] text-white shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-300"
       aria-label="Chat on WhatsApp"
     >
       <MessageCircle className="h-7 w-7" />
