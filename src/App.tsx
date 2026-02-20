@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -65,33 +65,26 @@ initAnalytics();
 
 const AppContent = () => {
   useContentProtection();
-  useScrollReveal(); // Global scroll-reveal animations
-  useVisitorTracking(); // Track real visitor sessions
+  useScrollReveal();
+  useVisitorTracking();
   const { user } = useAuth();
   const [giftData, setGiftData] = useState<any>(null);
   const [showGiftModal, setShowGiftModal] = useState(false);
+  const giftCheckDone = useRef(false);
 
-  // Check for gift campaigns when user logs in
+  // Check for gift campaigns when user logs in — run only once per user session
   useEffect(() => {
+    if (!user) { giftCheckDone.current = false; return; }
+    if (giftCheckDone.current) return;
+    giftCheckDone.current = true;
+
     const checkGiftCampaign = async () => {
-      if (!user) return;
-
       try {
-        const now = new Date().toISOString();
-
-        // Get active campaigns - check both start and end times properly
         const { data: campaigns, error: campaignError } = await supabase
           .from('login_gift_campaigns')
           .select(`
-            id,
-            name,
-            access_duration_hours,
-            cta_text,
-            custom_messages,
-            eligible_users,
-            random_percent,
-            start_at,
-            end_at,
+            id, name, access_duration_hours, cta_text, custom_messages,
+            eligible_users, random_percent, start_at, end_at,
             login_gift_campaign_courses(
               course_id,
               courses:course_id(id, title, slug, thumbnail_url)
@@ -99,186 +92,95 @@ const AppContent = () => {
           `)
           .eq('is_active', true);
 
-        if (campaignError) {
-          console.error('Error fetching campaigns:', campaignError);
-          return;
-        }
+        if (campaignError || !campaigns?.length) return;
 
-        if (!campaigns || campaigns.length === 0) {
-          console.log('No active gift campaigns found');
-          return;
-        }
-
-        // Filter campaigns that are currently active (between start and end)
         const nowDate = new Date();
         const activeCampaigns = campaigns.filter(c => {
           const startAt = new Date(c.start_at);
           const endAt = new Date(c.end_at);
-          // Handle case where end_at might be before start_at (misconfiguration)
-          if (endAt < startAt) {
-            console.warn(`Campaign "${c.name}" has end_at before start_at`);
-            return nowDate >= startAt; // Just check if started
-          }
+          if (endAt < startAt) return nowDate >= startAt;
           return nowDate >= startAt && nowDate <= endAt;
         });
 
-        if (activeCampaigns.length === 0) {
-          console.log('No campaigns currently in active period');
-          return;
-        }
+        if (!activeCampaigns.length) return;
 
         for (const campaign of activeCampaigns) {
-          // Check if user already claimed this campaign
           const { data: existingClaim } = await supabase
-            .from('login_gift_claims')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('campaign_id', campaign.id)
-            .maybeSingle();
+            .from('login_gift_claims').select('id')
+            .eq('user_id', user.id).eq('campaign_id', campaign.id).maybeSingle();
+          if (existingClaim) continue;
 
-          if (existingClaim) {
-            console.log('User already claimed this campaign');
-            continue;
-          }
-
-          // Check eligibility
           if (campaign.eligible_users === 'new_only') {
             const { data: profile } = await supabase
-              .from('profiles')
-              .select('created_at')
-              .eq('user_id', user.id)
-              .maybeSingle();
-            
-            if (!profile) {
-              console.log('Profile not found yet, will retry');
-              continue;
-            }
-            
+              .from('profiles').select('created_at').eq('user_id', user.id).maybeSingle();
+            if (!profile) continue;
             const createdAt = new Date(profile.created_at || 0);
-            const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-            if (createdAt < oneDayAgo) {
-              console.log('User is not new enough');
-              continue;
-            }
+            if (createdAt < new Date(Date.now() - 24 * 60 * 60 * 1000)) continue;
           }
 
           if (campaign.eligible_users === 'random_percent' && campaign.random_percent) {
-            if (Math.random() * 100 > campaign.random_percent) {
-              console.log('User not selected by random percent');
-              continue;
-            }
+            if (Math.random() * 100 > campaign.random_percent) continue;
           }
 
-          // Get random message
           const messages = campaign.custom_messages as string[] || [];
-          const randomMessage = messages.length > 0 
+          const randomMessage = messages.length > 0
             ? messages[Math.floor(Math.random() * messages.length)]
             : 'Welcome! Enjoy complimentary access to our courses.';
 
-          // Calculate expiry
           const expiresAt = campaign.access_duration_hours
             ? new Date(Date.now() + campaign.access_duration_hours * 60 * 60 * 1000).toISOString()
             : campaign.end_at;
 
-          // Get courses for this campaign
-          const courses = campaign.login_gift_campaign_courses
-            ?.map((cc: any) => cc.courses)
-            .filter(Boolean) || [];
+          const giftCourses = campaign.login_gift_campaign_courses
+            ?.map((cc: any) => cc.courses).filter(Boolean) || [];
+          if (!giftCourses.length) continue;
 
-          if (courses.length === 0) {
-            console.log('No courses linked to this campaign');
-            continue;
-          }
+          const { error: claimError } = await supabase.from('login_gift_claims').insert({
+            user_id: user.id, campaign_id: campaign.id,
+            expires_at: expiresAt, shown_message: randomMessage,
+          }).select().single();
+          if (claimError) continue;
 
-          // Create claim first
-          const { data: claim, error: claimError } = await supabase
-            .from('login_gift_claims')
-            .insert({
-              user_id: user.id,
-              campaign_id: campaign.id,
-              expires_at: expiresAt,
-              shown_message: randomMessage,
-            })
-            .select()
-            .single();
-
-          if (claimError) {
-            console.error('Error creating claim:', claimError);
-            continue;
-          }
-
-          // AUTO-ENROLL: Create enrollments for each course in the gift
           const enrolledCourses: string[] = [];
-          for (const course of courses) {
-            // Check if already enrolled
-            const { data: existingEnrollment } = await supabase
-              .from('enrollments')
-              .select('id')
-              .eq('user_id', user.id)
-              .eq('course_id', course.id)
-              .maybeSingle();
-
-            if (!existingEnrollment) {
-              // Create enrollment with gift expiry
+          for (const course of giftCourses) {
+            const { data: existing } = await supabase.from('enrollments').select('id')
+              .eq('user_id', user.id).eq('course_id', course.id).maybeSingle();
+            if (!existing) {
               await supabase.from('enrollments').insert({
-                user_id: user.id,
-                course_id: course.id,
-                status: 'active',
-                is_manual: true,
-                granted_by: 'gift_campaign',
-                granted_at: new Date().toISOString(),
-                expires_at: expiresAt,
+                user_id: user.id, course_id: course.id, status: 'active',
+                is_manual: true, granted_by: 'gift_campaign',
+                granted_at: new Date().toISOString(), expires_at: expiresAt,
               });
               enrolledCourses.push(course.title);
-              console.log(`Auto-enrolled user in course: ${course.title}`);
             }
           }
 
-          // Get user profile for email
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('email, full_name')
-            .eq('user_id', user.id)
-            .single();
-
-          // Send gift notification email for all courses at once
+          const { data: profile } = await supabase.from('profiles')
+            .select('email, full_name').eq('user_id', user.id).single();
           if (profile?.email && enrolledCourses.length > 0) {
             supabase.functions.invoke('send-enrollment-email', {
               body: {
                 email: profile.email,
                 name: profile.full_name || user.email?.split('@')[0] || 'Student',
-                courseName: enrolledCourses.length === 1 
-                  ? enrolledCourses[0] 
-                  : `${enrolledCourses.length} Gift Courses`,
-                courseSlug: courses[0]?.slug || '',
-                isFree: true,
-                isGift: true,
+                courseName: enrolledCourses.length === 1 ? enrolledCourses[0] : `${enrolledCourses.length} Gift Courses`,
+                courseSlug: giftCourses[0]?.slug || '', isFree: true, isGift: true,
               }
-            }).catch(err => console.error('Gift enrollment email error:', err));
-            console.log('Gift enrollment email sent!');
+            }).catch(console.error);
           }
 
-          // Show the gift modal
-          setGiftData({
-            message: randomMessage,
-            courses,
-            expiresAt,
-            ctaText: campaign.cta_text || 'Start Learning',
-          });
+          setGiftData({ message: randomMessage, courses: giftCourses, expiresAt, ctaText: campaign.cta_text || 'Start Learning' });
           setShowGiftModal(true);
-          console.log('Gift campaign applied successfully!');
-
-          break; // Only process first valid campaign
+          break;
         }
       } catch (error) {
         console.error('Error checking gift campaign:', error);
       }
     };
 
-    // Delay slightly to ensure profile is created first
     const timer = setTimeout(checkGiftCampaign, 1500);
     return () => clearTimeout(timer);
   }, [user]);
+
 
   return (
     <>

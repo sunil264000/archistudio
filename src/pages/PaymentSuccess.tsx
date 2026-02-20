@@ -12,6 +12,7 @@ import { courses } from "@/data/courses";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { analytics } from "@/hooks/useGoogleAnalytics";
+import { useCart } from "@/contexts/CartContext";
 
 const MAX_RETRY_COUNT = 20;
 const REDIRECT_DELAY = 8;
@@ -19,10 +20,12 @@ const REDIRECT_DELAY = 8;
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { removeFromCart } = useCart();
   const orderId = searchParams.get("order_id");
   const courseSlugParam = searchParams.get("course");
   
   const [status, setStatus] = useState<"loading" | "success" | "failed" | "cancelled">("loading");
+  const [showConfetti, setShowConfetti] = useState(false);
   const [courseName, setCourseName] = useState<string>("");
   const [courseSlug, setCourseSlug] = useState<string>("");
   const [paymentDetails, setPaymentDetails] = useState<{
@@ -62,8 +65,10 @@ const PaymentSuccess = () => {
 
         if (payment?.status === "completed") {
           setStatus("success");
+          setShowConfetti(true);
           setCourseName(dbTitle || localTitle || "your course");
-          setCourseSlug(slug || "");
+          const resolvedSlug = slug || "";
+          setCourseSlug(resolvedSlug);
           setPaymentDetails({
             amount: Number(payment.amount) || 0,
             orderId: orderId,
@@ -72,9 +77,12 @@ const PaymentSuccess = () => {
             customerEmail: metadata.customer_email || "",
           });
           
+          // Remove purchased course from cart
+          if (resolvedSlug) removeFromCart(resolvedSlug);
+          
           analytics.purchase(
             orderId,
-            slug || payment.course_id || '',
+            resolvedSlug || payment.course_id || '',
             dbTitle || localTitle || 'Unknown Course',
             Number(payment.amount) || 0
           );
@@ -145,6 +153,24 @@ const PaymentSuccess = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-background/95">
+      {/* Confetti Effect */}
+      {showConfetti && (
+        <div className="fixed inset-0 pointer-events-none z-[9999] overflow-hidden">
+          {Array.from({ length: 60 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-2 h-2 rounded-sm opacity-0"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: '-10px',
+                backgroundColor: ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444', '#ec4899'][i % 6],
+                animation: `confettiFall ${1.5 + Math.random() * 2}s ease-in ${Math.random() * 0.8}s forwards`,
+                transform: `rotate(${Math.random() * 360}deg)`,
+              }}
+            />
+          ))}
+        </div>
+      )}
       <Navbar />
       <main className="flex-1 flex items-center justify-center py-16 px-4">
         <div className="w-full max-w-2xl mx-auto">
@@ -178,8 +204,8 @@ const PaymentSuccess = () => {
                   transition={{ type: "spring", delay: 0.2 }}
                 >
                   <div className="relative inline-block">
-                    <div className="absolute inset-0 bg-green-500/20 rounded-full blur-xl animate-pulse" />
-                    <CheckCircle className="h-20 w-20 text-green-500 relative" />
+                    <div className="absolute inset-0 bg-success/20 rounded-full blur-xl animate-pulse" />
+                    <CheckCircle className="h-20 w-20 text-success relative" />
                   </div>
                 </motion.div>
                 <motion.h1 

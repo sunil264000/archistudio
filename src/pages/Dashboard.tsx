@@ -137,30 +137,30 @@ export default function Dashboard() {
           </div>
 
           <Tabs defaultValue="courses" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6 max-w-2xl overflow-x-auto">
-              <TabsTrigger value="courses" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline sm:inline">Studios</span>
+            <TabsList className="w-full max-w-2xl overflow-x-auto flex">
+              <TabsTrigger value="courses" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+                <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Studios</span>
               </TabsTrigger>
-              <TabsTrigger value="ebooks" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                <Library className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline sm:inline">eBooks</span>
+              <TabsTrigger value="ebooks" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+                <Library className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">eBooks</span>
               </TabsTrigger>
-              <TabsTrigger value="progress" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline sm:inline">Progress</span>
+              <TabsTrigger value="progress" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+                <BarChart3 className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Progress</span>
               </TabsTrigger>
-              <TabsTrigger value="certificates" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                <Award className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline sm:inline">Certs</span>
+              <TabsTrigger value="certificates" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+                <Award className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Certs</span>
               </TabsTrigger>
-              <TabsTrigger value="verify" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline sm:inline">Verify</span>
+              <TabsTrigger value="verify" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+                <Search className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Verify</span>
               </TabsTrigger>
-              <TabsTrigger value="referrals" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
-                <Gift className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline sm:inline">Refer</span>
+              <TabsTrigger value="referrals" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+                <Gift className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Refer</span>
               </TabsTrigger>
             </TabsList>
 

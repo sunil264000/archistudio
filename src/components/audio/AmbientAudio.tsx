@@ -28,7 +28,8 @@ export function AmbientAudio() {
 
         if (error && error.code !== 'PGRST116') throw error;
         
-        let url = data?.value || FALLBACK_AUDIO_URL;
+        // Treat empty string as null and skip to fallback
+        let url = (data?.value && data.value.trim() !== '') ? data.value : FALLBACK_AUDIO_URL;
         
         // Convert YouTube URL to audio if needed
         if (url && (url.includes('youtube.com') || url.includes('youtu.be'))) {
@@ -120,7 +121,7 @@ export function AmbientAudio() {
 
   return (
     <div 
-      className="fixed bottom-6 right-6 z-[9999]"
+      className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end"
       onMouseEnter={() => setShowControls(true)}
       onMouseLeave={() => setShowControls(false)}
     >

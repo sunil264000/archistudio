@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,12 @@ export function CartSheet() {
     discountType: string;
     discountValue: number;
   } | null>(null);
+
+  // Reset coupon when cart items change
+  useEffect(() => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+  }, [items.length]);
 
   // Bundle discount logic
   const getBundleDiscount = (count: number) => {

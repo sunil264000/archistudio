@@ -121,7 +121,7 @@ export function PricingSection() {
               </ul>
 
               {/* CTA */}
-              <Link to="/auth?mode=signup">
+              <Link to="/courses">
                 <Button 
                   className="w-full gap-2" 
                   variant={plan.popular ? 'default' : 'outline'}
