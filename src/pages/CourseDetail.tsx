@@ -181,6 +181,9 @@ export default function CourseDetail() {
   // Fetch database course ID + public meta for correct stats display (even for guests)
   const [dbCourseId, setDbCourseId] = useState<string | null>(null);
   const [dbCourseMeta, setDbCourseMeta] = useState<{ total_lessons: number | null; duration_hours: number | null } | null>(null);
+  // DB-only course fallback (for courses not in local data/courses.ts)
+  const [dbOnlyCourse, setDbOnlyCourse] = useState<import('@/data/courses').Course | null>(null);
+  const [dbCourseLoading, setDbCourseLoading] = useState(true);
   
   // Use access control hook for enrollment/gift/EMI status
   const accessInfo = useAccessControl(user?.id, dbCourseId || undefined);
@@ -205,22 +208,65 @@ export default function CourseDetail() {
 
   useEffect(() => {
     if (slug) {
+      setDbCourseLoading(true);
       supabase
         .from('courses')
-        .select('id, total_lessons, duration_hours')
+        .select('id, title, slug, description, short_description, level, duration_hours, total_lessons, price_inr, price_usd, thumbnail_url, is_featured, is_published')
         .eq('slug', slug)
         .single()
         .then(({ data }) => {
-          setDbCourseId(data?.id || null);
-          setDbCourseMeta({
-            total_lessons: (data as any)?.total_lessons ?? null,
-            duration_hours: (data as any)?.duration_hours ?? null,
-          });
+          if (data) {
+            setDbCourseId(data.id);
+            setDbCourseMeta({
+              total_lessons: data.total_lessons ?? null,
+              duration_hours: data.duration_hours ?? null,
+            });
+            // Build a fallback Course object for DB-only courses
+            const staticCourse = courses.find(c => c.slug === slug);
+            if (!staticCourse) {
+              const categoryImages = {
+                'autocad': 'autocad', 'sketchup': 'sketchup', '3ds-max': '3ds-max',
+                'revit-bim': 'revit-bim', 'corona-vray': 'corona-vray',
+              };
+              const guessCategory = (): string => {
+                const t = (data.title || '').toLowerCase();
+                if (t.includes('autocad')) return 'autocad';
+                if (t.includes('sketchup') || t.includes('sketch')) return 'sketchup';
+                if (t.includes('3ds max') || t.includes('3ds-max')) return '3ds-max';
+                if (t.includes('revit') || t.includes('bim')) return 'revit-bim';
+                if (t.includes('corona') || t.includes('v-ray') || t.includes('vray')) return 'corona-vray';
+                if (t.includes('rhino')) return 'rhino';
+                if (t.includes('lumion') || t.includes('twinmotion') || t.includes('d5')) return 'visualization';
+                return 'fundamentals';
+              };
+              const cat = guessCategory();
+              setDbOnlyCourse({
+                id: data.id,
+                title: data.title,
+                slug: data.slug,
+                shortDescription: data.short_description || data.description || '',
+                description: data.description || data.short_description || '',
+                category: cat,
+                subcategory: cat,
+                level: (data.level as any) || 'beginner',
+                durationHours: data.duration_hours || 0,
+                totalLessons: data.total_lessons || 0,
+                priceInr: data.price_inr || 0,
+                priceUsd: data.price_usd || undefined,
+                thumbnail: data.thumbnail_url || '',
+                isFeatured: data.is_featured || false,
+                isPublished: data.is_published || false,
+                tags: [],
+              });
+            }
+          }
+          setDbCourseLoading(false);
         });
     }
   }, [slug]);
 
-  const course = courses.find(c => c.slug === slug);
+  const staticCourse = courses.find(c => c.slug === slug);
+  const course = staticCourse || dbOnlyCourse;
   
 
   // Track studio view in analytics — fires once when course data is available
@@ -230,6 +276,14 @@ export default function CourseDetail() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug, course?.slug]);
+
+  if (dbCourseLoading && !staticCourse) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+      </div>
+    );
+  }
 
   if (!course) {
     return (
