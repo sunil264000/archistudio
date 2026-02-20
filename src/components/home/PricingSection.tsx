@@ -16,8 +16,9 @@ const plans = [
       'Community forum access',
       'Lifetime access',
     ],
-    cta: 'Choose Studio',
+    cta: 'Browse Studios',
     popular: false,
+    href: '/courses',
   },
   {
     name: 'All Access',
@@ -36,6 +37,7 @@ const plans = [
     ],
     cta: 'Begin Practice',
     popular: true,
+    href: '/courses',
   },
   {
     name: 'Lifetime',
@@ -53,6 +55,7 @@ const plans = [
     ],
     cta: 'Get Lifetime Access',
     popular: false,
+    href: '/courses',
   },
 ];
 
@@ -121,7 +124,7 @@ export function PricingSection() {
               </ul>
 
               {/* CTA */}
-              <Link to="/courses">
+              <Link to={plan.href}>
                 <Button 
                   className="w-full gap-2" 
                   variant={plan.popular ? 'default' : 'outline'}

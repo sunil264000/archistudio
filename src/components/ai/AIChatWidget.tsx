@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { MessageCircle, X, Send, Loader2, Bot, User, Minimize2, Maximize2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -130,7 +131,7 @@ export function AIChatWidget() {
   }
 
   return (
-    <Card className={`fixed bottom-20 right-4 shadow-2xl z-[9998] transition-all duration-200 ${isMinimized ? 'w-72' : 'w-96'}`}>
+    <Card className={`fixed bottom-20 right-4 shadow-2xl z-[9998] transition-all duration-200 ${isMinimized ? 'w-72' : 'w-80 sm:w-96'}`}>
       <CardHeader className="p-3 border-b flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Bot className="h-4 w-4 text-primary" />
@@ -156,23 +157,31 @@ export function AIChatWidget() {
                   className={`flex gap-2 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   {message.role === 'assistant' && (
-                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
                       <Bot className="h-4 w-4 text-primary" />
                     </div>
                   )}
                   <div
-                    className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                    className={`max-w-[82%] rounded-lg px-3 py-2 text-sm ${
                       message.role === 'user'
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted'
                     }`}
                   >
-                    {message.content || (isLoading && message.role === 'assistant' && (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ))}
+                    {message.role === 'assistant' ? (
+                      message.content ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0.5 prose-headings:my-1">
+                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        </div>
+                      ) : isLoading && i === messages.length - 1 ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : null
+                    ) : (
+                      message.content
+                    )}
                   </div>
                   {message.role === 'user' && (
-                    <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center shrink-0">
+                    <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center shrink-0 mt-1">
                       <User className="h-4 w-4 text-primary-foreground" />
                     </div>
                   )}

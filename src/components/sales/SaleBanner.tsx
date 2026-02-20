@@ -43,7 +43,7 @@ export function SaleBanner() {
           <Link to="/courses" className="hidden sm:block text-xs font-medium underline underline-offset-2 hover:opacity-80">
             Shop Now →
           </Link>
-          <button onClick={() => { setDismissed(true); sessionStorage.setItem('sale_banner_dismissed', 'true'); }} className="p-1 hover:opacity-70 transition-opacity">
+          <button onClick={() => { setDismissed(true); sessionStorage.setItem('sale_banner_dismissed', 'true'); }} className="p-1 hover:opacity-70 transition-opacity" aria-label="Dismiss sale banner">
             <X className="h-4 w-4" />
           </button>
         </div>

@@ -75,7 +75,8 @@ export function useExitDiscount(): ExitDiscountState {
         setIsExtended(s.extended);
         setCanExtend(s.canExtend);
 
-        if (!s.active && s.extended && !(data as any).expired) {
+        // Fix stuck timer: if expired (time up) and not yet marked expired in DB, write it now
+        if (!s.active && !(data as any).expired) {
           await timerTable().update({ expired: true }).eq('user_id', user.id);
         }
       }

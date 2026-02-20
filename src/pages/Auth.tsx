@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { EmailAuthForm } from '@/components/auth/EmailAuthForm';
 import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton';
@@ -12,21 +12,26 @@ import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 export default function Auth() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<'login' | 'signup'>(
     searchParams.get('mode') === 'signup' ? 'signup' : 'login'
   );
 
+  // Resolve redirect: ?redirect= param takes priority, then ProtectedRoute state.from, then '/'
+  const getRedirect = () =>
+    searchParams.get('redirect') ||
+    (location.state as any)?.from?.pathname ||
+    '/';
+
   useEffect(() => {
     if (!loading && user) {
-      const redirect = searchParams.get('redirect') || '/';
-      navigate(redirect, { replace: true });
+      navigate(getRedirect(), { replace: true });
     }
   }, [user, loading, navigate, searchParams]);
 
   const handleSuccess = () => {
-    const redirect = searchParams.get('redirect') || '/';
-    navigate(redirect, { replace: true });
+    navigate(getRedirect(), { replace: true });
   };
 
   if (loading) {

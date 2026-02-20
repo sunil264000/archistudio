@@ -16,10 +16,11 @@ export function ExitIntentPopup() {
 
   const shouldShow = useCallback(() => {
     if (!user) return false; // Only for logged-in users
-    if (isActive) return false; // Already has active discount
+    if (loading) return false; // Wait until timer state is known
+    if (isActive) return false; // Already has an active discount timer running
     if (sessionStorage.getItem(EXIT_INTENT_SHOWN_KEY)) return false;
     return true;
-  }, [user, isActive]);
+  }, [user, isActive, loading]);
 
   useEffect(() => {
     if (loading || !shouldShow()) return;
