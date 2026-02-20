@@ -45,6 +45,7 @@ import Terms from "./pages/Terms";
 import EbookBundle from "./pages/EbookBundle";
 import NotFound from "./pages/NotFound";
 import VerifyCertificate from "./pages/VerifyCertificate";
+import BrowseBy from "./pages/BrowseBy";
 
 const queryClient = new QueryClient();
 
@@ -211,6 +212,7 @@ function AnimatedRoutes() {
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/courses" element={<Courses />} />
+          <Route path="/by" element={<BrowseBy />} />
           <Route path="/course/:slug" element={<CourseDetail />} />
           <Route path="/courses/:slug" element={<CourseDetail />} />
           <Route path="/learn/:slug" element={<CoursePlayer />} />

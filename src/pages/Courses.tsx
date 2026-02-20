@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { courses as staticCourses, courseCategories, categoryImages } from '@/data/courses';
@@ -56,7 +56,9 @@ function guessCategory(title: string): string {
 }
 
 export default function Courses() {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const initialCategory = searchParams.get('category');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(initialCategory);
   const [searchQuery, setSearchQuery] = useState('');
   const [allCourses, setAllCourses] = useState<MergedCourse[]>([]);
   const [loading, setLoading] = useState(true);
