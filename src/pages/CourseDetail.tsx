@@ -28,6 +28,7 @@ import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
 import { analytics } from '@/hooks/useGoogleAnalytics';
 import { LinkedEbooksHighlight } from '@/components/course/LinkedEbooksHighlight';
 import { EMIPaymentOptions } from '@/components/course/EMIPaymentOptions';
+import { useExitDiscount } from '@/hooks/useExitDiscount';
 
 // Add to Cart Button Component
 function AddToCartButton({ course }: { course: any }) {
@@ -172,6 +173,7 @@ export default function CourseDetail() {
   const { toast } = useToast();
   const { getThumbnail, getPriceInr } = useDynamicCourseData();
   const { isActive: saleActive, discountPercent, calculateDiscountedPrice } = useSaleDiscount();
+  const { isActive: exitDiscountActive, discountPercent: exitDiscountPercent } = useExitDiscount();
   
   // Fetch real modules from database
   const { modules: dbModules, loading: modulesLoading, totalLessons: dbTotalLessons, totalDuration } = useCourseModules(slug);
@@ -249,6 +251,10 @@ export default function CourseDetail() {
   const category = courseCategories.find(c => c.id === course.category);
 
   const effectivePriceInr = getPriceInr(course.slug, course.priceInr);
+  // Apply exit discount on top of the base price (for Buy Now flow)
+  const buyNowPrice = exitDiscountActive && effectivePriceInr > 0
+    ? Math.round(effectivePriceInr * (1 - exitDiscountPercent / 100))
+    : effectivePriceInr;
 
   const handleBuyNow = async () => {
     if (!user) {
@@ -284,7 +290,7 @@ export default function CourseDetail() {
       // Show phone dialog and store payment data
       setPendingPaymentData({
         courseId: course.slug,
-        amount: effectivePriceInr,
+        amount: buyNowPrice,
         customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
         customerEmail: user.email || '',
         courseTitle: course.title,
@@ -298,7 +304,7 @@ export default function CourseDetail() {
 
     await initiatePayment({
       courseId: course.slug,
-      amount: effectivePriceInr,
+      amount: buyNowPrice,
       customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
       customerEmail: user.email || '',
       customerPhone: customerPhone,

@@ -28,8 +28,9 @@ export function AmbientAudio() {
 
         if (error && error.code !== 'PGRST116') throw error;
         
-        // Treat empty string as null and skip to fallback
-        let url = (data?.value && data.value.trim() !== '') ? data.value : FALLBACK_AUDIO_URL;
+        // Treat empty/missing string as null — skip straight to fallback audio
+        const rawValue = data?.value?.trim();
+        let url = (rawValue && rawValue !== '') ? rawValue : FALLBACK_AUDIO_URL;
         
         // Convert YouTube URL to audio if needed
         if (url && (url.includes('youtube.com') || url.includes('youtu.be'))) {
