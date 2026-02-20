@@ -24,7 +24,7 @@ const defaultSettings: CertificateSettings = {
   logo_url: null,
   background_color: '#ffffff',
   primary_color: '#1a1a2e',
-  accent_color: '#c45a32',
+  accent_color: '#c9a84c',
   font_family: 'Playfair Display',
   institution_name: 'Archistudio',
   institution_tagline: 'Architecture & Design Learning Platform',
@@ -64,9 +64,8 @@ serve(async (req) => {
       border_style: settingsData.border_style || defaultSettings.border_style,
     } : defaultSettings;
 
-    // Handle both GET (query params) and POST (JSON body)
     const url = new URL(req.url);
-    
+
     // Preview mode
     if (url.searchParams.get("preview") === "true") {
       const html = generateCertificateHtml(
@@ -83,13 +82,11 @@ serve(async (req) => {
     let userId: string | undefined;
     let courseId: string | undefined;
 
-    // GET request: read from query params
     if (req.method === "GET") {
       certificateId = url.searchParams.get("certificateId") || undefined;
       userId = url.searchParams.get("userId") || undefined;
       courseId = url.searchParams.get("courseId") || undefined;
     } else {
-      // POST request: read from JSON body
       const body = await req.json();
       certificateId = body.certificateId;
       userId = body.userId;
@@ -154,161 +151,348 @@ serve(async (req) => {
 });
 
 function generateCertificateHtml(
-  s: CertificateSettings, studentName: string, courseName: string,
-  issueDate: string, certNumber: string
+  s: CertificateSettings,
+  studentName: string,
+  courseName: string,
+  issueDate: string,
+  certNumber: string
 ): string {
-  return `<!DOCTYPE html><html><head>
+  const year = new Date().getFullYear();
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
 <meta charset="UTF-8">
-<title>Proof of Completion – ${studentName} – ${courseName}</title>
+<title>Proof of Completion — ${studentName}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Dancing+Script:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400;1,500&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Dancing+Script:wght@600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-@page{size:landscape;margin:0}
-body{font-family:'Inter',sans-serif;background:#3d1c2e;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:30px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+@page { size: 297mm 210mm landscape; margin: 0; }
+html, body {
+  width: 297mm; height: 210mm;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+body {
+  font-family: 'Inter', sans-serif;
+  background: #180a10;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 14px;
+}
 
-.wrap{width:1100px;height:780px;background:#3d1c2e;padding:12px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
-.page{width:100%;height:100%;position:relative;background:#fffdf9;overflow:hidden}
+/* ─── Outer shell ─── */
+.shell {
+  width: 1050px; height: 742px;
+  background: linear-gradient(150deg, #2a0d1e 0%, #180a10 55%, #220d18 100%);
+  padding: 9px;
+  box-shadow: 0 40px 100px rgba(0,0,0,.85), 0 0 0 1px rgba(201,168,76,.2);
+  position: relative;
+}
+/* Corner bracket ornaments */
+.shell::before, .shell::after {
+  content: ''; position: absolute;
+  width: 36px; height: 36px;
+  border-color: rgba(201,168,76,.6); border-style: solid; opacity: .8;
+}
+.shell::before { top: 2px; left: 2px; border-width: 2px 0 0 2px; }
+.shell::after  { bottom: 2px; right: 2px; border-width: 0 2px 2px 0; }
 
-/* Gold double border */
-.gb1{position:absolute;top:5px;left:5px;right:5px;bottom:5px;border:2px solid #c9a84c;pointer-events:none;z-index:3}
-.gb2{position:absolute;top:11px;left:11px;right:11px;bottom:11px;border:1px solid #c9a84c;pointer-events:none;z-index:3}
+/* ─── Inner cream page ─── */
+.page {
+  width: 100%; height: 100%;
+  background: linear-gradient(155deg, #fefcf4 0%, #fff9e8 45%, #fdf6e0 75%, #fefcf4 100%);
+  position: relative; overflow: hidden;
+}
 
-/* Left maroon accent - clean narrow strip with soft curve */
-.lp{position:absolute;left:0;top:0;bottom:0;width:50px;z-index:2;background:linear-gradient(180deg,#6b1d3a,#4a1228,#7a2244)}
-.lc{position:absolute;left:36px;top:0;bottom:0;width:44px;background:#fffdf9;border-radius:38% 0 0 38%/50% 0 0 50%;z-index:2}
+/* Gold hairline frames */
+.f1 { position: absolute; inset: 6px; border: 1.5px solid rgba(201,168,76,.65); pointer-events: none; z-index: 10; }
+.f2 { position: absolute; inset: 12px; border: .5px solid rgba(201,168,76,.35); pointer-events: none; z-index: 10; }
 
-/* Content grid - uses CSS grid for perfect vertical distribution */
-.body{position:absolute;top:0;left:70px;right:0;bottom:0;padding:40px 50px 28px 28px;display:grid;grid-template-rows:auto auto 1fr auto auto;z-index:4}
+/* ─── Maroon left sidebar ─── */
+.sidebar {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 60px;
+  background: linear-gradient(180deg, #4d1230 0%, #2d0b1c 40%, #3d1020 70%, #4d1230 100%);
+  z-index: 6;
+}
+/* Gold edge on sidebar */
+.sidebar::after {
+  content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 1.5px;
+  background: linear-gradient(180deg, transparent, #c9a84c 20%, #e8d48b 50%, #c9a84c 80%, transparent);
+}
+/* Soft scallop masking sidebar into cream */
+.sidebar-curve {
+  position: absolute; left: 52px; top: 0; bottom: 0; width: 24px;
+  background: linear-gradient(155deg, #fefcf4 0%, #fff9e8 45%, #fdf6e0 75%, #fefcf4 100%);
+  clip-path: ellipse(100% 54% at 100% 50%);
+  z-index: 7;
+}
+/* Rotated text label on sidebar */
+.sidebar-text {
+  position: absolute; left: 0; top: 50%; width: 60px;
+  transform: translateY(-50%) rotate(-90deg);
+  font-family: 'Cinzel', serif; font-size: 5.5px; font-weight: 600;
+  color: rgba(201,168,76,.45); letter-spacing: 4px; text-transform: uppercase;
+  text-align: center; white-space: nowrap;
+}
 
-/* Header row */
-.hdr{margin-bottom:0}
-.ttl{font-family:'Playfair Display',serif;font-size:46px;font-weight:900;font-style:italic;color:#2c1810;letter-spacing:2px;line-height:1}
-.sub{font-family:'Playfair Display',serif;font-size:15px;font-weight:400;font-style:italic;color:#6b1d3a;letter-spacing:8px;text-transform:uppercase;margin-top:2px}
+/* ─── Subtle background watermark pattern ─── */
+.bg-pattern {
+  position: absolute; inset: 0; z-index: 1; opacity: .025;
+  background-image:
+    radial-gradient(circle at 20% 50%, #4a1228 0%, transparent 60%),
+    radial-gradient(circle at 80% 50%, #4a1228 0%, transparent 60%);
+}
 
-/* Divider */
-.gd{width:100%;height:1.5px;background:linear-gradient(90deg,#c9a84c,#e8d48b,#c9a84c);margin:16px 0 14px;opacity:0.4}
+/* ─── Main content ─── */
+.main {
+  position: absolute; left: 78px; right: 0; top: 0; bottom: 0;
+  padding: 28px 44px 26px 26px;
+  display: flex; flex-direction: column;
+  z-index: 9;
+}
 
-/* Middle content */
-.mid{display:flex;flex-direction:column;justify-content:center}
-.pre{font-family:'Inter',sans-serif;font-size:9px;color:#8b7355;letter-spacing:6px;text-transform:uppercase;font-weight:500;margin-bottom:8px}
-.name{font-family:'Playfair Display',serif;font-size:46px;font-weight:700;font-style:italic;color:#2c1810;line-height:1.15;margin-bottom:4px}
-.nline{width:320px;height:1.5px;background:linear-gradient(90deg,#c9a84c,#e8d48b,#c9a84c);margin-bottom:16px}
-.dsc{font-family:'Cormorant Garamond',serif;font-size:13.5px;color:#5a4a3a;line-height:1.7;max-width:540px;font-style:italic;margin-bottom:14px}
-.fl{font-family:'Inter',sans-serif;font-size:8.5px;color:#8b7355;letter-spacing:5px;text-transform:uppercase;font-weight:500;margin-bottom:6px}
-.cn{font-family:'Playfair Display',serif;font-size:19px;font-weight:700;font-style:italic;color:#6b1d3a;letter-spacing:1px}
-
-/* Footer */
-.ft{display:flex;justify-content:space-between;align-items:flex-end;padding-right:15px;padding-top:8px}
-
-/* Signature - realistic handwriting style */
-.sb{text-align:center}
-.sh{font-family:'Dancing Script',cursive;font-size:32px;font-weight:700;color:#111;line-height:1;display:inline-block;transform:rotate(-2deg) skewX(-3deg);margin-bottom:2px}
-.sl{width:180px;height:1px;background:#2c1810;margin:4px auto 5px}
-.sn{font-family:'Inter',sans-serif;font-size:9.5px;font-weight:700;color:#2c1810;letter-spacing:1.5px}
-.sr{font-family:'Inter',sans-serif;font-size:7px;color:#8b7355;letter-spacing:3px;text-transform:uppercase;margin-top:2px}
-
-/* Date */
-.db{text-align:center}
-.dl{width:150px;height:1px;background:#2c1810;margin:0 auto 5px}
-.dlb{font-family:'Inter',sans-serif;font-size:8.5px;font-weight:700;color:#2c1810;letter-spacing:4px;text-transform:uppercase;margin-bottom:4px}
-.dv{font-family:'Inter',sans-serif;font-size:11.5px;color:#5a4a3a}
-
-/* Verify */
-.vf{font-family:'Inter',sans-serif;font-size:6px;color:#8b735520;text-align:center;margin-top:10px;letter-spacing:1.5px}
+/* ─── Header row ─── */
+.header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+}
+.header-text { flex: 1; }
+.institution {
+  font-family: 'Cinzel', serif; font-size: 9.5px; font-weight: 600;
+  color: #6b1d3a; letter-spacing: 5.5px; text-transform: uppercase; margin-bottom: 4px;
+}
+.cert-title {
+  font-family: 'Cinzel', serif; font-size: 34px; font-weight: 700;
+  color: #180810; letter-spacing: 4px; line-height: 1;
+  text-shadow: 0 1px 2px rgba(0,0,0,.07);
+}
+.cert-of {
+  font-family: 'Cormorant Garamond', serif; font-size: 13px; font-weight: 300;
+  font-style: italic; color: #6b1d3a; letter-spacing: 8px; text-transform: uppercase; margin-top: 2px;
+}
 
 /* Badge */
-.bdg{position:absolute;top:32px;right:42px;width:95px;height:95px;z-index:5}
-.bo2{width:95px;height:95px;border-radius:50%;background:conic-gradient(from 0deg,#dbb84d,#c9a84c,#a67c30,#e8d48b,#c9a84c,#a67c30,#dbb84d);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(166,124,48,0.3),inset 0 1px 2px rgba(255,255,255,0.3)}
-.bm{width:82px;height:82px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center}
-.bn{width:68px;height:68px;border-radius:50%;background:linear-gradient(145deg,#6b1d3a,#4a1228);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:inset 0 2px 5px rgba(0,0,0,0.3)}
-.by{font-family:'Playfair Display',serif;font-size:17px;font-weight:900;color:#e8d48b;letter-spacing:2px}
-.bt{font-family:'Inter',sans-serif;font-size:6px;font-weight:700;color:#c9a84c;letter-spacing:3px;text-transform:uppercase;margin-top:1px}
-.rb{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);width:56px;height:22px}
-.r1,.r2{position:absolute;bottom:0;width:22px;height:22px}
-.r1{left:3px;background:linear-gradient(135deg,#dbb84d,#a67c30);clip-path:polygon(0 0,100% 0,55% 100%,0 60%)}
-.r2{right:3px;background:linear-gradient(135deg,#dbb84d,#a67c30);clip-path:polygon(0 0,100% 0,100% 60%,45% 100%)}
+.badge-col { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; margin-top: -2px; }
+.badge-ring {
+  width: 88px; height: 88px; border-radius: 50%;
+  background: conic-gradient(from 0deg, #c9a84c, #e8d48b, #a67c30, #dbb84d, #c9a84c, #f0e09a, #a67c30, #c9a84c);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 22px rgba(166,124,48,.4), inset 0 1px 3px rgba(255,255,255,.35);
+}
+.badge-inner {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: linear-gradient(145deg, #5a1630 0%, #2d0b1c 60%, #4a1228 100%);
+  border: 1.5px solid rgba(255,255,255,.1);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,.5);
+}
+.badge-year { font-family: 'Cinzel', serif; font-size: 15px; font-weight: 700; color: #e8d48b; letter-spacing: 1px; line-height: 1; }
+.badge-label { font-family: 'Inter', sans-serif; font-size: 5px; font-weight: 600; color: #c9a84c; letter-spacing: 2.5px; text-transform: uppercase; margin-top: 2px; }
+.ribbon { display: flex; justify-content: center; gap: 7px; margin-top: 2px; }
+.ribbon-l { width: 19px; height: 17px; background: linear-gradient(135deg, #e8d48b, #a67c30); clip-path: polygon(0 0, 100% 0, 58% 100%, 0 62%); }
+.ribbon-r { width: 19px; height: 17px; background: linear-gradient(135deg, #e8d48b, #a67c30); clip-path: polygon(0 0, 100% 0, 100% 62%, 42% 100%); }
 
-/* Wax seal */
-.ws{position:absolute;bottom:42px;right:42px;width:50px;height:50px;z-index:5}
-.wo{width:50px;height:50px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#8b2020,#6b1515,#4a0e0e);box-shadow:0 2px 8px rgba(0,0,0,0.25),inset 0 1px 2px rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;transform:rotate(-10deg)}
-.wi{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;align-items:center;justify-content:center}
-.ws2{font-size:10px;color:rgba(255,255,255,0.35)}
-.wt{font-size:4px;font-weight:700;color:rgba(255,255,255,0.3);letter-spacing:1.5px;text-transform:uppercase}
+/* ─── Gold rule ─── */
+.rule {
+  height: 1px; margin: 9px 0 11px;
+  background: linear-gradient(90deg, transparent 0%, #c9a84c 15%, #e8d48b 50%, #c9a84c 85%, transparent 100%);
+  opacity: .55;
+}
 
-.cid{position:absolute;bottom:12px;left:80px;font-family:'Inter',sans-serif;font-size:6.5px;color:#8b735518;letter-spacing:2px}
+/* ─── Presented-to ─── */
+.presented {
+  font-family: 'Cormorant Garamond', serif; font-size: 10px; font-weight: 300;
+  color: #9b8560; letter-spacing: 5px; text-transform: uppercase;
+  text-align: center; margin-bottom: 5px;
+}
 
-@media print{body{background:#fff;padding:0}.wrap{box-shadow:none;padding:0;width:100%;height:100%}.page{height:100%}}
-</style></head>
+/* ─── Student name ─── */
+.name-wrap { text-align: center; margin-bottom: 4px; line-height: 1; }
+.name {
+  font-family: 'Playfair Display', serif; font-size: 54px; font-weight: 700;
+  font-style: italic; color: #180810; line-height: 1.05;
+  text-shadow: 0 2px 6px rgba(0,0,0,.06);
+  display: inline-block;
+}
+.name-rule {
+  width: 360px; height: 1.5px; margin: 6px auto 11px;
+  background: linear-gradient(90deg, transparent, #c9a84c 25%, #e8d48b 50%, #c9a84c 75%, transparent);
+}
+
+/* ─── Body copy ─── */
+.body-copy {
+  font-family: 'Cormorant Garamond', serif; font-size: 13.5px; font-weight: 400;
+  font-style: italic; color: #4a3a2a; line-height: 1.8;
+  text-align: center; max-width: 560px; margin: 0 auto 11px;
+}
+
+/* ─── Course ─── */
+.course-label {
+  font-family: 'Inter', sans-serif; font-size: 7px; font-weight: 600;
+  color: #9b8560; letter-spacing: 5px; text-transform: uppercase;
+  text-align: center; margin-bottom: 3px;
+}
+.course-name {
+  font-family: 'Playfair Display', serif; font-size: 19px; font-weight: 700;
+  font-style: italic; color: #4a1228; letter-spacing: .5px;
+  text-align: center; line-height: 1.25;
+}
+
+/* ─── Footer ─── */
+.footer {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  margin-top: auto; padding-top: 14px;
+  border-top: .75px solid rgba(201,168,76,.28);
+}
+
+/* Signature */
+.sig-block { text-align: center; min-width: 155px; }
+.sig-script {
+  font-family: 'Dancing Script', cursive; font-size: 29px; font-weight: 700;
+  color: #180810; line-height: 1; display: inline-block;
+  transform: rotate(-2.5deg) skewX(-4deg); margin-bottom: 0;
+}
+.sig-line { width: 155px; height: .75px; background: #2c1810; margin: 4px auto; }
+.sig-name { font-family: 'Cinzel', serif; font-size: 7.5px; font-weight: 600; color: #180810; letter-spacing: 1.5px; }
+.sig-role { font-family: 'Inter', sans-serif; font-size: 6px; color: #9b8560; letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+
+/* Center: cert no. */
+.cert-center { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.cert-no-lbl { font-family: 'Inter', sans-serif; font-size: 6px; color: #9b8560; letter-spacing: 4px; text-transform: uppercase; }
+.cert-no { font-family: 'Cinzel', serif; font-size: 8.5px; font-weight: 600; color: #4a1228; letter-spacing: 2px; }
+.verify-lnk { font-family: 'Inter', sans-serif; font-size: 5.5px; color: #b0986e; letter-spacing: .8px; margin-top: 4px; opacity: .7; }
+
+/* Wax seal + date */
+.date-block { text-align: center; min-width: 155px; display: flex; flex-direction: column; align-items: center; }
+.seal {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #b03030, #6b1515, #3d0c0c);
+  box-shadow: 0 4px 14px rgba(0,0,0,.35), inset 0 1px 3px rgba(255,255,255,.12);
+  display: flex; align-items: center; justify-content: center;
+  transform: rotate(-7deg); margin-bottom: 5px;
+}
+.seal-inner {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: .75px solid rgba(255,255,255,.15);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.seal-star { font-size: 11px; color: rgba(255,255,255,.4); line-height: 1; }
+.seal-word { font-family: 'Inter', sans-serif; font-size: 4.5px; font-weight: 700; color: rgba(255,255,255,.28); letter-spacing: 2px; text-transform: uppercase; }
+.date-line { width: 130px; height: .75px; background: #2c1810; margin-bottom: 3px; }
+.date-label { font-family: 'Cinzel', serif; font-size: 7px; font-weight: 600; color: #180810; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 2px; }
+.date-val { font-family: 'Cormorant Garamond', serif; font-size: 12px; font-style: italic; color: #4a3a2a; }
+
+@media print {
+  body { background: transparent; padding: 0; }
+  .shell { box-shadow: none; padding: 0; }
+  .page {
+    background: linear-gradient(155deg, #fefcf4 0%, #fff9e8 45%, #fdf6e0 75%, #fefcf4 100%);
+  }
+}
+</style>
+</head>
 <body>
-<div class="wrap">
+<div class="shell">
   <div class="page">
-    <div class="gb1"></div>
-    <div class="gb2"></div>
-    <div class="lp"></div>
-    <div class="lc"></div>
+    <!-- Frame hairlines -->
+    <div class="f1"></div>
+    <div class="f2"></div>
 
-    <!-- Badge -->
-    <div class="bdg">
-      <div class="bo2"><div class="bm"><div class="bn">
-        <span class="by">${new Date().getFullYear()}</span>
-        <span class="bt">Award</span>
-      </div></div></div>
-      <div class="rb"><div class="r1"></div><div class="r2"></div></div>
+    <!-- Background warmth -->
+    <div class="bg-pattern"></div>
+
+    <!-- Left sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-text">${s.institution_name}&nbsp;&nbsp;✦&nbsp;&nbsp;Proof of Completion</div>
     </div>
+    <div class="sidebar-curve"></div>
 
-    <!-- Content -->
-    <div class="body">
-      <div class="hdr">
-        ${s.logo_url ? `<img src="${s.logo_url}" alt="Logo" style="max-height:30px;margin-bottom:6px;display:block" />` : ''}
-        <div class="ttl">CERTIFICATE</div>
-        <div class="sub">of Achievement</div>
-      </div>
+    <!-- Main content -->
+    <div class="main">
 
-      <div class="gd"></div>
-
-      <div class="mid">
-        <p class="pre">This certificate is proudly presented to</p>
-        <div class="name">${studentName}</div>
-        <div class="nline"></div>
-        <p class="dsc">Having demonstrated exceptional dedication, discipline, and commitment to mastering professional architecture and design skills through the ${s.institution_name} platform.</p>
-        <p class="fl">For successfully completing</p>
-        <p class="cn">${courseName}</p>
-      </div>
-
-      <div class="ft">
-        <div class="sb">
-          <span class="sh">${s.signature_name}</span>
-          <div class="sl"></div>
-          <p class="sn">${s.signature_name}</p>
-          <p class="sr">${s.signature_title}</p>
+      <!-- Header -->
+      <div class="header">
+        <div class="header-text">
+          ${s.logo_url ? `<img src="${s.logo_url}" alt="Logo" style="max-height:24px;margin-bottom:5px;display:block;opacity:.8">` : ''}
+          <div class="institution">${s.institution_name}</div>
+          <div class="cert-title">CERTIFICATE</div>
+          <div class="cert-of">of Completion</div>
         </div>
-        <div class="db">
-          <div class="dl"></div>
-          <p class="dlb">Date</p>
-          <p class="dv">${issueDate}</p>
+        <div class="badge-col">
+          <div class="badge-ring">
+            <div class="badge-inner">
+              <span class="badge-year">${year}</span>
+              <span class="badge-label">Excellence</span>
+            </div>
+          </div>
+          <div class="ribbon">
+            <div class="ribbon-l"></div>
+            <div class="ribbon-r"></div>
+          </div>
         </div>
       </div>
 
-      <p class="vf">Verify at: https://archistudio.shop/verify/${certNumber}</p>
-    </div>
+      <!-- Divider -->
+      <div class="rule"></div>
 
-    <!-- Wax seal -->
-    <div class="ws">
-      <div class="wo"><div class="wi">
-        <span class="ws2">✦</span>
-        <span class="wt">Verified</span>
-      </div></div>
-    </div>
+      <!-- Recipient -->
+      <p class="presented">This Certificate is Proudly Presented to</p>
 
-    <div class="cid">NO. ${certNumber}</div>
+      <div class="name-wrap">
+        <span class="name">${studentName}</span>
+      </div>
+      <div class="name-rule"></div>
+
+      <p class="body-copy">
+        for demonstrating exceptional dedication, discipline, and mastery<br>
+        of professional architecture and design skills through ${s.institution_name}.
+      </p>
+
+      <p class="course-label">For Successfully Completing</p>
+      <p class="course-name">${courseName}</p>
+
+      <!-- Footer -->
+      <div class="footer">
+
+        <!-- Signature -->
+        <div class="sig-block">
+          <div class="sig-script">${s.signature_name}</div>
+          <div class="sig-line"></div>
+          <p class="sig-name">${s.signature_name}</p>
+          <p class="sig-role">${s.signature_title}</p>
+        </div>
+
+        <!-- Certificate number -->
+        <div class="cert-center">
+          <span class="cert-no-lbl">Certificate No.</span>
+          <span class="cert-no">${certNumber}</span>
+          <span class="verify-lnk">archistudio.shop/verify/${certNumber}</span>
+        </div>
+
+        <!-- Wax seal + date -->
+        <div class="date-block">
+          <div class="seal">
+            <div class="seal-inner">
+              <span class="seal-star">✦</span>
+              <span class="seal-word">Verified</span>
+            </div>
+          </div>
+          <div class="date-line"></div>
+          <p class="date-label">Date of Issue</p>
+          <p class="date-val">${issueDate}</p>
+        </div>
+
+      </div>
+    </div>
   </div>
 </div>
+
 <script>
-document.fonts.ready.then(function(){
-  setTimeout(function(){window.print()},800);
+document.fonts.ready.then(function () {
+  setTimeout(function () { window.print(); }, 900);
 });
 </script>
-</body></html>`;
+</body>
+</html>`;
 }
