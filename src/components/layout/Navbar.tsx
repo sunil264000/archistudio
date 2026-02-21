@@ -42,11 +42,12 @@ export function Navbar() {
 
   return (
     <header 
-      className={`sticky top-0 z-50 transition-all duration-300 ${
+      className={`sticky z-50 transition-all duration-300 ${
         scrolled 
           ? 'glass shadow-soft' 
           : 'border-b border-transparent bg-transparent'
       }`}
+      style={{ top: 'var(--sale-banner-height, 0px)' }}
     >
       <nav className="container-wide py-3 flex items-center justify-between">
         {/* Logo */}

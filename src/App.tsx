@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { PurchaseNotification } from "@/components/social-proof/PurchaseNotification";
@@ -226,6 +226,8 @@ function AnimatedRoutes() {
           <Route path="/update-password" element={<UpdatePassword />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Navigate to="/terms" replace />} />
+          <Route path="/about" element={<Navigate to="/contact" replace />} />
           <Route path="/ebooks" element={<EbookBundle />} />
           <Route path="/ebook-payment-success" element={<EbookPaymentSuccess />} />
           <Route path="/ebook-payment-failed" element={<EbookPaymentFailed />} />

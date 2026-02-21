@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -35,8 +37,27 @@ function MarqueeStrip() {
   );
 }
 
+function useLiveStats() {
+  const [stats, setStats] = useState({ courses: '70+', students: '2,000+' });
+  useEffect(() => {
+    Promise.all([
+      supabase.from('courses').select('id', { count: 'exact', head: true }).eq('is_published', true),
+      supabase.from('enrollments').select('user_id', { count: 'exact', head: true }),
+    ]).then(([coursesRes, enrollRes]) => {
+      const c = coursesRes.count || 0;
+      const s = enrollRes.count || 0;
+      if (c > 0) setStats({
+        courses: `${c}+`,
+        students: s > 0 ? `${s.toLocaleString('en-IN')}+` : '2,000+',
+      });
+    });
+  }, []);
+  return stats;
+}
+
 export function HeroSection() {
   const { user } = useAuth();
+  const liveStats = useLiveStats();
   
   return (
     <section className="relative min-h-[100vh] flex items-center overflow-hidden">
@@ -117,8 +138,8 @@ export function HeroSection() {
                   className="flex items-center gap-6 sm:gap-10 justify-center lg:justify-start pt-4"
                 >
                   {[
-                    { value: '70+', label: 'Studio Programs' },
-                    { value: '2,000+', label: 'Students' },
+                    { value: liveStats.courses, label: 'Studio Programs' },
+                    { value: liveStats.students, label: 'Students' },
                     { value: '4.9', label: 'Avg Rating' },
                   ].map((stat) => (
                     <div key={stat.label} className="text-center lg:text-left">

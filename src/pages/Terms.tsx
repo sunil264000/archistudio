@@ -15,7 +15,7 @@ export default function Terms() {
             <section>
               <h2 className="text-2xl font-semibold mb-4">1. Introduction</h2>
               <p className="text-muted-foreground">
-                Welcome to Archistudio ("Company", "we", "our", "us"). These Terms and Conditions govern your use of our website located at archistudio.in and our online courses and services. By accessing or using our services, you agree to be bound by these Terms.
+                Welcome to Archistudio ("Company", "we", "our", "us"). These Terms and Conditions govern your use of our website located at archistudio.shop and our online courses and services. By accessing or using our services, you agree to be bound by these Terms.
               </p>
             </section>
 

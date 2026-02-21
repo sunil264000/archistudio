@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +22,32 @@ export default function Contact() {
     message: ''
   });
   const { toast } = useToast();
+
+  const [contactInfo, setContactInfo] = useState({
+    email1: 'support@archistudio.in',
+    email2: 'info@archistudio.in',
+    phone: '+91 98765 43210',
+    address: 'Archistudio Learning Pvt Ltd\n123 Design District, Koramangala\nBangalore, Karnataka 560034\nIndia',
+  });
+
+  useEffect(() => {
+    supabase
+      .from('site_settings')
+      .select('key, value')
+      .in('key', ['contact_email', 'contact_email_2', 'contact_phone', 'contact_address'])
+      .then(({ data }) => {
+        if (data) {
+          const map: Record<string, string> = {};
+          data.forEach(d => { if (d.value) map[d.key] = d.value; });
+          setContactInfo(prev => ({
+            email1: map.contact_email || prev.email1,
+            email2: map.contact_email_2 || prev.email2,
+            phone: map.contact_phone || prev.phone,
+            address: map.contact_address || prev.address,
+          }));
+        }
+      });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,8 +111,8 @@ export default function Contact() {
                     </div>
                     <div>
                       <h3 className="font-semibold mb-1">Email</h3>
-                      <p className="text-muted-foreground text-sm">support@archistudio.in</p>
-                      <p className="text-muted-foreground text-sm">info@archistudio.in</p>
+                      <p className="text-muted-foreground text-sm">{contactInfo.email1}</p>
+                      <p className="text-muted-foreground text-sm">{contactInfo.email2}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -100,7 +126,7 @@ export default function Contact() {
                     </div>
                     <div>
                       <h3 className="font-semibold mb-1">Phone</h3>
-                      <p className="text-muted-foreground text-sm">+91 98765 43210</p>
+                      <p className="text-muted-foreground text-sm">{contactInfo.phone}</p>
                       <p className="text-muted-foreground text-sm">Mon-Sat, 10AM-6PM IST</p>
                     </div>
                   </div>
@@ -115,11 +141,8 @@ export default function Contact() {
                     </div>
                     <div>
                       <h3 className="font-semibold mb-1">Address</h3>
-                      <p className="text-muted-foreground text-sm">
-                        Archistudio Learning Pvt Ltd<br />
-                        123 Design District, Koramangala<br />
-                        Bangalore, Karnataka 560034<br />
-                        India
+                      <p className="text-muted-foreground text-sm whitespace-pre-line">
+                        {contactInfo.address}
                       </p>
                     </div>
                   </div>

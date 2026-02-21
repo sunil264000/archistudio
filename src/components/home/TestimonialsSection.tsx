@@ -1,11 +1,20 @@
 import { Star, Quote } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   staggerContainerFast,
   fadeInUp
 } from '@/components/animations/AnimatedSection';
 
-const testimonials = [
+interface Testimonial {
+  quote: string;
+  name: string;
+  role: string;
+  rating: number;
+}
+
+const fallbackTestimonials: Testimonial[] = [
   {
     quote: "After two years at a firm, I still felt like I was faking it. This course finally gave me the confidence to lead a project from start to finish.",
     name: "Priya M.",
@@ -32,7 +41,32 @@ const testimonials = [
   },
 ];
 
+function useTestimonials() {
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(fallbackTestimonials);
+  useEffect(() => {
+    supabase
+      .from('reviews')
+      .select('rating, review, profiles:user_id(full_name)')
+      .gte('rating', 4)
+      .not('review', 'is', null)
+      .order('rating', { ascending: false })
+      .limit(4)
+      .then(({ data }) => {
+        if (data && data.length >= 2) {
+          setTestimonials(data.map((r: any) => ({
+            quote: r.review,
+            name: (r.profiles as any)?.full_name || 'Student',
+            role: 'Verified Student',
+            rating: r.rating,
+          })));
+        }
+      });
+  }, []);
+  return testimonials;
+}
+
 export function TestimonialsSection() {
+  const testimonials = useTestimonials();
   return (
     <section className="section-padding relative overflow-hidden">
       <div className="container-wide">

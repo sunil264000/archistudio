@@ -47,40 +47,20 @@ export function PricingSection() {
       href: '/courses',
     },
     {
-      name: 'All Access',
-      description: 'Best value for serious learners',
+      name: 'Full Catalog',
+      description: 'Best value — access everything',
       priceINR: priceRange ? `₹${Math.round(priceRange.max * 0.6).toLocaleString('en-IN')}` : '₹1,999',
       originalPrice: priceRange ? `₹${Math.round(priceRange.max * 1.2).toLocaleString('en-IN')}` : '₹4,999',
-      period: '/year',
+      period: 'bundle',
       features: [
         `Access to ALL ${priceRange?.count || ''} studio programs`,
         'New studios as they release',
-        'Priority support',
-        'AI tutor (50 questions/day)',
+        'Priority support & AI tutor',
         'Downloadable resources',
         'Proof of Completion for each',
-        '1 year access',
       ],
-      cta: 'Begin Practice',
+      cta: 'Explore All Studios',
       popular: true,
-      href: '/courses',
-    },
-    {
-      name: 'Lifetime',
-      description: 'Never pay again',
-      priceINR: priceRange ? `₹${Math.round(priceRange.max * 0.9).toLocaleString('en-IN')}` : '₹2,999',
-      originalPrice: priceRange ? `₹${Math.round(priceRange.max * 2).toLocaleString('en-IN')}` : '₹7,999',
-      period: 'one-time',
-      features: [
-        'Everything in All Access',
-        'Lifetime access',
-        'All future studios included',
-        'AI tutor (unlimited)',
-        '1-on-1 session (1 hour)',
-        'Private community access',
-      ],
-      cta: 'Get Lifetime Access',
-      popular: false,
       href: '/courses',
     },
   ];
@@ -98,7 +78,7 @@ export function PricingSection() {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {plans.map((plan, i) => (
             <div 
               key={i}

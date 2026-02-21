@@ -61,7 +61,7 @@ export function FinalCTASection() {
           </motion.div>
 
           <motion.p variants={fadeInUp} className="text-sm text-background/40">
-            {user ? "Explore 70+ studio programs" : "Free preview sessions available. No credit card required."}
+            {user ? "Explore all studio programs" : "Free preview sessions available. No credit card required."}
           </motion.p>
         </motion.div>
       </div>

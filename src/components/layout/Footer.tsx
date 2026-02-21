@@ -83,13 +83,13 @@ export function Footer() {
               { label: 'Advanced Track', to: '/courses?level=advanced' },
             ]},
             { title: 'Company', links: [
-              { label: 'About Us', to: '/about' },
               { label: 'Blog', to: '/blog' },
               { label: 'Contact', to: '/contact' },
+              { label: 'Sitemap', to: '/sitemap' },
             ]},
             { title: 'Legal', links: [
               { label: 'Terms & Conditions', to: '/terms' },
-              { label: 'Contact Us', to: '/contact' },
+              { label: 'Privacy Policy', to: '/privacy' },
             ]},
           ].map((section) => (
             <div key={section.title}>

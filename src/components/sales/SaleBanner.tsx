@@ -25,6 +25,13 @@ export function SaleBanner() {
     return () => clearInterval(interval);
   }, [endTime]);
 
+  // Set CSS variable for navbar offset
+  useEffect(() => {
+    const show = !loading && isActive && !dismissed;
+    document.documentElement.style.setProperty('--sale-banner-height', show ? '40px' : '0px');
+    return () => { document.documentElement.style.setProperty('--sale-banner-height', '0px'); };
+  }, [loading, isActive, dismissed]);
+
   if (loading || !isActive || dismissed) return null;
 
   return (
