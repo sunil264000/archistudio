@@ -140,7 +140,7 @@ export default function Auth() {
               Terms of Service
             </Link>{' '}
             and{' '}
-            <Link to="/privacy" className="underline hover:text-foreground">
+            <Link to="/terms" className="underline hover:text-foreground">
               Privacy Policy
             </Link>
           </p>
@@ -150,7 +150,7 @@ export default function Auth() {
       {/* Footer */}
       <footer className="border-t border-border py-6">
         <div className="container-wide text-center text-sm text-muted-foreground">
-          <p>© 2024 Archistudio. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Archistudio. All rights reserved.</p>
         </div>
       </footer>
     </div>

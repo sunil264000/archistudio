@@ -140,7 +140,7 @@ export function Navbar() {
             {[
               { to: '/courses', label: 'Studios' },
               { to: '/ebooks', label: 'eBooks' },
-              { to: '/#pricing', label: 'Pricing' },
+              { to: '/blog', label: 'Blog' },
             ].map((link) => (
               <Link 
                 key={link.to}

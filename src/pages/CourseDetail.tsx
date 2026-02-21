@@ -270,12 +270,13 @@ export default function CourseDetail() {
   
 
   // Track studio view in analytics — fires once when course data is available
+  const effectivePriceForAnalytics = course ? getPriceInr(course.slug, course.priceInr) : 0;
   useEffect(() => {
     if (slug && course) {
-      analytics.viewStudio(slug, course.title, effectivePriceInr);
+      analytics.viewStudio(slug, course.title, effectivePriceForAnalytics);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug, course?.slug]);
+  }, [slug, course?.slug, effectivePriceForAnalytics]);
 
   if (dbCourseLoading && !staticCourse) {
     return (
@@ -365,7 +366,7 @@ export default function CourseDetail() {
         description: "Please login to purchase this course",
         variant: "destructive",
       });
-      navigate('/auth');
+      navigate(`/auth?redirect=/course/${course.slug}`);
       return;
     }
 
