@@ -357,7 +357,7 @@ function CourseCard({
   const handleBuyNow = async () => {
     if (!user) {
       toast({ title: 'Login Required', description: 'Please login to purchase this course', variant: 'destructive' });
-      navigate('/auth');
+      navigate(`/auth?redirect=/course/${course.slug}`);
       return;
     }
 

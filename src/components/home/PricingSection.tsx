@@ -1,65 +1,90 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Check, ArrowRight, Sparkles } from 'lucide-react';
+import { Check, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
-const plans = [
-  {
-    name: 'Single Studio',
-    description: 'Perfect for specific skill gaps',
-    priceINR: '₹499',
-    originalPrice: '₹999',
-    period: 'one-time',
-    features: [
-      'Access to one studio of your choice',
-      'All sessions and resources',
-      'Proof of Completion included',
-      'Community forum access',
-      'Lifetime access',
-    ],
-    cta: 'Browse Studios',
-    popular: false,
-    href: '/courses',
-  },
-  {
-    name: 'All Access',
-    description: 'Best value for serious learners',
-    priceINR: '₹1,999',
-    originalPrice: '₹4,999',
-    period: '/year',
-    features: [
-      'Access to ALL studio programs',
-      'New studios as they release',
-      'Priority support',
-      'AI tutor (50 questions/day)',
-      'Downloadable resources',
-      'Proof of Completion for each',
-      '1 year access',
-    ],
-    cta: 'Begin Practice',
-    popular: true,
-    href: '/courses',
-  },
-  {
-    name: 'Lifetime',
-    description: 'Never pay again',
-    priceINR: '₹2,999',
-    originalPrice: '₹7,999',
-    period: 'one-time',
-    features: [
-      'Everything in All Access',
-      'Lifetime access',
-      'All future studios included',
-      'AI tutor (unlimited)',
-      '1-on-1 session (1 hour)',
-      'Private community access',
-    ],
-    cta: 'Get Lifetime Access',
-    popular: false,
-    href: '/courses',
-  },
-];
+function useCoursesPriceRange() {
+  const [range, setRange] = useState<{ min: number; max: number; count: number } | null>(null);
+  useEffect(() => {
+    supabase
+      .from('courses')
+      .select('price_inr')
+      .eq('is_published', true)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const prices = data.map(c => c.price_inr || 0).filter(p => p > 0);
+          if (prices.length > 0) {
+            setRange({ min: Math.min(...prices), max: Math.max(...prices), count: data.length });
+          } else {
+            setRange({ min: 0, max: 0, count: data.length });
+          }
+        }
+      });
+  }, []);
+  return range;
+}
 
 export function PricingSection() {
+  const priceRange = useCoursesPriceRange();
+
+  const plans = [
+    {
+      name: 'Single Studio',
+      description: 'Perfect for specific skill gaps',
+      priceINR: priceRange ? `₹${priceRange.min.toLocaleString('en-IN')}` : '₹499',
+      originalPrice: null as string | null,
+      period: 'one-time',
+      features: [
+        'Access to one studio of your choice',
+        'All sessions and resources',
+        'Proof of Completion included',
+        'Community forum access',
+        'Lifetime access',
+      ],
+      cta: 'Browse Studios',
+      popular: false,
+      href: '/courses',
+    },
+    {
+      name: 'All Access',
+      description: 'Best value for serious learners',
+      priceINR: priceRange ? `₹${Math.round(priceRange.max * 0.6).toLocaleString('en-IN')}` : '₹1,999',
+      originalPrice: priceRange ? `₹${Math.round(priceRange.max * 1.2).toLocaleString('en-IN')}` : '₹4,999',
+      period: '/year',
+      features: [
+        `Access to ALL ${priceRange?.count || ''} studio programs`,
+        'New studios as they release',
+        'Priority support',
+        'AI tutor (50 questions/day)',
+        'Downloadable resources',
+        'Proof of Completion for each',
+        '1 year access',
+      ],
+      cta: 'Begin Practice',
+      popular: true,
+      href: '/courses',
+    },
+    {
+      name: 'Lifetime',
+      description: 'Never pay again',
+      priceINR: priceRange ? `₹${Math.round(priceRange.max * 0.9).toLocaleString('en-IN')}` : '₹2,999',
+      originalPrice: priceRange ? `₹${Math.round(priceRange.max * 2).toLocaleString('en-IN')}` : '₹7,999',
+      period: 'one-time',
+      features: [
+        'Everything in All Access',
+        'Lifetime access',
+        'All future studios included',
+        'AI tutor (unlimited)',
+        '1-on-1 session (1 hour)',
+        'Private community access',
+      ],
+      cta: 'Get Lifetime Access',
+      popular: false,
+      href: '/courses',
+    },
+  ];
+
   return (
     <section id="pricing" className="section-padding bg-secondary/20">
       <div className="container-wide">

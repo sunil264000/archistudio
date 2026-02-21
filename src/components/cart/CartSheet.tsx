@@ -126,9 +126,10 @@ export function CartSheet() {
         courseTitle: item.title,
       });
     } else {
+      // Multi-course: navigate to the first course detail page for individual checkout
       toast({
-        title: 'Multi-Course Checkout',
-        description: 'Please purchase courses individually for now. We\'re working on multi-course checkout!',
+        title: 'One at a time',
+        description: `Purchasing "${items[0].title}" first. You can check out the rest after.`,
       });
       navigate(`/course/${items[0].slug}`);
     }
