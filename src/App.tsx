@@ -10,7 +10,7 @@ import { PurchaseNotification } from "@/components/social-proof/PurchaseNotifica
 import { FestivalDecorations } from "@/components/festival/FestivalDecorations";
 import { SalesPopup } from "@/components/sales/SalesPopup";
 import { SaleBanner } from "@/components/sales/SaleBanner";
-import { WhatsAppButton } from "@/components/sales/WhatsAppButton";
+
 import { ExitIntentPopup } from "@/components/sales/ExitIntentPopup";
 import { DiscountTimerBanner } from "@/components/sales/DiscountTimerBanner";
 import { AmbientAudio } from "@/components/audio/AmbientAudio";
@@ -253,7 +253,7 @@ const App = () => (
               <PurchaseNotification />
               <SaleBanner />
               <SalesPopup />
-              <WhatsAppButton />
+              
               <ExitIntentPopup />
               <DiscountTimerBanner />
               <AmbientAudio />
