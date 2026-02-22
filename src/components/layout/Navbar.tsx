@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Library } from 'lucide-react';
+import logoMark from '@/assets/logo-mark.png';
 import { useState, useEffect } from 'react';
 import { CartSheet } from '@/components/cart/CartSheet';
 
@@ -52,9 +53,7 @@ export function Navbar() {
       <nav className="container-wide py-3 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="group flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shadow-[0_0_16px_hsl(var(--accent)/0.2)]">
-            <span className="text-accent-foreground font-bold text-sm">A</span>
-          </div>
+          <img src={logoMark} alt="Archistudio" className="h-9 w-9 rounded-xl object-cover shadow-[0_0_16px_hsl(var(--accent)/0.2)]" />
           <span className="font-display font-bold text-lg tracking-tight text-foreground">
             Archistudio
           </span>

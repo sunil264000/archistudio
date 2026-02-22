@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Instagram, Facebook, Twitter, Youtube, Linkedin, ArrowUpRight } from 'lucide-react';
+import logoMark from '@/assets/logo-mark.png';
 
 
 interface SocialLinks {
@@ -52,7 +53,10 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-12 mb-12 motion-stagger">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1 space-y-5">
-            <div className="font-display font-bold text-lg text-foreground">Archistudio</div>
+            <div className="flex items-center gap-2.5">
+              <img src={logoMark} alt="Archistudio" className="h-8 w-8 rounded-lg object-cover" />
+              <span className="font-display font-bold text-lg text-foreground">Archistudio</span>
+            </div>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
               Practical architecture education for the real world. Built by architects, for architects.
             </p>
