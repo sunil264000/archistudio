@@ -17,12 +17,15 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}))
     const limit = body.limit || 10
+    const forceRefresh = body.forceRefresh || false
 
-    const { data: ebooks, error } = await supabase
-      .from('ebooks')
-      .select('id, title')
-      .is('cover_image_url', null)
-      .limit(limit)
+    const query = supabase.from('ebooks').select('id, title')
+    
+    if (!forceRefresh) {
+      query.is('cover_image_url', null)
+    }
+    
+    const { data: ebooks, error } = await query.limit(limit)
 
     if (error) throw error
     if (!ebooks || ebooks.length === 0) {
@@ -31,14 +34,14 @@ Deno.serve(async (req) => {
       })
     }
 
-    console.log(`Found ${ebooks.length} ebooks without covers`)
+    console.log(`Found ${ebooks.length} ebooks to process`)
 
     let updated = 0
-    const results: { id: string; title: string; coverUrl: string | null; error?: string }[] = []
+    const results: { id: string; title: string; coverUrl: string | null; source?: string; error?: string }[] = []
 
     for (const ebook of ebooks) {
       try {
-        // Clean up title for better search results
+        // Clean up title for better search
         const searchTitle = ebook.title
           .replace(/\+/g, ' ')
           .replace(/\s+/g, ' ')
@@ -47,51 +50,76 @@ Deno.serve(async (req) => {
           .replace(/preview\s*\d*/i, '')
           .replace(/v\d+/i, '')
           .replace(/vol\s*\d+/i, '')
+          .replace(/THE\s+/g, '')
+          .replace(/by\s+\w+\s*$/i, '')
           .trim()
 
         console.log(`Searching for: "${searchTitle}"`)
 
-        // Search Google Books API (no API key required for basic search)
-        const query = encodeURIComponent(searchTitle)
-        const response = await fetch(
-          `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=3&printType=books`
-        )
-
-        if (!response.ok) {
-          console.error(`Google Books API error for "${searchTitle}": ${response.status}`)
-          results.push({ id: ebook.id, title: ebook.title, coverUrl: null, error: `API error: ${response.status}` })
-          continue
-        }
-
-        const data = await response.json()
-
-        // Find best cover image
         let coverUrl: string | null = null
+        let source = ''
 
-        if (data.items && data.items.length > 0) {
-          for (const item of data.items) {
-            const imageLinks = item.volumeInfo?.imageLinks
-            if (imageLinks) {
-              // Prefer higher quality: extraLarge > large > medium > thumbnail
-              coverUrl = imageLinks.extraLarge || imageLinks.large || imageLinks.medium || imageLinks.thumbnail || null
-              
-              if (coverUrl) {
-                // Replace http with https and request higher zoom
-                coverUrl = coverUrl.replace('http://', 'https://')
-                // Remove edge=curl parameter for cleaner image
-                coverUrl = coverUrl.replace('&edge=curl', '')
-                // Try to get higher quality by adjusting zoom
-                if (coverUrl.includes('zoom=1')) {
-                  coverUrl = coverUrl.replace('zoom=1', 'zoom=2')
+        // Strategy 1: Open Library (higher quality covers)
+        try {
+          const olQuery = encodeURIComponent(searchTitle)
+          const olResponse = await fetch(
+            `https://openlibrary.org/search.json?q=${olQuery}&limit=3&fields=key,title,cover_i`
+          )
+          if (olResponse.ok) {
+            const olData = await olResponse.json()
+            if (olData.docs) {
+              for (const doc of olData.docs) {
+                if (doc.cover_i) {
+                  // Open Library provides high-quality covers: S, M, L sizes
+                  coverUrl = `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`
+                  source = 'openlibrary'
+                  break
                 }
-                break
               }
             }
+          }
+        } catch (e) {
+          console.log(`Open Library failed for "${searchTitle}":`, e)
+        }
+
+        // Strategy 2: Google Books API (fallback)
+        if (!coverUrl) {
+          try {
+            const query = encodeURIComponent(searchTitle)
+            const response = await fetch(
+              `https://www.googleapis.com/books/v1/volumes?q=${query}&maxResults=3&printType=books`
+            )
+            if (response.ok) {
+              const data = await response.json()
+              if (data.items) {
+                for (const item of data.items) {
+                  const imageLinks = item.volumeInfo?.imageLinks
+                  if (imageLinks) {
+                    // Build highest quality URL
+                    const baseUrl = imageLinks.thumbnail || imageLinks.smallThumbnail
+                    if (baseUrl) {
+                      coverUrl = baseUrl
+                        .replace('http://', 'https://')
+                        .replace('&edge=curl', '')
+                        .replace(/zoom=\d/, 'zoom=3')
+                        .replace(/&w=\d+/, '')
+                      // If no zoom param, add it
+                      if (!coverUrl.includes('zoom=')) {
+                        coverUrl += '&zoom=3'
+                      }
+                      source = 'google_books'
+                      break
+                    }
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            console.log(`Google Books failed for "${searchTitle}":`, e)
           }
         }
 
         if (coverUrl) {
-          // Update the ebook record
           const { error: updateError } = await supabase
             .from('ebooks')
             .update({ cover_image_url: coverUrl })
@@ -99,19 +127,18 @@ Deno.serve(async (req) => {
 
           if (updateError) {
             console.error(`Failed to update ebook ${ebook.id}:`, updateError)
-            results.push({ id: ebook.id, title: ebook.title, coverUrl, error: updateError.message })
+            results.push({ id: ebook.id, title: ebook.title, coverUrl, source, error: updateError.message })
           } else {
             updated++
-            console.log(`✓ Updated cover for: "${ebook.title}"`)
-            results.push({ id: ebook.id, title: ebook.title, coverUrl })
+            console.log(`✓ Updated cover for: "${ebook.title}" (${source})`)
+            results.push({ id: ebook.id, title: ebook.title, coverUrl, source })
           }
         } else {
           console.log(`✗ No cover found for: "${ebook.title}"`)
           results.push({ id: ebook.id, title: ebook.title, coverUrl: null, error: 'No cover found' })
         }
 
-        // Small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 200))
+        await new Promise(resolve => setTimeout(resolve, 300))
       } catch (err) {
         console.error(`Error processing ebook "${ebook.title}":`, err)
         results.push({ id: ebook.id, title: ebook.title, coverUrl: null, error: String(err) })
