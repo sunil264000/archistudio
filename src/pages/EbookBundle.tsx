@@ -15,17 +15,17 @@ import {
   Leaf,
   History,
   X,
-  Plus,
-  Minus,
   Gift,
   Loader2,
   CheckCircle2,
-  Eye
+  Eye,
+  ArrowRight,
+  BookMarked,
+  Layers
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -64,14 +64,16 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'History & Reference': <History className="h-5 w-5" />,
 };
 
-const categoryColors: Record<string, string> = {
-  'Fundamentals of Design': 'from-blue-500/20 to-blue-600/10 border-blue-500/30',
-  'Construction & Detailing': 'from-orange-500/20 to-orange-600/10 border-orange-500/30',
-  'Drawing & Representation': 'from-purple-500/20 to-purple-600/10 border-purple-500/30',
-  'Specialized Buildings & Interiors': 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30',
-  'Sustainable Design': 'from-green-500/20 to-green-600/10 border-green-500/30',
-  'History & Reference': 'from-amber-500/20 to-amber-600/10 border-amber-500/30',
+const categoryAccents: Record<string, { bg: string; border: string; text: string; glow: string }> = {
+  'Fundamentals of Design': { bg: 'bg-blue-500/8', border: 'border-blue-500/20', text: 'text-blue-400', glow: 'shadow-blue-500/5' },
+  'Construction & Detailing': { bg: 'bg-orange-500/8', border: 'border-orange-500/20', text: 'text-orange-400', glow: 'shadow-orange-500/5' },
+  'Drawing & Representation': { bg: 'bg-purple-500/8', border: 'border-purple-500/20', text: 'text-purple-400', glow: 'shadow-purple-500/5' },
+  'Specialized Buildings & Interiors': { bg: 'bg-emerald-500/8', border: 'border-emerald-500/20', text: 'text-emerald-400', glow: 'shadow-emerald-500/5' },
+  'Sustainable Design': { bg: 'bg-green-500/8', border: 'border-green-500/20', text: 'text-green-400', glow: 'shadow-green-500/5' },
+  'History & Reference': { bg: 'bg-amber-500/8', border: 'border-amber-500/20', text: 'text-amber-400', glow: 'shadow-amber-500/5' },
 };
+
+const defaultAccent = { bg: 'bg-primary/8', border: 'border-primary/20', text: 'text-primary', glow: 'shadow-primary/5' };
 
 export default function EbookBundle() {
   const navigate = useNavigate();
@@ -93,9 +95,7 @@ export default function EbookBundle() {
     setViewerOpen(true);
   };
 
-  // Handle purchase request from PDF viewer - auto-select book and scroll to cart
   const handlePurchaseFromViewer = (ebookId: string, ebookTitle: string) => {
-    // Add this book to selection if not already selected
     if (!ownedEbookIds.has(ebookId)) {
       setSelectedBooks(prev => {
         const newSet = new Set(prev);
@@ -108,7 +108,6 @@ export default function EbookBundle() {
         description: `"${ebookTitle}" has been added. Complete your purchase below!`,
       });
 
-      // Scroll to the cart section after a short delay
       setTimeout(() => {
         const cartSection = document.getElementById('ebook-cart-section');
         if (cartSection) {
@@ -131,7 +130,6 @@ export default function EbookBundle() {
     if (ebooksRes.data) setEbooks(ebooksRes.data);
     if (pricingRes.data) setPricingSettings(pricingRes.data);
 
-    // Fetch owned ebooks if user is logged in
     if (user) {
       const { data: purchases } = await supabase
         .from('ebook_purchases')
@@ -153,9 +151,7 @@ export default function EbookBundle() {
     setDownloading(ebookId);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Please login to download');
-      }
+      if (!session) throw new Error('Please login to download');
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -186,17 +182,10 @@ export default function EbookBundle() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      toast({
-        title: 'Download Started',
-        description: `Downloading "${title}"`,
-      });
+      toast({ title: 'Download Started', description: `Downloading "${title}"` });
     } catch (error: any) {
       console.error('Download error:', error);
-      toast({
-        title: 'Download Failed',
-        description: error.message || 'Failed to download eBook',
-        variant: 'destructive',
-      });
+      toast({ title: 'Download Failed', description: error.message || 'Failed to download eBook', variant: 'destructive' });
     } finally {
       setDownloading(null);
     }
@@ -205,7 +194,6 @@ export default function EbookBundle() {
   const ownedEbooks = ebooks.filter(e => ownedEbookIds.has(e.id));
   const availableEbooks = ebooks.filter(e => !ownedEbookIds.has(e.id));
 
-  // Dynamic tiered pricing based on admin settings
   const calculatePrice = (bookCount: number): { total: number; perBook: number; savings: number } => {
     if (bookCount === 0 || !pricingSettings) return { total: 0, perBook: 0, savings: 0 };
     
@@ -213,22 +201,14 @@ export default function EbookBundle() {
     const basePrice = pricingSettings.tier_1_price;
     
     for (let i = 1; i <= bookCount; i++) {
-      if (i <= pricingSettings.tier_1_max_books) {
-        total += pricingSettings.tier_1_price;
-      } else if (i <= pricingSettings.tier_2_max_books) {
-        total += pricingSettings.tier_2_price;
-      } else if (i <= pricingSettings.tier_3_max_books) {
-        total += pricingSettings.tier_3_price;
-      } else {
-        total += pricingSettings.tier_4_price;
-      }
+      if (i <= pricingSettings.tier_1_max_books) total += pricingSettings.tier_1_price;
+      else if (i <= pricingSettings.tier_2_max_books) total += pricingSettings.tier_2_price;
+      else if (i <= pricingSettings.tier_3_max_books) total += pricingSettings.tier_3_price;
+      else total += pricingSettings.tier_4_price;
     }
     
     const fullPrice = bookCount * basePrice;
-    const savings = fullPrice - total;
-    const perBook = Math.round(total / bookCount);
-    
-    return { total, perBook, savings };
+    return { total, perBook: Math.round(total / bookCount), savings: fullPrice - total };
   };
 
   const categories = [...new Set(ebooks.map(e => e.category))];
@@ -236,11 +216,8 @@ export default function EbookBundle() {
   
   const toggleBook = (id: string) => {
     const newSelected = new Set(selectedBooks);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
+    if (newSelected.has(id)) newSelected.delete(id);
+    else newSelected.add(id);
     setSelectedBooks(newSelected);
   };
 
@@ -248,23 +225,13 @@ export default function EbookBundle() {
     const categoryBooks = ebooks.filter(e => e.category === category);
     const newSelected = new Set(selectedBooks);
     const allSelected = categoryBooks.every(b => selectedBooks.has(b.id));
-    
-    categoryBooks.forEach(b => {
-      if (allSelected) {
-        newSelected.delete(b.id);
-      } else {
-        newSelected.add(b.id);
-      }
-    });
+    categoryBooks.forEach(b => { if (allSelected) newSelected.delete(b.id); else newSelected.add(b.id); });
     setSelectedBooks(newSelected);
   };
 
   const selectAll = () => {
-    if (selectedBooks.size === ebooks.length) {
-      setSelectedBooks(new Set());
-    } else {
-      setSelectedBooks(new Set(ebooks.map(e => e.id)));
-    }
+    if (selectedBooks.size === ebooks.length) setSelectedBooks(new Set());
+    else setSelectedBooks(new Set(ebooks.map(e => e.id)));
   };
 
   const pricing = calculatePrice(selectedBooks.size);
@@ -276,40 +243,24 @@ export default function EbookBundle() {
 
   const handlePurchase = async (phone?: string) => {
     if (!user) {
-      toast({
-        title: "Login Required",
-        description: "Please login to purchase eBooks",
-        variant: "destructive"
-      });
+      toast({ title: "Login Required", description: "Please login to purchase eBooks", variant: "destructive" });
       navigate('/auth');
       return;
     }
 
     if (selectedBooks.size === 0) {
-      toast({
-        title: "No Books Selected",
-        description: "Please select at least one book to purchase",
-        variant: "destructive"
-      });
+      toast({ title: "No Books Selected", description: "Please select at least one book to purchase", variant: "destructive" });
       return;
     }
 
-    // Get user profile for phone number
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('phone, full_name, email')
-      .eq('user_id', user.id)
-      .single();
-
+    const { data: profile } = await supabase.from('profiles').select('phone, full_name, email').eq('user_id', user.id).single();
     const userPhone = phone || profile?.phone;
     
-    // Check if phone number is available
     if (!userPhone || userPhone.length < 10) {
       setPhoneDialogOpen(true);
       return;
     }
 
-    // Initiate payment
     await initiatePayment({
       ebookIds: Array.from(selectedBooks),
       customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
@@ -326,7 +277,17 @@ export default function EbookBundle() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <BookMarked className="h-8 w-8 text-primary animate-pulse" />
+            </div>
+            <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground font-medium">Loading library...</p>
+        </div>
       </div>
     );
   }
@@ -338,130 +299,153 @@ export default function EbookBundle() {
       
       <main className="relative z-10 pt-24 pb-16">
         {/* Hero Section */}
-        <section className="container mx-auto px-4 mb-12">
+        <section className="container mx-auto px-4 mb-16">
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             className="text-center max-w-4xl mx-auto"
           >
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 px-4 py-1.5">
-              <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-              Premium Architecture Library
-            </Badge>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              <Badge className="mb-6 bg-primary/8 text-primary border-primary/15 px-5 py-2 text-sm font-medium">
+                <Sparkles className="h-3.5 w-3.5 mr-2" />
+                Premium Architecture Library
+              </Badge>
+            </motion.div>
             
-            <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent">
-              The Ultimate Architecture
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-5 tracking-tight">
+              <span className="bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
+                The Ultimate
+              </span>
               <br />
-              <span className="text-primary">eBook Bundle</span>
+              <span className="bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">
+                Architecture eBooks
+              </span>
             </h1>
             
-            <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
+            <p className="text-base sm:text-lg text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
               {totalBooks} handpicked professional eBooks covering everything from design fundamentals 
               to sustainable construction. Build your complete architecture library.
             </p>
 
             {/* Bundle Deal Banner */}
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className="bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-2xl p-6 border border-primary/30 mb-8"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="relative rounded-2xl border border-primary/15 bg-card/60 p-1 mb-10 overflow-hidden"
             >
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-14 w-14 rounded-xl bg-primary/20 flex items-center justify-center">
-                    <Package className="h-7 w-7 text-primary" />
+              {/* Subtle gradient border effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 pointer-events-none" />
+              
+              <div className="relative rounded-xl bg-gradient-to-r from-primary/8 via-transparent to-primary/8 p-6 sm:p-8">
+                <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+                  <div className="flex items-center gap-4">
+                    <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-lg shadow-primary/5">
+                      <Package className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="font-bold text-lg sm:text-xl">Complete Bundle Deal</h3>
+                      <p className="text-sm text-muted-foreground">All {totalBooks} books • One-time purchase • Instant access</p>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <h3 className="font-bold text-lg">Complete Bundle Deal</h3>
-                    <p className="text-sm text-muted-foreground">All {totalBooks} books • One-time purchase</p>
+                  
+                  <div className="flex items-center gap-5">
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground line-through">₹{totalBooks * 50}</p>
+                      <p className="text-3xl sm:text-4xl font-bold text-primary tracking-tight">₹{fullBundlePrice}</p>
+                    </div>
+                    <div className="flex flex-col items-center gap-2">
+                      <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-3 py-1">
+                        <Gift className="h-3.5 w-3.5 mr-1.5" />
+                        Save ₹{fullBundleSavings}
+                      </Badge>
+                    </div>
                   </div>
+                  
+                  <Button 
+                    size="lg" 
+                    className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 px-8 h-12 text-base"
+                    onClick={selectAll}
+                  >
+                    {selectedBooks.size === totalBooks ? 'Deselect All' : 'Select Full Bundle'}
+                    <Layers className="h-4 w-4 ml-2" />
+                  </Button>
                 </div>
-                
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground line-through">₹{totalBooks * 50}</p>
-                    <p className="text-3xl font-bold text-primary">₹{fullBundlePrice}</p>
-                  </div>
-                  <Badge variant="secondary" className="bg-success/20 text-success border-success/30">
-                    <Gift className="h-3.5 w-3.5 mr-1" />
-                    Save ₹{fullBundleSavings}
-                  </Badge>
-                </div>
-                
-                <Button 
-                  size="lg" 
-                  className="bg-primary hover:bg-primary/90"
-                  onClick={selectAll}
-                >
-                  {selectedBooks.size === totalBooks ? 'Deselect All' : 'Select Full Bundle'}
-                </Button>
               </div>
             </motion.div>
 
-            {/* Pricing Tiers Info */}
+            {/* Pricing Tiers */}
             {pricingSettings && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl mx-auto mb-8">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto mb-8"
+              >
                 {[
-                  { range: `1-${pricingSettings.tier_1_max_books} books`, price: `₹${pricingSettings.tier_1_price}/book` },
-                  { range: `${pricingSettings.tier_1_max_books + 1}-${pricingSettings.tier_2_max_books} books`, price: `₹${pricingSettings.tier_2_price}/book` },
-                  { range: `${pricingSettings.tier_2_max_books + 1}-${pricingSettings.tier_3_max_books} books`, price: `₹${pricingSettings.tier_3_price}/book` },
-                  { range: `${pricingSettings.tier_3_max_books}+ books`, price: `₹${pricingSettings.tier_4_price}/book` },
+                  { range: `1–${pricingSettings.tier_1_max_books} books`, price: `₹${pricingSettings.tier_1_price}`, label: 'per book' },
+                  { range: `${pricingSettings.tier_1_max_books + 1}–${pricingSettings.tier_2_max_books} books`, price: `₹${pricingSettings.tier_2_price}`, label: 'per book' },
+                  { range: `${pricingSettings.tier_2_max_books + 1}–${pricingSettings.tier_3_max_books} books`, price: `₹${pricingSettings.tier_3_price}`, label: 'per book' },
+                  { range: `${pricingSettings.tier_3_max_books}+ books`, price: `₹${pricingSettings.tier_4_price}`, label: 'per book' },
                 ].map((tier, i) => (
-                  <div key={i} className="bg-card/50 rounded-lg p-3 border border-border/50">
-                    <p className="text-xs text-muted-foreground">{tier.range}</p>
-                    <p className="font-semibold text-foreground">{tier.price}</p>
+                  <div key={i} className="rounded-xl bg-card/50 border border-border/50 p-4 text-center hover:border-primary/20 transition-colors">
+                    <p className="text-xs text-muted-foreground mb-1 font-medium">{tier.range}</p>
+                    <p className="text-xl font-bold text-foreground">{tier.price}</p>
+                    <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">{tier.label}</p>
                   </div>
                 ))}
-              </div>
+              </motion.div>
             )}
           </motion.div>
         </section>
 
-        {/* My Library Section - Owned eBooks */}
+        {/* My Library Section */}
         {ownedEbooks.length > 0 && (
-          <section className="container mx-auto px-4 mb-12">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card className="bg-gradient-to-br from-success/10 via-success/5 to-transparent border-success/30">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-xl bg-success/20 flex items-center justify-center">
-                        <CheckCircle2 className="h-6 w-6 text-success" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl">My eBook Library</CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                          {ownedEbooks.length} {ownedEbooks.length === 1 ? 'eBook' : 'eBooks'} you own
-                        </p>
-                      </div>
+          <section className="container mx-auto px-4 mb-14">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="rounded-2xl border border-emerald-500/15 bg-card/40 overflow-hidden">
+                <div className="px-6 py-5 border-b border-border/50 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                      <CheckCircle2 className="h-6 w-6 text-emerald-400" />
                     </div>
-                    <Link to="/dashboard">
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <Library className="h-4 w-4" />
-                        View in Dashboard
-                      </Button>
-                    </Link>
+                    <div>
+                      <h2 className="text-xl font-bold">My eBook Library</h2>
+                      <p className="text-sm text-muted-foreground">
+                        {ownedEbooks.length} {ownedEbooks.length === 1 ? 'eBook' : 'eBooks'} you own
+                      </p>
+                    </div>
                   </div>
-                </CardHeader>
-                <CardContent>
+                  <Link to="/dashboard">
+                    <Button variant="outline" size="sm" className="gap-2 border-emerald-500/20 hover:bg-emerald-500/5">
+                      <Library className="h-4 w-4" />
+                      Dashboard
+                      <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  </Link>
+                </div>
+                <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {ownedEbooks.map((book) => (
+                    {ownedEbooks.map((book, i) => (
                       <motion.div
                         key={book.id}
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        className="p-4 rounded-xl bg-background/80 border border-success/20 hover:shadow-lg transition-all"
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="group p-4 rounded-xl bg-background/60 border border-emerald-500/10 hover:border-emerald-500/25 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-300"
                       >
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-success/20 to-success/5 flex items-center justify-center shrink-0 shadow-inner">
-                            <BookOpen className="h-6 w-6 text-success" />
+                        <div className="flex items-start gap-3 mb-4">
+                          <div className="h-11 w-11 rounded-lg bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 flex items-center justify-center shrink-0 border border-emerald-500/10">
+                            <BookOpen className="h-5 w-5 text-emerald-400" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-sm line-clamp-2 mb-1">{book.title}</h4>
-                            <Badge variant="outline" className="text-xs bg-success/10 border-success/30 text-success">
+                            <h4 className="font-semibold text-sm line-clamp-2 mb-1.5 leading-snug">{book.title}</h4>
+                            <Badge variant="outline" className="text-[10px] bg-emerald-500/8 border-emerald-500/20 text-emerald-400 font-medium">
                               Owned
                             </Badge>
                           </div>
@@ -470,141 +454,156 @@ export default function EbookBundle() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="flex-1 gap-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenViewer(book, true);
-                            }}
+                            className="flex-1 gap-1.5 h-9 text-xs border-border/50 hover:border-primary/30"
+                            onClick={(e) => { e.stopPropagation(); handleOpenViewer(book, true); }}
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-3.5 w-3.5" />
                             Read
                           </Button>
                           <Button
                             size="sm"
-                            className="flex-1 gap-1 bg-success hover:bg-success/90"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownload(book.id, book.title);
-                            }}
+                            className="flex-1 gap-1.5 h-9 text-xs bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/20"
+                            variant="outline"
+                            onClick={(e) => { e.stopPropagation(); handleDownload(book.id, book.title); }}
                             disabled={downloading === book.id}
                           >
-                            {downloading === book.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Download className="h-4 w-4" />
-                            )}
+                            {downloading === book.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                             {downloading === book.id ? '...' : 'Save'}
                           </Button>
                         </div>
                       </motion.div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </motion.div>
           </section>
         )}
 
-        {/* Categories Grid - Available for Purchase */}
+        {/* Categories Grid */}
         <section className="container mx-auto px-4 mb-8">
           {availableEbooks.length > 0 && (
-            <h2 className="text-2xl font-bold mb-6">
-              {ownedEbooks.length > 0 ? 'Available for Purchase' : 'Browse eBooks'}
-            </h2>
+            <div className="flex items-center gap-3 mb-8">
+              <div className="h-10 w-10 rounded-xl bg-primary/8 border border-primary/15 flex items-center justify-center">
+                <BookMarked className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">
+                  {ownedEbooks.length > 0 ? 'Available for Purchase' : 'Browse eBooks'}
+                </h2>
+                <p className="text-sm text-muted-foreground">{availableEbooks.length} books across {categories.length} categories</p>
+              </div>
+            </div>
           )}
-          <div className="space-y-8">
+          <div className="space-y-6">
             {categories.map((category, catIndex) => {
               const categoryBooks = availableEbooks.filter(e => e.category === category);
               if (categoryBooks.length === 0) return null;
               const selectedInCategory = categoryBooks.filter(b => selectedBooks.has(b.id)).length;
               const allSelected = selectedInCategory === categoryBooks.length;
+              const accent = categoryAccents[category] || defaultAccent;
               
               return (
                 <motion.div 
                   key={category}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: catIndex * 0.1 }}
+                  transition={{ delay: catIndex * 0.08, duration: 0.5 }}
                 >
-                  <Card className={`bg-gradient-to-br ${categoryColors[category] || 'from-card to-card'} border overflow-hidden`}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-background/50 flex items-center justify-center">
-                            {categoryIcons[category] || <BookOpen className="h-5 w-5" />}
-                          </div>
-                          <div>
-                            <CardTitle className="text-lg">{category}</CardTitle>
-                            <p className="text-sm text-muted-foreground">
-                              {categoryBooks.length} books • {selectedInCategory} selected
-                            </p>
-                          </div>
+                  <div className={`rounded-2xl border ${accent.border} ${accent.bg} overflow-hidden shadow-lg ${accent.glow}`}>
+                    {/* Category Header */}
+                    <div className="px-5 sm:px-6 py-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-10 w-10 rounded-xl bg-background/60 border ${accent.border} flex items-center justify-center ${accent.text}`}>
+                          {categoryIcons[category] || <BookOpen className="h-5 w-5" />}
                         </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => selectCategory(category)}
-                          className="bg-background/50"
-                        >
-                          {allSelected ? 'Deselect All' : 'Select All'}
-                        </Button>
+                        <div>
+                          <h3 className="font-semibold text-base sm:text-lg">{category}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {categoryBooks.length} books
+                            {selectedInCategory > 0 && (
+                              <span className={`ml-1.5 ${accent.text} font-medium`}>• {selectedInCategory} selected</span>
+                            )}
+                          </p>
+                        </div>
                       </div>
-                    </CardHeader>
-                    <CardContent>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => selectCategory(category)}
+                        className={`bg-background/60 border-border/50 hover:${accent.border} text-xs h-8 px-3`}
+                      >
+                        {allSelected ? 'Deselect All' : 'Select All'}
+                      </Button>
+                    </div>
+                    
+                    {/* Books Grid */}
+                    <div className="px-5 sm:px-6 pb-5">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {categoryBooks.map((book) => (
-                          <motion.div
-                            key={book.id}
-                            whileHover={{ scale: 1.02, y: -2 }}
-                            className={`
-                              p-4 rounded-xl border transition-all group
-                              ${selectedBooks.has(book.id) 
-                                ? 'bg-primary/20 border-primary/50 shadow-lg shadow-primary/10' 
-                                : 'bg-background/50 border-border/50 hover:border-primary/30 hover:shadow-md'}
-                            `}
-                          >
-                            <div 
-                              className="flex items-start gap-3 cursor-pointer"
-                              onClick={() => toggleBook(book.id)}
+                        {categoryBooks.map((book) => {
+                          const isSelected = selectedBooks.has(book.id);
+                          return (
+                            <motion.div
+                              key={book.id}
+                              whileHover={{ y: -2 }}
+                              transition={{ duration: 0.2 }}
+                              className={`
+                                group rounded-xl border transition-all duration-300 overflow-hidden
+                                ${isSelected 
+                                  ? `bg-primary/8 border-primary/30 shadow-md shadow-primary/5` 
+                                  : 'bg-background/50 border-border/30 hover:border-primary/20 hover:shadow-md'}
+                              `}
                             >
-                              <div className={`
-                                h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 mt-0.5
-                                ${selectedBooks.has(book.id) 
-                                  ? 'bg-primary border-primary' 
-                                  : 'border-muted-foreground/50'}
-                              `}>
-                                {selectedBooks.has(book.id) && (
-                                  <Check className="h-3 w-3 text-primary-foreground" />
-                                )}
+                              <div 
+                                className="p-4 cursor-pointer"
+                                onClick={() => toggleBook(book.id)}
+                              >
+                                <div className="flex items-start gap-3">
+                                  {/* Custom Checkbox */}
+                                  <div className={`
+                                    h-5 w-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200
+                                    ${isSelected 
+                                      ? 'bg-primary border-primary shadow-sm shadow-primary/30' 
+                                      : 'border-muted-foreground/30 group-hover:border-muted-foreground/50'}
+                                  `}>
+                                    {isSelected && (
+                                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500 }}>
+                                        <Check className="h-3 w-3 text-primary-foreground" />
+                                      </motion.div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-medium text-sm leading-snug line-clamp-2">
+                                      {book.title}
+                                    </h4>
+                                    {book.description && (
+                                      <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-1">
+                                        {book.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-sm leading-tight line-clamp-2">
-                                  {book.title}
-                                </h4>
-                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                  {book.description}
-                                </p>
+                              
+                              {/* Preview Button */}
+                              <div className="px-4 pb-3">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="w-full gap-2 h-8 text-xs text-muted-foreground hover:text-primary opacity-60 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => { e.stopPropagation(); handleOpenViewer(book, false); }}
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                  Preview
+                                  <ArrowRight className="h-3 w-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </Button>
                               </div>
-                            </div>
-                            
-                            {/* Preview Button */}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="w-full mt-3 gap-2 opacity-70 group-hover:opacity-100 transition-opacity"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenViewer(book, false);
-                              }}
-                            >
-                              <Eye className="h-4 w-4" />
-                              Preview First Pages
-                            </Button>
-                          </motion.div>
-                        ))}
+                            </motion.div>
+                          );
+                        })}
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </motion.div>
               );
             })}
@@ -618,50 +617,64 @@ export default function EbookBundle() {
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 100, opacity: 0 }}
-              className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-background/95 backdrop-blur-xl border-t border-border"
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed bottom-0 left-0 right-0 z-50 border-t border-primary/10 bg-background/95 backdrop-blur-xl"
             >
-              <div id="ebook-cart-section" className="container mx-auto max-w-4xl">
+              {/* Gradient top edge */}
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+              
+              <div id="ebook-cart-section" className="container mx-auto max-w-4xl px-4 py-4">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                      <ShoppingCart className="h-6 w-6 text-primary" />
+                    <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/15 flex items-center justify-center">
+                      <ShoppingCart className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-semibold">
+                      <p className="font-semibold flex items-center gap-2">
                         {selectedBooks.size} {selectedBooks.size === 1 ? 'book' : 'books'} selected
                         {isFullBundle && (
-                          <Badge className="ml-2 bg-success/20 text-success border-success/30">
+                          <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px]">
                             Full Bundle
                           </Badge>
                         )}
                       </p>
                       <div className="flex items-center gap-2 text-sm">
-                        {!isFullBundle && pricing.savings > 0 && (
-                          <span className="text-muted-foreground line-through">₹{selectedBooks.size * 50}</span>
+                        {(pricing.savings > 0 || isFullBundle) && (
+                          <span className="text-muted-foreground line-through text-xs">
+                            ₹{isFullBundle ? totalBooks * 50 : selectedBooks.size * 50}
+                          </span>
                         )}
-                        {isFullBundle && (
-                          <span className="text-muted-foreground line-through">₹{totalBooks * 50}</span>
+                        {(pricing.savings > 0 || isFullBundle) && (
+                          <span className="text-emerald-400 text-xs font-medium">
+                            Save ₹{isFullBundle ? fullBundleSavings : pricing.savings}
+                          </span>
                         )}
-                        <span className="text-success">
-                          Save ₹{isFullBundle ? fullBundleSavings : pricing.savings}
-                        </span>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-5">
                     <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Total</p>
-                      <p className="text-2xl font-bold text-primary">₹{finalPrice}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Total</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-primary tracking-tight">₹{finalPrice}</p>
                     </div>
                     <Button 
                       size="lg" 
-                      className="bg-primary hover:bg-primary/90 px-8"
+                      className="bg-primary hover:bg-primary/90 px-8 h-12 shadow-lg shadow-primary/20 text-base font-semibold"
                       onClick={() => handlePurchase()}
                       disabled={purchasing}
                     >
-                      {purchasing ? 'Processing...' : 'Buy Now'}
-                      <Download className="h-4 w-4 ml-2" />
+                      {purchasing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          Buy Now
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -679,14 +692,10 @@ export default function EbookBundle() {
         onSubmit={handlePhoneSubmit}
       />
 
-      {/* PDF Viewer Modal */}
       {selectedViewBook && (
         <EbookPDFViewer
           isOpen={viewerOpen}
-          onClose={() => {
-            setViewerOpen(false);
-            setSelectedViewBook(null);
-          }}
+          onClose={() => { setViewerOpen(false); setSelectedViewBook(null); }}
           ebookId={selectedViewBook.id}
           ebookTitle={selectedViewBook.title}
           hasAccess={selectedViewBook.hasAccess}
