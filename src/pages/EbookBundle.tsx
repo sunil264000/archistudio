@@ -441,17 +441,14 @@ export default function EbookBundle() {
                         className="group rounded-xl bg-background/60 border border-emerald-500/10 hover:border-emerald-500/25 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-300 overflow-hidden"
                       >
                         {/* Cover Image */}
-                        {book.cover_image_url ? (
-                          <div className="aspect-[3/4] w-full bg-muted/20 overflow-hidden">
+                                {book.cover_image_url ? (
+                          <div className="aspect-[3/4] w-full bg-muted/30 overflow-hidden flex items-center justify-center p-3">
                             <img 
                               src={book.cover_image_url} 
                               alt={book.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                              onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
+                              className="max-w-full max-h-full object-contain rounded-sm shadow-md group-hover:scale-105 transition-transform duration-500"
+                              onError={(e) => { (e.currentTarget.parentElement as HTMLElement).innerHTML = '<div class="flex items-center justify-center w-full h-full"><svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-emerald-400/40"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div>'; }}
                             />
-                            <div className="hidden aspect-[3/4] w-full bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 flex items-center justify-center">
-                              <BookOpen className="h-10 w-10 text-emerald-400/40" />
-                            </div>
                           </div>
                         ) : (
                           <div className="aspect-[3/4] w-full bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 flex items-center justify-center">
@@ -576,11 +573,11 @@ export default function EbookBundle() {
                                 onClick={() => toggleBook(book.id)}
                               >
                                 {book.cover_image_url ? (
-                                  <div className="aspect-[3/4] w-full bg-muted/10 overflow-hidden relative">
+                                  <div className="aspect-[3/4] w-full bg-muted/20 overflow-hidden relative flex items-center justify-center p-3">
                                     <img 
                                       src={book.cover_image_url} 
                                       alt={book.title}
-                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                      className="max-w-full max-h-full object-contain rounded-sm shadow-md group-hover:scale-105 transition-transform duration-500"
                                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                     />
                                     {/* Checkbox overlay */}
