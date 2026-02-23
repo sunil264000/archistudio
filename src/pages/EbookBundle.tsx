@@ -42,6 +42,7 @@ interface Ebook {
   description: string;
   category: string;
   order_index: number;
+  cover_image_url: string | null;
 }
 
 interface PricingSettings {
@@ -437,39 +438,54 @@ export default function EbookBundle() {
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.05 }}
-                        className="group p-4 rounded-xl bg-background/60 border border-emerald-500/10 hover:border-emerald-500/25 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-300"
+                        className="group rounded-xl bg-background/60 border border-emerald-500/10 hover:border-emerald-500/25 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-300 overflow-hidden"
                       >
-                        <div className="flex items-start gap-3 mb-4">
-                          <div className="h-11 w-11 rounded-lg bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 flex items-center justify-center shrink-0 border border-emerald-500/10">
-                            <BookOpen className="h-5 w-5 text-emerald-400" />
+                        {/* Cover Image */}
+                        {book.cover_image_url ? (
+                          <div className="aspect-[3/4] w-full bg-muted/20 overflow-hidden">
+                            <img 
+                              src={book.cover_image_url} 
+                              alt={book.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }}
+                            />
+                            <div className="hidden aspect-[3/4] w-full bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 flex items-center justify-center">
+                              <BookOpen className="h-10 w-10 text-emerald-400/40" />
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
+                        ) : (
+                          <div className="aspect-[3/4] w-full bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 flex items-center justify-center">
+                            <BookOpen className="h-10 w-10 text-emerald-400/40" />
+                          </div>
+                        )}
+                        <div className="p-4">
+                          <div className="mb-3">
                             <h4 className="font-semibold text-sm line-clamp-2 mb-1.5 leading-snug">{book.title}</h4>
                             <Badge variant="outline" className="text-[10px] bg-emerald-500/8 border-emerald-500/20 text-emerald-400 font-medium">
                               Owned
                             </Badge>
                           </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1 gap-1.5 h-9 text-xs border-border/50 hover:border-primary/30"
-                            onClick={(e) => { e.stopPropagation(); handleOpenViewer(book, true); }}
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            Read
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="flex-1 gap-1.5 h-9 text-xs bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/20"
-                            variant="outline"
-                            onClick={(e) => { e.stopPropagation(); handleDownload(book.id, book.title); }}
-                            disabled={downloading === book.id}
-                          >
-                            {downloading === book.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                            {downloading === book.id ? '...' : 'Save'}
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 gap-1.5 h-9 text-xs border-border/50 hover:border-primary/30"
+                              onClick={(e) => { e.stopPropagation(); handleOpenViewer(book, true); }}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              Read
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="flex-1 gap-1.5 h-9 text-xs bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/20"
+                              variant="outline"
+                              onClick={(e) => { e.stopPropagation(); handleDownload(book.id, book.title); }}
+                              disabled={downloading === book.id}
+                            >
+                              {downloading === book.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                              {downloading === book.id ? '...' : 'Save'}
+                            </Button>
+                          </div>
                         </div>
                       </motion.div>
                     ))}
@@ -554,34 +570,63 @@ export default function EbookBundle() {
                                   : 'bg-background/50 border-border/30 hover:border-primary/20 hover:shadow-md'}
                               `}
                             >
+                              {/* Cover Image */}
                               <div 
-                                className="p-4 cursor-pointer"
+                                className="cursor-pointer"
                                 onClick={() => toggleBook(book.id)}
                               >
-                                <div className="flex items-start gap-3">
-                                  {/* Custom Checkbox */}
-                                  <div className={`
-                                    h-5 w-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200
-                                    ${isSelected 
-                                      ? 'bg-primary border-primary shadow-sm shadow-primary/30' 
-                                      : 'border-muted-foreground/30 group-hover:border-muted-foreground/50'}
-                                  `}>
-                                    {isSelected && (
-                                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500 }}>
-                                        <Check className="h-3 w-3 text-primary-foreground" />
-                                      </motion.div>
-                                    )}
+                                {book.cover_image_url ? (
+                                  <div className="aspect-[3/4] w-full bg-muted/10 overflow-hidden relative">
+                                    <img 
+                                      src={book.cover_image_url} 
+                                      alt={book.title}
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                    />
+                                    {/* Checkbox overlay */}
+                                    <div className="absolute top-2 left-2">
+                                      <div className={`
+                                        h-6 w-6 rounded-md border-2 flex items-center justify-center transition-all duration-200 backdrop-blur-sm
+                                        ${isSelected 
+                                          ? 'bg-primary border-primary shadow-sm shadow-primary/30' 
+                                          : 'border-foreground/40 bg-background/60 group-hover:border-foreground/60'}
+                                      `}>
+                                        {isSelected && (
+                                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500 }}>
+                                            <Check className="h-3.5 w-3.5 text-primary-foreground" />
+                                          </motion.div>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
-                                  <div className="flex-1 min-w-0">
-                                    <h4 className="font-medium text-sm leading-snug line-clamp-2">
-                                      {book.title}
-                                    </h4>
-                                    {book.description && (
-                                      <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-1">
-                                        {book.description}
-                                      </p>
-                                    )}
+                                ) : (
+                                  <div className="aspect-[3/4] w-full bg-gradient-to-br from-muted/30 to-muted/10 flex items-center justify-center relative">
+                                    <BookOpen className="h-10 w-10 text-muted-foreground/20" />
+                                    <div className="absolute top-2 left-2">
+                                      <div className={`
+                                        h-6 w-6 rounded-md border-2 flex items-center justify-center transition-all duration-200
+                                        ${isSelected 
+                                          ? 'bg-primary border-primary shadow-sm shadow-primary/30' 
+                                          : 'border-muted-foreground/30 group-hover:border-muted-foreground/50'}
+                                      `}>
+                                        {isSelected && (
+                                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500 }}>
+                                            <Check className="h-3.5 w-3.5 text-primary-foreground" />
+                                          </motion.div>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
+                                )}
+                                <div className="p-3">
+                                  <h4 className="font-medium text-sm leading-snug line-clamp-2">
+                                    {book.title}
+                                  </h4>
+                                  {book.description && (
+                                    <p className="text-xs text-muted-foreground/70 mt-1 line-clamp-1">
+                                      {book.description}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                               
