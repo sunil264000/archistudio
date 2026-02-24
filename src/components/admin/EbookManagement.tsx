@@ -74,6 +74,7 @@ export function EbookManagement() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
+  const [showImages, setShowImages] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -325,6 +326,12 @@ export function EbookManagement() {
         </div>
         
         <div className="flex items-center gap-3">
+          {/* Show Images Toggle */}
+          <div className="flex items-center gap-2">
+            <Label htmlFor="show-images" className="text-sm text-muted-foreground whitespace-nowrap">Images</Label>
+            <Switch id="show-images" checked={showImages} onCheckedChange={setShowImages} />
+          </div>
+
           {/* Delete All Button */}
           {ebooks.length > 0 && (
             <AlertDialog>
@@ -481,15 +488,24 @@ export function EbookManagement() {
                     className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${
-                        ebook.file_url ? 'bg-success/20' : 'bg-muted'
-                      }`}>
-                        {ebook.file_url ? (
-                          <CheckCircle className="h-5 w-5 text-success" />
-                        ) : (
-                          <AlertCircle className="h-5 w-5 text-muted-foreground" />
-                        )}
-                      </div>
+                      {showImages && ebook.cover_image_url ? (
+                        <img 
+                          src={ebook.cover_image_url} 
+                          alt={ebook.title}
+                          className="h-10 w-10 rounded-lg object-cover shrink-0"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${
+                          ebook.file_url ? 'bg-success/20' : 'bg-muted'
+                        }`}>
+                          {ebook.file_url ? (
+                            <CheckCircle className="h-5 w-5 text-success" />
+                          ) : (
+                            <AlertCircle className="h-5 w-5 text-muted-foreground" />
+                          )}
+                        </div>
+                      )}
                       
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{ebook.title}</p>
