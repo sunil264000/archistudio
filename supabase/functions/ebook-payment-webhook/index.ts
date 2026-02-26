@@ -19,10 +19,12 @@ async function verifyWebhookSignature(
   }
 
   // Check timestamp is not too old (5 minutes)
-  const webhookTime = parseInt(timestamp, 10);
-  const currentTime = Math.floor(Date.now() / 1000);
-  if (Math.abs(currentTime - webhookTime) > 300) {
-    console.error("Webhook timestamp too old");
+  // Cashfree sends timestamp in MILLISECONDS
+  const webhookTimeMs = parseInt(timestamp, 10);
+  const currentTimeMs = Date.now();
+  const diffMs = Math.abs(currentTimeMs - webhookTimeMs);
+  if (diffMs > 5 * 60 * 1000) {
+    console.error("Webhook timestamp too old", { webhookTimeMs, currentTimeMs, diffMs });
     return false;
   }
 
