@@ -83,3 +83,6 @@ verify_jwt = false
 
 [functions.mint-video-ticket-public]
 verify_jwt = false
+
+[functions.ai-chat]
+verify_jwt = false
