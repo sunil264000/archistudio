@@ -108,7 +108,7 @@ export function AIChatWidget() {
     }
   }, [isOpen, isMinimized]);
 
-  const handleEnroll = (slug: string) => {
+    const handleEnroll = (slug: string) => {
     navigate(`/courses/${slug}`);
     setIsOpen(false);
   };
@@ -116,6 +116,15 @@ export function AIChatWidget() {
   const sendMessage = async (text?: string) => {
     const messageText = text || input.trim();
     if (!messageText || isLoading) return;
+
+    if (!session?.access_token) {
+      toast({
+        title: 'Login required',
+        description: 'Please log in to use the AI chat.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     const userMessage: Message = { role: 'user', content: messageText };
     setMessages(prev => [...prev, userMessage]);
@@ -129,7 +138,7 @@ export function AIChatWidget() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content }))
