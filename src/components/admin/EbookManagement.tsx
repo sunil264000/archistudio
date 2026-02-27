@@ -63,7 +63,10 @@ export function EbookManagement() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
-  const [showImages, setShowImages] = useState(true);
+  const [showImages, setShowImages] = useState(() => {
+    const saved = localStorage.getItem('admin-ebook-show-covers');
+    return saved !== null ? saved === 'true' : true;
+  });
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [savingThumbnail, setSavingThumbnail] = useState<string | null>(null);
   const { toast } = useToast();
@@ -290,7 +293,7 @@ export function EbookManagement() {
             </div>
             
             <div className="flex items-center gap-3 flex-wrap">
-              <Button variant="outline" size="sm" onClick={() => setShowImages(!showImages)} className="gap-2">
+              <Button variant="outline" size="sm" onClick={() => { const next = !showImages; setShowImages(next); localStorage.setItem('admin-ebook-show-covers', String(next)); }} className="gap-2">
                 {showImages ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 {showImages ? 'Hide' : 'Show'} Covers
               </Button>
