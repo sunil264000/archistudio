@@ -205,7 +205,7 @@ export function AIChatWidget() {
       <button
         onClick={() => setIsOpen(true)}
         title="Chat with Archi — Course Advisor"
-        className="fixed bottom-6 right-24 h-14 w-14 rounded-full z-[9998] flex items-center justify-center shadow-lg group transition-all duration-300 hover:scale-110"
+        className="fixed bottom-6 right-20 h-12 w-12 rounded-full z-[9998] flex items-center justify-center shadow-lg group transition-all duration-300 hover:scale-110"
         style={{
           background: 'hsl(var(--primary))',
           boxShadow: '0 4px 20px hsl(var(--primary) / 0.4)',
@@ -221,8 +221,8 @@ export function AIChatWidget() {
 
   return (
     <div
-      className={`fixed bottom-20 right-4 z-[9998] flex flex-col rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 ${
-        isMinimized ? 'w-72 h-auto' : 'w-[340px] sm:w-[380px] h-[560px]'
+      className={`fixed z-[9998] flex flex-col rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 ${
+        isMinimized ? 'w-72 h-auto bottom-6 right-4' : 'w-[340px] sm:w-[380px] h-[min(560px,calc(100vh-6rem))] bottom-6 right-4'
       }`}
       style={{
         background: 'hsl(var(--card))',
