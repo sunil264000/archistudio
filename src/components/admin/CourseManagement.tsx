@@ -13,7 +13,7 @@ import {
   FolderX, CheckSquare, Square, ArrowUpDown, Filter,
   BookOpen, Layers, Clock, AlertCircle, CheckCircle2,
   Package, X, Link2, Unlink, FolderSync, ExternalLink,
-  ChevronRight, Video, FileText, Plus
+  ChevronRight, Video, FileText, Plus, Sparkles
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -718,6 +718,28 @@ export function CourseManagement() {
       setCourses(prev => prev.map(c => 
         c.id === course.id ? { ...c, is_featured: !c.is_featured } : c
       ));
+    }
+  };
+
+  const handleToggleHighlighted = async (course: Course) => {
+    // Only one course can be highlighted at a time — unset all others first
+    if (!course.is_highlighted) {
+      await supabase.from('courses').update({ is_highlighted: false }).neq('id', course.id);
+    }
+    const { error } = await supabase
+      .from('courses')
+      .update({ is_highlighted: !course.is_highlighted })
+      .eq('id', course.id);
+    
+    if (error) {
+      toast.error('Failed to update course');
+    } else {
+      setCourses(prev => prev.map(c => 
+        c.id === course.id
+          ? { ...c, is_highlighted: !c.is_highlighted }
+          : { ...c, is_highlighted: false }
+      ));
+      toast.success(course.is_highlighted ? 'Course unhighlighted' : `"${course.title}" set as flagship course`);
     }
   };
 
@@ -1669,6 +1691,12 @@ export function CourseManagement() {
                         <span className="font-medium whitespace-normal break-words leading-snug">
                           {course.title}
                         </span>
+                        {course.is_highlighted && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-accent text-accent gap-0.5">
+                            <Sparkles className="h-2.5 w-2.5" />
+                            Flagship
+                          </Badge>
+                        )}
                         {course.is_featured && (
                           <Star className="h-3 w-3 text-amber-600 fill-amber-600 shrink-0" />
                         )}
@@ -1837,6 +1865,20 @@ export function CourseManagement() {
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>{course.is_featured ? 'Remove featured' : 'Feature'}</TooltipContent>
+                      </Tooltip>
+                      
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className={`h-8 w-8 ${course.is_highlighted ? 'ring-1 ring-accent rounded-lg' : ''}`}
+                            onClick={() => handleToggleHighlighted(course)}
+                          >
+                            <Sparkles className={`h-4 w-4 ${course.is_highlighted ? 'text-accent fill-accent' : 'text-muted-foreground'}`} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{course.is_highlighted ? 'Remove flagship highlight' : 'Set as flagship course (homepage spotlight)'}</TooltipContent>
                       </Tooltip>
                       
                       <Tooltip>
