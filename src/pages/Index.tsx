@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { HeroSection } from '@/components/home/HeroSection';
+import { HighlightedCourseSection } from '@/components/home/HighlightedCourseSection';
 import { SEOHead, generateOrganizationSchema, generateWebsiteSchema } from '@/components/seo/SEOHead';
 import { SitelinkSchema } from '@/components/seo/SitelinkSchema';
 import { useGoogleAnalytics, analytics, initializeGA4 } from '@/hooks/useGoogleAnalytics';
@@ -14,7 +15,6 @@ const ComparisonSection = lazy(() => import('@/components/home/ComparisonSection
 const TestimonialsSection = lazy(() => import('@/components/home/TestimonialsSection').then(m => ({ default: m.TestimonialsSection })));
 const FinalCTASection = lazy(() => import('@/components/home/FinalCTASection').then(m => ({ default: m.FinalCTASection })));
 
-// Minimal loading fallback
 const SectionLoader = () => (
   <div className="w-full py-12 flex items-center justify-center">
     <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -50,6 +50,8 @@ export default function Index() {
       <Navbar />
       
       <HeroSection />
+      
+      <HighlightedCourseSection />
       
       <Suspense fallback={<SectionLoader />}>
         <ProblemSection />
