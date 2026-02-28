@@ -15,17 +15,17 @@ interface OrderRequest {
 
 // Input validation helpers
 function validateName(name: string): boolean {
-  return typeof name === 'string' && name.trim().length > 0 && name.length <= 200;
+  return typeof name === "string" && name.trim().length > 0 && name.length <= 200;
 }
 
 function validateEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return typeof email === 'string' && emailRegex.test(email) && email.length <= 255;
+  return typeof email === "string" && emailRegex.test(email) && email.length <= 255;
 }
 
 function validatePhone(phone: string): boolean {
   const phoneRegex = /^\+?[0-9]{8,15}$/;
-  return typeof phone === 'string' && phoneRegex.test(phone.replace(/[\s-]/g, ''));
+  return typeof phone === "string" && phoneRegex.test(phone.replace(/[\s-]/g, ""));
 }
 
 serve(async (req) => {
@@ -36,10 +36,10 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Authorization required" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ error: "Authorization required" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -48,10 +48,10 @@ serve(async (req) => {
 
     if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
       console.error("Missing backend configuration");
-      return new Response(
-        JSON.stringify({ error: "Server configuration error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ error: "Server configuration error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // 1) Auth: validate JWT using anon client with forwarded Authorization header.
@@ -62,22 +62,18 @@ serve(async (req) => {
     const { data: authData, error: authError } = await authClient.auth.getUser();
     if (authError || !authData?.user) {
       console.error("Auth error:", authError?.message);
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // 2) DB writes: use service role
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
     const user = authData.user;
 
-    const {
-      courseId,
-      customerName,
-      customerEmail,
-      customerPhone,
-    }: OrderRequest = await req.json();
+    const { courseId, customerName, customerEmail, customerPhone }: OrderRequest = await req.json();
+    console.log("DEBUG NAME RECEIVED:", customerName);
 
     // Validate inputs
     if (!validateName(customerName)) {
@@ -89,7 +85,7 @@ serve(async (req) => {
     if (!validatePhone(customerPhone)) {
       throw new Error("Invalid phone number");
     }
-    if (!courseId || typeof courseId !== 'string' || courseId.length > 100) {
+    if (!courseId || typeof courseId !== "string" || courseId.length > 100) {
       throw new Error("Invalid course ID");
     }
 
@@ -102,10 +98,10 @@ serve(async (req) => {
 
     if (courseError || !course) {
       console.error("Course not found:", courseId, courseError);
-      return new Response(
-        JSON.stringify({ error: "Course not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ error: "Course not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Verify course is published
@@ -128,7 +124,7 @@ serve(async (req) => {
 
     // Use SERVER-SIDE price from database (not client-supplied amount)
     const amount = Number(course.price_inr);
-    
+
     if (!amount || amount <= 0) {
       throw new Error("Invalid course price");
     }
@@ -147,7 +143,7 @@ serve(async (req) => {
     // Support both archistudio.lovable.app and archistudio.shop
     const reqOrigin = req.headers.get("origin") || "";
     let redirectBaseUrl = "https://archistudio.lovable.app"; // default
-    
+
     if (reqOrigin.includes("archistudio.shop")) {
       redirectBaseUrl = "https://archistudio.shop";
     } else if (reqOrigin.includes("archistudio.lovable.app")) {
@@ -171,7 +167,7 @@ serve(async (req) => {
           customer_id: user.id,
           customer_name: customerName.trim().substring(0, 200),
           customer_email: customerEmail.trim().toLowerCase(),
-          customer_phone: customerPhone.replace(/[\s-]/g, ''),
+          customer_phone: customerPhone.replace(/[\s-]/g, ""),
         },
         order_meta: {
           return_url: `${redirectBaseUrl}/payment-success?order_id={order_id}&course=${courseId}`,
@@ -190,23 +186,21 @@ serve(async (req) => {
     }
 
     // Store payment record in pending state
-    const { error: paymentError } = await supabaseClient
-      .from("payments")
-      .insert({
-        user_id: user.id,
-        course_id: course.id,
-        amount: amount, // Using server-side validated price
-        currency: "INR",
-        status: "pending",
-        payment_gateway: "cashfree",
-        gateway_order_id: orderId,
-        metadata: {
-          course_slug: courseId,
-          customer_name: customerName.trim().substring(0, 200),
-          customer_email: customerEmail.trim().toLowerCase(),
-          customer_phone: customerPhone.replace(/[\s-]/g, ''),
-        },
-      });
+    const { error: paymentError } = await supabaseClient.from("payments").insert({
+      user_id: user.id,
+      course_id: course.id,
+      amount: amount, // Using server-side validated price
+      currency: "INR",
+      status: "pending",
+      payment_gateway: "cashfree",
+      gateway_order_id: orderId,
+      metadata: {
+        course_slug: courseId,
+        customer_name: customerName.trim().substring(0, 200),
+        customer_email: customerEmail.trim().toLowerCase(),
+        customer_phone: customerPhone.replace(/[\s-]/g, ""),
+      },
+    });
 
     if (paymentError) {
       console.error("Payment record error:", paymentError);
@@ -222,13 +216,13 @@ serve(async (req) => {
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   } catch (error: any) {
     console.error("Error creating Cashfree order:", error);
-    return new Response(
-      JSON.stringify({ error: error?.message || "Failed to create order" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: error?.message || "Failed to create order" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
