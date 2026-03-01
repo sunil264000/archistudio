@@ -118,7 +118,7 @@ export default function Dashboard() {
       <Navbar />
       
       {/* Animated Background */}
-      <AnimatedBackground intensity="light" showOrbs={true} showGrid={false} />
+      <AnimatedBackground intensity="light" />
       <main className="flex-1 py-8">
         <div className="container mx-auto px-4 space-y-8">
           <div className="flex items-center justify-between">

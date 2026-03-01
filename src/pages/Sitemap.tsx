@@ -150,7 +150,7 @@ export default function Sitemap() {
         url="https://archistudio.shop/sitemap"
       />
       <Navbar />
-      <AnimatedBackground intensity="light" showOrbs showGrid={false} />
+      <AnimatedBackground intensity="light" />
 
       {/* Hero */}
       <section className="pt-28 pb-12 relative">
