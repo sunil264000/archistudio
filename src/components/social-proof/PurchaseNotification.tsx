@@ -154,12 +154,12 @@ export function PurchaseNotification() {
     // Initial delay
     const initialDelay = setTimeout(() => {
       showNotification();
-    }, 6000);
+    }, 15000);
 
-    // Show notification every 15-35 seconds
+    // Show notification every 45-90 seconds (less aggressive)
     const interval = setInterval(() => {
       showNotification();
-    }, 15000 + Math.random() * 20000);
+    }, 45000 + Math.random() * 45000);
 
     return () => {
       clearTimeout(initialDelay);

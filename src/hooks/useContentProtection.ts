@@ -2,17 +2,9 @@ import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 /**
- * Lightweight Content Protection
- *
- * The previous “advanced” protection (fetch overrides, CSP injection, mutation observers)
- * can break video playback on some devices/browsers.
- *
- * This keeps only minimal deterrents:
- * - Block right-click context menu on video/iframe players
- * - Block a couple of “save/view source” shortcuts
- * - Hide the browser download button where supported
- *
- * Admins and dev bypass automatically.
+ * Content Protection — blocks right-click, dev tools shortcuts,
+ * text selection on media, and download buttons.
+ * Admins and dev mode bypass automatically.
  */
 export function useContentProtection() {
   const { isAdmin } = useAuth();
@@ -21,35 +13,30 @@ export function useContentProtection() {
     const shouldBypass = import.meta.env.DEV || isAdmin;
     if (shouldBypass) return;
 
-    const isMediaElement = (el: EventTarget | null) => {
-      if (!(el instanceof HTMLElement)) return false;
-      return !!el.closest('video, iframe');
-    };
-
+    // Block right-click everywhere
     const handleContextMenu = (e: MouseEvent) => {
-      // Only block right-click on media elements so the rest of the site feels normal.
-      if (!isMediaElement(e.target)) return;
       e.preventDefault();
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Keep this minimal to avoid breaking accessibility / normal workflows.
       const k = e.key.toLowerCase();
-      if (e.ctrlKey && (k === 's' || k === 'u')) {
-        e.preventDefault();
-      }
+      // Block: Ctrl+S, Ctrl+U, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C, F12
+      if (e.ctrlKey && (k === 's' || k === 'u')) { e.preventDefault(); }
+      if (e.ctrlKey && e.shiftKey && (k === 'i' || k === 'j' || k === 'c')) { e.preventDefault(); }
+      if (e.key === 'F12') { e.preventDefault(); }
     };
 
     document.addEventListener('contextmenu', handleContextMenu);
     document.addEventListener('keydown', handleKeyDown);
 
-    // Hide download buttons where browsers expose them
+    // Hide download buttons and disable text selection on media
     const style = document.createElement('style');
     style.id = 'content-protection-style';
     style.textContent = `
       video::-webkit-media-controls-download-button { display: none !important; }
       video::-internal-media-controls-download-button { display: none !important; }
       video::-webkit-media-controls-overflow-button { display: none !important; }
+      img, video, iframe { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
     `;
     document.head.appendChild(style);
 

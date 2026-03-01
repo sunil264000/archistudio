@@ -86,7 +86,21 @@ const PaymentSuccess = () => {
             dbTitle || localTitle || 'Unknown Course',
             Number(payment.amount) || 0
           );
-          return; // Done!
+
+          // Notify admin about the purchase
+          supabase.functions.invoke('notify-admin', {
+            body: {
+              type: 'new_purchase',
+              email: metadata.customer_email || '',
+              name: metadata.customer_name || 'Customer',
+              courseName: dbTitle || localTitle || 'Unknown Course',
+              amount: Number(payment.amount) || 0,
+              orderId,
+              courseSlug: resolvedSlug,
+            }
+          }).catch(err => console.error('Admin notify error:', err));
+
+          return;
         } else if (payment?.status === "failed") {
           setStatus("failed");
           return;

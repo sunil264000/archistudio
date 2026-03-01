@@ -133,8 +133,8 @@ export default function Courses() {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="All Studios - Archistudio"
-        description="Browse our complete catalog of architecture and 3D visualization studio programs. Learn 3ds Max, AutoCAD, Revit, SketchUp and more."
+        title="All Courses - Archistudio"
+        description="Browse our complete catalog of architecture and 3D visualization courses. Learn 3ds Max, AutoCAD, Revit, SketchUp and more."
         url="https://archistudio.shop/courses"
       />
 
@@ -151,7 +151,7 @@ export default function Courses() {
           <div className="mb-4 sm:mb-6">
             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-secondary/60 text-foreground text-sm font-medium border border-accent/20">
               <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />
-              {loading ? '...' : `${allCourses.length}+`} Studio Programs
+              {loading ? '...' : `${allCourses.length}+`} Courses
             </div>
           </div>
 
@@ -167,7 +167,7 @@ export default function Courses() {
           <div className="max-w-xl mx-auto relative">
             <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
             <Input
-              placeholder="Search studios..."
+              placeholder="Search courses..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 sm:pl-12 h-12 sm:h-14 text-base sm:text-lg border-2 border-border/50 focus:border-accent transition-colors duration-200 bg-background/80 shadow-lg"
@@ -195,7 +195,7 @@ export default function Courses() {
               onClick={() => setSelectedCategory(null)}
               className="transition-all duration-300 hover:scale-105 shrink-0 min-h-[40px] text-sm"
             >
-              All Studios
+              All Courses
             </Button>
             {courseCategories.map((cat, index) => (
               <Button
@@ -219,7 +219,7 @@ export default function Courses() {
           <div className="container mx-auto px-4">
             <div className="flex items-center gap-2 mb-3 sm:mb-4">
               <Star className="h-5 w-5 sm:h-6 sm:w-6 text-warning fill-warning" />
-              <h2 className="text-xl sm:text-2xl font-bold">Featured Studios</h2>
+              <h2 className="text-xl sm:text-2xl font-bold">Featured Courses</h2>
             </div>
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -252,7 +252,7 @@ export default function Courses() {
               ? courseCategories.find(c => c.id === selectedCategory)?.name
               : searchQuery
                 ? `Search Results (${filteredCourses.length})`
-                : 'All Studios'}
+                : 'All Courses'}
           </h2>
 
           {loading ? (
@@ -261,7 +261,7 @@ export default function Courses() {
             </div>
           ) : sortedCourses.length === 0 ? (
             <div className="text-center py-8 sm:py-12">
-              <p className="text-muted-foreground text-base sm:text-lg">No studios found matching your criteria.</p>
+              <p className="text-muted-foreground text-base sm:text-lg">No courses found matching your criteria.</p>
               <Button variant="outline" className="mt-4 min-h-[44px]" onClick={() => { setSelectedCategory(null); setSearchQuery(''); }}>
                 Clear Filters
               </Button>

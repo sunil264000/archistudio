@@ -120,7 +120,7 @@ export function HeroSection() {
                 >
                   <Link to={user ? "/courses" : "/auth?mode=signup"} className="w-full sm:w-auto">
                     <Button size="xl" className="gap-2.5 group w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_4px_20px_hsl(var(--accent)/0.2)]">
-                      {user ? "Explore Studios" : "Start Learning Free"}
+                      {user ? "Explore Courses" : "Start Learning Free"}
                       <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                     </Button>
                   </Link>
@@ -138,7 +138,7 @@ export function HeroSection() {
                   className="flex items-center gap-6 sm:gap-10 justify-center lg:justify-start pt-4"
                 >
                   {[
-                    { value: liveStats.courses, label: 'Studio Programs' },
+                    { value: liveStats.courses, label: 'Courses' },
                     { value: liveStats.students, label: 'Students' },
                     { value: '4.9', label: 'Avg Rating' },
                   ].map((stat) => (
