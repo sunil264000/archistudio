@@ -14,7 +14,7 @@ import { motion } from "framer-motion";
 import { analytics } from "@/hooks/useGoogleAnalytics";
 import { useCart } from "@/contexts/CartContext";
 
-const MAX_RETRY_COUNT = 20;
+const MAX_RETRY_COUNT = 30;
 const REDIRECT_DELAY = 8;
 
 const PaymentSuccess = () => {
@@ -109,8 +109,8 @@ const PaymentSuccess = () => {
         // Payment still pending - immediately trigger server-side verification
         retryCount.current += 1;
 
-        // Call server-side Cashfree API verification on first attempt and every 3rd retry
-        if (!serverVerifyTriggered.current || retryCount.current % 3 === 0) {
+        // Call server-side Cashfree API verification on every attempt for faster resolution
+        if (!serverVerifyTriggered.current || retryCount.current % 2 === 0) {
           serverVerifyTriggered.current = true;
           try {
             const { data: verifyResult } = await supabase.functions.invoke("verify-payment", {
@@ -135,7 +135,7 @@ const PaymentSuccess = () => {
           return;
         }
         
-        setTimeout(verifyPayment, 1500);
+        setTimeout(verifyPayment, retryCount.current < 5 ? 1000 : 2000);
       } catch (error) {
         console.error("Error verifying payment:", error);
         setStatus("failed");

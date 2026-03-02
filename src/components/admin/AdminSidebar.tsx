@@ -5,7 +5,7 @@ import {
   BookOpen, Package, Video, Users, UserPlus, HelpCircle, Bell, 
   CreditCard, Sparkles, Award, BarChart3, MessageSquare, Settings,
   ChevronLeft, ChevronRight, LayoutDashboard, Timer, Mail, Send, Library, FileText, KeyRound,
-  Gift, Wallet, Rocket, Zap, Shield, History, Wrench, Inbox, Cloud
+  Gift, Wallet, Rocket, Zap, Shield, History, Wrench, Inbox, Cloud, Monitor
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logo from '@/assets/logo.png';
@@ -53,6 +53,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { id: 'users', label: 'Users', icon: Users, color: 'text-cyan-500' },
       { id: 'roles', label: 'Roles', icon: Shield, color: 'text-red-500' },
+      { id: 'sessions', label: 'Sessions', icon: Monitor, color: 'text-violet-500' },
       { id: 'access', label: 'Access Control', icon: UserPlus, color: 'text-orange-500' },
     ],
   },
