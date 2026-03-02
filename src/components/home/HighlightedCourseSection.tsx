@@ -163,7 +163,7 @@ export function HighlightedCourseSection() {
                         ₹{course.price_inr.toLocaleString('en-IN')}
                       </div>
                     )}
-                    <Link to={`/courses/${course.slug}`} className="ml-auto sm:ml-0">
+                    <Link to={`/course/${course.slug}`} className="ml-auto sm:ml-0">
                       <Button size="lg" className="gap-2 group/btn bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_4px_20px_hsl(var(--accent)/0.25)]">
                         Explore This Course
                         <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />

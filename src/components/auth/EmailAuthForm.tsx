@@ -128,13 +128,8 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
   };
 
   const handleVerificationSuccess = () => {
-    // Send welcome email ONLY after successful verification (single email)
+    // Notify admin about new signup (no separate welcome email - OTP email is enough)
     if (pendingEmail) {
-      supabase.functions.invoke('send-welcome-email', {
-        body: { email: pendingEmail, name: pendingName || pendingEmail.split('@')[0] }
-      }).catch(err => console.error('Welcome email error:', err));
-
-      // Notify admin about new signup
       supabase.functions.invoke('notify-admin', {
         body: { 
           type: 'new_signup',

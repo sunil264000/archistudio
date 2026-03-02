@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { registerSession, validateSession, endSession } from '@/utils/sessionManager';
 
 interface Profile {
   id: string;
@@ -97,6 +98,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setProfile(userProfile);
             const isAdminUser = await checkAdminRole(session.user.id);
             setHasAdminRole(isAdminUser);
+            
+            // Register session for single-device enforcement
+            if (event === 'SIGNED_IN') {
+              await registerSession(session.user.id);
+            } else {
+              // Validate existing session
+              const valid = await validateSession(session.user.id);
+              if (!valid && event !== 'TOKEN_REFRESHED') {
+                // Session invalidated (logged in elsewhere)
+                toast.error('You have been logged out because your account was accessed from another device.');
+                await supabase.auth.signOut();
+                return;
+              }
+            }
+            
             setLoading(false);
           }, 0);
         } else {
@@ -191,6 +207,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    if (user) {
+      await endSession(user.id);
+    }
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);

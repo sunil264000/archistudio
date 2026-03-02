@@ -29,6 +29,7 @@ import { analytics } from '@/hooks/useGoogleAnalytics';
 import { LinkedEbooksHighlight } from '@/components/course/LinkedEbooksHighlight';
 import { EMIPaymentOptions } from '@/components/course/EMIPaymentOptions';
 import { useExitDiscount } from '@/hooks/useExitDiscount';
+import { WhatYouLearnCard } from '@/components/course/WhatYouLearnCard';
 
 // Add to Cart Button Component
 function AddToCartButton({ course }: { course: any }) {
@@ -581,7 +582,7 @@ export default function CourseDetail() {
         <div className="container mx-auto px-4">
            <Link to="/courses" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-4 transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Studios
+            Back to Courses
           </Link>
 
           <div className="grid lg:grid-cols-3 gap-8">
@@ -627,7 +628,7 @@ export default function CourseDetail() {
                 </span>
                 <span className="flex items-center gap-1.5">
                   <BookOpen className="h-4 w-4" />
-                  {displayTotalLessons} sessions
+                  {displayTotalLessons} lessons
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Users className="h-4 w-4" />
@@ -645,7 +646,7 @@ export default function CourseDetail() {
               {/* About */}
               <Card>
                 <CardHeader>
-                  <CardTitle>About This Studio</CardTitle>
+                  <CardTitle>About This Course</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground leading-relaxed">
@@ -654,31 +655,8 @@ export default function CourseDetail() {
                 </CardContent>
               </Card>
 
-              {/* What You'll Learn */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>What You'll Learn</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {[
-                      'Master core concepts and fundamentals',
-                      'Build real-world professional projects',
-                      'Industry-standard workflows and techniques',
-                      'Advanced tips and best practices',
-                      'Optimize your workflow for efficiency',
-                      'Create portfolio-ready work',
-                      'Understand professional standards',
-                      'Troubleshoot common issues',
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <CheckCircle className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">{item}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              {/* What You'll Learn - Dynamic per course */}
+              <WhatYouLearnCard courseId={dbCourseId} courseTitle={course.title} modules={dbModules} />
             </div>
 
             {/* Purchase Card */}

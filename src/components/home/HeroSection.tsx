@@ -127,7 +127,7 @@ export function HeroSection() {
                   <Link to="/courses" className="w-full sm:w-auto">
                     <Button variant="glass" size="xl" className="gap-2 w-full sm:w-auto">
                       <Play className="h-4 w-4" />
-                      Preview Sessions
+                      Explore Courses
                     </Button>
                   </Link>
                 </motion.div>
