@@ -7,15 +7,13 @@ interface Purchase {
   name: string;
   course: string;
   timeAgo: string;
-  isReal: boolean;
 }
 
+const DAILY_NOTIFICATION_KEY = 'purchase_notification_last_shown_at';
+
 const fakeNames = [
-  'Rahul M.', 'Priya S.', 'Amit K.', 'Sneha R.', 'Vikram P.', 
+  'Rahul M.', 'Priya S.', 'Amit K.', 'Sneha R.', 'Vikram P.',
   'Ananya G.', 'Rohan D.', 'Kavitha N.', 'Arjun B.', 'Meera L.',
-  'Karan T.', 'Divya C.', 'Aditya V.', 'Pooja H.', 'Nikhil J.',
-  'Sanjay R.', 'Neha P.', 'Rajesh K.', 'Anjali S.', 'Deepak M.',
-  'Manish G.', 'Sakshi T.', 'Varun B.', 'Shreya D.', 'Akash L.',
 ];
 
 const courseNames = [
@@ -25,48 +23,23 @@ const courseNames = [
   'AutoCAD Professional',
   'Revit BIM Fundamentals',
   'SketchUp Pro Training',
-  'Corona Rendering Expert',
-  'Post Production Mastery',
-  'Rhino 3D Modeling',
 ];
 
-const cities = [
-  'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 
-  'Pune', 'Kolkata', 'Ahmedabad', 'Jaipur', 'Lucknow',
-];
-
-const actionTypes = [
-  { action: 'purchased', icon: 'cart' },
-  { action: 'joined', icon: 'cart' },
-  { action: 'started practicing', icon: 'play' },
-  { action: 'finished a session in', icon: 'check' },
-  { action: 'completed', icon: 'award' },
-];
+const cities = ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Pune'];
 
 const getRandomTime = () => {
-  const options = [
-    { text: 'just now', weight: 10 },
-    { text: '2 min ago', weight: 15 },
-    { text: '5 min ago', weight: 20 },
-    { text: '12 min ago', weight: 15 },
-    { text: '23 min ago', weight: 10 },
-    { text: '45 min ago', weight: 8 },
-    { text: '1 hour ago', weight: 7 },
-    { text: '2 hours ago', weight: 5 },
-    { text: '3 hours ago', weight: 4 },
-    { text: '5 hours ago', weight: 3 },
-    { text: '8 hours ago', weight: 2 },
-    { text: 'yesterday', weight: 1 },
-  ];
-  
-  const totalWeight = options.reduce((sum, opt) => sum + opt.weight, 0);
-  let random = Math.random() * totalWeight;
-  
-  for (const option of options) {
-    random -= option.weight;
-    if (random <= 0) return option.text;
-  }
-  return options[0].text;
+  const options = ['just now', '2 min ago', '5 min ago', '12 min ago', '23 min ago', '1 hour ago'];
+  return options[Math.floor(Math.random() * options.length)];
+};
+
+const isShownToday = () => {
+  const today = new Date().toISOString().slice(0, 10);
+  return localStorage.getItem(DAILY_NOTIFICATION_KEY) === today;
+};
+
+const markShownToday = () => {
+  const today = new Date().toISOString().slice(0, 10);
+  localStorage.setItem(DAILY_NOTIFICATION_KEY, today);
 };
 
 export function PurchaseNotification() {
@@ -74,41 +47,41 @@ export function PurchaseNotification() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    if (isShownToday()) return;
+
     const fetchRealPurchases = async () => {
-      // Fetch completed payments with course info only (no profile join since no FK exists)
       const { data: payments } = await supabase
         .from('payments')
         .select('created_at, user_id, courses(title)')
         .eq('status', 'completed')
         .order('created_at', { ascending: false })
         .limit(10);
-      
+
       if (!payments || payments.length === 0) return [];
-      
-      // Fetch profiles separately for these users
-      const userIds = [...new Set(payments.map(p => p.user_id))];
+
+      const userIds = [...new Set(payments.map((p) => p.user_id))];
       const { data: profiles } = await supabase
         .from('profiles')
         .select('user_id, full_name')
         .in('user_id', userIds);
-      
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p.full_name]) || []);
-      
-      return payments.map(p => ({
+
+      const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name]) || []);
+
+      return payments.map((p) => ({
         created_at: p.created_at,
         course_title: (p.courses as any)?.title,
         full_name: profileMap.get(p.user_id) || null,
       }));
     };
 
-    const showNotification = async () => {
+    const showOneNotification = async () => {
+      if (isShownToday()) return;
+
       const realPurchases = await fetchRealPurchases();
-      
-      // 30% chance for real purchase if available
-      const useReal = realPurchases.length > 0 && Math.random() < 0.3;
-      
+      const useReal = realPurchases.length > 0 && Math.random() < 0.5;
+
       let purchase: Purchase;
-      
+
       if (useReal) {
         const real = realPurchases[Math.floor(Math.random() * realPurchases.length)];
         const name = real.full_name || 'Someone';
@@ -116,55 +89,36 @@ export function PurchaseNotification() {
         const initial = name.split(' ')[1]?.[0] || '';
         const created = new Date(real.created_at);
         const now = new Date();
-        const diffMs = now.getTime() - created.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMins / 60);
-        
+        const diffMins = Math.floor((now.getTime() - created.getTime()) / 60000);
+
         let timeAgo = 'just now';
-        if (diffHours > 24) timeAgo = `${Math.floor(diffHours / 24)} days ago`;
-        else if (diffHours > 0) timeAgo = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        if (diffMins > 60) timeAgo = `${Math.floor(diffMins / 60)} hour${Math.floor(diffMins / 60) > 1 ? 's' : ''} ago`;
         else if (diffMins > 0) timeAgo = `${diffMins} min ago`;
-        
+
         purchase = {
           name: `${firstName} ${initial}.`,
           course: real.course_title || 'a course',
           timeAgo,
-          isReal: true,
         };
       } else {
-        const actionType = actionTypes[Math.floor(Math.random() * actionTypes.length)];
-        const showCity = Math.random() > 0.6;
         const name = fakeNames[Math.floor(Math.random() * fakeNames.length)];
         const city = cities[Math.floor(Math.random() * cities.length)];
-        
+
         purchase = {
-          name: showCity ? `${name} from ${city}` : name,
+          name: `${name} from ${city}`,
           course: courseNames[Math.floor(Math.random() * courseNames.length)],
           timeAgo: getRandomTime(),
-          isReal: false,
         };
       }
-      
+
       setNotification(purchase);
       setIsVisible(true);
-      
+      markShownToday();
       setTimeout(() => setIsVisible(false), 6000);
     };
 
-    // Initial delay
-    const initialDelay = setTimeout(() => {
-      showNotification();
-    }, 15000);
-
-    // Show notification every 45-90 seconds (less aggressive)
-    const interval = setInterval(() => {
-      showNotification();
-    }, 45000 + Math.random() * 45000);
-
-    return () => {
-      clearTimeout(initialDelay);
-      clearInterval(interval);
-    };
+    const initialDelay = setTimeout(showOneNotification, 15000);
+    return () => clearTimeout(initialDelay);
   }, []);
 
   return (
@@ -182,18 +136,14 @@ export function PurchaseNotification() {
               <ShoppingBag className="h-5 w-5 text-success" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">
-                {notification.name}
-              </p>
-              <p className="text-sm text-primary font-semibold truncate">
-                purchased {notification.course}
-              </p>
+              <p className="text-sm font-medium text-foreground">{notification.name}</p>
+              <p className="text-sm text-primary font-semibold truncate">purchased {notification.course}</p>
               <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                 <Clock className="h-3 w-3" />
                 {notification.timeAgo}
               </p>
             </div>
-            <button 
+            <button
               onClick={() => setIsVisible(false)}
               className="text-muted-foreground hover:text-foreground text-lg leading-none"
             >
@@ -205,3 +155,4 @@ export function PurchaseNotification() {
     </AnimatePresence>
   );
 }
+

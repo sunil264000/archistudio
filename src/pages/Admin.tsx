@@ -328,6 +328,7 @@ function CoursesPanel() {
 function UsersPanel() {
   const [users, setUsers] = useState<any[]>([]);
   const [showIds, setShowIds] = useState<Record<string, boolean>>({});
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -343,6 +344,24 @@ function UsersPanel() {
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${label} copied to clipboard`);
+  };
+
+  const handleDeleteUser = async (targetUserId: string, email?: string | null) => {
+    const confirmed = window.confirm(`Delete user ${email || targetUserId}? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    setDeletingUserId(targetUserId);
+    const { error } = await supabase.functions.invoke('delete-user', {
+      body: { userId: targetUserId },
+    });
+
+    if (error) {
+      toast.error(error.message || 'Failed to delete user');
+    } else {
+      toast.success('User deleted successfully');
+      setUsers((prev) => prev.filter((u) => u.user_id !== targetUserId));
+    }
+    setDeletingUserId(null);
   };
 
   const filteredUsers = users.filter(user =>
@@ -404,12 +423,27 @@ function UsersPanel() {
                   </Button>
                 </div>
 
-                <div className="flex gap-4 text-xs text-muted-foreground">
-                  <span className={user.email_verified ? 'text-emerald-600' : ''}>
-                    Email: {user.email_verified ? '✓ Verified' : '✗ Unverified'}
-                  </span>
-                  <span>•</span>
-                  <span>Joined: {new Date(user.created_at).toLocaleDateString()}</span>
+                <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
+                  <div className="flex gap-4">
+                    <span className={user.email_verified ? 'text-emerald-600' : ''}>
+                      Email: {user.email_verified ? '✓ Verified' : '✗ Unverified'}
+                    </span>
+                    <span>•</span>
+                    <span>Joined: {new Date(user.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDeleteUser(user.user_id, user.email)}
+                    disabled={deletingUserId === user.user_id}
+                  >
+                    {deletingUserId === user.user_id ? (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3 w-3 mr-1" />
+                    )}
+                    Delete User
+                  </Button>
                 </div>
               </div>
             ))}

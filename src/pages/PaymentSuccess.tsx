@@ -14,7 +14,7 @@ import { motion } from "framer-motion";
 import { analytics } from "@/hooks/useGoogleAnalytics";
 import { useCart } from "@/contexts/CartContext";
 
-const MAX_RETRY_COUNT = 30;
+const MAX_RETRY_COUNT = 20;
 const REDIRECT_DELAY = 8;
 
 const PaymentSuccess = () => {
@@ -37,7 +37,6 @@ const PaymentSuccess = () => {
   } | null>(null);
   const [redirectCountdown, setRedirectCountdown] = useState(REDIRECT_DELAY);
   const retryCount = useRef(0);
-  const serverVerifyTriggered = useRef(false);
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -47,14 +46,34 @@ const PaymentSuccess = () => {
       }
 
       try {
+        // Trigger server-side verification first for faster status resolution
+        const { data: verifyResult } = await supabase.functions.invoke("verify-payment", {
+          body: { orderId },
+        });
+
+        if (verifyResult?.status === "failed") {
+          setStatus("failed");
+          return;
+        }
+
         // Check payment status in database
         const { data: payment, error } = await supabase
           .from("payments")
           .select("status, course_id, amount, created_at, metadata, courses(title, slug)")
           .eq("gateway_order_id", orderId)
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
+
+        if (!payment) {
+          retryCount.current += 1;
+          if (retryCount.current >= MAX_RETRY_COUNT) {
+            setStatus("cancelled");
+            return;
+          }
+          setTimeout(verifyPayment, retryCount.current < 5 ? 700 : 1200);
+          return;
+        }
 
         const dbTitle = (payment as any).courses?.title as string | undefined;
         const dbSlug = (payment as any).courses?.slug as string | undefined;
@@ -106,36 +125,15 @@ const PaymentSuccess = () => {
           return;
         }
 
-        // Payment still pending - immediately trigger server-side verification
+        // Payment still pending
         retryCount.current += 1;
-
-        // Call server-side Cashfree API verification on every attempt for faster resolution
-        if (!serverVerifyTriggered.current || retryCount.current % 2 === 0) {
-          serverVerifyTriggered.current = true;
-          try {
-            const { data: verifyResult } = await supabase.functions.invoke("verify-payment", {
-              body: { orderId },
-            });
-            
-            if (verifyResult?.status === "completed") {
-              // Payment confirmed! Re-check DB to get full data
-              setTimeout(verifyPayment, 500);
-              return;
-            } else if (verifyResult?.status === "failed") {
-              setStatus("failed");
-              return;
-            }
-          } catch (e) {
-            console.error("Server verify failed:", e);
-          }
-        }
 
         if (retryCount.current >= MAX_RETRY_COUNT) {
           setStatus("cancelled");
           return;
         }
-        
-        setTimeout(verifyPayment, retryCount.current < 5 ? 1000 : 2000);
+
+        setTimeout(verifyPayment, retryCount.current < 5 ? 700 : 1200);
       } catch (error) {
         console.error("Error verifying payment:", error);
         setStatus("failed");
