@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -40,6 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasAdminRole, setHasAdminRole] = useState(false);
+  const authReadyRef = useRef(false);
+  const registerInFlightRef = useRef(false);
 
   const checkAdminRole = async (userId: string) => {
     try {
@@ -62,9 +64,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
-      if (error) { console.error('Error fetching profile:', error); return null; }
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
       return data as Profile | null;
-    } catch (err) { console.error('Profile fetch error:', err); return null; }
+    } catch (err) {
+      console.error('Profile fetch error:', err);
+      return null;
+    }
   };
 
   const createProfile = async (userId: string, email: string, fullName?: string) => {
@@ -74,75 +82,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .insert({ user_id: userId, email, full_name: fullName || null, role: 'student' })
         .select()
         .single();
-      if (error) { console.error('Error creating profile:', error); return null; }
+      if (error) {
+        console.error('Error creating profile:', error);
+        return null;
+      }
       return data as Profile;
-    } catch (err) { console.error('Profile creation error:', err); return null; }
+    } catch (err) {
+      console.error('Profile creation error:', err);
+      return null;
+    }
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+    const handleAuthState = async (event: string, nextSession: Session | null) => {
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
 
-        if (session?.user) {
-          setTimeout(async () => {
-            let userProfile = await fetchProfile(session.user.id);
-            if (!userProfile) {
-              userProfile = await createProfile(
-                session.user.id,
-                session.user.email || '',
-                session.user.user_metadata?.full_name
-              );
-            }
-            setProfile(userProfile);
-            const isAdminUser = await checkAdminRole(session.user.id);
-            setHasAdminRole(isAdminUser);
-            
-            // Register session for single-device enforcement
-            if (event === 'SIGNED_IN') {
-              await registerSession(session.user.id);
-            } else {
-              // Validate existing session
-              const valid = await validateSession(session.user.id);
-              if (!valid && event !== 'TOKEN_REFRESHED') {
-                // Session invalidated (logged in elsewhere)
-                toast.error('You have been logged out because your account was accessed from another device.');
-                await supabase.auth.signOut();
-                return;
-              }
-            }
-            
-            setLoading(false);
-          }, 0);
-        } else {
-          setProfile(null);
+      if (!nextSession?.user) {
+        setProfile(null);
+        setHasAdminRole(false);
+        setLoading(false);
+        authReadyRef.current = true;
+        return;
+      }
+
+      let userProfile = await fetchProfile(nextSession.user.id);
+      if (!userProfile) {
+        userProfile = await createProfile(
+          nextSession.user.id,
+          nextSession.user.email || '',
+          nextSession.user.user_metadata?.full_name
+        );
+      }
+      setProfile(userProfile);
+
+      const isAdminUser = await checkAdminRole(nextSession.user.id);
+      setHasAdminRole(isAdminUser);
+
+      const shouldCheckSession = event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION';
+      if (shouldCheckSession) {
+        const hasValidLocalSession = await validateSession(nextSession.user.id);
+
+        if (event === 'SIGNED_IN' && !hasValidLocalSession && !registerInFlightRef.current) {
+          registerInFlightRef.current = true;
+          try {
+            await registerSession(nextSession.user.id);
+          } finally {
+            registerInFlightRef.current = false;
+          }
+        }
+
+        if ((event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && !hasValidLocalSession && authReadyRef.current) {
+          toast.error('You were logged out because this account was opened on another device.');
+          await supabase.auth.signOut();
           setLoading(false);
+          return;
         }
       }
-    );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchProfile(session.user.id).then(async (userProfile) => {
-          if (!userProfile) {
-            userProfile = await createProfile(
-              session.user.id,
-              session.user.email || '',
-              session.user.user_metadata?.full_name
-            );
-          }
-          setProfile(userProfile);
-          const isAdminUser = await checkAdminRole(session.user.id);
-          setHasAdminRole(isAdminUser);
-          setLoading(false);
-        });
-      } else {
-        setLoading(false);
-      }
+      setLoading(false);
+      authReadyRef.current = true;
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      void handleAuthState(event, nextSession);
     });
 
     return () => subscription.unsubscribe();
@@ -153,13 +156,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return { error };
       return { error: null };
-    } catch (err) { return { error: err as Error }; }
+    } catch (err) {
+      return { error: err as Error };
+    }
   };
 
   const signUpWithEmail = async (email: string, password: string, fullName: string) => {
     try {
       const redirectUrl = `${window.location.origin}/`;
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -167,16 +172,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           data: { full_name: fullName },
         },
       });
-      
+
+      // Force signed-out state until OTP verification + login
+      await supabase.auth.signOut();
+
       if (error) return { error };
-
-      // NOTE: Welcome email is NOT sent here anymore.
-      // The OTP verification email (sent by EmailAuthForm) serves as the first contact.
-      // After verification, the send-welcome-email is called once.
-      // This prevents triple-email on signup.
-
       return { error: null };
-    } catch (err) { return { error: err as Error }; }
+    } catch (err) {
+      return { error: err as Error };
+    }
   };
 
   const signInWithGoogle = async () => {
@@ -187,7 +191,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       if (error) return { error };
       return { error: null };
-    } catch (err) { return { error: err as Error }; }
+    } catch (err) {
+      return { error: err as Error };
+    }
   };
 
   const signInWithPhone = async (phone: string) => {
@@ -195,7 +201,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.signInWithOtp({ phone });
       if (error) return { error };
       return { error: null };
-    } catch (err) { return { error: err as Error }; }
+    } catch (err) {
+      return { error: err as Error };
+    }
   };
 
   const verifyPhoneOTP = async (phone: string, token: string) => {
@@ -203,7 +211,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' });
       if (error) return { error };
       return { error: null };
-    } catch (err) { return { error: err as Error }; }
+    } catch (err) {
+      return { error: err as Error };
+    }
   };
 
   const signOut = async () => {
@@ -214,6 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setProfile(null);
+    setHasAdminRole(false);
   };
 
   const isAdmin = hasAdminRole;
@@ -221,9 +232,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        user, session, profile, loading,
-        signInWithEmail, signUpWithEmail, signInWithGoogle,
-        signInWithPhone, verifyPhoneOTP, signOut, isAdmin,
+        user,
+        session,
+        profile,
+        loading,
+        signInWithEmail,
+        signUpWithEmail,
+        signInWithGoogle,
+        signInWithPhone,
+        verifyPhoneOTP,
+        signOut,
+        isAdmin,
       }}
     >
       {children}
@@ -236,3 +255,4 @@ export function useAuth() {
   if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 }
+

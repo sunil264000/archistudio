@@ -54,14 +54,14 @@ export function FinalCTASection() {
                 size="xl" 
                 className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2 group shadow-lg"
               >
-                {user ? "Explore Studios" : "Start Your Free Account"}
+                {user ? "Explore Courses" : "Start Your Free Account"}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
             </Link>
           </motion.div>
 
           <motion.p variants={fadeInUp} className="text-sm text-background/40">
-            {user ? "Explore all studio programs" : "Free preview sessions available. No credit card required."}
+            {user ? "Explore all course programs" : "Free course previews available. No credit card required."}
           </motion.p>
         </motion.div>
       </div>

@@ -82,7 +82,7 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
         return;
       }
       
-      toast.success('Welcome back!');
+      toast.success('Signed in successfully. Welcome back!');
       onSuccess?.();
     } catch (err) {
       toast.error('An unexpected error occurred. Please try again.');

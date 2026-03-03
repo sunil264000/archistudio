@@ -69,6 +69,7 @@ interface ExpandableModuleProps {
   lessonCount: number;
   duration: string;
   hasFreePreview: boolean;
+  forcePreviewFirstLesson?: boolean;
   courseSlug: string;
   lessons: {
     id: string;
@@ -80,12 +81,13 @@ interface ExpandableModuleProps {
   defaultOpen?: boolean;
 }
 
-function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview, courseSlug, lessons, defaultOpen = false }: ExpandableModuleProps) {
+function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview, forcePreviewFirstLesson = false, courseSlug, lessons, defaultOpen = false }: ExpandableModuleProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const navigate = useNavigate();
   
   const handleLessonClick = (lesson: typeof lessons[0]) => {
-    if (lesson.is_free_preview) {
+    const isPreviewLesson = lesson.is_free_preview || (forcePreviewFirstLesson && lessons[0]?.id === lesson.id);
+    if (isPreviewLesson) {
       navigate(`/learn/${courseSlug}?lesson=${lesson.id}`);
     }
   };
@@ -108,7 +110,7 @@ function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview,
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {hasFreePreview && (
+            {(hasFreePreview || forcePreviewFirstLesson) && (
               <Badge variant="outline" className="text-xs gap-1 border-success/30 text-success bg-success/5">
                 <Eye className="h-3 w-3" /> Free Preview
               </Badge>
@@ -122,43 +124,47 @@ function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview,
           {lessons.length === 0 ? (
             <p className="text-xs text-muted-foreground py-2 italic">No lessons in this module yet</p>
           ) : (
-            lessons.map((lesson) => (
-              <div 
-                key={lesson.id}
-                onClick={() => handleLessonClick(lesson)}
-                className={`flex items-center justify-between py-2.5 px-3 rounded-lg text-sm transition-all ${
-                  lesson.is_free_preview 
-                    ? 'cursor-pointer hover:bg-success/10 hover:text-success group' 
-                    : 'hover:bg-muted/30 text-muted-foreground'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  {lesson.video_url ? (
-                    <Video className={`h-4 w-4 shrink-0 ${lesson.is_free_preview ? 'text-success' : 'text-muted-foreground'}`} />
-                  ) : (
-                    <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                  )}
-                  <span className={`block leading-snug break-words whitespace-normal ${lesson.is_free_preview ? 'text-foreground group-hover:text-success' : ''}`}>
-                    {lesson.title}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 shrink-0 ml-2">
-                  {lesson.duration_minutes && lesson.duration_minutes > 0 && (
-                    <span className="text-[10px] text-muted-foreground tabular-nums">
-                      {lesson.duration_minutes} min
+            lessons.map((lesson) => {
+              const isPreviewLesson = lesson.is_free_preview || (forcePreviewFirstLesson && lessons[0]?.id === lesson.id);
+
+              return (
+                <div
+                  key={lesson.id}
+                  onClick={() => handleLessonClick(lesson)}
+                  className={`flex items-center justify-between py-2.5 px-3 rounded-lg text-sm transition-all ${
+                    isPreviewLesson
+                      ? 'cursor-pointer hover:bg-success/10 hover:text-success group'
+                      : 'hover:bg-muted/30 text-muted-foreground'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {lesson.video_url ? (
+                      <Video className={`h-4 w-4 shrink-0 ${isPreviewLesson ? 'text-success' : 'text-muted-foreground'}`} />
+                    ) : (
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                    )}
+                    <span className={`block leading-snug break-words whitespace-normal ${isPreviewLesson ? 'text-foreground group-hover:text-success' : ''}`}>
+                      {lesson.title}
                     </span>
-                  )}
-                  {lesson.is_free_preview ? (
-                    <Badge className="text-[9px] px-1.5 py-0.5 flex items-center gap-1 bg-success/15 text-success border-0 font-medium">
-                      <Play className="h-2.5 w-2.5 fill-current" />
-                      Play Free
-                    </Badge>
-                  ) : (
-                    <Lock className="h-3 w-3 text-muted-foreground/60" />
-                  )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    {lesson.duration_minutes && lesson.duration_minutes > 0 && (
+                      <span className="text-[10px] text-muted-foreground tabular-nums">
+                        {lesson.duration_minutes} min
+                      </span>
+                    )}
+                    {isPreviewLesson ? (
+                      <Badge className="text-[9px] px-1.5 py-0.5 flex items-center gap-1 bg-success/15 text-success border-0 font-medium">
+                        <Play className="h-2.5 w-2.5 fill-current" />
+                        Play Free
+                      </Badge>
+                    ) : (
+                      <Lock className="h-3 w-3 text-muted-foreground/60" />
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </CollapsibleContent>
@@ -681,7 +687,7 @@ export default function CourseDetail() {
                       onClick={() => navigate(`/learn/${course.slug}`)}
                     >
                       <Play className="h-5 w-5 fill-current" />
-                      Preview Studio
+                      Preview Course
                     </Button>
                   </div>
                 </div>
@@ -865,7 +871,8 @@ export default function CourseDetail() {
                     dbModules.map((module, i) => {
                       const moduleDuration = module.lessons.reduce((sum, l) => sum + (l.duration_minutes || 0), 0);
                       const hasFreePreview = module.lessons.some(l => l.is_free_preview);
-                      
+                      const forcePreviewFirstLesson = i === 0 && module.lessons.length > 0;
+
                       return (
                         <ExpandableModule
                           key={module.id}
@@ -874,6 +881,7 @@ export default function CourseDetail() {
                           lessonCount={module.lessons.length}
                           duration={formatDuration(moduleDuration)}
                           hasFreePreview={hasFreePreview}
+                          forcePreviewFirstLesson={forcePreviewFirstLesson}
                           courseSlug={course.slug}
                           lessons={module.lessons}
                           defaultOpen={i === 0} // First module open by default

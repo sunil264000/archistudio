@@ -22,26 +22,32 @@ function getDeviceInfo() {
 export async function registerSession(userId: string) {
   const sessionToken = crypto.randomUUID();
   const { browser, os, device_info } = getDeviceInfo();
+  const now = new Date().toISOString();
 
   // Deactivate all previous sessions for this user
   await supabase
     .from('user_sessions')
-    .update({ 
-      is_active: false, 
-      logged_out_at: new Date().toISOString(),
-      logout_reason: 'new_login_elsewhere'
+    .update({
+      is_active: false,
+      logged_out_at: now,
+      logout_reason: 'new_login_elsewhere',
     })
     .eq('user_id', userId)
     .eq('is_active', true);
 
-  // Create new session
-  await supabase.from('user_sessions').insert({
+  // Create new active session
+  const { error } = await supabase.from('user_sessions').insert({
     user_id: userId,
     session_token: sessionToken,
     browser,
     os,
     device_info,
+    last_active_at: now,
   });
+
+  if (error) {
+    throw error;
+  }
 
   // Store token locally
   localStorage.setItem('session_token', sessionToken);
@@ -60,7 +66,14 @@ export async function validateSession(userId: string): Promise<boolean> {
     .eq('is_active', true)
     .maybeSingle();
 
-  return !!data;
+  if (!data) return false;
+
+  await supabase
+    .from('user_sessions')
+    .update({ last_active_at: new Date().toISOString() })
+    .eq('id', data.id);
+
+  return true;
 }
 
 export async function endSession(userId: string) {
@@ -68,13 +81,14 @@ export async function endSession(userId: string) {
   if (localToken) {
     await supabase
       .from('user_sessions')
-      .update({ 
-        is_active: false, 
+      .update({
+        is_active: false,
         logged_out_at: new Date().toISOString(),
-        logout_reason: 'manual_logout'
+        logout_reason: 'manual_logout',
       })
       .eq('user_id', userId)
       .eq('session_token', localToken);
   }
   localStorage.removeItem('session_token');
 }
+
