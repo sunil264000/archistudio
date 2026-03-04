@@ -1,15 +1,20 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Library } from 'lucide-react';
+import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Library, Bell } from 'lucide-react';
 import logoMark from '@/assets/logo-mark.png';
 import { useState, useEffect } from 'react';
 import { CartSheet } from '@/components/cart/CartSheet';
+import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 export function Navbar() {
   const { user, profile, signOut, loading, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
       return document.documentElement.classList.contains('dark');
@@ -22,6 +27,25 @@ export function Navbar() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Fetch unread notifications
+  useEffect(() => {
+    if (!user) { setUnreadCount(0); setNotifications([]); return; }
+    const fetchNotifs = async () => {
+      const { data, count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact' })
+        .eq('user_id', user.id)
+        .eq('read', false)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      setUnreadCount(count || 0);
+      setNotifications(data || []);
+    };
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const toggleDarkMode = () => {
     const newDark = !isDark;
@@ -63,7 +87,7 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-1">
           <div className="flex items-center gap-0.5 text-sm">
             {[
-              { to: '/courses', label: 'Studios' },
+              { to: '/courses', label: 'Courses' },
               { to: '/ebooks', label: 'eBooks', icon: Library },
               { to: '/blog', label: 'Blog' },
             ].map((link) => (
@@ -81,6 +105,48 @@ export function Navbar() {
           <div className="w-px h-5 bg-border/50 mx-2" />
 
           <CartSheet />
+
+          {/* Notification Bell */}
+          {user && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-xl relative">
+                  <Bell className="h-4 w-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-[10px] text-destructive-foreground flex items-center justify-center font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end">
+                <div className="p-3 border-b">
+                  <h4 className="font-semibold text-sm">Notifications</h4>
+                </div>
+                <div className="max-h-64 overflow-auto">
+                  {notifications.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-6">No new notifications</p>
+                  ) : (
+                    notifications.map(n => (
+                      <div key={n.id} className="p-3 border-b last:border-0 hover:bg-muted/50 transition-colors cursor-pointer"
+                        onClick={async () => {
+                          await supabase.from('notifications').update({ read: true }).eq('id', n.id);
+                          setNotifications(prev => prev.filter(x => x.id !== n.id));
+                          setUnreadCount(prev => Math.max(0, prev - 1));
+                        }}
+                      >
+                        <p className="text-sm font-medium">{n.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {new Date(n.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
 
           <Button variant="ghost" size="icon" onClick={toggleDarkMode} className="rounded-xl">
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -138,7 +204,7 @@ export function Navbar() {
         <div className="md:hidden border-t border-border/30 bg-card safe-area-inset">
           <div className="p-5 space-y-2">
             {[
-              { to: '/courses', label: 'Studios' },
+              { to: '/courses', label: 'Courses' },
               { to: '/ebooks', label: 'eBooks' },
               { to: '/blog', label: 'Blog' },
             ].map((link) => (

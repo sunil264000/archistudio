@@ -19,7 +19,7 @@ function getDeviceInfo() {
   return { browser, os, device_info: `${browser} on ${os}` };
 }
 
-export async function registerSession(userId: string) {
+export async function registerSession(userId: string): Promise<string> {
   const sessionToken = crypto.randomUUID();
   const { browser, os, device_info } = getDeviceInfo();
   const now = new Date().toISOString();
@@ -36,7 +36,7 @@ export async function registerSession(userId: string) {
     .eq('is_active', true);
 
   // Create new active session
-  const { error } = await supabase.from('user_sessions').insert({
+  await supabase.from('user_sessions').insert({
     user_id: userId,
     session_token: sessionToken,
     browser,
@@ -44,10 +44,6 @@ export async function registerSession(userId: string) {
     device_info,
     last_active_at: now,
   });
-
-  if (error) {
-    throw error;
-  }
 
   // Store token locally
   localStorage.setItem('session_token', sessionToken);
@@ -68,10 +64,12 @@ export async function validateSession(userId: string): Promise<boolean> {
 
   if (!data) return false;
 
-  await supabase
+  // Update last_active_at in background (don't await)
+  supabase
     .from('user_sessions')
     .update({ last_active_at: new Date().toISOString() })
-    .eq('id', data.id);
+    .eq('id', data.id)
+    .then(() => {});
 
   return true;
 }
@@ -91,4 +89,3 @@ export async function endSession(userId: string) {
   }
   localStorage.removeItem('session_token');
 }
-

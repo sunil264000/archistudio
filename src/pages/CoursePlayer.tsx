@@ -168,9 +168,9 @@ export default function CoursePlayer() {
         }
       }
       
-      // 2. If not logged in, find first free preview lesson
+      // 2. If not logged in, find first free preview lesson or auto-free first lesson
       if (!initialLesson && !user) {
-        initialLesson = allLessonsFlat.find(l => l.is_free_preview) || null;
+        initialLesson = allLessonsFlat.find(l => l.is_free_preview) || allLessonsFlat[0] || null;
       }
       
       // 3. If logged in, find first incomplete lesson (auto-continue)
@@ -183,14 +183,9 @@ export default function CoursePlayer() {
         initialLesson = allLessonsFlat.find(l => !completedIds.has(l.id)) || null;
       }
       
-      // 4. Fallback to first lesson or first free preview
+      // 4. Fallback to first lesson
       if (!initialLesson && allLessonsFlat.length > 0) {
-        // Prefer first free preview for guests
-        if (!user) {
-          initialLesson = allLessonsFlat.find(l => l.is_free_preview) || allLessonsFlat[0];
-        } else {
-          initialLesson = allLessonsFlat[0];
-        }
+        initialLesson = allLessonsFlat[0];
       }
       
       if (initialLesson) {
@@ -271,7 +266,7 @@ export default function CoursePlayer() {
     setShowFinishButton(false);
     setWatchProgress(0);
 
-    toast.success('Session completed! 🎉');
+    toast.success('Lesson completed! 🎉');
     
     // Check for course completion
     const allLessons = modules.flatMap(m => m.lessons);
@@ -282,8 +277,8 @@ export default function CoursePlayer() {
         body: { userId: user.id, courseId: course.id }
       }).catch(console.error);
       
-      // Show completion modal
-      setTimeout(() => setShowCompletionModal(true), 800);
+      // Show completion modal immediately with celebration
+      setTimeout(() => setShowCompletionModal(true), 500);
     }
   }, [currentLesson, user, modules, progress, course]);
 
@@ -326,7 +321,7 @@ export default function CoursePlayer() {
               <div className="absolute inset-0 rounded-full border-4 border-muted animate-pulse" />
               <div className="absolute inset-0 rounded-full border-4 border-t-accent animate-spin" />
             </div>
-            <p className="text-muted-foreground animate-pulse">Loading your studio...</p>
+            <p className="text-muted-foreground animate-pulse">Loading your course...</p>
           </div>
         </div>
       </div>
@@ -340,7 +335,7 @@ export default function CoursePlayer() {
         <Link to={`/course/${slug}`}>
           <Button variant="ghost" size="sm" className="gap-2 mb-3 hover:bg-accent/10 hover:text-accent transition-all">
             <ChevronLeft className="h-4 w-4" />
-            Back to Studio
+            Back to Course
           </Button>
         </Link>
         
@@ -397,7 +392,7 @@ export default function CoursePlayer() {
             </div>
             <Progress value={overallProgress} className="h-2.5" />
             <p className="text-[10px] text-muted-foreground mt-1.5">
-              {completedLessons} of {totalLessons} sessions completed
+              {completedLessons} of {totalLessons} lessons completed
             </p>
           </div>
         )}
@@ -439,7 +434,7 @@ export default function CoursePlayer() {
                       </span>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px] text-muted-foreground">
-                          {moduleLessons.length} sessions
+                          {moduleLessons.length} lessons
                         </span>
                         {user && moduleCompletedCount > 0 && (
                           <span className="text-[10px] text-accent font-medium">
@@ -460,9 +455,11 @@ export default function CoursePlayer() {
                   <div className="space-y-1 pl-1">
                     {module.lessons.map((lesson, lessonIdx) => {
                       const isCompleted = progress[lesson.id]?.completed;
+                      // Auto-free: first lesson of first module is always free
+                      const isAutoFreePreview = modIdx === 0 && lessonIdx === 0;
+                      const isEffectiveFreePreview = lesson.is_free_preview || isAutoFreePreview;
                       // Lesson is locked if: no access AND not free preview
-                      // For partial access: check module unlock status
-                      const isLocked = lesson.is_free_preview 
+                      const isLocked = isEffectiveFreePreview 
                         ? false 
                         : accessInfo.accessType === 'partial'
                           ? !isModuleUnlocked
@@ -507,7 +504,7 @@ export default function CoursePlayer() {
                               {lesson.title}
                             </span>
                             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                              {lesson.is_free_preview && !isEnrolled && (
+                              {isEffectiveFreePreview && !isEnrolled && (
                                 <Badge className="bg-success/15 text-success border-success/20 text-[10px] px-2 py-0.5 font-medium">
                                   Free Preview
                                 </Badge>
@@ -584,7 +581,11 @@ export default function CoursePlayer() {
               {/* Video Container - Full width on mobile with proper aspect ratio */}
               <div className="bg-black flex items-center justify-center">
                 {(() => {
-                  const isLocked = !isEnrolled && !currentLesson.is_free_preview;
+                  // Auto-free first lesson
+                  const allLessonsFlat = modules.flatMap(m => m.lessons);
+                  const isFirstLesson = allLessonsFlat.length > 0 && allLessonsFlat[0].id === currentLesson.id;
+                  const isEffectiveFree = currentLesson.is_free_preview || isFirstLesson;
+                  const isLocked = !isEnrolled && !isEffectiveFree;
 
                   if (isLocked) {
                     return (
