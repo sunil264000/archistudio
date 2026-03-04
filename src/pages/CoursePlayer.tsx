@@ -16,13 +16,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { 
-  ChevronLeft, Play, CheckCircle, Lock, Clock, 
+import {
+  ChevronLeft, Play, CheckCircle, Lock, Clock,
   BookOpen, Award, ChevronRight, CheckCircle2, MessageCircle, Download,
   Menu, X, List
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CourseCompletionModal } from '@/components/course/CourseCompletionModal';
+import { IssueReportButton } from '@/components/course/IssueReportButton';
 
 interface Module {
   id: string;
@@ -62,13 +63,13 @@ export default function CoursePlayer() {
   const [showFinishButton, setShowFinishButton] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
-  
+
   // Use access control hook for proper access checking (enrollment, gift, EMI, launch free)
   const accessInfo = useAccessControl(user?.id, course?.id);
-  
+
   // Derived enrollment state from access control
   const isEnrolled = accessInfo.hasAccess;
-  
+
   // Refs to prevent re-fetching on tab switch or re-renders
   const hasFetchedRef = useRef(false);
   const courseSlugRef = useRef<string | null>(null);
@@ -85,7 +86,7 @@ export default function CoursePlayer() {
     if (hasFetchedRef.current && courseSlugRef.current === slug && course) {
       return;
     }
-    
+
     fetchCourseData();
   }, [slug, user]);
 
@@ -127,7 +128,7 @@ export default function CoursePlayer() {
 
       const sortedModules = (modulesData || []).map(mod => ({
         ...mod,
-        lessons: (mod.lessons as Lesson[]).sort((a, b) => 
+        lessons: (mod.lessons as Lesson[]).sort((a, b) =>
           (a.order_index || 0) - (b.order_index || 0)
         ),
       }));
@@ -137,7 +138,7 @@ export default function CoursePlayer() {
       // Fetch user progress (only if logged in)
       const allLessonIds = sortedModules.flatMap(m => m.lessons.map(l => l.id));
       let progressMap: Record<string, LessonProgress> = {};
-      
+
       if (user && allLessonIds.length > 0) {
         const { data: progressData } = await supabase
           .from('progress')
@@ -153,12 +154,12 @@ export default function CoursePlayer() {
 
       // Set initial lesson - prioritize URL param, then find first free preview
       const allLessonsFlat = sortedModules.flatMap(m => m.lessons);
-      
+
       let initialLesson: Lesson | null = null;
-      
+
       // Note: At this point we don't have accessInfo yet (hook runs after course is set)
       // So we use basic checks here, and full access control happens in the render
-      
+
       // 1. Check URL param
       if (lessonIdFromUrl) {
         const fromUrl = allLessonsFlat.find(l => l.id === lessonIdFromUrl) || null;
@@ -167,12 +168,12 @@ export default function CoursePlayer() {
           initialLesson = fromUrl;
         }
       }
-      
+
       // 2. If not logged in, find first free preview lesson or auto-free first lesson
       if (!initialLesson && !user) {
         initialLesson = allLessonsFlat.find(l => l.is_free_preview) || allLessonsFlat[0] || null;
       }
-      
+
       // 3. If logged in, find first incomplete lesson (auto-continue)
       if (!initialLesson && user && Object.keys(progressMap).length > 0) {
         const completedIds = new Set(
@@ -182,16 +183,16 @@ export default function CoursePlayer() {
         );
         initialLesson = allLessonsFlat.find(l => !completedIds.has(l.id)) || null;
       }
-      
+
       // 4. Fallback to first lesson
       if (!initialLesson && allLessonsFlat.length > 0) {
         initialLesson = allLessonsFlat[0];
       }
-      
+
       if (initialLesson) {
         setCurrentLesson(initialLesson);
       }
-      
+
       // Mark as fetched to prevent refetching on tab switch
       hasFetchedRef.current = true;
       courseSlugRef.current = slug || null;
@@ -213,7 +214,7 @@ export default function CoursePlayer() {
 
     // Update watch progress state for UI
     setWatchProgress(progressPercent);
-    
+
     // Show finish button at 95% or more
     if (progressPercent >= 95 && !progress[currentLesson.id]?.completed) {
       setShowFinishButton(true);
@@ -262,12 +263,12 @@ export default function CoursePlayer() {
       ...prev,
       [currentLesson.id]: { ...prev[currentLesson.id], completed: true, lesson_id: currentLesson.id, last_position_seconds: 0 },
     }));
-    
+
     setShowFinishButton(false);
     setWatchProgress(0);
 
     toast.success('Lesson completed! 🎉');
-    
+
     // Check for course completion
     const allLessons = modules.flatMap(m => m.lessons);
     const newCompletedCount = Object.values(progress).filter(p => p.completed).length + 1;
@@ -276,7 +277,7 @@ export default function CoursePlayer() {
       supabase.functions.invoke('check-course-completion', {
         body: { userId: user.id, courseId: course.id }
       }).catch(console.error);
-      
+
       // Show completion modal immediately with celebration
       setTimeout(() => setShowCompletionModal(true), 500);
     }
@@ -338,18 +339,18 @@ export default function CoursePlayer() {
             Back to Course
           </Button>
         </Link>
-        
+
         <div className="space-y-3">
           {/* Course title with better styling */}
           <div className="space-y-2">
             <h2 className="font-semibold text-sm md:text-base leading-snug break-words whitespace-normal">
               {course?.title}
             </h2>
-            
+
             {/* Access Badge with animation */}
             {accessInfo.accessType !== 'none' && (
               <div className="animate-fade-in">
-                <AccessBadge 
+                <AccessBadge
                   accessType={accessInfo.accessType}
                   unlockedPercent={accessInfo.unlockedPercent}
                   expiryDate={accessInfo.giftExpiry || accessInfo.launchFreeExpiry}
@@ -358,7 +359,7 @@ export default function CoursePlayer() {
             )}
           </div>
         </div>
-        
+
         {/* Signup prompt for non-logged-in users - Enhanced design */}
         {!user && (
           <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-accent/15 via-accent/10 to-transparent border border-accent/20 shadow-sm">
@@ -371,9 +372,9 @@ export default function CoursePlayer() {
                 <p className="text-muted-foreground text-xs mb-3 leading-relaxed">
                   Sign up free to unlock all lessons and track your learning progress!
                 </p>
-                <Button 
-                  size="sm" 
-                  onClick={() => navigate('/auth')} 
+                <Button
+                  size="sm"
+                  onClick={() => navigate('/auth')}
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm"
                 >
                   Sign Up Free
@@ -382,7 +383,7 @@ export default function CoursePlayer() {
             </div>
           </div>
         )}
-        
+
         {/* Progress section - Enhanced */}
         {user && (
           <div className="mt-4 p-3 rounded-xl bg-muted/30 border border-border/50">
@@ -402,32 +403,31 @@ export default function CoursePlayer() {
         <Accordion type="multiple" defaultValue={modules.map(m => m.id)} className="p-3">
           {modules.map((module, modIdx) => {
             // Check if this module is unlocked (for partial EMI access)
-            const isModuleUnlocked = accessInfo.accessType === 'partial' 
+            const isModuleUnlocked = accessInfo.accessType === 'partial'
               ? accessInfo.unlockedModuleIds.includes(module.id)
               : isEnrolled;
-            
+
             // Calculate module progress
             const moduleLessons = module.lessons;
             const moduleCompletedCount = moduleLessons.filter(l => progress[l.id]?.completed).length;
             const moduleProgress = moduleLessons.length > 0 ? (moduleCompletedCount / moduleLessons.length) * 100 : 0;
-              
+
             return (
               <AccordionItem key={module.id} value={module.id} className="border-b border-border/30 last:border-b-0">
                 <AccordionTrigger className="hover:no-underline px-3 py-3.5 hover:bg-muted/30 rounded-lg transition-colors [&[data-state=open]]:bg-muted/20">
                   <div className="flex items-start gap-3 text-left min-w-0 flex-1">
                     {/* Module number badge */}
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold ${
-                      moduleProgress === 100 
-                        ? 'bg-success/20 text-success' 
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold ${moduleProgress === 100
+                        ? 'bg-success/20 text-success'
                         : 'bg-accent/10 text-accent'
-                    }`}>
+                      }`}>
                       {moduleProgress === 100 ? (
                         <CheckCircle className="h-4 w-4" />
                       ) : (
                         modIdx + 1
                       )}
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                       <span className="text-sm font-medium leading-snug break-words whitespace-normal block">
                         {module.title}
@@ -459,8 +459,8 @@ export default function CoursePlayer() {
                       const isAutoFreePreview = modIdx === 0 && lessonIdx === 0;
                       const isEffectiveFreePreview = lesson.is_free_preview || isAutoFreePreview;
                       // Lesson is locked if: no access AND not free preview
-                      const isLocked = isEffectiveFreePreview 
-                        ? false 
+                      const isLocked = isEffectiveFreePreview
+                        ? false
                         : accessInfo.accessType === 'partial'
                           ? !isModuleUnlocked
                           : !isEnrolled;
@@ -470,24 +470,22 @@ export default function CoursePlayer() {
                         <button
                           key={lesson.id}
                           onClick={() => handleLessonSelect(lesson)}
-                          className={`w-full flex items-start gap-3 p-3 rounded-xl text-left text-sm transition-all group ${
-                            isCurrent 
-                              ? 'bg-gradient-to-r from-accent to-accent/80 text-accent-foreground shadow-md shadow-accent/20' 
-                              : isLocked 
+                          className={`w-full flex items-start gap-3 p-3 rounded-xl text-left text-sm transition-all group ${isCurrent
+                              ? 'bg-gradient-to-r from-accent to-accent/80 text-accent-foreground shadow-md shadow-accent/20'
+                              : isLocked
                                 ? 'text-muted-foreground hover:bg-muted/30 opacity-60'
                                 : 'hover:bg-muted/50'
-                          }`}
+                            }`}
                         >
                           {/* Status icon */}
-                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all ${
-                            isCurrent 
-                              ? 'bg-white/20' 
-                              : isCompleted 
-                                ? 'bg-success/15 text-success' 
-                                : isLocked 
-                                  ? 'bg-muted/50' 
+                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all ${isCurrent
+                              ? 'bg-white/20'
+                              : isCompleted
+                                ? 'bg-success/15 text-success'
+                                : isLocked
+                                  ? 'bg-muted/50'
                                   : 'bg-muted group-hover:bg-accent/10 group-hover:text-accent'
-                          }`}>
+                            }`}>
                             {isLocked ? (
                               <Lock className="h-3.5 w-3.5" />
                             ) : isCompleted ? (
@@ -498,7 +496,7 @@ export default function CoursePlayer() {
                               <Play className="h-3.5 w-3.5" />
                             )}
                           </span>
-                          
+
                           <div className="flex-1 min-w-0">
                             <span className="block leading-snug break-words whitespace-normal font-medium">
                               {lesson.title}
@@ -509,7 +507,7 @@ export default function CoursePlayer() {
                                   Free Preview
                                 </Badge>
                               )}
-                              {lesson.duration_minutes && lesson.duration_minutes > 0 && (
+                              {!!lesson.duration_minutes && lesson.duration_minutes > 0 && (
                                 <span className={`text-[10px] flex items-center gap-1 ${isCurrent ? 'opacity-80' : 'opacity-60'}`}>
                                   <Clock className="h-3 w-3" />
                                   {lesson.duration_minutes} min
@@ -538,7 +536,7 @@ export default function CoursePlayer() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      
+
       {/* Mobile Header with Lesson Toggle */}
       <div className="md:hidden sticky top-16 z-40 bg-background/95 backdrop-blur-sm border-b px-3 py-2 flex items-center gap-2 safe-area-inset">
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -552,11 +550,11 @@ export default function CoursePlayer() {
             <SidebarContent />
           </SheetContent>
         </Sheet>
-        
+
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium truncate">{currentLesson?.title || 'Select a lesson'}</p>
         </div>
-        
+
         {/* Quick nav arrows for mobile */}
         <div className="flex gap-1 shrink-0">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToPrevLesson}>
@@ -620,15 +618,15 @@ export default function CoursePlayer() {
                   }
 
                   return (
-                  <div className="text-center text-white py-8 md:py-16 px-4">
-                    <BookOpen className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-sm md:text-base">No video available for this lesson</p>
-                    {currentLesson.description && (
-                      <p className="mt-4 text-xs md:text-sm opacity-75 max-w-md">
-                        {currentLesson.description}
-                      </p>
-                    )}
-                  </div>
+                    <div className="text-center text-white py-8 md:py-16 px-4">
+                      <BookOpen className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-4 opacity-50" />
+                      <p className="text-sm md:text-base">No video available for this lesson</p>
+                      {currentLesson.description && (
+                        <p className="mt-4 text-xs md:text-sm opacity-75 max-w-md">
+                          {currentLesson.description}
+                        </p>
+                      )}
+                    </div>
                   );
                 })()}
               </div>
@@ -654,11 +652,11 @@ export default function CoursePlayer() {
                         </p>
                       )}
                     </div>
-                    
+
                     {/* Mark as Complete Button - always available for incomplete lessons */}
                     {isEnrolled && !progress[currentLesson.id]?.completed && (
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         onClick={handleFinishLesson}
                         className="bg-success hover:bg-success/90 text-success-foreground shrink-0 text-xs md:text-sm gap-1"
                       >
@@ -667,9 +665,17 @@ export default function CoursePlayer() {
                       </Button>
                     )}
                   </div>
-                  
+
                   {/* Navigation Buttons - Hidden on mobile (they're in the header now) */}
-                  <div className="hidden md:flex gap-2 justify-end">
+                  <div className="hidden md:flex gap-2 justify-end items-center">
+                    {isEnrolled && course && currentLesson && (
+                      <IssueReportButton
+                        courseId={course.id}
+                        courseTitle={course.title}
+                        lessonId={currentLesson.id}
+                        lessonTitle={currentLesson.title}
+                      />
+                    )}
                     <Button variant="outline" size="sm" onClick={goToPrevLesson}>
                       <ChevronLeft className="h-4 w-4 mr-1" />
                       Previous
@@ -687,7 +693,7 @@ export default function CoursePlayer() {
                 <div className="p-3 md:p-4 border-t">
                   {/* Downloadable Resources */}
                   <LessonResources lessonId={currentLesson.id} isEnrolled={isEnrolled} />
-                  
+
                   <Tabs defaultValue="qa" className="w-full mt-4">
                     <TabsList className="mb-4">
                       <TabsTrigger value="qa" className="gap-2 text-xs md:text-sm">
@@ -708,8 +714,8 @@ export default function CoursePlayer() {
               <div className="text-center">
                 <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-muted-foreground">Select a lesson to start learning</p>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="mt-4 md:hidden"
                   onClick={() => setSidebarOpen(true)}
                 >

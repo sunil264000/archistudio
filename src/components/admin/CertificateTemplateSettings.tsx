@@ -39,7 +39,7 @@ const defaultSettings: CertificateSettings = {
   font_family: 'Playfair Display',
   institution_name: 'Archistudio',
   institution_tagline: 'Architecture Learning Platform',
-  signature_name: 'Sunil Kumar',
+  signature_name: 'Archistudio',
   signature_title: 'Founder & Lead Instructor',
   show_border: true,
   border_style: 'classic',
@@ -96,7 +96,7 @@ export function CertificateTemplateSettings() {
           font_family: data.font_family || 'Playfair Display',
           institution_name: data.institution_name || 'Archistudio',
           institution_tagline: data.institution_tagline || 'Architecture Learning Platform',
-          signature_name: data.signature_name || 'Sunil Kumar',
+          signature_name: data.signature_name || 'Archistudio',
           signature_title: data.signature_title || 'Founder & Lead Instructor',
           show_border: data.show_border ?? true,
           border_style: data.border_style || 'classic',
@@ -200,9 +200,9 @@ export function CertificateTemplateSettings() {
               <Label>Logo</Label>
               <div className="flex items-center gap-4">
                 {settings.logo_url ? (
-                  <img 
-                    src={settings.logo_url} 
-                    alt="Certificate Logo" 
+                  <img
+                    src={settings.logo_url}
+                    alt="Certificate Logo"
                     className="h-16 w-auto object-contain border rounded p-1"
                   />
                 ) : (

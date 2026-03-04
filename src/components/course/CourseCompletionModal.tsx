@@ -77,7 +77,7 @@ export function CourseCompletionModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md border-0 bg-gradient-to-br from-card via-card to-accent/5 overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent via-primary to-accent" />
-        
+
         <div className="text-center py-4 space-y-6">
           {/* Celebration icon */}
           <div className="relative mx-auto w-24 h-24">
@@ -106,7 +106,7 @@ export function CourseCompletionModal({
               <p className="text-[10px] text-muted-foreground">
                 Issued on {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
               </p>
-              <p className="text-[10px] text-muted-foreground italic">Signed by Sunil Kumar • Archistudio</p>
+              <p className="text-[10px] text-muted-foreground italic">Signed by Archistudio Team</p>
             </div>
           </div>
 
@@ -130,7 +130,7 @@ export function CourseCompletionModal({
                   </>
                 )}
               </Button>
-              
+
               <Button
                 variant="outline"
                 onClick={() => setShowPhysical(true)}

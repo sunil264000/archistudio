@@ -47,6 +47,8 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
   const [pendingEmail, setPendingEmail] = useState('');
   const [pendingPassword, setPendingPassword] = useState('');
   const [pendingName, setPendingName] = useState('');
+  const [referralCode, setReferralCode] = useState('');
+  const [referralError, setReferralError] = useState('');
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -62,7 +64,7 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
     setLoading(true);
     try {
       const { error } = await signInWithEmail(data.email, data.password);
-      
+
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
           toast.error('Invalid email or password. Please try again.');
@@ -70,18 +72,18 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
           toast.info('Email not verified yet. Sending you a new verification code...');
           setPendingEmail(data.email);
           setPendingPassword(data.password);
-          
+
           await supabase.functions.invoke('verify-email-otp', {
             body: { action: 'send', email: data.email },
           });
-          
+
           setShowVerification(true);
         } else {
           toast.error(error.message);
         }
         return;
       }
-      
+
       toast.success('Signed in successfully. Welcome back!');
       onSuccess?.();
     } catch (err) {
@@ -95,7 +97,7 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
     setLoading(true);
     try {
       const { error } = await signUpWithEmail(data.email, data.password, data.fullName);
-      
+
       if (error) {
         if (error.message.includes('already registered')) {
           toast.error('This email is already registered. Please login instead.');
@@ -104,7 +106,7 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
         }
         return;
       }
-      
+
       // Send OTP via our edge function (this is the ONLY email sent on signup now)
       const { error: otpError } = await supabase.functions.invoke('verify-email-otp', {
         body: { action: 'send', email: data.email, name: data.fullName },
@@ -118,6 +120,22 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
       setPendingEmail(data.email);
       setPendingPassword(data.password);
       setPendingName(data.fullName);
+
+      // Validate referral code if provided
+      if (referralCode.trim()) {
+        const { data: referrer } = await supabase
+          .from('profiles')
+          .select('user_id')
+          .eq('referral_code', referralCode.trim().toUpperCase())
+          .single();
+        if (!referrer) {
+          setReferralError('Invalid referral code. Please double-check and try again.');
+          setLoading(false);
+          return;
+        }
+        setReferralError('');
+      }
+
       setShowVerification(true);
       toast.info('A 6-digit verification code has been sent to your email!');
     } catch (err) {
@@ -127,18 +145,30 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
     }
   };
 
-  const handleVerificationSuccess = () => {
-    // Notify admin about new signup (no separate welcome email - OTP email is enough)
+  const handleVerificationSuccess = async () => {
+    // Notify admin about new signup
     if (pendingEmail) {
       supabase.functions.invoke('notify-admin', {
-        body: { 
+        body: {
           type: 'new_signup',
           email: pendingEmail,
           name: pendingName || pendingEmail.split('@')[0],
         }
       }).catch(err => console.error('Admin notify error:', err));
     }
-    
+
+    // Record referral code in profile if provided
+    if (referralCode.trim()) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any)
+          .from('profiles')
+          .update({ referred_by: referralCode.trim().toUpperCase() })
+          .eq('user_id', user.id);
+      }
+    }
+
     toast.success('Email verified! Welcome to Archistudio.');
     onSuccess?.();
   };
@@ -224,6 +254,24 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
         <Input id="confirmPassword" type="password" placeholder="••••••••" {...signupForm.register('confirmPassword')} className="bg-background" />
         {signupForm.formState.errors.confirmPassword && (
           <p className="text-sm text-destructive">{signupForm.formState.errors.confirmPassword.message}</p>
+        )}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="referralCode" className="flex items-center gap-1.5">
+          Referral Code
+          <span className="text-xs text-muted-foreground font-normal">(optional)</span>
+        </Label>
+        <Input
+          id="referralCode"
+          type="text"
+          placeholder="e.g. ARCH1234"
+          value={referralCode}
+          onChange={(e) => { setReferralCode(e.target.value); setReferralError(''); }}
+          className="bg-background uppercase"
+          maxLength={16}
+        />
+        {referralError && (
+          <p className="text-sm text-destructive">{referralError}</p>
         )}
       </div>
       <Button type="submit" className="w-full" disabled={loading}>

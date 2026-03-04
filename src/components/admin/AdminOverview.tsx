@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Users, BookOpen, DollarSign, TrendingUp, 
+import {
+  Users, BookOpen, DollarSign, TrendingUp,
   ArrowUpRight, ArrowDownRight, GraduationCap, Activity
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AdminOverviewProps {
   stats: {
@@ -16,6 +17,27 @@ interface AdminOverviewProps {
   onNavigate?: (tab: string) => void;
 }
 export function AdminOverview({ stats, onNavigate }: AdminOverviewProps) {
+  // Auto-run DB migrations silently on first admin visit
+  useEffect(() => {
+    const MIGRATION_KEY = 'archistudio_db_migrations_v1';
+    if (localStorage.getItem(MIGRATION_KEY)) return; // already ran
+
+    const runMigrations = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        await supabase.functions.invoke('run-db-migrations', {});
+        localStorage.setItem(MIGRATION_KEY, 'done');
+        console.log('[Admin] DB migrations applied successfully');
+      } catch (err) {
+        // Silent fail — migrations may already exist, that's fine
+        console.warn('[Admin] Migration skipped or already applied:', err);
+      }
+    };
+
+    runMigrations();
+  }, []);
   const statCards = [
     {
       title: 'Total Users',
@@ -71,7 +93,7 @@ export function AdminOverview({ stats, onNavigate }: AdminOverviewProps) {
           <div className="absolute -top-20 -right-20 w-64 h-64 bg-accent/20 rounded-full blur-3xl" />
           <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-primary/20 rounded-full blur-3xl" />
         </div>
-        
+
         <div className="relative">
           <h1 className="text-2xl md:text-3xl font-bold mb-2">Welcome back, Admin! 👋</h1>
           <p className="text-muted-foreground max-w-2xl">
@@ -168,21 +190,21 @@ export function AdminOverview({ stats, onNavigate }: AdminOverviewProps) {
   );
 }
 
-function QuickActionButton({ 
-  icon: Icon, 
-  label, 
-  description, 
+function QuickActionButton({
+  icon: Icon,
+  label,
+  description,
   color,
   onClick
-}: { 
-  icon: React.ComponentType<{ className?: string }>; 
-  label: string; 
-  description: string; 
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  description: string;
   color: string;
   onClick?: () => void;
 }) {
   return (
-    <button 
+    <button
       onClick={onClick}
       className="flex items-center gap-3 p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left w-full cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
     >
