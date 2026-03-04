@@ -40,8 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasAdminRole, setHasAdminRole] = useState(false);
-  const authReadyRef = useRef(false);
-  const registerInFlightRef = useRef(false);
+  const sessionRegistered = useRef(false);
+  const validationInProgress = useRef(false);
 
   const checkAdminRole = async (userId: string) => {
     try {
@@ -64,13 +64,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return null;
-      }
+      if (error) return null;
       return data as Profile | null;
-    } catch (err) {
-      console.error('Profile fetch error:', err);
+    } catch {
       return null;
     }
   };
@@ -82,13 +78,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .insert({ user_id: userId, email, full_name: fullName || null, role: 'student' })
         .select()
         .single();
-      if (error) {
-        console.error('Error creating profile:', error);
-        return null;
-      }
+      if (error) return null;
       return data as Profile;
-    } catch (err) {
-      console.error('Profile creation error:', err);
+    } catch {
       return null;
     }
   };
@@ -102,10 +94,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null);
         setHasAdminRole(false);
         setLoading(false);
-        authReadyRef.current = true;
+        sessionRegistered.current = false;
         return;
       }
 
+      // Fetch profile + admin role
       let userProfile = await fetchProfile(nextSession.user.id);
       if (!userProfile) {
         userProfile = await createProfile(
@@ -115,33 +108,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
       }
       setProfile(userProfile);
-
       const isAdminUser = await checkAdminRole(nextSession.user.id);
       setHasAdminRole(isAdminUser);
 
-      const shouldCheckSession = event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION';
-      if (shouldCheckSession) {
-        const hasValidLocalSession = await validateSession(nextSession.user.id);
-
-        if (event === 'SIGNED_IN' && !hasValidLocalSession && !registerInFlightRef.current) {
-          registerInFlightRef.current = true;
+      // Session management: register on SIGNED_IN, validate on TOKEN_REFRESHED
+      if (event === 'SIGNED_IN' && !sessionRegistered.current) {
+        sessionRegistered.current = true;
+        try {
+          await registerSession(nextSession.user.id);
+        } catch (e) {
+          console.error('Session register failed:', e);
+        }
+      } else if (event === 'TOKEN_REFRESHED' && !validationInProgress.current) {
+        // Only validate on token refresh (periodic check), NOT on initial load
+        validationInProgress.current = true;
+        try {
+          const valid = await validateSession(nextSession.user.id);
+          if (!valid && localStorage.getItem('session_token')) {
+            // Token exists but invalidated = another device logged in
+            toast.error('Logged out: your account was opened on another device.');
+            localStorage.removeItem('session_token');
+            sessionRegistered.current = false;
+            await supabase.auth.signOut();
+            setLoading(false);
+            validationInProgress.current = false;
+            return;
+          }
+        } finally {
+          validationInProgress.current = false;
+        }
+      } else if (event === 'INITIAL_SESSION') {
+        // On initial page load, just validate without kicking out
+        // If no local token, register a new session (e.g., page refresh)
+        const localToken = localStorage.getItem('session_token');
+        if (!localToken && !sessionRegistered.current) {
+          sessionRegistered.current = true;
           try {
             await registerSession(nextSession.user.id);
-          } finally {
-            registerInFlightRef.current = false;
+          } catch (e) {
+            console.error('Session register on init failed:', e);
           }
-        }
-
-        if ((event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && !hasValidLocalSession && authReadyRef.current) {
-          toast.error('You were logged out because this account was opened on another device.');
-          await supabase.auth.signOut();
-          setLoading(false);
-          return;
         }
       }
 
       setLoading(false);
-      authReadyRef.current = true;
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
@@ -153,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
+      sessionRegistered.current = false;
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return { error };
       return { error: null };
@@ -185,6 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
+      sessionRegistered.current = false;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: `${window.location.origin}/` },
@@ -220,14 +232,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) {
       await endSession(user.id);
     }
+    sessionRegistered.current = false;
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
     setProfile(null);
     setHasAdminRole(false);
   };
-
-  const isAdmin = hasAdminRole;
 
   return (
     <AuthContext.Provider
@@ -242,7 +253,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signInWithPhone,
         verifyPhoneOTP,
         signOut,
-        isAdmin,
+        isAdmin: hasAdminRole,
       }}
     >
       {children}
@@ -255,4 +266,3 @@ export function useAuth() {
   if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 }
-

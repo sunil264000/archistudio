@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Award, Download, Loader2, PartyPopper, Star } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Award, Download, Loader2, PartyPopper, Star, Truck, CreditCard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -21,6 +23,8 @@ export function CourseCompletionModal({
   userId,
 }: CourseCompletionModalProps) {
   const [generating, setGenerating] = useState(false);
+  const [showPhysical, setShowPhysical] = useState(false);
+  const [address, setAddress] = useState({ name: '', line1: '', city: '', state: '', pincode: '', phone: '' });
 
   const handleDownloadCertificate = async () => {
     setGenerating(true);
@@ -31,7 +35,6 @@ export function CourseCompletionModal({
 
       if (error) throw error;
 
-      // Open a new window and write the HTML directly so fonts load properly
       const html = typeof data === 'string' ? data : '';
       if (!html) throw new Error('Empty certificate response');
       const win = window.open('', '_blank');
@@ -49,10 +52,30 @@ export function CourseCompletionModal({
     }
   };
 
+  const handlePhysicalOrder = async () => {
+    if (!address.name || !address.line1 || !address.city || !address.pincode || !address.phone) {
+      toast.error('Please fill all address fields');
+      return;
+    }
+    // For now, notify admin about physical certificate request
+    try {
+      await supabase.from('support_tickets').insert({
+        user_id: userId,
+        subject: `Physical Certificate Request - ${courseName}`,
+        message: `User requests physical certificate for "${courseName}". Address: ${address.name}, ${address.line1}, ${address.city}, ${address.state} - ${address.pincode}. Phone: ${address.phone}. Amount: ₹699 + delivery.`,
+        status: 'open',
+        priority: 'normal',
+      });
+      toast.success('Physical certificate request submitted! Admin will contact you for payment.');
+      setShowPhysical(false);
+    } catch {
+      toast.error('Failed to submit request');
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md border-0 bg-gradient-to-br from-card via-card to-accent/5 overflow-hidden">
-        {/* Decorative elements */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-accent via-primary to-accent" />
         
         <div className="text-center py-4 space-y-6">
@@ -66,23 +89,16 @@ export function CourseCompletionModal({
             <Star className="absolute -bottom-1 -left-2 h-6 w-6 text-yellow-400 animate-pulse" />
           </div>
 
-          {/* Congratulation text */}
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-foreground">
-              🎉 Congratulations!
-            </h2>
+            <h2 className="text-2xl font-bold text-foreground">🎉 Congratulations!</h2>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-xs mx-auto">
               You have successfully completed
             </p>
-            <p className="text-lg font-semibold text-accent">
-              {courseName}
-            </p>
-            <p className="text-muted-foreground text-xs">
-              Your Proof of Completion is ready!
-            </p>
+            <p className="text-lg font-semibold text-accent">{courseName}</p>
+            <p className="text-muted-foreground text-xs">Your Proof of Completion is ready!</p>
           </div>
 
-          {/* Certificate preview card */}
+          {/* Certificate preview */}
           <div className="mx-auto max-w-xs p-4 rounded-xl border bg-gradient-to-br from-background to-muted/30 shadow-inner">
             <div className="border border-dashed border-accent/30 rounded-lg p-3 space-y-1">
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Proof of Completion</p>
@@ -94,34 +110,62 @@ export function CourseCompletionModal({
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex flex-col gap-3">
-            <Button
-              onClick={handleDownloadCertificate}
-              disabled={generating}
-              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-md"
-              size="lg"
-            >
-              {generating ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Generating Certificate...
-                </>
-              ) : (
-                <>
-                  <Download className="h-5 w-5 mr-2" />
-                  Download Certificate
-                </>
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-              className="text-muted-foreground"
-            >
-              Maybe Later
-            </Button>
-          </div>
+          {!showPhysical ? (
+            <div className="flex flex-col gap-3">
+              <Button
+                onClick={handleDownloadCertificate}
+                disabled={generating}
+                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-md"
+                size="lg"
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Generating Certificate...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-5 w-5 mr-2" />
+                    Download PDF Certificate
+                  </>
+                )}
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={() => setShowPhysical(true)}
+                className="w-full gap-2"
+              >
+                <Truck className="h-4 w-4" />
+                Get Physical Certificate (₹699 + Delivery)
+              </Button>
+
+              <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-muted-foreground">
+                Maybe Later
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3 text-left">
+              <p className="text-sm font-medium text-center">Enter your delivery address</p>
+              <Input placeholder="Full Name" value={address.name} onChange={e => setAddress(p => ({ ...p, name: e.target.value }))} />
+              <Input placeholder="Address Line 1" value={address.line1} onChange={e => setAddress(p => ({ ...p, line1: e.target.value }))} />
+              <div className="grid grid-cols-2 gap-2">
+                <Input placeholder="City" value={address.city} onChange={e => setAddress(p => ({ ...p, city: e.target.value }))} />
+                <Input placeholder="State" value={address.state} onChange={e => setAddress(p => ({ ...p, state: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Input placeholder="Pincode" value={address.pincode} onChange={e => setAddress(p => ({ ...p, pincode: e.target.value }))} />
+                <Input placeholder="Phone" value={address.phone} onChange={e => setAddress(p => ({ ...p, phone: e.target.value }))} />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setShowPhysical(false)} className="flex-1">Back</Button>
+                <Button onClick={handlePhysicalOrder} className="flex-1 gap-2 bg-accent hover:bg-accent/90 text-accent-foreground">
+                  <CreditCard className="h-4 w-4" />
+                  Request (₹699)
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

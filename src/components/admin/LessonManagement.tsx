@@ -13,7 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { 
   Plus, Pencil, Trash2, Upload, Video, FileText, 
-  GripVertical, Loader2, ChevronRight, FolderPlus, Save, Clock, FolderSync, EyeOff
+  GripVertical, Loader2, ChevronRight, FolderPlus, Save, Clock, FolderSync, EyeOff,
+  ArrowUp, ArrowDown, CheckSquare
 } from 'lucide-react';
 import { GoogleDriveImport } from './GoogleDriveImport';
 import { QuickLessonAdd } from './QuickLessonAdd';
@@ -70,12 +71,13 @@ export function LessonManagement() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  // Batch free preview changes - track locally before saving
+  // Batch free preview changes
   const [pendingFreePreviewChanges, setPendingFreePreviewChanges] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
-  
-  // Quick toggle to hide empty modules
   const [hideEmptyModules, setHideEmptyModules] = useState(false);
+
+  // Bulk selection for lesson deletion
+  const [selectedLessons, setSelectedLessons] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchCourses();
@@ -231,8 +233,65 @@ export function LessonManagement() {
   const handleDeleteLesson = async (lessonId: string) => {
     if (!confirm('Delete this lesson?')) return;
     
+    await supabase.from('lesson_resources').delete().eq('lesson_id', lessonId);
     await supabase.from('lessons').delete().eq('id', lessonId);
     toast.success('Lesson deleted');
+    setSelectedLessons(prev => { const n = new Set(prev); n.delete(lessonId); return n; });
+    if (selectedCourse) fetchModules(selectedCourse);
+  };
+
+  const handleBulkDeleteLessons = async () => {
+    if (selectedLessons.size === 0) return;
+    if (!confirm(`Delete ${selectedLessons.size} selected lessons? This cannot be undone.`)) return;
+    
+    const ids = Array.from(selectedLessons);
+    for (const id of ids) {
+      await supabase.from('lesson_resources').delete().eq('lesson_id', id);
+    }
+    await supabase.from('lessons').delete().in('id', ids);
+    toast.success(`${ids.length} lessons deleted`);
+    setSelectedLessons(new Set());
+    if (selectedCourse) fetchModules(selectedCourse);
+  };
+
+  const toggleLessonSelection = (lessonId: string) => {
+    setSelectedLessons(prev => {
+      const next = new Set(prev);
+      if (next.has(lessonId)) next.delete(lessonId); else next.add(lessonId);
+      return next;
+    });
+  };
+
+  const handleMoveLesson = async (lessonId: string, moduleId: string, direction: 'up' | 'down') => {
+    const moduleLessons = [...(lessons[moduleId] || [])];
+    const idx = moduleLessons.findIndex(l => l.id === lessonId);
+    if (idx < 0) return;
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= moduleLessons.length) return;
+    
+    const a = moduleLessons[idx];
+    const b = moduleLessons[swapIdx];
+    
+    await Promise.all([
+      supabase.from('lessons').update({ order_index: b.order_index }).eq('id', a.id),
+      supabase.from('lessons').update({ order_index: a.order_index }).eq('id', b.id),
+    ]);
+    if (selectedCourse) fetchModules(selectedCourse);
+  };
+
+  const handleMoveModule = async (moduleId: string, direction: 'up' | 'down') => {
+    const idx = modules.findIndex(m => m.id === moduleId);
+    if (idx < 0) return;
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= modules.length) return;
+    
+    const a = modules[idx];
+    const b = modules[swapIdx];
+    
+    await Promise.all([
+      supabase.from('modules').update({ order_index: b.order_index }).eq('id', a.id),
+      supabase.from('modules').update({ order_index: a.order_index }).eq('id', b.id),
+    ]);
     if (selectedCourse) fetchModules(selectedCourse);
   };
 
@@ -438,6 +497,19 @@ export function LessonManagement() {
         </div>
       )}
 
+      {/* Bulk Delete Bar */}
+      {selectedLessons.size > 0 && (
+        <div className="flex items-center justify-between p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+          <span className="text-sm font-medium">{selectedLessons.size} lessons selected</span>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedLessons(new Set())}>Clear</Button>
+            <Button variant="destructive" size="sm" onClick={handleBulkDeleteLessons} className="gap-1">
+              <Trash2 className="h-3 w-3" /> Delete Selected
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Modules & Lessons */}
       {loading ? (
         <div className="text-center py-8">
@@ -469,7 +541,7 @@ export function LessonManagement() {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <div className="flex gap-2 mb-4">
+                <div className="flex gap-2 mb-4 flex-wrap">
                   <Button variant="outline" size="sm" onClick={() => handleEditModule(module)}>
                     <Pencil className="h-3 w-3 mr-1" /> Edit
                   </Button>
@@ -479,15 +551,27 @@ export function LessonManagement() {
                   <Button size="sm" onClick={() => handleAddLesson(module.id)}>
                     <Plus className="h-3 w-3 mr-1" /> Add Lesson
                   </Button>
+                  {idx > 0 && (
+                    <Button variant="ghost" size="sm" onClick={() => handleMoveModule(module.id, 'up')}>↑ Move Up</Button>
+                  )}
+                  {idx < modules.length - 1 && (
+                    <Button variant="ghost" size="sm" onClick={() => handleMoveModule(module.id, 'down')}>↓ Move Down</Button>
+                  )}
                 </div>
 
                 {/* Lessons List */}
                 <div className="space-y-2">
                   {(lessons[module.id] || []).map((lesson, lessonIdx) => (
-                    <Card key={lesson.id} className="bg-muted/30">
+                    <Card key={lesson.id} className={`bg-muted/30 ${selectedLessons.has(lesson.id) ? 'ring-2 ring-destructive/50' : ''}`}>
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedLessons.has(lesson.id)}
+                              onChange={() => toggleLessonSelection(lesson.id)}
+                              className="h-4 w-4 rounded border-border"
+                            />
                             <span className="text-sm text-muted-foreground">
                               {idx + 1}.{lessonIdx + 1}
                             </span>
