@@ -127,7 +127,10 @@ export function NewUserOnboardingDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="onboarding-challenge">What issue are you facing that brought you here?</Label>
+            <Label htmlFor="onboarding-challenge">
+              What issue are you facing that brought you here?
+              <span className="text-xs text-muted-foreground font-normal ml-1">(min 12 characters)</span>
+            </Label>
             <Textarea
               id="onboarding-challenge"
               value={primaryChallenge}
@@ -135,6 +138,9 @@ export function NewUserOnboardingDialog({
               placeholder="Tell us your genuine challenge (skills gap, software confusion, portfolio, job prep, etc.)"
               className="min-h-24"
             />
+            <p className={`text-xs ${primaryChallenge.trim().length < 12 ? 'text-muted-foreground' : 'text-green-500'}`}>
+              {primaryChallenge.trim().length}/12 characters minimum
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -148,6 +154,11 @@ export function NewUserOnboardingDialog({
             />
           </div>
 
+          {!isValid && (
+            <p className="text-xs text-muted-foreground text-center">
+              Please select your role, how you found us, and write at least 12 characters about your challenge.
+            </p>
+          )}
           <Button className="w-full" onClick={handleSubmit} disabled={!isValid || loading}>
             {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             Save and continue
