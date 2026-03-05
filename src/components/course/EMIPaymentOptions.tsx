@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Loader2, CreditCard, Unlock, ChevronRight, Percent, Clock, Sparkles, TrendingUp, CheckCircle2, IndianRupee } from 'lucide-react';
+import { Loader2, CreditCard, Unlock, ChevronRight, Percent, Clock, Sparkles, TrendingUp, CheckCircle2, IndianRupee, Calendar, Shield } from 'lucide-react';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -46,6 +46,79 @@ interface EMIPaymentOptionsProps {
   customerPhone?: string;
 }
 
+// Auto EMI threshold
+const AUTO_EMI_THRESHOLD = 1699;
+const AUTO_EMI_SURCHARGE = 10; // 10% convenience fee
+
+// Generate auto EMI tiers for 2-part and 3-part plans
+function generateAutoEMIPlans(coursePrice: number, modules: Module[]) {
+  const emiTotal = Math.round(coursePrice * (1 + AUTO_EMI_SURCHARGE / 100));
+  const moduleCount = modules.length;
+  
+  // For module allocation: split modules proportionally
+  const sortedModules = [...modules].sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
+  
+  // 2-part plan: 40% now, 60% within 1 week
+  const twoPartModulesFirst = Math.ceil(moduleCount * 0.4);
+  const twoPart = {
+    splits: 2,
+    label: '2 Payments',
+    description: 'Pay in 2 parts within 1 month',
+    installments: [
+      {
+        percent: 40,
+        amount: Math.round(emiTotal * 0.40),
+        label: '1st Payment (Now)',
+        deadline: 'Pay now',
+        moduleIndices: sortedModules.slice(0, twoPartModulesFirst).map(m => m.order_index),
+      },
+      {
+        percent: 100,
+        amount: Math.round(emiTotal * 0.60),
+        label: '2nd Payment',
+        deadline: 'Within 1 week',
+        moduleIndices: sortedModules.map(m => m.order_index),
+      },
+    ],
+    total: emiTotal,
+  };
+
+  // 3-part plan: 40% now, 30% within 1 week, 30% within 2 weeks
+  const threePartModulesFirst = Math.ceil(moduleCount * 0.4);
+  const threePartModulesSecond = Math.ceil(moduleCount * 0.7);
+  const threePart = {
+    splits: 3,
+    label: '3 Payments',
+    description: 'Pay in 3 parts within 1 month',
+    installments: [
+      {
+        percent: 40,
+        amount: Math.round(emiTotal * 0.40),
+        label: '1st Payment (Now)',
+        deadline: 'Pay now',
+        moduleIndices: sortedModules.slice(0, threePartModulesFirst).map(m => m.order_index),
+      },
+      {
+        percent: 70,
+        amount: Math.round(emiTotal * 0.30),
+        label: '2nd Payment',
+        deadline: 'Within 1 week',
+        moduleIndices: sortedModules.slice(0, threePartModulesSecond).map(m => m.order_index),
+      },
+      {
+        percent: 100,
+        amount: Math.round(emiTotal * 0.30),
+        label: '3rd Payment',
+        deadline: 'Within 2 weeks',
+        moduleIndices: sortedModules.map(m => m.order_index),
+      },
+    ],
+    total: emiTotal,
+  };
+
+  return { twoPart, threePart, emiTotal, extraCost: emiTotal - coursePrice };
+}
+
 export function EMIPaymentOptions({
   courseId,
   courseSlug,
@@ -56,12 +129,18 @@ export function EMIPaymentOptions({
   onPhoneRequired,
   customerPhone,
 }: EMIPaymentOptionsProps) {
-  const [emiSettings, setEmiSettings] = useState<EMISetting | null>(null);
+  const [adminEmiSettings, setAdminEmiSettings] = useState<EMISetting | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedTier, setSelectedTier] = useState<number | null>(null);
   const [paymentMode, setPaymentMode] = useState<'full' | 'emi'>('full');
+  const [selectedPlan, setSelectedPlan] = useState<2 | 3>(2); // 2-part or 3-part
   const { user, profile } = useAuth();
   const { initiatePayment, isLoading: paymentLoading } = useCashfreePayment();
+
+  // Determine if auto-EMI applies
+  const isAutoEMI = coursePrice >= AUTO_EMI_THRESHOLD;
+  const hasAdminEMI = adminEmiSettings?.is_emi_enabled === true;
+  const showEMI = isAutoEMI || hasAdminEMI;
 
   useEffect(() => {
     fetchEMISettings();
@@ -78,7 +157,7 @@ export function EMIPaymentOptions({
       if (error && error.code !== 'PGRST116') throw error;
 
       if (data) {
-        setEmiSettings({
+        setAdminEmiSettings({
           ...data,
           emi_surcharge_percent: (data as any).emi_surcharge_percent ?? 10,
           payment_tiers: Array.isArray(data.payment_tiers) ? data.payment_tiers as unknown as PaymentTier[] : [],
@@ -91,17 +170,21 @@ export function EMIPaymentOptions({
     }
   };
 
+  // Auto EMI plans
+  const autoPlans = isAutoEMI ? generateAutoEMIPlans(coursePrice, modules) : null;
+  const currentAutoplan = autoPlans ? (selectedPlan === 2 ? autoPlans.twoPart : autoPlans.threePart) : null;
+
+  // Admin EMI calculations
+  const surchargePercent = adminEmiSettings?.emi_surcharge_percent ?? AUTO_EMI_SURCHARGE;
+  const emiTotalPrice = hasAdminEMI ? Math.round(coursePrice * (1 + surchargePercent / 100)) : (autoPlans?.emiTotal ?? coursePrice);
+  const extraCost = emiTotalPrice - coursePrice;
+
   const getModulesForTier = (tier: PaymentTier): string[] => {
     if (tier.percent === 100) return modules.map(m => m.title);
     return modules
       .filter(m => tier.module_order_indices.includes(m.order_index || 0))
       .map(m => m.title);
   };
-
-  // Calculate EMI total price with surcharge
-  const surchargePercent = emiSettings?.emi_surcharge_percent ?? 10;
-  const emiTotalPrice = Math.round(coursePrice * (1 + surchargePercent / 100));
-  const extraCost = emiTotalPrice - coursePrice;
 
   const calculateTierPrice = (percent: number): number => {
     return Math.round((emiTotalPrice * percent) / 100);
@@ -120,7 +203,7 @@ export function EMIPaymentOptions({
     }
 
     try {
-      // FULL payment -> existing flow (no surcharge)
+      // FULL payment
       if (paymentMode === 'full') {
         await initiatePayment({
           courseId: courseSlug,
@@ -134,31 +217,11 @@ export function EMIPaymentOptions({
         return;
       }
 
-      // EMI payment -> dedicated function (amount computed server-side with surcharge)
-      if (!emiSettings || !emiSettings.is_emi_enabled) {
-        toast.error('EMI is not enabled for this course');
-        return;
-      }
-      if (selectedTier === null) {
-        toast.error('Please select an EMI option');
-        return;
-      }
-
+      // EMI payment
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       if (!token) {
         toast.error('Please login to continue');
-        return;
-      }
-
-      // Preserve DB tier index even if we sort for UI
-      const tiersWithDbIndex: TierWithDbIndex[] = (emiSettings.payment_tiers || [])
-        .map((t, i) => ({ ...t, _dbIndex: i }))
-        .sort((a, b) => a.percent - b.percent);
-
-      const chosen = tiersWithDbIndex[selectedTier];
-      if (!chosen) {
-        toast.error('Invalid EMI selection');
         return;
       }
 
@@ -173,34 +236,86 @@ export function EMIPaymentOptions({
         });
       }
 
-      const { data, error } = await supabase.functions.invoke('create-emi-order', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: {
-          courseId: courseSlug,
-          customerName: profile?.full_name || user.email?.split('@')[0] || 'Student',
-          customerEmail: user.email || '',
-          customerPhone: phone,
-          paymentPercent: chosen.percent,
-          tierIndex: chosen._dbIndex,
-        },
-      });
+      if (isAutoEMI && !hasAdminEMI) {
+        // Auto-EMI flow
+        if (!currentAutoplan) {
+          toast.error('Invalid EMI selection');
+          return;
+        }
 
-      if (error) {
-        console.error('EMI order error:', error);
-        toast.error(error.message || 'Failed to create EMI order');
-        return;
+        const firstInstallment = currentAutoplan.installments[0];
+
+        const { data, error } = await supabase.functions.invoke('create-emi-order', {
+          headers: { Authorization: `Bearer ${token}` },
+          body: {
+            courseId: courseSlug,
+            customerName: profile?.full_name || user.email?.split('@')[0] || 'Student',
+            customerEmail: user.email || '',
+            customerPhone: phone,
+            paymentPercent: firstInstallment.percent,
+            tierIndex: 0,
+            autoEMI: true,
+            autoEMISplits: selectedPlan,
+            autoEMIModuleIndices: firstInstallment.moduleIndices,
+          },
+        });
+
+        if (error) {
+          toast.error(error.message || 'Failed to create EMI order');
+          return;
+        }
+
+        const paymentSessionId = data?.paymentSessionId as string | undefined;
+        if (!paymentSessionId) {
+          toast.error('Missing payment session from server');
+          return;
+        }
+
+        const cashfree = (window as any).Cashfree({ mode: 'production' });
+        await cashfree.checkout({ paymentSessionId, redirectTarget: '_self' });
+      } else if (hasAdminEMI) {
+        // Admin-configured EMI flow
+        if (selectedTier === null) {
+          toast.error('Please select an EMI option');
+          return;
+        }
+
+        const tiersWithDbIndex: TierWithDbIndex[] = (adminEmiSettings!.payment_tiers || [])
+          .map((t, i) => ({ ...t, _dbIndex: i }))
+          .sort((a, b) => a.percent - b.percent);
+
+        const chosen = tiersWithDbIndex[selectedTier];
+        if (!chosen) {
+          toast.error('Invalid EMI selection');
+          return;
+        }
+
+        const { data, error } = await supabase.functions.invoke('create-emi-order', {
+          headers: { Authorization: `Bearer ${token}` },
+          body: {
+            courseId: courseSlug,
+            customerName: profile?.full_name || user.email?.split('@')[0] || 'Student',
+            customerEmail: user.email || '',
+            customerPhone: phone,
+            paymentPercent: chosen.percent,
+            tierIndex: chosen._dbIndex,
+          },
+        });
+
+        if (error) {
+          toast.error(error.message || 'Failed to create EMI order');
+          return;
+        }
+
+        const paymentSessionId = data?.paymentSessionId as string | undefined;
+        if (!paymentSessionId) {
+          toast.error('Missing payment session from server');
+          return;
+        }
+
+        const cashfree = (window as any).Cashfree({ mode: 'production' });
+        await cashfree.checkout({ paymentSessionId, redirectTarget: '_self' });
       }
-
-      const paymentSessionId = data?.paymentSessionId as string | undefined;
-      if (!paymentSessionId) {
-        toast.error('Missing payment session from server');
-        return;
-      }
-
-      const cashfree = (window as any).Cashfree({ mode: 'production' });
-      await cashfree.checkout({ paymentSessionId, redirectTarget: '_self' });
     } catch (err: any) {
       console.error('Payment error:', err);
       toast.error(err?.message || 'Payment failed');
@@ -218,8 +333,8 @@ export function EMIPaymentOptions({
     );
   }
 
-  // If no EMI settings or not enabled, show only full payment
-  if (!emiSettings || !emiSettings.is_emi_enabled) {
+  // If no EMI available at all, show only full payment
+  if (!showEMI) {
     return (
       <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-muted/20 overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl" />
@@ -257,9 +372,12 @@ export function EMIPaymentOptions({
     );
   }
 
-  const tiers: TierWithDbIndex[] = (emiSettings.payment_tiers || [])
-    .map((t, i) => ({ ...t, _dbIndex: i }))
-    .sort((a, b) => a.percent - b.percent);
+  // Admin-configured tiers (if available)
+  const adminTiers: TierWithDbIndex[] = hasAdminEMI
+    ? (adminEmiSettings!.payment_tiers || [])
+        .map((t, i) => ({ ...t, _dbIndex: i }))
+        .sort((a, b) => a.percent - b.percent)
+    : [];
 
   return (
     <Card className="border-0 shadow-lg bg-gradient-to-br from-card to-muted/20 overflow-hidden">
@@ -272,7 +390,7 @@ export function EMIPaymentOptions({
           Choose Payment Option
         </CardTitle>
         <CardDescription>
-          Pay in full for best value or unlock content progressively
+          Pay in full for best value or split into easy installments
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5 relative">
@@ -357,7 +475,7 @@ export function EMIPaymentOptions({
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-warning-foreground">
-                  EMI includes {surchargePercent}% convenience fee
+                  EMI includes {hasAdminEMI ? surchargePercent : AUTO_EMI_SURCHARGE}% convenience fee
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Total EMI cost: ₹{emiTotalPrice.toLocaleString()} (₹{extraCost.toLocaleString()} extra vs full payment)
@@ -365,104 +483,227 @@ export function EMIPaymentOptions({
               </div>
             </div>
 
-            <RadioGroup value={selectedTier?.toString()} onValueChange={(v) => setSelectedTier(parseInt(v))}>
-              {tiers.map((tier, index) => {
-                const tierPrice = calculateTierPrice(tier.percent);
-                const unlockedModules = getModulesForTier(tier);
-                const isFull = tier.percent === 100;
-
-                return (
-                  <div
-                    key={index}
-                    className={`relative border rounded-xl p-4 cursor-pointer transition-all ${
-                      selectedTier === index 
-                        ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/20' 
-                        : 'hover:bg-muted/30 hover:border-muted-foreground/30'
+            {/* Auto-EMI: Plan selector (2 or 3 parts) */}
+            {isAutoEMI && !hasAdminEMI && autoPlans && (
+              <>
+                {/* Plan selector toggle */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setSelectedPlan(2)}
+                    className={`p-3 rounded-xl border-2 text-center transition-all ${
+                      selectedPlan === 2 
+                        ? 'border-primary bg-primary/5 shadow-sm' 
+                        : 'border-border hover:border-muted-foreground/40'
                     }`}
-                    onClick={() => setSelectedTier(index)}
                   >
-                    <div className="flex items-start gap-3">
-                      <RadioGroupItem value={index.toString()} id={`tier-${index}`} className="mt-1" />
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor={`tier-${index}`} className="font-semibold cursor-pointer text-base">
-                            {tier.label || `${tier.percent}% Access`}
-                          </Label>
-                          <div className="text-right">
-                            <span className="text-xl font-bold">₹{tierPrice.toLocaleString()}</span>
-                            {!isFull && (
-                              <div className="text-xs text-muted-foreground">
-                                {tier.percent}% of EMI total
+                    <div className="text-lg font-bold">2 Parts</div>
+                    <div className="text-xs text-muted-foreground">40% + 60%</div>
+                  </button>
+                  <button
+                    onClick={() => setSelectedPlan(3)}
+                    className={`p-3 rounded-xl border-2 text-center transition-all ${
+                      selectedPlan === 3 
+                        ? 'border-primary bg-primary/5 shadow-sm' 
+                        : 'border-border hover:border-muted-foreground/40'
+                    }`}
+                  >
+                    <div className="text-lg font-bold">3 Parts</div>
+                    <div className="text-xs text-muted-foreground">40% + 30% + 30%</div>
+                  </button>
+                </div>
+
+                {/* Timeline breakdown */}
+                {currentAutoplan && (
+                  <div className="space-y-0">
+                    {currentAutoplan.installments.map((inst, idx) => {
+                      const isFirst = idx === 0;
+                      const isLast = idx === currentAutoplan.installments.length - 1;
+                      const modulesUnlocked = isLast 
+                        ? modules.length 
+                        : inst.moduleIndices.length;
+
+                      return (
+                        <div key={idx} className="relative">
+                          {/* Timeline connector */}
+                          {!isLast && (
+                            <div className="absolute left-[19px] top-[44px] bottom-0 w-0.5 bg-border" />
+                          )}
+                          <div className={`flex gap-3 p-3 rounded-xl transition-all ${
+                            isFirst ? 'bg-primary/5 border border-primary/20' : 'hover:bg-muted/30'
+                          }`}>
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-sm font-bold ${
+                              isFirst 
+                                ? 'bg-primary text-primary-foreground' 
+                                : 'bg-muted text-muted-foreground border-2 border-border'
+                            }`}>
+                              {idx + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <span className="font-semibold text-sm">{inst.label}</span>
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    <Clock className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-xs text-muted-foreground">{inst.deadline}</span>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <span className={`text-lg font-bold ${isFirst ? 'text-primary' : ''}`}>
+                                    ₹{inst.amount.toLocaleString()}
+                                  </span>
+                                  <div className="text-[10px] text-muted-foreground">
+                                    {inst.percent === 100 ? 'Final' : `${inst.percent}%`}
+                                  </div>
+                                </div>
                               </div>
-                            )}
+                              <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Unlock className="h-3 w-3" />
+                                <span>Unlocks {modulesUnlocked} of {modules.length} modules</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
-
-                        <div className="space-y-1.5">
-                          {isFull ? (
-                            <div className="flex items-center gap-1.5 text-sm text-primary font-medium">
-                              <CheckCircle2 className="h-4 w-4" />
-                              <span>Complete course access - all modules unlocked</span>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                                <Unlock className="h-3.5 w-3.5" />
-                                <span>
-                                  Unlocks: {unlockedModules.slice(0, 2).join(', ')}
-                                  {unlockedModules.length > 2 && ` +${unlockedModules.length - 2} more`}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                                <Clock className="h-3.5 w-3.5" />
-                                <span>Remaining: ₹{(emiTotalPrice - tierPrice).toLocaleString()}</span>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {selectedTier === index && (
-                      <div className="absolute -top-px -right-px">
-                        <div className="bg-primary text-primary-foreground text-[10px] font-medium px-2 py-0.5 rounded-bl-lg rounded-tr-xl">
-                          Selected
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </RadioGroup>
+                )}
 
-            {/* Early Payment Discount Note */}
-            {emiSettings.early_payment_discount_percent > 0 && (
-              <div className="flex items-center gap-2.5 p-3 bg-primary/5 rounded-lg text-sm border border-primary/10">
-                <div className="p-1.5 rounded bg-primary/10">
-                  <Percent className="h-4 w-4 text-primary" />
+                {/* 1 month guarantee */}
+                <div className="flex items-center gap-2.5 p-3 bg-primary/5 rounded-lg text-sm border border-primary/10">
+                  <div className="p-1.5 rounded bg-primary/10">
+                    <Calendar className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-foreground">
+                    <strong>1 month window</strong> to complete all payments — pay anytime within the deadline
+                  </span>
                 </div>
-                <span className="text-foreground">
-                  <strong>Early bird bonus:</strong> Pay before due date and get {emiSettings.early_payment_discount_percent}% off next installment
-                </span>
-              </div>
+
+                <div className="flex items-center gap-2.5 p-3 bg-muted/30 rounded-lg text-sm border">
+                  <div className="p-1.5 rounded bg-muted">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <span className="text-muted-foreground text-xs">
+                    Content unlocks progressively with each payment. Full access after final payment.
+                  </span>
+                </div>
+
+                <Button 
+                  className="w-full h-12 text-base" 
+                  size="lg" 
+                  onClick={handlePayment}
+                  disabled={paymentLoading}
+                >
+                  {paymentLoading ? (
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  ) : (
+                    <CreditCard className="h-5 w-5 mr-2" />
+                  )}
+                  Pay 1st Installment — ₹{currentAutoplan?.installments[0].amount.toLocaleString()}
+                  <ChevronRight className="h-5 w-5 ml-2" />
+                </Button>
+              </>
             )}
 
-            <Button 
-              className="w-full h-12 text-base" 
-              size="lg" 
-              onClick={handlePayment}
-              disabled={selectedTier === null || paymentLoading}
-            >
-              {paymentLoading ? (
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              ) : (
-                <CreditCard className="h-5 w-5 mr-2" />
-              )}
-              {selectedTier !== null 
-                ? `Pay ₹${calculateTierPrice(tiers[selectedTier].percent).toLocaleString()}`
-                : 'Select an option'}
-              <ChevronRight className="h-5 w-5 ml-2" />
-            </Button>
+            {/* Admin-configured EMI tiers */}
+            {hasAdminEMI && (
+              <>
+                <RadioGroup value={selectedTier?.toString()} onValueChange={(v) => setSelectedTier(parseInt(v))}>
+                  {adminTiers.map((tier, index) => {
+                    const tierPrice = calculateTierPrice(tier.percent);
+                    const unlockedModules = getModulesForTier(tier);
+                    const isFull = tier.percent === 100;
+
+                    return (
+                      <div
+                        key={index}
+                        className={`relative border rounded-xl p-4 cursor-pointer transition-all ${
+                          selectedTier === index 
+                            ? 'border-primary bg-primary/5 shadow-md ring-2 ring-primary/20' 
+                            : 'hover:bg-muted/30 hover:border-muted-foreground/30'
+                        }`}
+                        onClick={() => setSelectedTier(index)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <RadioGroupItem value={index.toString()} id={`tier-${index}`} className="mt-1" />
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor={`tier-${index}`} className="font-semibold cursor-pointer text-base">
+                                {tier.label || `${tier.percent}% Access`}
+                              </Label>
+                              <div className="text-right">
+                                <span className="text-xl font-bold">₹{tierPrice.toLocaleString()}</span>
+                                {!isFull && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {tier.percent}% of EMI total
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="space-y-1.5">
+                              {isFull ? (
+                                <div className="flex items-center gap-1.5 text-sm text-primary font-medium">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  <span>Complete course access - all modules unlocked</span>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                    <Unlock className="h-3.5 w-3.5" />
+                                    <span>
+                                      Unlocks: {unlockedModules.slice(0, 2).join(', ')}
+                                      {unlockedModules.length > 2 && ` +${unlockedModules.length - 2} more`}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                    <Clock className="h-3.5 w-3.5" />
+                                    <span>Remaining: ₹{(emiTotalPrice - tierPrice).toLocaleString()}</span>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {selectedTier === index && (
+                          <div className="absolute -top-px -right-px">
+                            <div className="bg-primary text-primary-foreground text-[10px] font-medium px-2 py-0.5 rounded-bl-lg rounded-tr-xl">
+                              Selected
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </RadioGroup>
+
+                {adminEmiSettings!.early_payment_discount_percent > 0 && (
+                  <div className="flex items-center gap-2.5 p-3 bg-primary/5 rounded-lg text-sm border border-primary/10">
+                    <div className="p-1.5 rounded bg-primary/10">
+                      <Percent className="h-4 w-4 text-primary" />
+                    </div>
+                    <span className="text-foreground">
+                      <strong>Early bird bonus:</strong> Pay before due date and get {adminEmiSettings!.early_payment_discount_percent}% off next installment
+                    </span>
+                  </div>
+                )}
+
+                <Button 
+                  className="w-full h-12 text-base" 
+                  size="lg" 
+                  onClick={handlePayment}
+                  disabled={selectedTier === null || paymentLoading}
+                >
+                  {paymentLoading ? (
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  ) : (
+                    <CreditCard className="h-5 w-5 mr-2" />
+                  )}
+                  {selectedTier !== null 
+                    ? `Pay ₹${calculateTierPrice(adminTiers[selectedTier].percent).toLocaleString()}`
+                    : 'Select an option'}
+                  <ChevronRight className="h-5 w-5 ml-2" />
+                </Button>
+              </>
+            )}
           </div>
         )}
       </CardContent>
