@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Navbar } from '@/components/layout/Navbar';
@@ -36,11 +36,12 @@ import { AutoFixLogs } from '@/components/admin/AutoFixLogs';
 import { ContactMessages } from '@/components/admin/ContactMessages';
 import { LuluStreamMigration } from '@/components/admin/LuluStreamMigration';
 import { SessionManagement } from '@/components/admin/SessionManagement';
+import { DeployFunctionsPanel } from '@/components/admin/DeployFunctionsPanel';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { 
-  Users, BookOpen, DollarSign, Settings, 
-  ArrowLeft, CreditCard, MessageSquare, Pencil, 
+import {
+  Users, BookOpen, DollarSign, Settings,
+  ArrowLeft, CreditCard, MessageSquare, Pencil,
   Copy, Eye, EyeOff, Save, Loader2, Trash2, Award,
   Package, UserPlus, Sparkles, Bell, HelpCircle, Video, BarChart3,
   Instagram, Send
@@ -50,13 +51,12 @@ import { cn } from '@/lib/utils';
 // Telegram icon component
 const TelegramIcon = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
   </svg>
 );
 
 export default function Admin() {
-  const { user, loading, isAdmin } = useAuth();
-  const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [stats, setStats] = useState({
@@ -67,12 +67,6 @@ export default function Admin() {
   });
 
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) {
-      navigate('/', { replace: true });
-    }
-  }, [user, loading, isAdmin, navigate]);
-
-  useEffect(() => {
     const fetchStats = async () => {
       const [profiles, courses, payments, enrollments] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact' }),
@@ -80,7 +74,7 @@ export default function Admin() {
         supabase.from('payments').select('amount').eq('status', 'completed'),
         supabase.from('enrollments').select('id', { count: 'exact' }),
       ]);
-      
+
       setStats({
         totalUsers: profiles.count || 0,
         totalCourses: courses.count || 0,
@@ -91,16 +85,6 @@ export default function Admin() {
     if (isAdmin) fetchStats();
   }, [isAdmin]);
 
-  if (loading || !isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin text-accent" />
-          <span>Loading admin panel...</span>
-        </div>
-      </div>
-    );
-  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -164,6 +148,8 @@ export default function Admin() {
         return <LuluStreamMigration />;
       case 'sessions':
         return <SessionManagement />;
+      case 'deploy':
+        return <DeployFunctionsPanel />;
       default:
         return <AdminOverview stats={stats} onNavigate={setActiveTab} />;
     }
@@ -178,7 +164,7 @@ export default function Admin() {
         collapsed={sidebarCollapsed}
         onCollapsedChange={setSidebarCollapsed}
       />
-      
+
       <main
         className={cn(
           "pt-20 pb-8 transition-all duration-300",
@@ -271,8 +257,8 @@ function CoursesPanel() {
               >
                 <div className="flex items-center gap-4">
                   {course.thumbnail_url ? (
-                    <img 
-                      src={course.thumbnail_url} 
+                    <img
+                      src={course.thumbnail_url}
                       alt={course.title}
                       className="h-14 w-20 object-cover rounded-lg"
                       onError={(e) => (e.currentTarget.style.display = 'none')}
@@ -313,7 +299,7 @@ function CoursesPanel() {
             ))}
           </div>
         )}
-        
+
         <CourseEditDialog
           course={editingCourse}
           open={dialogOpen}
@@ -409,7 +395,7 @@ function UsersPanel() {
                   </div>
                   <Badge>{user.role || 'student'}</Badge>
                 </div>
-                
+
                 <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg text-sm">
                   <span className="text-muted-foreground">User ID:</span>
                   <code className="flex-1 font-mono text-xs">
@@ -468,17 +454,17 @@ function PaymentsPanel() {
       .select('*')
       .order('created_at', { ascending: false })
       .limit(100);
-    
+
     const allPayments = data || [];
     setPayments(allPayments);
     setSelectedPayments(new Set());
-    
+
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    
+
     const completed = allPayments.filter(p => p.status === 'completed');
     const monthlyPayments = completed.filter(p => new Date(p.created_at) >= startOfMonth);
-    
+
     setStats({
       total: completed.reduce((sum, p) => sum + (p.amount || 0), 0),
       monthly: monthlyPayments.reduce((sum, p) => sum + (p.amount || 0), 0),
@@ -508,14 +494,14 @@ function PaymentsPanel() {
   const handleBulkDelete = async () => {
     if (selectedPayments.size === 0) return;
     if (!confirm(`Are you sure you want to delete ${selectedPayments.size} payment records?`)) return;
-    
+
     setBulkDeleting(true);
     try {
       const { error } = await supabase
         .from('payments')
         .delete()
         .in('id', Array.from(selectedPayments));
-      
+
       if (error) throw error;
       toast.success(`Deleted ${selectedPayments.size} payment records`);
       fetchPayments();
@@ -560,9 +546,9 @@ function PaymentsPanel() {
             Payment History
           </CardTitle>
           {selectedPayments.size > 0 && (
-            <Button 
-              variant="destructive" 
-              size="sm" 
+            <Button
+              variant="destructive"
+              size="sm"
               onClick={handleBulkDelete}
               disabled={bulkDeleting}
             >
@@ -628,7 +614,7 @@ function PaymentsPanel() {
                 Select All ({filteredPayments.length})
               </span>
             </div>
-            
+
             {filteredPayments.map(payment => (
               <div key={payment.id} className="flex items-center gap-3 p-4 border rounded-xl">
                 <input
@@ -648,9 +634,9 @@ function PaymentsPanel() {
                     {payment.payment_gateway || 'Unknown'} • {new Date(payment.created_at).toLocaleString()}
                   </p>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => handleDelete(payment.id)}
                   disabled={deleting === payment.id}
                 >
@@ -772,13 +758,13 @@ function SupportPanel() {
     try {
       await supabase
         .from('support_tickets')
-        .update({ 
-          admin_response: response, 
+        .update({
+          admin_response: response,
           status: 'resolved',
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedTicket.id);
-      
+
       toast.success('Response sent!');
       setResponse('');
       setSelectedTicket(null);
@@ -844,7 +830,7 @@ function SupportPanel() {
                 <p className="font-medium">{selectedTicket.subject}</p>
                 <p className="text-sm text-muted-foreground mt-2">{selectedTicket.message}</p>
               </div>
-              
+
               {selectedTicket.admin_response && (
                 <div className="p-4 bg-accent/10 rounded-xl">
                   <p className="text-sm font-medium">Previous Response:</p>
@@ -916,7 +902,7 @@ function SiteSettingsPanel() {
           .from('site_settings')
           .update({ value, updated_at: new Date().toISOString() })
           .eq('key', key);
-        
+
         if (updateError) {
           // Insert if update failed
           await supabase

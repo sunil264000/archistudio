@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
-  ChevronLeft, 
-  ChevronRight, 
-  ZoomIn, 
-  ZoomOut, 
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
+  ZoomOut,
   Lock,
   Download,
   Loader2,
@@ -39,14 +39,14 @@ interface EbookPDFViewerProps {
   onPurchaseRequest?: (ebookId: string, ebookTitle: string) => void;
 }
 
-export function EbookPDFViewer({ 
+export function EbookPDFViewer({
   isOpen, onClose, ebookId, ebookTitle, hasAccess,
   previewPages = 15, onPurchaseRequest
 }: EbookPDFViewerProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [numPages, setNumPages] = useState<number>(0);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -80,7 +80,7 @@ export function EbookPDFViewer({
       const { data: { session } } = await supabase.auth.getSession();
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      
+
       const response = await fetch(`${supabaseUrl}/functions/v1/${functionName}`, {
         method: 'POST',
         headers: {
@@ -92,8 +92,30 @@ export function EbookPDFViewer({
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to load PDF');
+        let errorMessage = `Failed to load PDF (${response.status})`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // JSON parse failed — response body is not JSON (e.g. HTML error page)
+        }
+        if (response.status === 401) errorMessage = 'Please log in to access this eBook.';
+        if (response.status === 403) errorMessage = 'You don\'t have access to this eBook. Please purchase it first.';
+        if (response.status === 404) errorMessage = 'eBook file not found. Please contact support.';
+        if (response.status === 504) errorMessage = 'Request timed out. The eBook may be large — please try again.';
+        throw new Error(errorMessage);
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/pdf')) {
+        // Some errors come back as 200 with JSON — catch that
+        const text = await response.text();
+        try {
+          const parsed = JSON.parse(text);
+          throw new Error(parsed.error || 'Unexpected server response');
+        } catch {
+          throw new Error('Server returned unexpected content. Please try again.');
+        }
       }
 
       const arrayBuffer = await response.arrayBuffer();
@@ -137,7 +159,7 @@ export function EbookPDFViewer({
       if (!session) throw new Error('Please login to download');
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      
+
       const response = await fetch(`${supabaseUrl}/functions/v1/download-ebook`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}`, 'apikey': anonKey },
@@ -185,19 +207,19 @@ export function EbookPDFViewer({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent 
+      <DialogContent
         className={`${isFullscreen ? 'max-w-full w-full h-full rounded-none' : 'max-w-5xl w-[98vw] sm:w-[95vw] h-[95vh] sm:h-[90vh]'} p-0 overflow-hidden bg-background border-border/30`}
         aria-describedby="pdf-viewer-description"
       >
         <span id="pdf-viewer-description" className="sr-only">
           PDF viewer for {ebookTitle}. Use arrow keys to navigate pages.
         </span>
-        
+
         {/* Premium Header */}
         <div className="relative flex items-center justify-between px-3 sm:px-5 py-2.5 sm:py-3 border-b border-border/30 bg-card/60">
           {/* Subtle gradient line at top */}
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-          
+
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
             <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-primary/8 border border-primary/15 flex items-center justify-center flex-shrink-0">
               <BookMarked className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
@@ -241,7 +263,7 @@ export function EbookPDFViewer({
             </Button>
 
             {hasAccess && (
-              <Button 
+              <Button
                 variant="outline" size="sm" onClick={handleDownload} disabled={downloading}
                 className="gap-1.5 hidden md:flex h-8 border-border/30 text-xs"
               >
@@ -259,7 +281,7 @@ export function EbookPDFViewer({
         {/* Progress Bar */}
         {numPages > 0 && (
           <div className="h-0.5 w-full bg-muted/30">
-            <motion.div 
+            <motion.div
               className="h-full bg-gradient-to-r from-primary via-primary/80 to-accent"
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
@@ -342,7 +364,7 @@ export function EbookPDFViewer({
                       }
                     />
                   </motion.div>
-                  
+
                   {/* Page Loading Overlay */}
                   <AnimatePresence>
                     {pageLoading && (
@@ -354,7 +376,7 @@ export function EbookPDFViewer({
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  
+
                   {/* Locked Page Overlay */}
                   <AnimatePresence>
                     {!hasAccess && currentPage >= previewPages && numPages > previewPages && (
@@ -362,7 +384,7 @@ export function EbookPDFViewer({
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         className="absolute inset-0 bg-gradient-to-t from-background via-background/98 to-background/60 flex flex-col items-center justify-center rounded-lg"
                       >
-                        <motion.div 
+                        <motion.div
                           initial={{ scale: 0.9, opacity: 0, y: 16 }}
                           animate={{ scale: 1, opacity: 1, y: 0 }}
                           transition={{ delay: 0.15, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
@@ -377,20 +399,20 @@ export function EbookPDFViewer({
                               <Sparkles className="h-3 w-3 text-amber-400" />
                             </div>
                           </div>
-                          
+
                           <Badge className="mb-4 bg-amber-500/10 text-amber-400 border-amber-500/20 text-xs px-3 py-1">
                             <Eye className="h-3 w-3 mr-1.5" />
                             Preview Complete
                           </Badge>
-                          
+
                           <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 tracking-tight">
                             Enjoying this book?
                           </h3>
                           <p className="text-muted-foreground text-center mb-6 text-xs sm:text-sm leading-relaxed">
-                            You've previewed {previewPages} pages. 
+                            You've previewed {previewPages} pages.
                             Unlock all <span className="text-primary font-semibold">{numPages} pages</span> for the full experience.
                           </p>
-                          
+
                           {/* Price card */}
                           <div className="bg-card/60 rounded-xl p-4 mb-6 border border-border/30">
                             <div className="flex items-center justify-between mb-1.5">
@@ -401,16 +423,16 @@ export function EbookPDFViewer({
                               Buy more books together to save up to 45%
                             </p>
                           </div>
-                          
-                          <Button 
-                            onClick={handlePurchase} 
-                            size="lg" 
+
+                          <Button
+                            onClick={handlePurchase}
+                            size="lg"
                             className="gap-2.5 shadow-lg shadow-primary/15 w-full sm:w-auto bg-primary hover:bg-primary/90 h-12 text-base font-semibold touch-target"
                           >
                             <ShoppingCart className="h-4.5 w-4.5" />
                             Continue to Purchase
                           </Button>
-                          
+
                           <p className="text-[10px] sm:text-xs text-muted-foreground/50 mt-4">
                             One-time purchase • Instant access • PDF download
                           </p>
@@ -427,7 +449,7 @@ export function EbookPDFViewer({
         {/* Footer Navigation */}
         <div className="relative flex items-center justify-between px-3 sm:px-5 py-2.5 sm:py-3 border-t border-border/30 bg-card/60">
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/50 to-transparent" />
-          
+
           <Button
             variant="outline"
             onClick={goToPrevPage}
@@ -455,8 +477,8 @@ export function EbookPDFViewer({
                 <p className="text-[10px] sm:text-xs text-muted-foreground/60 font-mono">
                   {Math.min(previewPages, numPages)}/{numPages} pages
                 </p>
-                <Button 
-                  variant="link" size="sm" 
+                <Button
+                  variant="link" size="sm"
                   className="text-primary p-0 h-auto text-[10px] sm:text-xs font-medium"
                   onClick={handlePurchase}
                 >

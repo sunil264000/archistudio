@@ -11,15 +11,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { 
-  Plus, Pencil, Trash2, Upload, Video, FileText, 
+import {
+  Plus, Pencil, Trash2, Upload, Video, FileText,
   GripVertical, Loader2, ChevronRight, FolderPlus, Save, Clock, FolderSync, EyeOff,
-  ArrowUp, ArrowDown, CheckSquare
+  ArrowUp, ArrowDown, CheckSquare, FileArchive, Link, X
 } from 'lucide-react';
 import { GoogleDriveImport } from './GoogleDriveImport';
 import { QuickLessonAdd } from './QuickLessonAdd';
 import { BulkCourseImport } from './BulkCourseImport';
 import { ImportActivityLog } from './ImportActivityLog';
+import { SyncResourcesButton } from './SyncResourcesButton';
 
 interface Course {
   id: string;
@@ -46,8 +47,18 @@ interface Lesson {
   module_id: string;
 }
 
+interface LessonResource {
+  id: string;
+  title: string;
+  file_url: string;
+  file_type: string | null;
+}
+
 export function LessonManagement() {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [lessonResources, setLessonResources] = useState<Record<string, LessonResource[]>>({});
+  const [resourceForm, setResourceForm] = useState<Record<string, { title: string; file_url: string; file_type: string }>>({});
+  const [addingResource, setAddingResource] = useState<string | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [lessons, setLessons] = useState<Record<string, Lesson[]>>({});
@@ -119,6 +130,21 @@ export function LessonManagement() {
         lessonsMap[mod.id] = lessonsData || [];
       }
       setLessons(lessonsMap);
+
+      // Fetch resources for all lessons
+      const allLessonIds = Object.values(lessonsMap).flat().map(l => l.id);
+      if (allLessonIds.length > 0) {
+        const { data: resData } = await supabase
+          .from('lesson_resources')
+          .select('id, lesson_id, title, file_url, file_type')
+          .in('lesson_id', allLessonIds);
+        const resMap: Record<string, LessonResource[]> = {};
+        (resData || []).forEach((r: any) => {
+          if (!resMap[r.lesson_id]) resMap[r.lesson_id] = [];
+          resMap[r.lesson_id].push(r);
+        });
+        setLessonResources(resMap);
+      }
     }
     setLoading(false);
   };
@@ -168,7 +194,7 @@ export function LessonManagement() {
 
   const handleDeleteModule = async (moduleId: string) => {
     if (!confirm('Delete this module and all its lessons?')) return;
-    
+
     await supabase.from('lessons').delete().eq('module_id', moduleId);
     await supabase.from('modules').delete().eq('id', moduleId);
     toast.success('Module deleted');
@@ -232,7 +258,7 @@ export function LessonManagement() {
 
   const handleDeleteLesson = async (lessonId: string) => {
     if (!confirm('Delete this lesson?')) return;
-    
+
     await supabase.from('lesson_resources').delete().eq('lesson_id', lessonId);
     await supabase.from('lessons').delete().eq('id', lessonId);
     toast.success('Lesson deleted');
@@ -243,7 +269,7 @@ export function LessonManagement() {
   const handleBulkDeleteLessons = async () => {
     if (selectedLessons.size === 0) return;
     if (!confirm(`Delete ${selectedLessons.size} selected lessons? This cannot be undone.`)) return;
-    
+
     const ids = Array.from(selectedLessons);
     for (const id of ids) {
       await supabase.from('lesson_resources').delete().eq('lesson_id', id);
@@ -268,10 +294,10 @@ export function LessonManagement() {
     if (idx < 0) return;
     const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= moduleLessons.length) return;
-    
+
     const a = moduleLessons[idx];
     const b = moduleLessons[swapIdx];
-    
+
     await Promise.all([
       supabase.from('lessons').update({ order_index: b.order_index }).eq('id', a.id),
       supabase.from('lessons').update({ order_index: a.order_index }).eq('id', b.id),
@@ -284,15 +310,54 @@ export function LessonManagement() {
     if (idx < 0) return;
     const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= modules.length) return;
-    
+
     const a = modules[idx];
     const b = modules[swapIdx];
-    
+
     await Promise.all([
       supabase.from('modules').update({ order_index: b.order_index }).eq('id', a.id),
       supabase.from('modules').update({ order_index: a.order_index }).eq('id', b.id),
     ]);
     if (selectedCourse) fetchModules(selectedCourse);
+  };
+
+  const handleAddResource = async (lessonId: string) => {
+    const form = resourceForm[lessonId];
+    if (!form?.title || !form?.file_url) {
+      toast.error('Title and URL are required');
+      return;
+    }
+    setAddingResource(lessonId);
+    try {
+      const { data, error } = await supabase.from('lesson_resources').insert({
+        lesson_id: lessonId,
+        title: form.title,
+        file_url: form.file_url,
+        file_type: form.file_type || null,
+      }).select('id, title, file_url, file_type').single();
+
+      if (error) throw error;
+
+      setLessonResources(prev => ({
+        ...prev,
+        [lessonId]: [...(prev[lessonId] || []), data],
+      }));
+      setResourceForm(prev => ({ ...prev, [lessonId]: { title: '', file_url: '', file_type: '' } }));
+      toast.success('Resource added');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setAddingResource(null);
+    }
+  };
+
+  const handleDeleteResource = async (lessonId: string, resourceId: string) => {
+    await supabase.from('lesson_resources').delete().eq('id', resourceId);
+    setLessonResources(prev => ({
+      ...prev,
+      [lessonId]: (prev[lessonId] || []).filter(r => r.id !== resourceId),
+    }));
+    toast.success('Resource removed');
   };
 
   const handleVideoUpload = async (lessonId: string, file: File) => {
@@ -306,7 +371,7 @@ export function LessonManagement() {
 
     try {
       const fileName = `${lessonId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      
+
       const { error: uploadError } = await supabase.storage
         .from('course-videos')
         .upload(fileName, file, {
@@ -336,19 +401,19 @@ export function LessonManagement() {
 
   // Get effective free preview value (pending change or original)
   const getEffectiveFreePreview = (lessonId: string, original: boolean) => {
-    return pendingFreePreviewChanges.hasOwnProperty(lessonId) 
-      ? pendingFreePreviewChanges[lessonId] 
+    return pendingFreePreviewChanges.hasOwnProperty(lessonId)
+      ? pendingFreePreviewChanges[lessonId]
       : original;
   };
 
   // Toggle free preview locally
   const toggleFreePreview = (lessonId: string, currentValue: boolean) => {
-    const originalValue = lessons[Object.keys(lessons).find(k => 
+    const originalValue = lessons[Object.keys(lessons).find(k =>
       lessons[k].some(l => l.id === lessonId)
     ) || '']?.find(l => l.id === lessonId)?.is_free_preview ?? false;
-    
+
     const newValue = !currentValue;
-    
+
     if (newValue === originalValue) {
       // Remove from pending if back to original
       setPendingFreePreviewChanges(prev => {
@@ -364,13 +429,13 @@ export function LessonManagement() {
   // Save all pending changes
   const saveAllChanges = async () => {
     if (Object.keys(pendingFreePreviewChanges).length === 0) return;
-    
+
     setSaving(true);
     try {
       const updates = Object.entries(pendingFreePreviewChanges).map(([lessonId, isFreePreview]) =>
         supabase.from('lessons').update({ is_free_preview: isFreePreview }).eq('id', lessonId)
       );
-      
+
       await Promise.all(updates);
       toast.success(`Saved ${Object.keys(pendingFreePreviewChanges).length} changes`);
       setPendingFreePreviewChanges({});
@@ -398,9 +463,9 @@ export function LessonManagement() {
             Recent Activities
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="import" className="mt-4">
-          <BulkCourseImport 
+          <BulkCourseImport
             courses={courses}
             onImportComplete={() => {
               fetchCourses();
@@ -408,9 +473,9 @@ export function LessonManagement() {
             }}
           />
         </TabsContent>
-        
+
         <TabsContent value="activity" className="mt-4">
-          <ImportActivityLog 
+          <ImportActivityLog
             onCourseClean={() => {
               fetchCourses();
               if (selectedCourse) fetchModules(selectedCourse);
@@ -460,6 +525,14 @@ export function LessonManagement() {
         </div>
       )}
 
+      {/* Sync Resources from Drive - only available when a course is selected */}
+      {selectedCourse && selectedCourseData && (
+        <SyncResourcesButton
+          courseId={selectedCourse}
+          courseName={selectedCourseData.title}
+        />
+      )}
+
       {/* Quick Add Lessons (Direct Link Input) */}
       {selectedCourse && selectedCourseData && modules.length > 0 && (
         <QuickLessonAdd
@@ -483,7 +556,7 @@ export function LessonManagement() {
       {selectedCourse && modules.length > 0 && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 border border-border/50">
-            <Switch 
+            <Switch
               id="hide-empty-modules"
               checked={hideEmptyModules}
               onCheckedChange={setHideEmptyModules}
@@ -528,121 +601,164 @@ export function LessonManagement() {
           {modules
             .filter(module => !hideEmptyModules || (lessons[module.id]?.length || 0) > 0)
             .map((module, idx) => (
-            <AccordionItem key={module.id} value={module.id} className="border rounded-lg">
-              <AccordionTrigger className="px-4 hover:no-underline">
-                <div className="flex items-center gap-3 flex-1">
-                  <GripVertical className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">
-                    Module {idx + 1}: {module.title}
-                  </span>
-                  <span className="text-sm text-muted-foreground ml-2">
-                    ({lessons[module.id]?.length || 0} lessons)
-                  </span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4">
-                <div className="flex gap-2 mb-4 flex-wrap">
-                  <Button variant="outline" size="sm" onClick={() => handleEditModule(module)}>
-                    <Pencil className="h-3 w-3 mr-1" /> Edit
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleDeleteModule(module.id)}>
-                    <Trash2 className="h-3 w-3 mr-1" /> Delete
-                  </Button>
-                  <Button size="sm" onClick={() => handleAddLesson(module.id)}>
-                    <Plus className="h-3 w-3 mr-1" /> Add Lesson
-                  </Button>
-                  {idx > 0 && (
-                    <Button variant="ghost" size="sm" onClick={() => handleMoveModule(module.id, 'up')}>↑ Move Up</Button>
-                  )}
-                  {idx < modules.length - 1 && (
-                    <Button variant="ghost" size="sm" onClick={() => handleMoveModule(module.id, 'down')}>↓ Move Down</Button>
-                  )}
-                </div>
+              <AccordionItem key={module.id} value={module.id} className="border rounded-lg">
+                <AccordionTrigger className="px-4 hover:no-underline">
+                  <div className="flex items-center gap-3 flex-1">
+                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">
+                      Module {idx + 1}: {module.title}
+                    </span>
+                    <span className="text-sm text-muted-foreground ml-2">
+                      ({lessons[module.id]?.length || 0} lessons)
+                    </span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="flex gap-2 mb-4 flex-wrap">
+                    <Button variant="outline" size="sm" onClick={() => handleEditModule(module)}>
+                      <Pencil className="h-3 w-3 mr-1" /> Edit
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleDeleteModule(module.id)}>
+                      <Trash2 className="h-3 w-3 mr-1" /> Delete
+                    </Button>
+                    <Button size="sm" onClick={() => handleAddLesson(module.id)}>
+                      <Plus className="h-3 w-3 mr-1" /> Add Lesson
+                    </Button>
+                    {idx > 0 && (
+                      <Button variant="ghost" size="sm" onClick={() => handleMoveModule(module.id, 'up')}>↑ Move Up</Button>
+                    )}
+                    {idx < modules.length - 1 && (
+                      <Button variant="ghost" size="sm" onClick={() => handleMoveModule(module.id, 'down')}>↓ Move Down</Button>
+                    )}
+                  </div>
 
-                {/* Lessons List */}
-                <div className="space-y-2">
-                  {(lessons[module.id] || []).map((lesson, lessonIdx) => (
-                    <Card key={lesson.id} className={`bg-muted/30 ${selectedLessons.has(lesson.id) ? 'ring-2 ring-destructive/50' : ''}`}>
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="checkbox"
-                              checked={selectedLessons.has(lesson.id)}
-                              onChange={() => toggleLessonSelection(lesson.id)}
-                              className="h-4 w-4 rounded border-border"
-                            />
-                            <span className="text-sm text-muted-foreground">
-                              {idx + 1}.{lessonIdx + 1}
-                            </span>
-                            {lesson.video_url ? (
-                              <Video className="h-4 w-4 text-primary" />
-                            ) : (
-                              <FileText className="h-4 w-4 text-muted-foreground" />
-                            )}
-                            <div>
-                              <p className="font-medium text-sm">{lesson.title}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {lesson.duration_minutes} min
-                              </p>
+                  {/* Lessons List */}
+                  <div className="space-y-2">
+                    {(lessons[module.id] || []).map((lesson, lessonIdx) => (
+                      <Card key={lesson.id} className={`bg-muted/30 ${selectedLessons.has(lesson.id) ? 'ring-2 ring-destructive/50' : ''}`}>
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedLessons.has(lesson.id)}
+                                onChange={() => toggleLessonSelection(lesson.id)}
+                                className="h-4 w-4 rounded border-border"
+                              />
+                              <span className="text-sm text-muted-foreground">
+                                {idx + 1}.{lessonIdx + 1}
+                              </span>
+                              {lesson.video_url ? (
+                                <Video className="h-4 w-4 text-primary" />
+                              ) : (
+                                <FileText className="h-4 w-4 text-muted-foreground" />
+                              )}
+                              <div>
+                                <p className="font-medium text-sm">{lesson.title}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {lesson.duration_minutes} min
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {/* Free Preview Toggle - batch save */}
+                              {(() => {
+                                const effectiveValue = getEffectiveFreePreview(lesson.id, lesson.is_free_preview);
+                                const hasChange = pendingFreePreviewChanges.hasOwnProperty(lesson.id);
+                                return (
+                                  <div
+                                    className={`flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded ${hasChange ? 'bg-accent/20 border border-accent/40' : ''}`}
+                                    onClick={() => toggleFreePreview(lesson.id, effectiveValue)}
+                                  >
+                                    <Switch
+                                      checked={effectiveValue}
+                                      className="scale-75"
+                                    />
+                                    <span className={`text-xs ${effectiveValue ? 'text-green-500' : 'text-muted-foreground'}`}>
+                                      Free
+                                    </span>
+                                  </div>
+                                );
+                              })()}
+                              <label className="cursor-pointer">
+                                <input
+                                  type="file"
+                                  accept="video/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleVideoUpload(lesson.id, file);
+                                  }}
+                                  disabled={uploading}
+                                />
+                                <Button variant="ghost" size="icon" asChild disabled={uploading}>
+                                  <span>
+                                    {uploading ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Upload className="h-4 w-4" />
+                                    )}
+                                  </span>
+                                </Button>
+                              </label>
+                              <Button variant="ghost" size="icon" onClick={() => handleEditLesson(lesson)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteLesson(lesson.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {/* Free Preview Toggle - batch save */}
-                            {(() => {
-                              const effectiveValue = getEffectiveFreePreview(lesson.id, lesson.is_free_preview);
-                              const hasChange = pendingFreePreviewChanges.hasOwnProperty(lesson.id);
-                              return (
-                                <div 
-                                  className={`flex items-center gap-1.5 cursor-pointer px-2 py-1 rounded ${hasChange ? 'bg-accent/20 border border-accent/40' : ''}`}
-                                  onClick={() => toggleFreePreview(lesson.id, effectiveValue)}
-                                >
-                                  <Switch
-                                    checked={effectiveValue}
-                                    className="scale-75"
-                                  />
-                                  <span className={`text-xs ${effectiveValue ? 'text-green-500' : 'text-muted-foreground'}`}>
-                                    Free
-                                  </span>
-                                </div>
-                              );
-                            })()}
-                            <label className="cursor-pointer">
-                              <input
-                                type="file"
-                                accept="video/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleVideoUpload(lesson.id, file);
-                                }}
-                                disabled={uploading}
+
+                          {/* Resources Section */}
+                          <div className="mt-3 pt-3 border-t border-border/30">
+                            <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                              <FileArchive className="h-3 w-3" /> Resources ({(lessonResources[lesson.id] || []).length})
+                            </p>
+                            {(lessonResources[lesson.id] || []).map(res => (
+                              <div key={res.id} className="flex items-center justify-between py-1 px-2 rounded bg-muted/30 mb-1 text-xs">
+                                <span className="truncate flex-1 font-medium">{res.title}</span>
+                                <span className="text-muted-foreground mx-2 text-[10px]">{res.file_type || 'link'}</span>
+                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => handleDeleteResource(lesson.id, res.id)}>
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ))}
+                            {/* Add Resource Form */}
+                            <div className="flex flex-col gap-1.5 mt-2">
+                              <Input
+                                placeholder="Resource title (e.g. Project Files.zip)"
+                                className="h-7 text-xs"
+                                value={resourceForm[lesson.id]?.title || ''}
+                                onChange={e => setResourceForm(prev => ({ ...prev, [lesson.id]: { ...prev[lesson.id] || { file_url: '', file_type: '' }, title: e.target.value } }))}
                               />
-                              <Button variant="ghost" size="icon" asChild disabled={uploading}>
-                                <span>
-                                  {uploading ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Upload className="h-4 w-4" />
-                                  )}
-                                </span>
-                              </Button>
-                            </label>
-                            <Button variant="ghost" size="icon" onClick={() => handleEditLesson(lesson)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteLesson(lesson.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                              <Input
+                                placeholder="URL (Google Drive, direct link...)"
+                                className="h-7 text-xs"
+                                value={resourceForm[lesson.id]?.file_url || ''}
+                                onChange={e => setResourceForm(prev => ({ ...prev, [lesson.id]: { ...prev[lesson.id] || { title: '', file_type: '' }, file_url: e.target.value } }))}
+                              />
+                              <div className="flex gap-1.5">
+                                <Input
+                                  placeholder="Type (zip, pdf, image...)"
+                                  className="h-7 text-xs flex-1"
+                                  value={resourceForm[lesson.id]?.file_type || ''}
+                                  onChange={e => setResourceForm(prev => ({ ...prev, [lesson.id]: { ...prev[lesson.id] || { title: '', file_url: '' }, file_type: e.target.value } }))}
+                                />
+                                <Button size="sm" className="h-7 text-xs gap-1" onClick={() => handleAddResource(lesson.id)} disabled={addingResource === lesson.id}>
+                                  {addingResource === lesson.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                                  Add
+                                </Button>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
         </Accordion>
       )}
 

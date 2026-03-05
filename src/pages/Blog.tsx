@@ -20,30 +20,40 @@ interface BlogPost {
 }
 
 export default function Blog() {
+  const PAGE_SIZE = 9;
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [page]);
 
   const fetchPosts = async () => {
+    setLoading(true);
     try {
-      const { data, error } = await supabase
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      const { data, error, count } = await supabase
         .from('blog_posts')
-        .select('id, title, slug, excerpt, featured_image_url, published_at, created_at')
+        .select('id, title, slug, excerpt, featured_image_url, published_at, created_at', { count: 'exact' })
         .eq('is_published', true)
-        .order('published_at', { ascending: false });
+        .order('published_at', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
       setPosts(data || []);
+      setTotalCount(count || 0);
     } catch (error) {
       console.error('Error fetching posts:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const filteredPosts = posts.filter(post =>
     post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -61,19 +71,19 @@ export default function Blog() {
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
-      <SEOHead 
+      <SEOHead
         title="Blog - Architecture Insights & Tutorials | Archistudio"
         description="Practical tips, industry insights, and tutorials to help you become a better architect. Learn 3ds Max, AutoCAD, Revit, and more."
         url="https://archistudio.shop/blog"
         keywords="architecture blog, 3ds max tutorials, autocad tips, revit tutorials, architectural visualization tips, interior design articles"
       />
       <Navbar />
-      
+
       {/* Hero */}
       <section className="relative py-20 overflow-hidden">
         <AnimatedBackground intensity="light" />
         <div className="absolute inset-0 grid-pattern opacity-30" />
-        
+
         <div className="relative container-wide text-center space-y-6">
           <Badge variant="secondary" className="mb-4">Resources</Badge>
           <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight">
@@ -82,7 +92,7 @@ export default function Blog() {
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Practical tips, industry insights, and tutorials to help you become a better architect.
           </p>
-          
+
           {/* Search */}
           <div className="max-w-md mx-auto relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -122,8 +132,8 @@ export default function Blog() {
                 {searchQuery ? 'No articles found' : 'No articles yet'}
               </h3>
               <p className="text-muted-foreground">
-                {searchQuery 
-                  ? 'Try adjusting your search query' 
+                {searchQuery
+                  ? 'Try adjusting your search query'
                   : 'Check back soon for new content!'}
               </p>
             </div>
@@ -172,6 +182,27 @@ export default function Blog() {
                   </Card>
                 </Link>
               ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4 mt-10">
+              <button
+                onClick={() => setPage(p => Math.max(0, p - 1))}
+                disabled={page === 0 || loading}
+                className="px-4 py-2 rounded-lg border border-border text-sm font-medium transition-all hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                ← Previous
+              </button>
+              <span className="text-sm text-muted-foreground">Page {page + 1} of {totalPages}</span>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1 || loading}
+                className="px-4 py-2 rounded-lg border border-border text-sm font-medium transition-all hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next →
+              </button>
             </div>
           )}
         </div>

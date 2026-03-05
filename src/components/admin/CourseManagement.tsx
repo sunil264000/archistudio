@@ -1,15 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { courses as websiteCourseCatalog } from '@/data/courses';
 import { useDynamicCourseData } from '@/hooks/useDynamicCourseData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { 
-  Search, Pencil, Trash2, ChevronUp, ChevronDown, 
-  Loader2, RefreshCw, Eye, EyeOff, Star, Image as ImageIcon, 
+import {
+  Search, Pencil, Trash2, ChevronUp, ChevronDown,
+  Loader2, RefreshCw, Eye, EyeOff, Star, Image as ImageIcon,
   FolderX, CheckSquare, Square, ArrowUpDown, Filter,
   BookOpen, Layers, Clock, AlertCircle, CheckCircle2,
   Package, X, Link2, Unlink, FolderSync, ExternalLink,
@@ -94,19 +93,10 @@ interface ModuleWithLessons {
   }[];
 }
 
-type SortOption = 'order' | 'website-order' | 'name' | 'price' | 'content' | 'empty-first' | 'content-first' | 'published' | 'draft' | 'featured' | 'linked' | 'unlinked';
+type SortOption = 'order' | 'name' | 'price' | 'content' | 'empty-first' | 'content-first' | 'published' | 'draft' | 'featured' | 'linked' | 'unlinked';
 type FilterOption = 'all' | 'published' | 'draft' | 'featured' | 'highlighted' | 'empty' | 'has-content' | 'no-thumbnail' | 'linked' | 'unlinked';
 
 const normalizeKey = (v: string) => v.trim().toLowerCase();
-
-// /courses shows only the static catalog items (and only those with isPublished=true)
-const WEBSITE_PUBLISHED_CATALOG = websiteCourseCatalog.filter((c) => c.isPublished);
-const WEBSITE_ORDER_INDEX_BY_SLUG = new Map<string, number>(
-  WEBSITE_PUBLISHED_CATALOG.map((c, idx) => [normalizeKey(c.slug), idx])
-);
-const WEBSITE_ORDER_INDEX_BY_TITLE = new Map<string, number>(
-  WEBSITE_PUBLISHED_CATALOG.map((c, idx) => [normalizeKey(c.title), idx])
-);
 
 export function CourseManagement() {
   const { isHighlighted: isWebsiteHighlighted } = useDynamicCourseData();
@@ -123,10 +113,10 @@ export function CourseManagement() {
   const [activeFilters, setActiveFilters] = useState<Set<FilterOption>>(new Set(['all']));
   const [courseContent, setCourseContent] = useState<Record<string, CourseContent>>({});
   const [loadingContent, setLoadingContent] = useState(false);
-  
+
   // Quick toggle to hide empty courses
   const [hideEmpty, setHideEmpty] = useState(false);
-  
+
   // Folder linking state
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [linkingCourse, setLinkingCourse] = useState<Course | null>(null);
@@ -134,26 +124,26 @@ export function CourseManagement() {
   const [linking, setLinking] = useState(false);
   const [syncingCourse, setSyncingCourse] = useState<string | null>(null);
   const [scanningCourse, setScanningCourse] = useState<string | null>(null);
-  
+
   // Expanded course content preview
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const [expandedModules, setExpandedModules] = useState<ModuleWithLessons[]>([]);
   const [loadingExpanded, setLoadingExpanded] = useState(false);
-  
+
   // Create course dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newCourseTitle, setNewCourseTitle] = useState('');
   const [newCourseSlug, setNewCourseSlug] = useState('');
   const [creatingCourse, setCreatingCourse] = useState(false);
-  
+
   // Thumbnail editing state (local only, saves on button click)
   const [thumbnailEdits, setThumbnailEdits] = useState<Record<string, string>>({});
   const [savingThumbnail, setSavingThumbnail] = useState<string | null>(null);
-  
+
   // Bulk thumbnail download state
   const [downloadingAllThumbnails, setDownloadingAllThumbnails] = useState(false);
   const [thumbnailProgress, setThumbnailProgress] = useState({ current: 0, total: 0 });
-  
+
   // Auto-update courses state
   const [autoUpdateEnabled, setAutoUpdateEnabled] = useState(false);
   const [loadingAutoUpdate, setLoadingAutoUpdate] = useState(true);
@@ -166,7 +156,7 @@ export function CourseManagement() {
   const handleSaveThumbnail = async (courseId: string) => {
     const url = thumbnailEdits[courseId];
     if (url === undefined) return;
-    
+
     setSavingThumbnail(courseId);
     try {
       // If URL is empty, just clear the thumbnail
@@ -175,49 +165,49 @@ export function CourseManagement() {
           .from('courses')
           .update({ thumbnail_url: null })
           .eq('id', courseId);
-        
+
         if (error) throw error;
-        
-        setCourses(prev => prev.map(c => 
+
+        setCourses(prev => prev.map(c =>
           c.id === courseId ? { ...c, thumbnail_url: null } : c
         ));
         toast.success('Thumbnail cleared');
       } else {
         // Check if URL is already from our storage
         const isStorageUrl = url.includes('/storage/v1/object/public/course-thumbnails/');
-        
+
         if (isStorageUrl) {
           // Just update the URL directly
           const { error } = await supabase
             .from('courses')
             .update({ thumbnail_url: url })
             .eq('id', courseId);
-          
+
           if (error) throw error;
-          
-          setCourses(prev => prev.map(c => 
+
+          setCourses(prev => prev.map(c =>
             c.id === courseId ? { ...c, thumbnail_url: url } : c
           ));
           toast.success('Thumbnail updated');
         } else {
           // Download and store the image permanently
           toast.info('Downloading and storing image permanently...');
-          
+
           const { data, error } = await supabase.functions.invoke('upload-thumbnail', {
             body: { courseId, imageUrl: url }
           });
-          
+
           if (error) throw error;
           if (data?.error) throw new Error(data.error);
-          
+
           // Update local state with the new storage URL
-          setCourses(prev => prev.map(c => 
+          setCourses(prev => prev.map(c =>
             c.id === courseId ? { ...c, thumbnail_url: data.thumbnailUrl } : c
           ));
           toast.success('Thumbnail saved permanently!');
         }
       }
-      
+
       // Clear the edit state for this course
       setThumbnailEdits(prev => {
         const { [courseId]: _, ...rest } = prev;
@@ -236,13 +226,13 @@ export function CourseManagement() {
       toast.error('Please enter a course title');
       return;
     }
-    
+
     const slug = newCourseSlug.trim() || newCourseTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    
+
     setCreatingCourse(true);
     try {
       const maxOrderIndex = courses.reduce((max, c) => Math.max(max, c.order_index || 0), 0);
-      
+
       const { data, error } = await supabase
         .from('courses')
         .insert({
@@ -257,9 +247,9 @@ export function CourseManagement() {
         })
         .select()
         .single();
-      
+
       if (error) throw error;
-      
+
       toast.success(`Course "${data.title}" created!`);
       setCreateDialogOpen(false);
       setNewCourseTitle('');
@@ -292,8 +282,8 @@ export function CourseManagement() {
 
   const handleDownloadAllThumbnails = async () => {
     // Find courses with external (non-storage) thumbnail URLs
-    const coursesWithExternalThumbs = courses.filter(c => 
-      c.thumbnail_url && 
+    const coursesWithExternalThumbs = courses.filter(c =>
+      c.thumbnail_url &&
       !c.thumbnail_url.includes('/storage/v1/object/public/course-thumbnails/')
     );
 
@@ -318,7 +308,7 @@ export function CourseManagement() {
           failCount++;
         } else {
           successCount++;
-          setCourses(prev => prev.map(c => 
+          setCourses(prev => prev.map(c =>
             c.id === course.id ? { ...c, thumbnail_url: data.thumbnailUrl } : c
           ));
         }
@@ -343,7 +333,7 @@ export function CourseManagement() {
           description: 'Auto-update courses (scan links & durations) periodically',
           updated_at: new Date().toISOString()
         }, { onConflict: 'key' });
-      
+
       toast.success(enabled ? 'Auto-update enabled' : 'Auto-update disabled');
     } catch {
       setAutoUpdateEnabled(!enabled);
@@ -357,7 +347,7 @@ export function CourseManagement() {
       const { data, error } = await supabase.functions.invoke('auto-scan-courses', {
         body: { action: 'refresh-all' }
       });
-      
+
       if (error) throw error;
       toast.success(
         `Auto-update complete: ${data.validLinks || 0} valid, ${data.brokenLinks || 0} broken, ${data.durationsUpdated || 0} durations updated`,
@@ -384,7 +374,7 @@ export function CourseManagement() {
       .from('courses')
       .select('id, title, slug, description, short_description, price_inr, price_usd, is_published, is_featured, is_highlighted, order_index, thumbnail_url, level, duration_hours, total_lessons')
       .order('order_index', { ascending: true });
-    
+
     if (error) {
       toast.error('Failed to fetch courses');
     } else {
@@ -393,18 +383,18 @@ export function CourseManagement() {
         .from('site_settings')
         .select('key, value')
         .like('key', 'course_folder_%');
-      
+
       const folderMap: Record<string, string> = {};
       (settings || []).forEach(s => {
         const courseId = s.key.replace('course_folder_', '');
         folderMap[courseId] = s.value || '';
       });
-      
+
       const coursesWithFolders = (data || []).map(c => ({
         ...c,
         drive_folder_id: folderMap[c.id] || null
       }));
-      
+
       setCourses(coursesWithFolders);
     }
     setLoading(false);
@@ -416,13 +406,13 @@ export function CourseManagement() {
       const { data: modulesData } = await supabase
         .from('modules')
         .select('course_id, id');
-      
+
       const { data: lessonsData } = await supabase
         .from('lessons')
         .select('module_id, duration_minutes');
 
       const contentMap: Record<string, CourseContent> = {};
-      
+
       courses.forEach(course => {
         contentMap[course.id] = { moduleCount: 0, lessonCount: 0, totalHours: 0 };
       });
@@ -475,11 +465,11 @@ export function CourseManagement() {
       setExpandedModules([]);
       return;
     }
-    
+
     setExpandedCourse(courseId);
     setLoadingExpanded(true);
     setExpandedModules([]);
-    
+
     try {
       // Fetch modules for this course
       const { data: modules, error: modulesError } = await supabase
@@ -487,23 +477,23 @@ export function CourseManagement() {
         .select('id, title, order_index')
         .eq('course_id', courseId)
         .order('order_index', { ascending: true });
-      
+
       if (modulesError) throw modulesError;
-      
+
       if (!modules || modules.length === 0) {
         setExpandedModules([]);
         return;
       }
-      
+
       // Fetch lessons for all modules
       const { data: lessons, error: lessonsError } = await supabase
         .from('lessons')
         .select('id, title, duration_minutes, video_url, module_id, order_index')
         .in('module_id', modules.map(m => m.id))
         .order('order_index', { ascending: true });
-      
+
       if (lessonsError) throw lessonsError;
-      
+
       // Group lessons by module
       const modulesWithLessons: ModuleWithLessons[] = modules.map(mod => ({
         id: mod.id,
@@ -520,7 +510,7 @@ export function CourseManagement() {
           }))
           .sort((a, b) => a.order_index - b.order_index)
       }));
-      
+
       setExpandedModules(modulesWithLessons);
     } catch (err) {
       console.error('Failed to fetch course content:', err);
@@ -563,7 +553,7 @@ export function CourseManagement() {
   // Link folder to course
   const handleLinkFolder = async () => {
     if (!linkingCourse || !folderUrl.trim()) return;
-    
+
     setLinking(true);
     try {
       // Extract folder ID from URL
@@ -572,7 +562,7 @@ export function CourseManagement() {
         const match = folderId.match(/folders\/([a-zA-Z0-9_-]+)/);
         if (match) folderId = match[1];
       }
-      
+
       // Save to site_settings
       const { error } = await supabase
         .from('site_settings')
@@ -582,9 +572,9 @@ export function CourseManagement() {
           description: `Google Drive folder for ${linkingCourse.title}`,
           updated_at: new Date().toISOString()
         }, { onConflict: 'key' });
-      
+
       if (error) throw error;
-      
+
       // Update local state
       const updatedCourse: Course = { ...linkingCourse, drive_folder_id: folderId };
       setCourses(prev => prev.map(c => (c.id === linkingCourse.id ? updatedCourse : c)));
@@ -611,11 +601,11 @@ export function CourseManagement() {
         .from('site_settings')
         .delete()
         .eq('key', `course_folder_${course.id}`);
-      
-      setCourses(prev => prev.map(c => 
+
+      setCourses(prev => prev.map(c =>
         c.id === course.id ? { ...c, drive_folder_id: null } : c
       ));
-      
+
       toast.success('Folder unlinked');
     } catch (err) {
       toast.error('Failed to unlink folder');
@@ -628,7 +618,7 @@ export function CourseManagement() {
       toast.error('No folder linked to this course');
       return;
     }
-    
+
     setSyncingCourse(course.id);
     try {
       const { data, error } = await supabase.functions.invoke('scan-google-drive', {
@@ -639,9 +629,9 @@ export function CourseManagement() {
           maxDepth: 12 // Ultra-deep scan up to 12 levels
         }
       });
-      
+
       if (error) throw error;
-      
+
       if (data.success) {
         toast.success(`Synced: ${data.modulesCreated} modules, ${data.lessonsCreated} lessons`);
         fetchCourses();
@@ -658,34 +648,34 @@ export function CourseManagement() {
 
   const handleMoveUp = async (index: number) => {
     if (index === 0) return;
-    
+
     const sortedCourses = [...processedCourses];
     const temp = sortedCourses[index];
     sortedCourses[index] = sortedCourses[index - 1];
     sortedCourses[index - 1] = temp;
-    
+
     await Promise.all([
       supabase.from('courses').update({ order_index: index - 1 }).eq('id', temp.id),
       supabase.from('courses').update({ order_index: index }).eq('id', sortedCourses[index].id),
     ]);
-    
+
     fetchCourses();
     toast.success('Course order updated');
   };
 
   const handleMoveDown = async (index: number) => {
     if (index === processedCourses.length - 1) return;
-    
+
     const sortedCourses = [...processedCourses];
     const temp = sortedCourses[index];
     sortedCourses[index] = sortedCourses[index + 1];
     sortedCourses[index + 1] = temp;
-    
+
     await Promise.all([
       supabase.from('courses').update({ order_index: index + 1 }).eq('id', temp.id),
       supabase.from('courses').update({ order_index: index }).eq('id', sortedCourses[index].id),
     ]);
-    
+
     fetchCourses();
     toast.success('Course order updated');
   };
@@ -695,11 +685,11 @@ export function CourseManagement() {
       .from('courses')
       .update({ is_published: !course.is_published })
       .eq('id', course.id);
-    
+
     if (error) {
       toast.error('Failed to update course');
     } else {
-      setCourses(prev => prev.map(c => 
+      setCourses(prev => prev.map(c =>
         c.id === course.id ? { ...c, is_published: !c.is_published } : c
       ));
       toast.success(course.is_published ? 'Course unpublished' : 'Course published');
@@ -711,11 +701,11 @@ export function CourseManagement() {
       .from('courses')
       .update({ is_featured: !course.is_featured })
       .eq('id', course.id);
-    
+
     if (error) {
       toast.error('Failed to update course');
     } else {
-      setCourses(prev => prev.map(c => 
+      setCourses(prev => prev.map(c =>
         c.id === course.id ? { ...c, is_featured: !c.is_featured } : c
       ));
     }
@@ -730,11 +720,11 @@ export function CourseManagement() {
       .from('courses')
       .update({ is_highlighted: !course.is_highlighted })
       .eq('id', course.id);
-    
+
     if (error) {
       toast.error('Failed to update course');
     } else {
-      setCourses(prev => prev.map(c => 
+      setCourses(prev => prev.map(c =>
         c.id === course.id
           ? { ...c, is_highlighted: !c.is_highlighted }
           : { ...c, is_highlighted: false }
@@ -749,7 +739,7 @@ export function CourseManagement() {
       const { data, error } = await supabase.functions.invoke('auto-scan-courses', {
         body: { action: 'refresh-all' }
       });
-      
+
       if (error) throw error;
       toast.success(data.message || 'Refresh completed');
     } catch (err: any) {
@@ -761,34 +751,34 @@ export function CourseManagement() {
 
   const handleDeleteCourse = async (courseId: string) => {
     if (!confirm('Are you sure you want to delete this course? This will also delete all modules and lessons.')) return;
-    
+
     const { data: modules } = await supabase
       .from('modules')
       .select('id')
       .eq('course_id', courseId);
-    
+
     const moduleIds = modules?.map(m => m.id) || [];
-    
+
     if (moduleIds.length > 0) {
       const { data: lessons } = await supabase
         .from('lessons')
         .select('id')
         .in('module_id', moduleIds);
-      
+
       const lessonIds = lessons?.map(l => l.id) || [];
-      
+
       if (lessonIds.length > 0) {
         await supabase.from('lesson_resources').delete().in('lesson_id', lessonIds);
         await supabase.from('lessons').delete().in('module_id', moduleIds);
       }
       await supabase.from('modules').delete().eq('course_id', courseId);
     }
-    
+
     // Delete linked folder setting
     await supabase.from('site_settings').delete().eq('key', `course_folder_${courseId}`);
-    
+
     const { error } = await supabase.from('courses').delete().eq('id', courseId);
-    
+
     if (error) {
       toast.error('Failed to delete course');
     } else {
@@ -804,9 +794,9 @@ export function CourseManagement() {
         .from('modules')
         .select('id')
         .eq('course_id', courseId);
-      
+
       const moduleIds = modules?.map(m => m.id) || [];
-      
+
       if (moduleIds.length === 0) {
         toast.info('Course has no content to delete');
         return;
@@ -816,25 +806,25 @@ export function CourseManagement() {
         .from('lessons')
         .select('id')
         .in('module_id', moduleIds);
-      
+
       const lessonIds = lessons?.map(l => l.id) || [];
-      
+
       if (lessonIds.length > 0) {
         await supabase.from('lesson_resources').delete().in('lesson_id', lessonIds);
         await supabase.from('lessons').delete().in('module_id', moduleIds);
       }
       await supabase.from('modules').delete().eq('course_id', courseId);
-      
+
       await supabase.from('courses').update({
         total_lessons: 0,
         duration_hours: null
       }).eq('id', courseId);
-      
+
       setCourseContent(prev => ({
         ...prev,
         [courseId]: { moduleCount: 0, lessonCount: 0, totalHours: 0 }
       }));
-      
+
       toast.success(`Deleted ${moduleIds.length} modules and ${lessonIds.length} lessons`);
       fetchCourses();
     } catch (err: any) {
@@ -866,11 +856,11 @@ export function CourseManagement() {
 
   const handleBulkDeleteContent = async () => {
     if (selectedCourses.size === 0) return;
-    
+
     setBulkDeleting(true);
     let totalModules = 0;
     let totalLessons = 0;
-    
+
     try {
       const results = await Promise.allSettled(
         Array.from(selectedCourses).map(async (courseId) => {
@@ -878,7 +868,7 @@ export function CourseManagement() {
             .from('modules')
             .select('id')
             .eq('course_id', courseId);
-          
+
           const moduleIds = modules?.map(m => m.id) || [];
           if (moduleIds.length === 0) return { modules: 0, lessons: 0 };
 
@@ -886,31 +876,31 @@ export function CourseManagement() {
             .from('lessons')
             .select('id')
             .in('module_id', moduleIds);
-          
+
           const lessonIds = lessons?.map(l => l.id) || [];
-          
+
           if (lessonIds.length > 0) {
             await supabase.from('lesson_resources').delete().in('lesson_id', lessonIds);
             await supabase.from('lessons').delete().in('module_id', moduleIds);
           }
           await supabase.from('modules').delete().eq('course_id', courseId);
-          
+
           await supabase.from('courses').update({
             total_lessons: 0,
             duration_hours: null
           }).eq('id', courseId);
-          
+
           return { modules: moduleIds.length, lessons: lessonIds.length };
         })
       );
-      
+
       results.forEach((result) => {
         if (result.status === 'fulfilled') {
           totalModules += result.value.modules;
           totalLessons += result.value.lessons;
         }
       });
-      
+
       toast.success(`Cleaned ${selectedCourses.size} courses: ${totalModules} modules, ${totalLessons} lessons deleted`);
       setSelectedCourses(new Set());
       fetchCourses();
@@ -948,13 +938,13 @@ export function CourseManagement() {
             .from('site_settings')
             .delete()
             .eq('key', `course_folder_${course.id}`);
-          
+
           // Delete course (modules/lessons already don't exist for empty courses)
           const { error } = await supabase
             .from('courses')
             .delete()
             .eq('id', course.id);
-          
+
           if (error) throw error;
           return course.id;
         })
@@ -1002,16 +992,6 @@ export function CourseManagement() {
   const processedCourses = useMemo(() => {
     let result = [...courses];
 
-    // Exact match with /courses: only show items that exist in the website catalog
-    // (Admin can still use other sorts to see DB-only items.)
-    if (sortBy === 'website-order') {
-      result = result.filter((c) => {
-        const slugIdx = WEBSITE_ORDER_INDEX_BY_SLUG.get(normalizeKey(c.slug));
-        const titleIdx = WEBSITE_ORDER_INDEX_BY_TITLE.get(normalizeKey(c.title));
-        return slugIdx !== undefined || titleIdx !== undefined;
-      });
-    }
-
     // Apply hide empty toggle first
     if (hideEmpty) {
       result = result.filter(course => {
@@ -1031,9 +1011,9 @@ export function CourseManagement() {
       result = result.filter(course => {
         const content = courseContent[course.id];
         const hasContent = content && (content.moduleCount > 0 || content.lessonCount > 0);
-        
+
         let passes = true;
-        
+
         if (activeFilters.has('published')) passes = passes && course.is_published;
         if (activeFilters.has('draft')) passes = passes && !course.is_published;
         if (activeFilters.has('featured')) passes = passes && course.is_featured;
@@ -1043,7 +1023,7 @@ export function CourseManagement() {
         if (activeFilters.has('no-thumbnail')) passes = passes && !course.thumbnail_url;
         if (activeFilters.has('linked')) passes = passes && !!course.drive_folder_id;
         if (activeFilters.has('unlinked')) passes = passes && !course.drive_folder_id;
-        
+
         return passes;
       });
     }
@@ -1055,29 +1035,6 @@ export function CourseManagement() {
       const hasContentB = contentB.moduleCount > 0 || contentB.lessonCount > 0;
 
       switch (sortBy) {
-        case 'website-order':
-          // Match exact /courses order:
-          // 1) highlighted first (from dynamic DB field via same hook)
-          // 2) then keep website catalog sequence (src/data/courses.ts)
-          {
-            const aHighlighted = isWebsiteHighlighted(a.slug);
-            const bHighlighted = isWebsiteHighlighted(b.slug);
-            if (aHighlighted && !bHighlighted) return -1;
-            if (!aHighlighted && bHighlighted) return 1;
-
-            const aIdx =
-              WEBSITE_ORDER_INDEX_BY_SLUG.get(normalizeKey(a.slug)) ??
-              WEBSITE_ORDER_INDEX_BY_TITLE.get(normalizeKey(a.title)) ??
-              Number.POSITIVE_INFINITY;
-            const bIdx =
-              WEBSITE_ORDER_INDEX_BY_SLUG.get(normalizeKey(b.slug)) ??
-              WEBSITE_ORDER_INDEX_BY_TITLE.get(normalizeKey(b.title)) ??
-              Number.POSITIVE_INFINITY;
-
-            if (aIdx !== bIdx) return aIdx - bIdx;
-            // last fallback
-            return (a.order_index || 0) - (b.order_index || 0);
-          }
         case 'name':
           return a.title.localeCompare(b.title);
         case 'price':
@@ -1122,7 +1079,7 @@ export function CourseManagement() {
       const content = courseContent[c.id];
       return !content || (content.moduleCount === 0 && content.lessonCount === 0);
     }).length;
-    
+
     const coursesWithContent = courses.length - emptyCourses;
     const totalModules = Object.values(courseContent).reduce((sum, c) => sum + c.moduleCount, 0);
     const totalLessons = Object.values(courseContent).reduce((sum, c) => sum + c.lessonCount, 0);
@@ -1227,7 +1184,7 @@ export function CourseManagement() {
             <div className="flex flex-wrap items-center gap-3">
               {/* Hide Empty Toggle */}
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 border border-border/50">
-                <Switch 
+                <Switch
                   id="hide-empty"
                   checked={hideEmpty}
                   onCheckedChange={setHideEmpty}
@@ -1247,7 +1204,6 @@ export function CourseManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="order">Default Order</SelectItem>
-                  <SelectItem value="website-order">📱 Website Order</SelectItem>
                   <SelectItem value="name">Name (A-Z)</SelectItem>
                   <SelectItem value="price">Price (High-Low)</SelectItem>
                   <SelectItem value="content">Most Content</SelectItem>
@@ -1360,7 +1316,7 @@ export function CourseManagement() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction 
+                      <AlertDialogAction
                         onClick={handleBulkDeleteContent}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
@@ -1375,9 +1331,9 @@ export function CourseManagement() {
               {emptyCourses.length > 0 && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="gap-2 border-destructive/50 text-destructive hover:bg-destructive/10"
                       disabled={deletingEmptyCourses}
                     >
@@ -1411,7 +1367,7 @@ export function CourseManagement() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction 
+                      <AlertDialogAction
                         onClick={handleDeleteEmptyCourses}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
@@ -1422,8 +1378,8 @@ export function CourseManagement() {
                 </AlertDialog>
               )}
 
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={handleRefreshAllLinks}
                 disabled={refreshingAll}
@@ -1436,8 +1392,8 @@ export function CourseManagement() {
                 Refresh Links
               </Button>
 
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={handleDownloadAllThumbnails}
                 disabled={downloadingAllThumbnails}
@@ -1456,8 +1412,8 @@ export function CourseManagement() {
                 )}
               </Button>
 
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={handleRunAutoUpdate}
                 disabled={autoUpdateRunning}
@@ -1472,7 +1428,7 @@ export function CourseManagement() {
               </Button>
 
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50 border border-border/50">
-                <Switch 
+                <Switch
                   id="auto-update"
                   checked={autoUpdateEnabled}
                   onCheckedChange={handleToggleAutoUpdate}
@@ -1490,9 +1446,9 @@ export function CourseManagement() {
             <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border/50">
               <span className="text-xs text-muted-foreground">Active filters:</span>
               {Array.from(activeFilters).map(filter => (
-                <Badge 
-                  key={filter} 
-                  variant="secondary" 
+                <Badge
+                  key={filter}
+                  variant="secondary"
                   className="gap-1 pr-1 cursor-pointer hover:bg-secondary/80"
                   onClick={() => toggleFilter(filter)}
                 >
@@ -1500,9 +1456,9 @@ export function CourseManagement() {
                   <X className="h-3 w-3" />
                 </Badge>
               ))}
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="h-6 px-2 text-xs"
                 onClick={() => setActiveFilters(new Set(['all']))}
               >
@@ -1522,8 +1478,8 @@ export function CourseManagement() {
           </CardTitle>
           <div className="flex items-center gap-2">
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 size="sm"
                 onClick={() => setCreateDialogOpen(true)}
                 className="gap-2"
@@ -1572,8 +1528,8 @@ export function CourseManagement() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={toggleSelectAll}
               className="gap-2"
@@ -1599,13 +1555,12 @@ export function CourseManagement() {
               const hasContent = content.moduleCount > 0 || content.lessonCount > 0;
               const isLinked = !!course.drive_folder_id;
               const isExpanded = expandedCourse === course.id;
-              
+
               return (
                 <div key={course.id} className="border-b border-border last:border-b-0">
-                  <div 
-                    className={`flex items-center gap-3 p-3 transition-colors hover:bg-muted/30 ${
-                      selectedCourses.has(course.id) ? 'bg-primary/5' : ''
-                    }`}
+                  <div
+                    className={`flex items-center gap-3 p-3 transition-colors hover:bg-muted/30 ${selectedCourses.has(course.id) ? 'bg-primary/5' : ''
+                      }`}
                   >
                     <Checkbox
                       checked={selectedCourses.has(course.id)}
@@ -1614,18 +1569,18 @@ export function CourseManagement() {
                     />
 
                     <div className="flex flex-col gap-0.5 shrink-0">
-                      <Button 
+                      <Button
                         variant="ghost"
-                        size="icon" 
+                        size="icon"
                         className="h-5 w-5"
                         onClick={() => handleMoveUp(index)}
                         disabled={index === 0}
                       >
                         <ChevronUp className="h-3 w-3" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-5 w-5"
                         onClick={() => handleMoveDown(index)}
                         disabled={index === processedCourses.length - 1}
@@ -1651,10 +1606,10 @@ export function CourseManagement() {
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="w-14 h-10 rounded bg-muted flex items-center justify-center overflow-hidden border border-border">
                         {(thumbnailEdits[course.id] !== undefined ? thumbnailEdits[course.id] : course.thumbnail_url) ? (
-                          <img 
-                            src={thumbnailEdits[course.id] !== undefined ? thumbnailEdits[course.id] : course.thumbnail_url || ''} 
-                            alt="" 
-                            className="w-full h-full object-cover" 
+                          <img
+                            src={thumbnailEdits[course.id] !== undefined ? thumbnailEdits[course.id] : course.thumbnail_url || ''}
+                            alt=""
+                            className="w-full h-full object-cover"
                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                           />
                         ) : (
@@ -1713,7 +1668,7 @@ export function CourseManagement() {
                     {/* Content Badge - Clickable to expand */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <div 
+                        <div
                           className="shrink-0 cursor-pointer"
                           onClick={() => fetchExpandedCourseContent(course.id)}
                         >
@@ -1731,7 +1686,7 @@ export function CourseManagement() {
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        {hasContent 
+                        {hasContent
                           ? `Click to ${isExpanded ? 'collapse' : 'view'} content: ${content.moduleCount} modules, ${content.lessonCount} lessons`
                           : 'No content imported yet'
                         }
@@ -1766,28 +1721,28 @@ export function CourseManagement() {
                       {/* Link/Unlink folder */}
                       {isLinked ? (
                         <>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleQuickScanFolder(course)}
-                              disabled={scanningCourse === course.id}
-                            >
-                              {scanningCourse === course.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Search className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Scan folder (counts videos)</TooltipContent>
-                        </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleQuickScanFolder(course)}
+                                disabled={scanningCourse === course.id}
+                              >
+                                {scanningCourse === course.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Search className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Scan folder (counts videos)</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
                                 size="icon"
                                 className="h-8 w-8"
                                 onClick={() => handleSyncCourse(course)}
@@ -1804,8 +1759,8 @@ export function CourseManagement() {
                           </Tooltip>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="icon"
                                 className="h-8 w-8"
                                 onClick={() => handleUnlinkFolder(course)}
@@ -1819,8 +1774,8 @@ export function CourseManagement() {
                       ) : (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="icon"
                               className="h-8 w-8"
                               onClick={() => {
@@ -1837,8 +1792,8 @@ export function CourseManagement() {
 
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             className="h-8 w-8"
                             onClick={() => handleTogglePublish(course)}
@@ -1852,11 +1807,11 @@ export function CourseManagement() {
                         </TooltipTrigger>
                         <TooltipContent>{course.is_published ? 'Unpublish' : 'Publish'}</TooltipContent>
                       </Tooltip>
-                      
+
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             className="h-8 w-8"
                             onClick={() => handleToggleFeatured(course)}
@@ -1866,11 +1821,11 @@ export function CourseManagement() {
                         </TooltipTrigger>
                         <TooltipContent>{course.is_featured ? 'Remove featured' : 'Feature'}</TooltipContent>
                       </Tooltip>
-                      
+
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             className={`h-8 w-8 ${course.is_highlighted ? 'ring-1 ring-accent rounded-lg' : ''}`}
                             onClick={() => handleToggleHighlighted(course)}
@@ -1880,11 +1835,11 @@ export function CourseManagement() {
                         </TooltipTrigger>
                         <TooltipContent>{course.is_highlighted ? 'Remove flagship highlight' : 'Set as flagship course (homepage spotlight)'}</TooltipContent>
                       </Tooltip>
-                      
+
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             className="h-8 w-8"
                             onClick={() => setEditingCourse(course)}
@@ -1894,12 +1849,12 @@ export function CourseManagement() {
                         </TooltipTrigger>
                         <TooltipContent>Edit course</TooltipContent>
                       </Tooltip>
-                      
+
                       {hasContent && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="icon"
                               className="h-8 w-8"
                               disabled={deletingContent === course.id}
@@ -1920,7 +1875,7 @@ export function CourseManagement() {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
+                              <AlertDialogAction
                                 onClick={() => handleDeleteAllContent(course.id)}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
@@ -1933,8 +1888,8 @@ export function CourseManagement() {
 
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             className="h-8 w-8"
                             onClick={() => handleDeleteCourse(course.id)}
@@ -1946,7 +1901,7 @@ export function CourseManagement() {
                       </Tooltip>
                     </div>
                   </div>
-                  
+
                   {/* Expanded Content Preview */}
                   {isExpanded && (
                     <div className="bg-muted/30 border-t border-border px-4 py-3">
@@ -2021,7 +1976,7 @@ export function CourseManagement() {
           <DialogHeader>
             <DialogTitle>Link Google Drive Folder</DialogTitle>
             <DialogDescription>
-              Paste a Google Drive folder URL to link it to "{linkingCourse?.title}". 
+              Paste a Google Drive folder URL to link it to "{linkingCourse?.title}".
               The scanner will traverse up to 6 levels deep to find all videos.
             </DialogDescription>
           </DialogHeader>

@@ -1,0 +1,14 @@
+﻿
+C:\Users\kssun\OneDrive\Documents\antigravity\repo\archistudio\src\components\ebook\EbookPDFViewer.tsx
+   67:6   warning  React Hook useEffect has missing dependencies: 'fetchPdfUrl' and 'pdfUrl'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  109:19  error    Unexpected any. Specify a different type                                                                                       @typescript-eslint/no-explicit-any
+  167:21  error    Unexpected any. Specify a different type                                                                                       @typescript-eslint/no-explicit-any
+
+C:\Users\kssun\OneDrive\Documents\antigravity\repo\archistudio\src\pages\CoursePlayer.tsx
+   57:40  error    Unexpected any. Specify a different type                                                                                           @typescript-eslint/no-explicit-any
+   91:6   warning  React Hook useEffect has missing dependencies: 'course' and 'fetchCourseData'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  140:11  error    'progressMap' is never reassigned. Use 'const' instead                                                                             prefer-const
+
+Γ£û 6 problems (4 errors, 2 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+

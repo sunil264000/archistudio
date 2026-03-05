@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -96,27 +95,12 @@ function VerifyTab() {
 }
 
 export default function Dashboard() {
-  const { user, profile, loading, isAdmin } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth', { replace: true });
-    }
-  }, [user, loading, navigate]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse">Loading...</div>
-      </div>
-    );
-  }
+  const { profile, isAdmin } = useAuth();
 
   return (
     <div className="min-h-screen flex flex-col bg-background overflow-hidden">
       <Navbar />
-      
+
       {/* Animated Background */}
       <AnimatedBackground intensity="light" />
       <main className="flex-1 py-8">

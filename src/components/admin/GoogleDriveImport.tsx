@@ -7,7 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { FolderOpen, Video, FileText, Upload, Loader2, Check, AlertCircle } from "lucide-react";
+import { FolderOpen, Video, FileText, Upload, Loader2, Check, AlertCircle, FileArchive } from "lucide-react";
 
 interface DriveStructure {
   folders: Array<{
@@ -55,11 +55,12 @@ export function GoogleDriveImport({ courseId, courseName, onImportComplete }: Go
       if (!data.success) throw new Error(data.error);
 
       setStructure(data.structure);
-      
+
       const totalFolders = data.structure.folders?.length || 0;
       const totalVideos = countVideos(data.structure);
-      
-      toast.success(`Found ${totalFolders} modules and ${totalVideos} videos`);
+      const totalResources = countResources(data.structure);
+
+      toast.success(`Found ${totalFolders} modules, ${totalVideos} videos, ${totalResources} resources`);
     } catch (err: any) {
       console.error("Scan error:", err);
       setError(err.message || "Failed to scan folder");
@@ -83,7 +84,7 @@ export function GoogleDriveImport({ courseId, courseName, onImportComplete }: Go
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
 
-      toast.success(`Successfully imported ${data.modulesCreated} modules and ${data.lessonsCreated} lessons!`);
+      toast.success(`Imported ${data.modulesCreated} modules, ${data.lessonsCreated} lessons${data.resourcesCreated ? `, ${data.resourcesCreated} resources` : ''}!`);
       setStructure(null);
       setFolderUrl("");
       onImportComplete();
@@ -102,6 +103,14 @@ export function GoogleDriveImport({ courseId, courseName, onImportComplete }: Go
       if (folder.folders) {
         count += countVideos({ folders: folder.folders });
       }
+    }
+    return count;
+  };
+
+  const countResources = (struct: DriveStructure): number => {
+    let count = struct.resources?.length || 0;
+    for (const folder of struct.folders || []) {
+      count += folder.resources?.length || 0;
     }
     return count;
   };
@@ -176,6 +185,12 @@ export function GoogleDriveImport({ courseId, courseName, onImportComplete }: Go
                         <Badge variant="outline" className="ml-2">
                           {folder.videos?.length || 0} videos
                         </Badge>
+                        {(folder.resources?.length || 0) > 0 && (
+                          <Badge variant="secondary" className="ml-1">
+                            <FileArchive className="h-3 w-3 mr-1" />
+                            {folder.resources!.length} files
+                          </Badge>
+                        )}
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>

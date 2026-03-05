@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { courses as staticCourses, courseCategories, categoryImages } from '@/data/courses';
+import { courseCategories, categoryImages } from '@/data/courses';
 import { useSaleDiscount } from '@/hooks/useSaleDiscount';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -70,7 +70,7 @@ export default function Courses() {
       setLoading(true);
       const { data: dbCourses, error } = await supabase
         .from('courses')
-        .select('id, title, slug, description, short_description, level, duration_hours, total_lessons, price_inr, thumbnail_url, is_featured, is_highlighted, order_index')
+        .select('id, title, slug, description, short_description, level, duration_hours, total_lessons, price_inr, thumbnail_url, is_featured, is_highlighted, order_index, category_id, tags')
         .eq('is_published', true)
         .order('order_index', { ascending: true });
 
@@ -80,28 +80,23 @@ export default function Courses() {
         return;
       }
 
-      // Build a static lookup map for enrichment
-      const staticMap: Record<string, typeof staticCourses[0]> = {};
-      staticCourses.forEach(c => { staticMap[c.slug] = c; });
-
-      const merged: MergedCourse[] = (dbCourses || []).map(db => {
-        const stat = staticMap[db.slug];
-        const category = stat?.category || guessCategory(db.title);
+      const merged: MergedCourse[] = (dbCourses || []).map((db: any) => {
+        const category = db.category_id || guessCategory(db.title);
         return {
           id: db.id,
           title: db.title,
           slug: db.slug,
-          shortDescription: db.short_description || stat?.shortDescription || db.description || '',
-          description: db.description || stat?.description || '',
+          shortDescription: db.short_description || db.description || '',
+          description: db.description || '',
           category,
-          level: (db.level as MergedCourse['level']) || stat?.level || 'beginner',
-          durationHours: db.duration_hours || stat?.durationHours || 0,
-          totalLessons: db.total_lessons || stat?.totalLessons || 0,
-          priceInr: db.price_inr || stat?.priceInr || 0,
-          thumbnail: db.thumbnail_url || (stat ? (categoryImages[stat.category] || '') : ''),
-          isFeatured: db.is_featured || stat?.isFeatured || false,
+          level: (db.level as MergedCourse['level']) || 'beginner',
+          durationHours: db.duration_hours || 0,
+          totalLessons: db.total_lessons || 0,
+          priceInr: db.price_inr || 0,
+          thumbnail: db.thumbnail_url || (categoryImages[category] || ''),
+          isFeatured: db.is_featured || false,
           isHighlighted: db.is_highlighted || false,
-          tags: stat?.tags || [],
+          tags: db.tags || [],
         };
       });
 
@@ -368,7 +363,7 @@ function CourseCard({
     }
 
     const customerPhone = profile?.phone?.replace(/[\s-]/g, '');
-    const hasValidPhone = customerPhone && customerPhone.length >= 10;
+    const hasValidPhone = customerPhone && /^[6-9]\d{9}$/.test(customerPhone.replace(/\s/g, ''));
 
     if (!hasValidPhone) {
       setPendingPaymentData({
@@ -408,7 +403,7 @@ function CourseCard({
   }, [accessInfo.loading]);
 
   const getCTAContent = () => {
-    if (accessInfo.loading && !loadingTimedOut) return { text: 'Loading...', icon: Loader2, action: () => {}, disabled: true };
+    if (accessInfo.loading && !loadingTimedOut) return { text: 'Loading...', icon: Loader2, action: () => { }, disabled: true };
     if (accessInfo.accessType === 'full') return { text: 'Continue Learning', icon: Play, action: () => navigate(`/learn/${course.slug}`), disabled: false };
     if (accessInfo.accessType === 'gift' || accessInfo.accessType === 'launch_free') return { text: 'Access Now', icon: Play, action: () => navigate(`/learn/${course.slug}`), disabled: false };
     if (accessInfo.accessType === 'partial') return { text: 'Unlock More', icon: ShoppingCart, action: () => navigate(`/courses/${course.slug}`), disabled: false };
@@ -429,9 +424,8 @@ function CourseCard({
 
   return (
     <Card
-      className={`group overflow-hidden transition-shadow duration-300 hover:shadow-xl border-border/50 bg-card/80 hover:-translate-y-1 ${
-        featured ? 'border-accent/50 shadow-accent/10' : ''
-      } ${course.isHighlighted ? 'ring-2 ring-warning/50 shadow-warning/20' : ''}`}
+      className={`group overflow-hidden transition-shadow duration-300 hover:shadow-xl border-border/50 bg-card/80 hover:-translate-y-1 ${featured ? 'border-accent/50 shadow-accent/10' : ''
+        } ${course.isHighlighted ? 'ring-2 ring-warning/50 shadow-warning/20' : ''}`}
     >
       <div className="aspect-video relative overflow-hidden bg-secondary">
         <CourseThumbnail

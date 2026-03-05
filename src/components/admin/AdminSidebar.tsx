@@ -1,8 +1,8 @@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  BookOpen, Package, Video, Users, UserPlus, HelpCircle, Bell, 
+import {
+  BookOpen, Package, Video, Users, UserPlus, HelpCircle, Bell,
   CreditCard, Sparkles, Award, BarChart3, MessageSquare, Settings,
   ChevronLeft, ChevronRight, LayoutDashboard, Timer, Mail, Send, Library, FileText, KeyRound,
   Gift, Wallet, Rocket, Zap, Shield, History, Wrench, Inbox, Cloud, Monitor
@@ -91,6 +91,7 @@ const menuGroups: MenuGroup[] = [
     items: [
       { id: 'certificates', label: 'Certificates', icon: Award, color: 'text-amber-500' },
       { id: 'video-migration', label: 'Video Migration', icon: Cloud, color: 'text-sky-500' },
+      { id: 'deploy', label: 'Deploy Functions', icon: Rocket, color: 'text-primary' },
       { id: 'settings', label: 'Settings', icon: Settings, color: 'text-gray-500' },
     ],
   },
@@ -109,9 +110,9 @@ export function AdminSidebar({ activeTab, onTabChange, collapsed, onCollapsedCha
       {/* Logo */}
       <div className="p-4 border-b flex items-center gap-3">
         <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
-          <img 
-            src={logo} 
-            alt="Logo" 
+          <img
+            src={logo}
+            alt="Logo"
             className="h-8 w-8 object-contain"
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />

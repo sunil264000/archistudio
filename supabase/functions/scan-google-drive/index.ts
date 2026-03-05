@@ -96,23 +96,39 @@ serve(async (req) => {
 
       // Fast parallel scan with configurable depth
       const structure = await scanFolderFast(extractedFolderId, GOOGLE_API_KEY, scanDepth);
-      
+
       // SMART SYNC: Delete existing modules and lessons for this course first
       const deleteResult = await deleteExistingContent(supabase, courseId);
       console.log("Deleted existing content:", deleteResult);
-      
+
       const importResult = await importStructureFast(supabase, courseId, structure);
 
       // Update course stats
       await updateCourseStats(supabase, courseId, importResult.lessonsCreated);
 
-      return new Response(JSON.stringify({ 
-        success: true, 
+      return new Response(JSON.stringify({
+        success: true,
         ...importResult,
         deletedModules: deleteResult.modulesDeleted,
         deletedLessons: deleteResult.lessonsDeleted,
         synced: true,
         maxDepth: scanDepth
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // SYNC RESOURCES ONLY - scans Drive, matches folders to existing modules, attaches resources to lessons
+    if (action === "sync-resources" && courseId) {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      const result = await syncResourcesOnly(supabase, courseId, extractedFolderId, GOOGLE_API_KEY, scanDepth);
+
+      return new Response(JSON.stringify({
+        success: true,
+        ...result,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -148,9 +164,9 @@ async function quickScanFolder(
 
   async function countRecursive(fid: string, depth: number): Promise<void> {
     if (depth > maxDepth) return;
-    
+
     const files = await listFilesInFolder(fid, apiKey);
-    
+
     for (const file of files) {
       if (file.mimeType === "application/vnd.google-apps.folder") {
         folderCount++;
@@ -181,21 +197,21 @@ async function scanFolderShallow(
   // Helper to recursively count videos up to maxDepth levels
   async function countVideosDeep(folderId: string, currentDepth: number): Promise<number> {
     if (currentDepth > maxDepth) return 0;
-    
+
     const files = await listFilesInFolder(folderId, apiKey);
     let count = 0;
-    
+
     // Count videos at this level
     count += files.filter(f => isVideoFile(f)).length;
-    
+
     // Recursively count in subfolders
     const subFolders = files.filter(f => f.mimeType === "application/vnd.google-apps.folder");
-    
+
     // Process subfolders in parallel for speed
     const subCounts = await Promise.all(
       subFolders.map(f => countVideosDeep(f.id, currentDepth + 1))
     );
-    
+
     count += subCounts.reduce((sum, c) => sum + c, 0);
     return count;
   }
@@ -246,9 +262,9 @@ async function scanFolderFast(
   // Recursive function to scan folder and all subfolders up to maxDepth
   async function scanDeepParallel(folderId: string, depth: number, pathPrefix: string = ""): Promise<{ videos: any[], resources: any[], nestedFolders: any[] }> {
     if (depth > maxDepth) return { videos: [], resources: [], nestedFolders: [] };
-    
+
     const files = await listFilesInFolder(folderId, apiKey);
-    
+
     const videos = files.filter(f => isVideoFile(f)).map(v => ({
       id: v.id,
       name: v.name,
@@ -259,7 +275,7 @@ async function scanFolderFast(
       embedUrl: `https://drive.google.com/file/d/${v.id}/preview`,
       _pathPrefix: pathPrefix,
     }));
-    
+
     const resources = files.filter(f => !isVideoFile(f) && f.mimeType !== "application/vnd.google-apps.folder").map(r => ({
       id: r.id,
       name: r.name,
@@ -267,9 +283,9 @@ async function scanFolderFast(
       mimeType: r.mimeType,
       downloadUrl: `https://drive.google.com/uc?export=download&id=${r.id}`,
     }));
-    
+
     const subFolders = files.filter(f => f.mimeType === "application/vnd.google-apps.folder");
-    
+
     // Scan all subfolders in parallel
     const nestedResults = await Promise.all(
       subFolders.map(async (sf) => {
@@ -283,7 +299,7 @@ async function scanFolderFast(
         };
       })
     );
-    
+
     return { videos, resources, nestedFolders: nestedResults };
   }
 
@@ -296,11 +312,11 @@ async function scanFolderFast(
   const subFolderResults = await Promise.all(
     folderFiles.map(async (folder) => {
       const deepScan = await scanDeepParallel(folder.id, 1, "");
-      
+
       // Flatten all nested videos into a single list with folder prefix
       const allVideos: any[] = [...deepScan.videos];
       const allResources: any[] = [...deepScan.resources];
-      
+
       // Recursive helper to flatten nested folder videos
       function flattenVideos(folders: any[], prefix: string = "") {
         for (const f of folders) {
@@ -319,7 +335,7 @@ async function scanFolderFast(
           }
         }
       }
-      
+
       flattenVideos(deepScan.nestedFolders);
 
       return {
@@ -421,9 +437,9 @@ async function getVideoDuration(fileId: string, apiKey: string): Promise<number>
   try {
     const url = `https://www.googleapis.com/drive/v3/files/${fileId}?key=${apiKey}&fields=videoMediaMetadata`;
     const response = await fetch(url);
-    
+
     if (!response.ok) return 0;
-    
+
     const data = await response.json();
     if (data.videoMediaMetadata?.durationMillis) {
       return Math.ceil(parseInt(data.videoMediaMetadata.durationMillis) / 60000);
@@ -477,21 +493,21 @@ async function deleteExistingContent(
     .from("modules")
     .select("id")
     .eq("course_id", courseId);
-  
+
   if (!modules || modules.length === 0) {
     return { modulesDeleted: 0, lessonsDeleted: 0, resourcesDeleted: 0 };
   }
-  
+
   const moduleIds = modules.map((m: any) => m.id);
-  
+
   // Get all lessons for these modules
   const { data: lessons } = await supabase
     .from("lessons")
     .select("id")
     .in("module_id", moduleIds);
-  
+
   const lessonIds = lessons?.map((l: any) => l.id) || [];
-  
+
   // Delete resources first (foreign key)
   let resourcesDeleted = 0;
   if (lessonIds.length > 0) {
@@ -501,23 +517,23 @@ async function deleteExistingContent(
       .in("lesson_id", lessonIds);
     resourcesDeleted = count || 0;
   }
-  
+
   // Delete all lessons for these modules
   const { count: lessonsDeleted } = await supabase
     .from("lessons")
     .delete({ count: 'exact' })
     .in("module_id", moduleIds);
-  
+
   // Delete all modules
   const { count: modulesDeleted } = await supabase
     .from("modules")
     .delete({ count: 'exact' })
     .eq("course_id", courseId);
-  
-  return { 
-    modulesDeleted: modulesDeleted || 0, 
+
+  return {
+    modulesDeleted: modulesDeleted || 0,
     lessonsDeleted: lessonsDeleted || 0,
-    resourcesDeleted 
+    resourcesDeleted
   };
 }
 
@@ -534,6 +550,159 @@ async function updateCourseStats(
       updated_at: new Date().toISOString()
     })
     .eq("id", courseId);
+}
+
+// SYNC RESOURCES ONLY - matches Drive folder resources to existing modules/lessons by name
+// Does NOT delete or recreate lessons. Safe to run anytime.
+async function syncResourcesOnly(
+  supabase: any,
+  courseId: string,
+  folderId: string,
+  apiKey: string,
+  maxDepth: number
+): Promise<{ resourcesCreated: number; skipped: number; modulesMatched: number; errors: string[] }> {
+  let resourcesCreated = 0;
+  let skipped = 0;
+  let modulesMatched = 0;
+  const errors: string[] = [];
+
+  // 1. Fetch existing modules + their first lesson for this course
+  const { data: modules, error: modErr } = await supabase
+    .from("modules")
+    .select("id, title")
+    .eq("course_id", courseId)
+    .order("order_index");
+
+  if (modErr || !modules?.length) {
+    return { resourcesCreated: 0, skipped: 0, modulesMatched: 0, errors: ["No modules found for this course. Import videos first."] };
+  }
+
+  // Build module title -> first lesson map
+  const moduleLessonMap: Map<string, { moduleId: string; firstLessonId: string }> = new Map();
+  for (const mod of modules) {
+    const { data: lessons } = await supabase
+      .from("lessons")
+      .select("id")
+      .eq("module_id", mod.id)
+      .order("order_index")
+      .limit(1);
+
+    if (lessons?.length) {
+      const normalizedTitle = mod.title.toLowerCase().trim();
+      moduleLessonMap.set(normalizedTitle, { moduleId: mod.id, firstLessonId: lessons[0].id });
+    }
+  }
+
+  // 2. Get existing lesson_resource file_urls to avoid duplicates
+  const allModuleIds = modules.map((m: any) => m.id);
+  const { data: allLessonIds } = await supabase
+    .from("lessons")
+    .select("id")
+    .in("module_id", allModuleIds);
+
+  const lessonIdList = (allLessonIds || []).map((l: any) => l.id);
+  const existingUrls = new Set<string>();
+
+  if (lessonIdList.length > 0) {
+    const { data: existingResources } = await supabase
+      .from("lesson_resources")
+      .select("file_url")
+      .in("lesson_id", lessonIdList);
+    (existingResources || []).forEach((r: any) => existingUrls.add(r.file_url));
+  }
+
+  // 3. Scan the Drive folder for resources (non-video files)
+  const structure = await scanFolderFast(folderId, apiKey, maxDepth);
+
+  // 4. Match Drive folders to DB modules and attach resources
+  const newResourceRows: any[] = [];
+
+  // Function to normalize folder name for matching
+  const normalize = (s: string) => s.toLowerCase().trim().replace(/[^\w\s]/g, "").replace(/\s+/g, " ");
+
+  // Helper: find best matching module for a Drive folder name
+  const findModuleLesson = (driveFolderName: string): { moduleId: string; firstLessonId: string } | null => {
+    const normDrive = normalize(driveFolderName);
+    // Exact match
+    for (const [modTitle, entry] of moduleLessonMap) {
+      if (normalize(modTitle) === normDrive) return entry;
+    }
+    // Partial match (Drive folder name contains module title or vice versa)
+    for (const [modTitle, entry] of moduleLessonMap) {
+      const nm = normalize(modTitle);
+      if (normDrive.includes(nm) || nm.includes(normDrive)) return entry;
+    }
+    return null;
+  };
+
+  // Process top-level Drive folders (each = a module)
+  for (const folder of structure.folders || []) {
+    const match = findModuleLesson(folder.name);
+
+    if (!match) {
+      errors.push(`No DB module matched for Drive folder: "${folder.name}"`);
+      continue;
+    }
+
+    modulesMatched++;
+    const targetLessonId = match.firstLessonId;
+
+    // Collect resources from this folder
+    const folderResources = folder.resources || [];
+
+    for (const res of folderResources) {
+      const fileUrl = res.downloadUrl || `https://drive.google.com/file/d/${res.id}/view`;
+      if (existingUrls.has(fileUrl)) {
+        skipped++;
+        continue;
+      }
+      newResourceRows.push({
+        lesson_id: targetLessonId,
+        title: res.name,
+        file_url: fileUrl,
+        file_type: res.mimeType || null,
+      });
+      existingUrls.add(fileUrl); // prevent duplicate in same run
+    }
+  }
+
+  // Handle root-level resources (attach to first lesson of first module)
+  const rootResources = structure.resources || [];
+  if (rootResources.length > 0 && modules.length > 0) {
+    const firstModule = moduleLessonMap.values().next().value;
+    if (firstModule) {
+      for (const res of rootResources) {
+        const fileUrl = res.downloadUrl || `https://drive.google.com/file/d/${res.id}/view`;
+        if (existingUrls.has(fileUrl)) { skipped++; continue; }
+        newResourceRows.push({
+          lesson_id: firstModule.firstLessonId,
+          title: res.name,
+          file_url: fileUrl,
+          file_type: res.mimeType || null,
+        });
+        existingUrls.add(fileUrl);
+      }
+    }
+  }
+
+  // 5. Batch insert new resource rows
+  const BATCH_SIZE = 100;
+  for (let i = 0; i < newResourceRows.length; i += BATCH_SIZE) {
+    const batch = newResourceRows.slice(i, i + BATCH_SIZE);
+    const { data: inserted, error: insertErr } = await supabase
+      .from("lesson_resources")
+      .insert(batch)
+      .select("id");
+
+    if (insertErr) {
+      errors.push(`Insert error: ${insertErr.message}`);
+    } else {
+      resourcesCreated += inserted?.length || 0;
+    }
+  }
+
+  console.log(`Sync resources: created=${resourcesCreated}, skipped=${skipped}, modulesMatched=${modulesMatched}`);
+  return { resourcesCreated, skipped, modulesMatched, errors };
 }
 
 // FAST import - uses batch inserts for maximum speed
@@ -598,18 +767,24 @@ async function importStructureFast(
 
     modulesCreated = insertedModules.length;
 
-    // Now batch insert all lessons
+    // Build lessons and track which resources go with which video position
+    // resourcesByLessonIndex[moduleIdx] = Map<lessonOrderIndex, resource[]>
     const allLessons: any[] = [];
+    // Track resources: {moduleIdx, lessonOrderIndex, resources[]}
+    const pendingResources: Array<{ moduleIdx: number; lessonOrderIndex: number; resources: any[] }> = [];
 
     for (let i = 0; i < insertedModules.length; i++) {
-      const module = insertedModules[i];
       const moduleData = modulesToInsert[i];
       let lessonIdx = 0;
+
+      // Module-level resources attach to the first lesson of the module
+      const moduleResources = moduleData._resources || [];
 
       // Direct videos
       for (const video of moduleData._videos || []) {
         allLessons.push({
-          module_id: module.id,
+          _moduleIdx: i,
+          module_id: insertedModules[i].id,
           title: cleanVideoTitle(video.name),
           video_url: video.embedUrl,
           order_index: lessonIdx++,
@@ -618,11 +793,18 @@ async function importStructureFast(
         });
       }
 
-      // Nested folder videos
+      // Attach module-level resources to first lesson of this module
+      if (moduleResources.length > 0) {
+        pendingResources.push({ moduleIdx: i, lessonOrderIndex: 0, resources: moduleResources });
+      }
+
+      // Nested folder videos — resources in subfolder attach to first video in that subfolder
       for (const subFolder of moduleData._subFolders || []) {
+        const subFolderStartIdx = lessonIdx;
         for (const video of subFolder.videos || []) {
           allLessons.push({
-            module_id: module.id,
+            _moduleIdx: i,
+            module_id: insertedModules[i].id,
             title: `${subFolder.name} - ${cleanVideoTitle(video.name)}`,
             video_url: video.embedUrl,
             order_index: lessonIdx++,
@@ -630,13 +812,22 @@ async function importStructureFast(
             is_free_preview: false,
           });
         }
+        const subResources = subFolder.resources || [];
+        if (subResources.length > 0) {
+          pendingResources.push({ moduleIdx: i, lessonOrderIndex: subFolderStartIdx, resources: subResources });
+        }
       }
     }
 
-    // Batch insert all lessons at once (chunks of 100 for safety)
+    // Batch insert all lessons (chunks of 100)
+    const insertedLessonsMap: Map<string, any[]> = new Map(); // moduleIdx -> sorted inserted lessons
     const LESSON_BATCH_SIZE = 100;
-    for (let i = 0; i < allLessons.length; i += LESSON_BATCH_SIZE) {
-      const batch = allLessons.slice(i, i + LESSON_BATCH_SIZE);
+    const allInsertedLessons: any[] = [];
+
+    const lessonInsertData = allLessons.map(({ _moduleIdx, ...rest }) => rest);
+
+    for (let i = 0; i < lessonInsertData.length; i += LESSON_BATCH_SIZE) {
+      const batch = lessonInsertData.slice(i, i + LESSON_BATCH_SIZE);
       const { data: insertedLessons, error: lessonsError } = await supabase
         .from("lessons")
         .insert(batch)
@@ -644,12 +835,65 @@ async function importStructureFast(
 
       if (!lessonsError && insertedLessons) {
         lessonsCreated += insertedLessons.length;
+        allInsertedLessons.push(...insertedLessons);
       }
     }
+
+    // Build a lookup: module_id -> lessons sorted by order_index
+    const lessonsByModule: Map<string, any[]> = new Map();
+    for (const lesson of allInsertedLessons) {
+      const arr = lessonsByModule.get(lesson.module_id) || [];
+      arr.push(lesson);
+      lessonsByModule.set(lesson.module_id, arr);
+    }
+    // Sort each module's lessons by order_index
+    for (const [mid, ls] of lessonsByModule) {
+      ls.sort((a: any, b: any) => a.order_index - b.order_index);
+    }
+
+    // Now insert resources linked to the appropriate lessons
+    const allResourceRows: any[] = [];
+    for (const pending of pendingResources) {
+      const moduleId = insertedModules[pending.moduleIdx]?.id;
+      if (!moduleId) continue;
+      const moduleLessons = lessonsByModule.get(moduleId) || [];
+      // Get the lesson at the target order index position
+      const targetLesson = moduleLessons.find((l: any) => l.order_index === pending.lessonOrderIndex)
+        || moduleLessons[0]; // fallback to first lesson
+
+      if (!targetLesson) continue;
+
+      for (const res of pending.resources) {
+        allResourceRows.push({
+          lesson_id: targetLesson.id,
+          title: res.name,
+          file_url: res.downloadUrl || `https://drive.google.com/file/d/${res.id}/view`,
+          file_type: res.mimeType || null,
+        });
+      }
+    }
+
+    // Batch insert resources (chunks of 100)
+    const RESOURCE_BATCH_SIZE = 100;
+    for (let i = 0; i < allResourceRows.length; i += RESOURCE_BATCH_SIZE) {
+      const batch = allResourceRows.slice(i, i + RESOURCE_BATCH_SIZE);
+      const { data: insertedResources, error: resError } = await supabase
+        .from("lesson_resources")
+        .insert(batch)
+        .select("id");
+      if (!resError && insertedResources) {
+        resourcesCreated += insertedResources.length;
+      } else if (resError) {
+        console.error("Resource insert error:", resError);
+      }
+    }
+
+    console.log(`Resources auto-imported: ${resourcesCreated}`);
   }
 
   return { modulesCreated, lessonsCreated, resourcesCreated };
 }
+
 
 function cleanVideoTitle(filename: string): string {
   let title = filename.replace(/\.[^/.]+$/, "");

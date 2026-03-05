@@ -8,7 +8,6 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { courses } from "@/data/courses";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { analytics } from "@/hooks/useGoogleAnalytics";
@@ -23,7 +22,7 @@ const PaymentSuccess = () => {
   const { removeFromCart } = useCart();
   const orderId = searchParams.get("order_id");
   const courseSlugParam = searchParams.get("course");
-  
+
   const [status, setStatus] = useState<"loading" | "success" | "failed" | "cancelled">("loading");
   const [showConfetti, setShowConfetti] = useState(false);
   const [courseName, setCourseName] = useState<string>("");
@@ -77,9 +76,8 @@ const PaymentSuccess = () => {
 
         const dbTitle = (payment as any).courses?.title as string | undefined;
         const dbSlug = (payment as any).courses?.slug as string | undefined;
-        const slug = courseSlugParam || (payment as any).metadata?.course_slug as string | undefined || dbSlug;
-        const localCourse = slug ? courses.find((c) => c.slug === slug) : undefined;
-        const localTitle = localCourse?.title;
+        const slug = courseSlugParam || ((payment as any).metadata?.course_slug as string | undefined) || dbSlug;
+        const localTitle = undefined; // Removed static fallback
         const metadata = (payment as any).metadata || {};
 
         if (payment?.status === "completed") {
@@ -95,10 +93,10 @@ const PaymentSuccess = () => {
             customerName: metadata.customer_name || "Customer",
             customerEmail: metadata.customer_email || "",
           });
-          
+
           // Remove purchased course from cart
           if (resolvedSlug) removeFromCart(resolvedSlug);
-          
+
           analytics.purchase(
             orderId,
             resolvedSlug || payment.course_id || '',
@@ -187,7 +185,7 @@ const PaymentSuccess = () => {
       <main className="flex-1 flex items-center justify-center py-16 px-4">
         <div className="w-full max-w-2xl mx-auto">
           {status === "loading" && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-center"
@@ -220,7 +218,7 @@ const PaymentSuccess = () => {
                     <CheckCircle className="h-20 w-20 text-success relative" />
                   </div>
                 </motion.div>
-                <motion.h1 
+                <motion.h1
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
@@ -228,7 +226,7 @@ const PaymentSuccess = () => {
                 >
                   Payment Successful! 🎉
                 </motion.h1>
-                <motion.p 
+                <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.4 }}
@@ -370,7 +368,7 @@ const PaymentSuccess = () => {
           )}
 
           {status === "failed" && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-center"
@@ -392,7 +390,7 @@ const PaymentSuccess = () => {
           )}
 
           {status === "cancelled" && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-center"

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { courses, courseCategories, categoryImages } from '@/data/courses';
+import { courseCategories, categoryImages } from '@/data/courses';
 import { useDynamicCourseData } from '@/hooks/useDynamicCourseData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -35,7 +35,7 @@ import { WhatYouLearnCard } from '@/components/course/WhatYouLearnCard';
 function AddToCartButton({ course }: { course: any }) {
   const { addToCart, isInCart, removeFromCart } = useCart();
   const inCart = isInCart(course.slug);
-  
+
   const handleClick = () => {
     if (inCart) {
       removeFromCart(course.slug);
@@ -49,9 +49,9 @@ function AddToCartButton({ course }: { course: any }) {
       });
     }
   };
-  
+
   return (
-    <Button 
+    <Button
       variant={inCart ? "secondary" : "outline"}
       onClick={handleClick}
       className="w-full"
@@ -84,22 +84,21 @@ interface ExpandableModuleProps {
 function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview, forcePreviewFirstLesson = false, courseSlug, lessons, defaultOpen = false }: ExpandableModuleProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const navigate = useNavigate();
-  
+
   const handleLessonClick = (lesson: typeof lessons[0]) => {
     const isPreviewLesson = lesson.is_free_preview || (forcePreviewFirstLesson && lessons[0]?.id === lesson.id);
     if (isPreviewLesson) {
       navigate(`/learn/${courseSlug}?lesson=${lesson.id}`);
     }
   };
-  
+
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
         <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer border border-transparent hover:border-border/50">
           <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-colors ${
-              hasFreePreview ? 'bg-success/10 text-success' : 'bg-accent/10 text-accent'
-            }`}>
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-colors ${hasFreePreview ? 'bg-success/10 text-success' : 'bg-accent/10 text-accent'
+              }`}>
               {index + 1}
             </div>
             <div className="min-w-0">
@@ -131,11 +130,10 @@ function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview,
                 <div
                   key={lesson.id}
                   onClick={() => handleLessonClick(lesson)}
-                  className={`flex items-center justify-between py-2.5 px-3 rounded-lg text-sm transition-all ${
-                    isPreviewLesson
-                      ? 'cursor-pointer hover:bg-success/10 hover:text-success group'
-                      : 'hover:bg-muted/30 text-muted-foreground'
-                  }`}
+                  className={`flex items-center justify-between py-2.5 px-3 rounded-lg text-sm transition-all ${isPreviewLesson
+                    ? 'cursor-pointer hover:bg-success/10 hover:text-success group'
+                    : 'hover:bg-muted/30 text-muted-foreground'
+                    }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     {lesson.video_url ? (
@@ -181,20 +179,20 @@ export default function CourseDetail() {
   const { getThumbnail, getPriceInr } = useDynamicCourseData();
   const { isActive: saleActive, discountPercent, calculateDiscountedPrice } = useSaleDiscount();
   const { isActive: exitDiscountActive, discountPercent: exitDiscountPercent } = useExitDiscount();
-  
+
   // Fetch real modules from database
   const { modules: dbModules, loading: modulesLoading, totalLessons: dbTotalLessons, totalDuration } = useCourseModules(slug);
-  
+
   // Fetch database course ID + public meta for correct stats display (even for guests)
   const [dbCourseId, setDbCourseId] = useState<string | null>(null);
   const [dbCourseMeta, setDbCourseMeta] = useState<{ total_lessons: number | null; duration_hours: number | null } | null>(null);
   // DB-only course fallback (for courses not in local data/courses.ts)
   const [dbOnlyCourse, setDbOnlyCourse] = useState<import('@/data/courses').Course | null>(null);
   const [dbCourseLoading, setDbCourseLoading] = useState(true);
-  
+
   // Use access control hook for enrollment/gift/EMI status
   const accessInfo = useAccessControl(user?.id, dbCourseId || undefined);
-  
+
   // Phone number dialog state
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
   const [pendingPaymentData, setPendingPaymentData] = useState<{
@@ -207,7 +205,7 @@ export default function CourseDetail() {
     courseDescription?: string;
     courseLevel?: string;
   } | null>(null);
-  
+
   // Scroll to top on route change
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -218,7 +216,7 @@ export default function CourseDetail() {
       setDbCourseLoading(true);
       supabase
         .from('courses')
-        .select('id, title, slug, description, short_description, level, duration_hours, total_lessons, price_inr, price_usd, thumbnail_url, is_featured, is_published')
+        .select('id, title, slug, description, short_description, level, duration_hours, total_lessons, price_inr, price_usd, thumbnail_url, is_featured, is_published, category_id, tags')
         .eq('slug', slug)
         .single()
         .then(({ data }) => {
@@ -228,53 +226,34 @@ export default function CourseDetail() {
               total_lessons: data.total_lessons ?? null,
               duration_hours: data.duration_hours ?? null,
             });
-            // Build a fallback Course object for DB-only courses
-            const staticCourse = courses.find(c => c.slug === slug);
-            if (!staticCourse) {
-              const categoryImages = {
-                'autocad': 'autocad', 'sketchup': 'sketchup', '3ds-max': '3ds-max',
-                'revit-bim': 'revit-bim', 'corona-vray': 'corona-vray',
-              };
-              const guessCategory = (): string => {
-                const t = (data.title || '').toLowerCase();
-                if (t.includes('autocad')) return 'autocad';
-                if (t.includes('sketchup') || t.includes('sketch')) return 'sketchup';
-                if (t.includes('3ds max') || t.includes('3ds-max')) return '3ds-max';
-                if (t.includes('revit') || t.includes('bim')) return 'revit-bim';
-                if (t.includes('corona') || t.includes('v-ray') || t.includes('vray')) return 'corona-vray';
-                if (t.includes('rhino')) return 'rhino';
-                if (t.includes('lumion') || t.includes('twinmotion') || t.includes('d5')) return 'visualization';
-                return 'fundamentals';
-              };
-              const cat = guessCategory();
-              setDbOnlyCourse({
-                id: data.id,
-                title: data.title,
-                slug: data.slug,
-                shortDescription: data.short_description || data.description || '',
-                description: data.description || data.short_description || '',
-                category: cat,
-                subcategory: cat,
-                level: (data.level as any) || 'beginner',
-                durationHours: data.duration_hours || 0,
-                totalLessons: data.total_lessons || 0,
-                priceInr: data.price_inr || 0,
-                priceUsd: data.price_usd || undefined,
-                thumbnail: data.thumbnail_url || '',
-                isFeatured: data.is_featured || false,
-                isPublished: data.is_published || false,
-                tags: [],
-              });
-            }
+
+            const cat = data.category_id || 'fundamentals';
+            setDbOnlyCourse({
+              id: data.id,
+              title: data.title,
+              slug: data.slug,
+              shortDescription: data.short_description || data.description || '',
+              description: data.description || data.short_description || '',
+              category: cat,
+              subcategory: cat,
+              level: (data.level as any) || 'beginner',
+              durationHours: data.duration_hours || 0,
+              totalLessons: data.total_lessons || 0,
+              priceInr: data.price_inr || 0,
+              priceUsd: data.price_usd || undefined,
+              thumbnail: data.thumbnail_url || '',
+              isFeatured: data.is_featured || false,
+              isPublished: data.is_published || false,
+              tags: data.tags || [],
+            });
           }
           setDbCourseLoading(false);
         });
     }
   }, [slug]);
 
-  const staticCourse = courses.find(c => c.slug === slug);
-  const course = staticCourse || dbOnlyCourse;
-  
+  const course = dbOnlyCourse;
+
 
   // Track studio view in analytics — fires once when course data is available
   const effectivePriceForAnalytics = course ? getPriceInr(course.slug, course.priceInr) : 0;
@@ -311,7 +290,7 @@ export default function CourseDetail() {
                   <div className="h-12 w-full rounded-xl bg-muted animate-pulse" />
                   <div className="h-12 w-full rounded-xl bg-muted/60 animate-pulse" />
                   <div className="space-y-2 pt-2">
-                    {[1,2,3,4].map(i => (
+                    {[1, 2, 3, 4].map(i => (
                       <div key={i} className="flex items-center gap-3">
                         <div className="h-4 w-4 rounded-full bg-muted animate-pulse" />
                         <div className="h-4 flex-1 rounded-full bg-muted animate-pulse" />
@@ -325,7 +304,7 @@ export default function CourseDetail() {
           {/* Curriculum skeleton */}
           <div className="container mx-auto max-w-6xl px-4 py-10 space-y-3">
             <div className="h-7 w-48 rounded-xl bg-muted animate-pulse mb-6" />
-            {[1,2,3,4,5].map(i => (
+            {[1, 2, 3, 4, 5].map(i => (
               <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-muted/30 animate-pulse">
                 <div className="h-8 w-8 rounded-lg bg-muted" />
                 <div className="flex-1 space-y-2">
@@ -394,7 +373,7 @@ export default function CourseDetail() {
     }
 
     const customerPhone = profile?.phone?.replace(/[\s-]/g, '');
-    const hasValidPhone = customerPhone && customerPhone.length >= 10;
+    const hasValidPhone = customerPhone && /^[6-9]\d{9}$/.test(customerPhone.replace(/\s/g, ''));
 
     if (!hasValidPhone) {
       // Show phone dialog and store payment data
@@ -427,7 +406,7 @@ export default function CourseDetail() {
 
   const handlePhoneSubmit = async (phone: string) => {
     if (!pendingPaymentData) return;
-    
+
     // Update profile with phone number
     if (user) {
       await supabase
@@ -435,21 +414,21 @@ export default function CourseDetail() {
         .update({ phone: phone })
         .eq('user_id', user.id);
     }
-    
+
     setShowPhoneDialog(false);
-    
+
     await initiatePayment({
       ...pendingPaymentData,
       customerPhone: phone,
     });
-    
+
     setPendingPaymentData(null);
   };
 
   const handleFreeEnrollment = async () => {
     try {
       const { supabase } = await import('@/integrations/supabase/client');
-      
+
       // Get or create course in database
       let { data: dbCourse } = await supabase
         .from('courses')
@@ -535,13 +514,13 @@ export default function CourseDetail() {
   // - For guests, RLS restricts lesson reads to free previews, so totals must come from the course meta.
   // - For enrolled users, totals can be calculated from lessons.
   const hasRealContent = dbModules.length > 0;
-  const displayTotalLessons = dbCourseMeta?.total_lessons 
-    ? dbCourseMeta.total_lessons 
+  const displayTotalLessons = dbCourseMeta?.total_lessons
+    ? dbCourseMeta.total_lessons
     : (hasRealContent ? dbTotalLessons : course.totalLessons);
   const displayTotalHours = user
     ? (hasRealContent ? Math.round(totalDuration / 60) : (dbCourseMeta?.duration_hours ?? course.durationHours))
     : (dbCourseMeta?.duration_hours ?? 0);
-  
+
   // Format duration for display - hide if 0
   const formatDuration = (minutes: number) => {
     if (minutes === 0) return '';
@@ -565,7 +544,7 @@ export default function CourseDetail() {
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
-      <SEOHead 
+      <SEOHead
         title={`${course.title} - Archistudio`}
         description={course.shortDescription}
         type="product"
@@ -577,16 +556,16 @@ export default function CourseDetail() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(courseSchema) }}
       />
-      
+
       <Navbar />
-      
+
       {/* Animated Background */}
       <AnimatedBackground intensity="light" />
-      
-       {/* Hero Section */}
-       <section className="pt-20 pb-2 relative">
+
+      {/* Hero Section */}
+      <section className="pt-20 pb-2 relative">
         <div className="container mx-auto px-4">
-           <Link to="/courses" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-4 transition-colors">
+          <Link to="/courses" className="inline-flex items-center text-muted-foreground hover:text-foreground mb-4 transition-colors">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Courses
           </Link>
@@ -608,7 +587,7 @@ export default function CourseDetail() {
                 )}
                 {/* Access Badge - shows enrollment/gift/partial status */}
                 {accessInfo.accessType !== 'none' && (
-                  <AccessBadge 
+                  <AccessBadge
                     accessType={accessInfo.accessType}
                     unlockedPercent={accessInfo.unlockedPercent}
                     expiryDate={accessInfo.giftExpiry || accessInfo.launchFreeExpiry}
@@ -669,8 +648,8 @@ export default function CourseDetail() {
             <div className="lg:col-span-1">
               <Card className="sticky top-24 overflow-hidden border-accent/20 shadow-lg">
                 <div className="aspect-[3/2] relative group bg-muted">
-                  <img 
-                    src={getThumbnail(course.slug, categoryImages[course.category] || '/placeholder.svg')} 
+                  <img
+                    src={getThumbnail(course.slug, categoryImages[course.category] || '/placeholder.svg')}
                     alt={course.title}
                     loading="eager"
                     decoding="async"
@@ -680,9 +659,9 @@ export default function CourseDetail() {
                     }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent flex items-center justify-center">
-                    <Button 
-                      size="lg" 
-                      variant="secondary" 
+                    <Button
+                      size="lg"
+                      variant="secondary"
                       className="gap-2 shadow-xl hover:scale-105 transition-transform"
                       onClick={() => navigate(`/learn/${course.slug}`)}
                     >
@@ -707,11 +686,11 @@ export default function CourseDetail() {
                       <span className="text-3xl font-bold">₹{effectivePriceInr.toLocaleString()}</span>
                     )}
                   </div>
-                  
+
                   {/* CTA Button - changes based on access status */}
                   {accessInfo.hasAccess && !accessInfo.canPurchase ? (
                     // User has full access - show Continue Learning
-                    <Button 
+                    <Button
                       onClick={() => navigate(`/learn/${course.slug}`)}
                       className="w-full h-12 text-lg"
                       size="lg"
@@ -722,7 +701,7 @@ export default function CourseDetail() {
                   ) : accessInfo.hasAccess && accessInfo.canPurchase ? (
                     // User has partial/gift access - show both options
                     <div className="space-y-2">
-                      <Button 
+                      <Button
                         onClick={() => navigate(`/learn/${course.slug}`)}
                         className="w-full h-12 text-lg"
                         size="lg"
@@ -732,8 +711,8 @@ export default function CourseDetail() {
                         Continue Learning
                       </Button>
                       {effectivePriceInr > 0 && (
-                        <Button 
-                          onClick={handleBuyNow} 
+                        <Button
+                          onClick={handleBuyNow}
                           disabled={isLoading}
                           className="w-full"
                           variant="outline"
@@ -755,8 +734,8 @@ export default function CourseDetail() {
                   ) : (
                     // No access - show Buy/Enroll button
                     <>
-                      <Button 
-                        onClick={handleBuyNow} 
+                      <Button
+                        onClick={handleBuyNow}
                         disabled={isLoading}
                         className="w-full h-12 text-lg"
                         size="lg"
@@ -815,13 +794,13 @@ export default function CourseDetail() {
                   courseId={dbCourseId}
                   courseSlug={course.slug}
                   courseTitle={course.title}
-                  coursePrice={saleActive && discountPercent > 0 
-                    ? calculateDiscountedPrice(effectivePriceInr) 
+                  coursePrice={saleActive && discountPercent > 0
+                    ? calculateDiscountedPrice(effectivePriceInr)
                     : effectivePriceInr}
-                  modules={dbModules.map(m => ({ 
-                    id: m.id, 
-                    title: m.title, 
-                    order_index: m.order_index 
+                  modules={dbModules.map(m => ({
+                    id: m.id,
+                    title: m.title,
+                    order_index: m.order_index
                   }))}
                   onPhoneRequired={() => {
                     setPendingPaymentData({
@@ -898,7 +877,7 @@ export default function CourseDetail() {
                       { title: 'Real-World Projects', lessons: 5, duration: '2 hrs', freePreview: false },
                       { title: 'Final Project & Certificate', lessons: 2, duration: '1 hr', freePreview: false },
                     ].map((module, i) => (
-                      <div 
+                      <div
                         key={i}
                         className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors"
                       >
@@ -965,13 +944,13 @@ export default function CourseDetail() {
                     .map(relatedCourse => {
                       const relatedPrice = getPriceInr(relatedCourse.slug, relatedCourse.priceInr);
                       return (
-                        <Link 
+                        <Link
                           key={relatedCourse.id}
                           to={`/course/${relatedCourse.slug}`}
                           className="block group"
                         >
                           <div className="flex gap-3">
-                            <img 
+                            <img
                               src={getThumbnail(relatedCourse.slug, categoryImages[relatedCourse.category] || '/placeholder.svg')}
                               alt={relatedCourse.title}
                               loading="lazy"
@@ -998,7 +977,7 @@ export default function CourseDetail() {
       </section>
 
       <Footer />
-      
+
       <PhoneNumberDialog
         open={showPhoneDialog}
         onOpenChange={setShowPhoneDialog}

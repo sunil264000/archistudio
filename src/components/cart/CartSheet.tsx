@@ -113,7 +113,7 @@ export function CartSheet() {
     if (items.length === 1) {
       const item = items[0];
       const customerPhone = phone || profile?.phone?.replace(/[\s-]/g, '');
-      if (!customerPhone || customerPhone.length < 10) {
+      if (!customerPhone || !/^[6-9]\d{9}$/.test(customerPhone.replace(/\s/g, ''))) {
         setShowPhoneDialog(true);
         return;
       }
@@ -168,7 +168,7 @@ export function CartSheet() {
               Your Cart ({itemCount})
             </SheetTitle>
           </SheetHeader>
-          
+
           <div className="mt-6 flex flex-col h-[calc(100vh-200px)]">
             {items.length === 0 ? (
               <div className="flex-1 flex items-center justify-center text-center">
@@ -209,7 +209,7 @@ export function CartSheet() {
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="pt-4 space-y-3">
                   <Separator />
 
