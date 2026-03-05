@@ -25,10 +25,12 @@ interface Campaign {
   access_duration_hours: number | null;
   cta_text: string;
   custom_messages: string[];
+  is_welcome_promotion: boolean;
+  coupon_code: string | null;
   created_at: string;
 }
 
-interface Course {
+interface Item {
   id: string;
   title: string;
   slug: string;
@@ -37,7 +39,8 @@ interface Course {
 
 export function GiftCampaignManagement() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<Item[]>([]);
+  const [ebooks, setEbooks] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -55,7 +58,10 @@ export function GiftCampaignManagement() {
     access_duration_hours: 24,
     cta_text: 'Start Learning',
     custom_messages: [''],
+    is_welcome_promotion: false,
+    coupon_code: '',
     selectedCourses: [] as string[],
+    selectedEbooks: [] as string[],
   });
 
   const fetchCampaigns = async () => {
@@ -67,7 +73,7 @@ export function GiftCampaignManagement() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
+
       // Parse custom_messages from JSONB
       const parsedCampaigns = (data || []).map(c => ({
         ...c,
@@ -92,18 +98,25 @@ export function GiftCampaignManagement() {
     }
   };
 
-  const fetchCourses = async () => {
-    const { data } = await supabase
+  const fetchItems = async () => {
+    const { data: coursesData } = await supabase
       .from('courses')
       .select('id, title, slug, is_published')
       .eq('is_published', true)
       .order('title');
-    setCourses(data || []);
+    setCourses(coursesData || []);
+
+    const { data: ebooksData } = await supabase
+      .from('ebooks')
+      .select('id, title, is_published')
+      .eq('is_published', true)
+      .order('title');
+    setEbooks((ebooksData || []).map(e => ({ ...e, slug: '' })) as Item[]);
   };
 
   useEffect(() => {
     fetchCampaigns();
-    fetchCourses();
+    fetchItems();
   }, []);
 
   const resetForm = () => {
@@ -117,18 +130,27 @@ export function GiftCampaignManagement() {
       access_duration_hours: 24,
       cta_text: 'Start Learning',
       custom_messages: [''],
+      is_welcome_promotion: false,
+      coupon_code: '',
       selectedCourses: [],
+      selectedEbooks: [],
     });
     setEditingCampaign(null);
   };
 
   const handleEdit = async (campaign: Campaign) => {
     setEditingCampaign(campaign);
-    
+
     // Fetch linked courses
     const { data: linkedCourses } = await supabase
       .from('login_gift_campaign_courses')
       .select('course_id')
+      .eq('campaign_id', campaign.id);
+
+    // Fetch linked ebooks
+    const { data: linkedEbooks } = await supabase
+      .from('login_gift_campaign_ebooks')
+      .select('ebook_id')
       .eq('campaign_id', campaign.id);
 
     setForm({
@@ -141,7 +163,10 @@ export function GiftCampaignManagement() {
       access_duration_hours: campaign.access_duration_hours || 24,
       cta_text: campaign.cta_text || 'Start Learning',
       custom_messages: campaign.custom_messages.length > 0 ? campaign.custom_messages : [''],
+      is_welcome_promotion: campaign.is_welcome_promotion || false,
+      coupon_code: campaign.coupon_code || '',
       selectedCourses: linkedCourses?.map(lc => lc.course_id) || [],
+      selectedEbooks: linkedEbooks?.map(le => le.ebook_id) || [],
     });
     setDialogOpen(true);
   };
@@ -152,8 +177,13 @@ export function GiftCampaignManagement() {
       return;
     }
 
-    if (form.selectedCourses.length === 0) {
-      toast.error('Please select at least one course');
+    if (form.selectedCourses.length === 0 && form.selectedEbooks.length === 0) {
+      toast.error('Please select at least one course or ebook');
+      return;
+    }
+
+    if (form.is_welcome_promotion && !form.coupon_code) {
+      toast.error('Please enter a coupon code for the welcome promotion');
       return;
     }
 
@@ -174,6 +204,8 @@ export function GiftCampaignManagement() {
         access_duration_hours: form.access_duration_hours || null,
         cta_text: form.cta_text,
         custom_messages: form.custom_messages.filter(m => m.trim()),
+        is_welcome_promotion: form.is_welcome_promotion,
+        coupon_code: form.is_welcome_promotion ? (form.coupon_code || 'WELCOME100') : null,
       };
 
       let campaignId: string;
@@ -191,6 +223,12 @@ export function GiftCampaignManagement() {
           .from('login_gift_campaign_courses')
           .delete()
           .eq('campaign_id', campaignId);
+
+        // Delete existing ebook links
+        await supabase
+          .from('login_gift_campaign_ebooks')
+          .delete()
+          .eq('campaign_id', campaignId);
       } else {
         const { data, error } = await supabase
           .from('login_gift_campaigns')
@@ -201,17 +239,32 @@ export function GiftCampaignManagement() {
         campaignId = data.id;
       }
 
-      // Insert course links
-      const courseLinks = form.selectedCourses.map(courseId => ({
-        campaign_id: campaignId,
-        course_id: courseId,
-      }));
+      if (form.selectedCourses.length > 0) {
+        const courseLinks = form.selectedCourses.map(courseId => ({
+          campaign_id: campaignId,
+          course_id: courseId,
+        }));
 
-      const { error: linkError } = await supabase
-        .from('login_gift_campaign_courses')
-        .insert(courseLinks);
-      
-      if (linkError) throw linkError;
+        const { error: linkError } = await supabase
+          .from('login_gift_campaign_courses')
+          .insert(courseLinks);
+
+        if (linkError) throw linkError;
+      }
+
+      // Insert ebook links
+      if (form.selectedEbooks.length > 0) {
+        const ebookLinks = form.selectedEbooks.map(ebookId => ({
+          campaign_id: campaignId,
+          ebook_id: ebookId,
+        }));
+
+        const { error: ebookLinkError } = await supabase
+          .from('login_gift_campaign_ebooks')
+          .insert(ebookLinks);
+
+        if (ebookLinkError) throw ebookLinkError;
+      }
 
       toast.success(editingCampaign ? 'Campaign updated' : 'Campaign created');
       setDialogOpen(false);
@@ -401,29 +454,56 @@ export function GiftCampaignManagement() {
                     </p>
                   </div>
 
-                  {/* Select Courses */}
-                  <div className="space-y-2">
-                    <Label>Select Courses *</Label>
-                    <div className="border rounded-lg p-4 max-h-48 overflow-y-auto space-y-2">
-                      {courses.map((course) => (
-                        <div key={course.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={course.id}
-                            checked={form.selectedCourses.includes(course.id)}
-                            onCheckedChange={(checked) => {
-                              setForm(prev => ({
-                                ...prev,
-                                selectedCourses: checked
-                                  ? [...prev.selectedCourses, course.id]
-                                  : prev.selectedCourses.filter(id => id !== course.id)
-                              }));
-                            }}
-                          />
-                          <label htmlFor={course.id} className="text-sm cursor-pointer">
-                            {course.title}
-                          </label>
-                        </div>
-                      ))}
+                  {/* Select Courses & Ebooks */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Select Courses</Label>
+                      <div className="border rounded-lg p-4 max-h-48 overflow-y-auto space-y-2">
+                        {courses.map((course) => (
+                          <div key={course.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={course.id}
+                              checked={form.selectedCourses.includes(course.id)}
+                              onCheckedChange={(checked) => {
+                                setForm(prev => ({
+                                  ...prev,
+                                  selectedCourses: checked
+                                    ? [...prev.selectedCourses, course.id]
+                                    : prev.selectedCourses.filter(id => id !== course.id)
+                                }));
+                              }}
+                            />
+                            <label htmlFor={course.id} className="text-sm cursor-pointer truncate">
+                              {course.title}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Select Ebooks</Label>
+                      <div className="border rounded-lg p-4 max-h-48 overflow-y-auto space-y-2">
+                        {ebooks.map((ebook) => (
+                          <div key={ebook.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`ebook-${ebook.id}`}
+                              checked={form.selectedEbooks.includes(ebook.id)}
+                              onCheckedChange={(checked) => {
+                                setForm(prev => ({
+                                  ...prev,
+                                  selectedEbooks: checked
+                                    ? [...prev.selectedEbooks, ebook.id]
+                                    : prev.selectedEbooks.filter(id => id !== ebook.id)
+                                }));
+                              }}
+                            />
+                            <label htmlFor={`ebook-${ebook.id}`} className="text-sm cursor-pointer truncate">
+                              {ebook.title}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
@@ -473,19 +553,46 @@ export function GiftCampaignManagement() {
                     />
                   </div>
 
-                  {/* Active Toggle */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Campaign Active</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Inactive campaigns won't trigger on login
-                      </p>
+                  {/* Active & Welcome Toggle */}
+                  <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Campaign Active</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Inactive campaigns won't trigger
+                        </p>
+                      </div>
+                      <Switch
+                        checked={form.is_active}
+                        onCheckedChange={(checked) => setForm(prev => ({ ...prev, is_active: checked }))}
+                      />
                     </div>
-                    <Switch
-                      checked={form.is_active}
-                      onCheckedChange={(checked) => setForm(prev => ({ ...prev, is_active: checked }))}
-                    />
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Welcome Promotion</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Requires coupon code
+                        </p>
+                      </div>
+                      <Switch
+                        checked={form.is_welcome_promotion}
+                        onCheckedChange={(checked) => setForm(prev => ({ ...prev, is_welcome_promotion: checked }))}
+                      />
+                    </div>
                   </div>
+
+                  {form.is_welcome_promotion && (
+                    <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+                      <Label htmlFor="coupon_code">Coupon Code (Required for Welcome Promotion)</Label>
+                      <Input
+                        id="coupon_code"
+                        value={form.coupon_code}
+                        onChange={(e) => setForm(prev => ({ ...prev, coupon_code: e.target.value }))}
+                        placeholder="WELCOME100"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-2">

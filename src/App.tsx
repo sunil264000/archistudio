@@ -12,6 +12,7 @@ import { FestivalDecorations } from "@/components/festival/FestivalDecorations";
 import { SaleBanner } from "@/components/sales/SaleBanner";
 import { AmbientAudio } from "@/components/audio/AmbientAudio";
 import { LoginGiftModal } from "@/components/gift/LoginGiftModal";
+import { WelcomePromotionModal } from "@/components/welcome/WelcomePromotionModal";
 import { WelcomePopup } from "@/components/welcome/WelcomePopup";
 import { NewUserOnboardingDialog } from "@/components/auth/NewUserOnboardingDialog";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -69,6 +70,8 @@ const AppContent = () => {
   const [giftData, setGiftData] = useState<any>(null);
   const [showGiftModal, setShowGiftModal] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [welcomeCampaign, setWelcomeCampaign] = useState<any>(null);
   const giftCheckDone = useRef(false);
 
   // Check for gift campaigns when user logs in — run only once per user session
@@ -83,10 +86,14 @@ const AppContent = () => {
           .from('login_gift_campaigns')
           .select(`
             id, name, access_duration_hours, cta_text, custom_messages,
-            eligible_users, random_percent, start_at, end_at,
+            eligible_users, random_percent, start_at, end_at, is_welcome_promotion, coupon_code,
             login_gift_campaign_courses(
               course_id,
               courses:course_id(id, title, slug, thumbnail_url)
+            ),
+            login_gift_campaign_ebooks(
+              ebook_id,
+              ebooks:ebook_id(id, title)
             )
           `)
           .eq('is_active', true);
@@ -119,6 +126,12 @@ const AppContent = () => {
 
           if (campaign.eligible_users === 'random_percent' && campaign.random_percent) {
             if (Math.random() * 100 > campaign.random_percent) continue;
+          }
+
+          if (campaign.is_welcome_promotion) {
+            setWelcomeCampaign(campaign);
+            setShowWelcomeModal(true);
+            break;
           }
 
           const messages = campaign.custom_messages as string[] || [];
@@ -207,13 +220,23 @@ const AppContent = () => {
         giftData={giftData}
       />
       {user?.id && (
-        <NewUserOnboardingDialog
-          open={showOnboarding}
-          onOpenChange={setShowOnboarding}
-          userId={user.id}
-          defaultName={profile?.full_name || user.email?.split('@')[0] || ''}
-          onCompleted={() => setShowOnboarding(false)}
-        />
+        <>
+          {welcomeCampaign && (
+            <WelcomePromotionModal
+              open={showWelcomeModal}
+              onOpenChange={setShowWelcomeModal}
+              campaign={welcomeCampaign}
+              userId={user.id}
+            />
+          )}
+          <NewUserOnboardingDialog
+            open={showOnboarding}
+            onOpenChange={setShowOnboarding}
+            userId={user.id}
+            defaultName={profile?.full_name || user.email?.split('@')[0] || ''}
+            onCompleted={() => setShowOnboarding(false)}
+          />
+        </>
       )}
     </>
   );
@@ -228,8 +251,8 @@ function AnimatedRoutes() {
         initial={{ opacity: 0, y: 12, filter: 'blur(6px)' }}
         animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
         exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
-        transition={{ 
-          duration: 0.35, 
+        transition={{
+          duration: 0.35,
           ease: [0.16, 1, 0.3, 1],
         }}
       >
