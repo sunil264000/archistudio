@@ -9,7 +9,7 @@ declare global {
   }
 }
 
-interface PaymentDetails {
+export interface PaymentDetails {
   courseId: string; // course slug
   amount: number;
   customerName: string;
@@ -22,6 +22,12 @@ interface PaymentDetails {
   courseDescription?: string;
   courseLevel?: string;
   couponCode?: string;
+}
+
+export interface PaymentResult {
+  success: boolean;
+  isFree?: boolean; // server says coupon made it free
+  error?: string;
 }
 
 export const useCashfreePayment = () => {
@@ -43,9 +49,10 @@ export const useCashfreePayment = () => {
     });
   };
 
-  const initiatePayment = async (details: PaymentDetails) => {
+  const initiatePayment = async (details: PaymentDetails): Promise<PaymentResult> => {
     setIsLoading(true);
     let attemptId: string | null = null;
+    let result: PaymentResult = { success: false };
 
     try {
       // Load Cashfree SDK
@@ -88,20 +95,54 @@ export const useCashfreePayment = () => {
         console.log('Abandoned cart tracking skipped:', e);
       }
 
-      // Create order via edge function
+      // Create order via edge function.
+      // IMPORTANT: Do NOT send `amount` — the server always fetches the
+      // authoritative price from the DB and applies the coupon itself.
+      // Sending a pre-discounted amount would cause the server to skip its
+      // own coupon logic (hasClientAmount=true branch).
+      const edgeFunctionBody = {
+        courseId: details.courseId,
+        customerName: details.customerName,
+        customerEmail: details.customerEmail,
+        customerPhone: details.customerPhone,
+        couponCode: details.couponCode,
+        // courseTitle etc. are metadata only, safe to include
+        courseTitle: details.courseTitle,
+        courseShortDescription: details.courseShortDescription,
+        courseDescription: details.courseDescription,
+        courseLevel: details.courseLevel,
+        // amount intentionally omitted so server computes it from DB
+      };
+
       const { data, error } = await supabase.functions.invoke("create-cashfree-order", {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: details,
+        body: edgeFunctionBody,
       });
 
       if (error) {
+        // Check if server says coupon made it free (422 isFree)
+        const errBody = (error as any)?.context?.body || "";
+        try {
+          const parsed = typeof errBody === "string" ? JSON.parse(errBody) : errBody;
+          if (parsed?.isFree) {
+            result = { success: false, isFree: true };
+            return result;
+          }
+        } catch (_) { /* ignore parse errors */ }
+
         // Track failed attempt
         if (attemptId) {
           await updatePurchaseAttempt(attemptId, 'failed', { error: error.message });
         }
         throw error;
+      }
+
+      // Also check if data itself says isFree (edge function may return it in 2xx too)
+      if (data?.isFree) {
+        result = { success: false, isFree: true };
+        return result;
       }
 
       const { paymentSessionId } = data;
@@ -121,6 +162,8 @@ export const useCashfreePayment = () => {
         redirectTarget: "_self",
       });
 
+      result = { success: true };
+
     } catch (error: any) {
       console.error("Payment error:", error);
 
@@ -128,6 +171,8 @@ export const useCashfreePayment = () => {
       if (attemptId) {
         await updatePurchaseAttempt(attemptId, 'failed', { error: error.message });
       }
+
+      result = { success: false, error: error.message };
 
       toast({
         title: "Payment Error",
@@ -137,6 +182,8 @@ export const useCashfreePayment = () => {
     } finally {
       setIsLoading(false);
     }
+
+    return result;
   };
 
   return { initiatePayment, isLoading };
