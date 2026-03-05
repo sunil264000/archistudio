@@ -87,10 +87,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleAuthState = async (event: string, nextSession: Session | null) => {
-      setSession(nextSession);
-      setUser(nextSession?.user ?? null);
-
       if (!nextSession?.user) {
+        setSession(null);
+        setUser(null);
         setProfile(null);
         setHasAdminRole(false);
         setLoading(false);
@@ -98,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Fetch profile + admin role
+      // Fetch profile first so we can enforce custom OTP verification gate
       let userProfile = await fetchProfile(nextSession.user.id);
       if (!userProfile) {
         userProfile = await createProfile(
@@ -107,7 +106,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           nextSession.user.user_metadata?.full_name
         );
       }
+
+      const isEmailVerified = userProfile?.email_verified === true;
+      if (!isEmailVerified) {
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setHasAdminRole(false);
+        setLoading(false);
+        sessionRegistered.current = false;
+        await supabase.auth.signOut();
+        return;
+      }
+
+      setSession(nextSession);
+      setUser(nextSession.user);
       setProfile(userProfile);
+
       const isAdminUser = await checkAdminRole(nextSession.user.id);
       setHasAdminRole(isAdminUser);
 
@@ -164,8 +179,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithEmail = async (email: string, password: string) => {
     try {
       sessionRegistered.current = false;
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return { error };
+
+      let signedInProfile = data.user ? await fetchProfile(data.user.id) : null;
+      if (!signedInProfile && data.user) {
+        signedInProfile = await createProfile(
+          data.user.id,
+          data.user.email || email,
+          data.user.user_metadata?.full_name
+        );
+      }
+
+      if (!signedInProfile?.email_verified) {
+        await supabase.auth.signOut();
+        return { error: new Error('Email not confirmed') };
+      }
+
       return { error: null };
     } catch (err) {
       return { error: err as Error };
@@ -175,7 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUpWithEmail = async (email: string, password: string, fullName: string) => {
     try {
       const redirectUrl = `${window.location.origin}/`;
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -184,10 +214,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       });
 
-      // Force signed-out state until OTP verification + login
-      await supabase.auth.signOut();
-
       if (error) return { error };
+
+      // With auto-confirm enabled, signUp may create a session immediately.
+      // Keep user signed out until OTP is verified.
+      if (data.session) {
+        await supabase.auth.signOut();
+      }
+
       return { error: null };
     } catch (err) {
       return { error: err as Error };
