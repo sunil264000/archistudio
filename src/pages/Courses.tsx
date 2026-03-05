@@ -21,7 +21,7 @@ import { AccessBadge } from '@/components/course/AccessBadge';
 import { useAccessControlBySlug } from '@/hooks/useAccessControlBySlug';
 import { CourseThumbnail } from '@/components/course/CourseThumbnail';
 import { BundleDiscountBanner } from '@/components/sales/BundleDiscountBanner';
-import { useCart } from '@/contexts/CartContext';
+import { HighlightedCourseSection } from '@/components/home/HighlightedCourseSection';
 
 // Unified course shape used throughout this page
 export interface MergedCourse {
@@ -139,6 +139,9 @@ export default function Courses() {
       <div className="container mx-auto px-4 pt-20 sm:pt-24">
         <BundleDiscountBanner />
       </div>
+
+      {/* Highlighted Flagship Course */}
+      <HighlightedCourseSection />
 
       {/* Hero Section */}
       <section className="pt-6 sm:pt-8 pb-8 sm:pb-12 relative overflow-hidden">

@@ -2108,6 +2108,45 @@ export type Database = {
           },
         ]
       }
+      user_onboarding_intake: {
+        Row: {
+          age: number | null
+          created_at: string
+          discovery_source: string
+          full_name: string | null
+          id: string
+          notes: string | null
+          primary_challenge: string
+          role_track: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age?: number | null
+          created_at?: string
+          discovery_source: string
+          full_name?: string | null
+          id?: string
+          notes?: string | null
+          primary_challenge: string
+          role_track: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age?: number | null
+          created_at?: string
+          discovery_source?: string
+          full_name?: string | null
+          id?: string
+          notes?: string | null
+          primary_challenge?: string
+          role_track?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null

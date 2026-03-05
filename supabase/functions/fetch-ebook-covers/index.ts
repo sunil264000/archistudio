@@ -98,15 +98,15 @@ Deno.serve(async (req) => {
                     // Build highest quality URL
                     const baseUrl = imageLinks.thumbnail || imageLinks.smallThumbnail
                     if (baseUrl) {
-                      coverUrl = baseUrl
+                      const improvedCoverUrl = baseUrl
                         .replace('http://', 'https://')
                         .replace('&edge=curl', '')
                         .replace(/zoom=\d/, 'zoom=3')
-                        .replace(/&w=\d+/, '')
-                      // If no zoom param, add it
-                      if (!coverUrl.includes('zoom=')) {
-                        coverUrl += '&zoom=3'
-                      }
+                        .replace(/&w=\d+/, '');
+
+                      coverUrl = improvedCoverUrl.includes('zoom=')
+                        ? improvedCoverUrl
+                        : `${improvedCoverUrl}&zoom=3`;
                       source = 'google_books'
                       break
                     }

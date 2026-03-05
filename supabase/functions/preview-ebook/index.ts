@@ -3,225 +3,124 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, range",
+};
+
+const getDriveFileIdFromUrl = (url: string) => {
+  const byPath = url.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1];
+  const byParam = url.match(/[?&]id=([a-zA-Z0-9_-]+)/)?.[1];
+  return byPath || byParam || null;
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    const { ebookId, previewPages = 15 } = await req.json();
-
-    if (!ebookId) {
-      throw new Error("eBook ID is required");
+    let ebookId = "";
+    if (req.method === "GET") {
+      const url = new URL(req.url);
+      ebookId = url.searchParams.get("ebookId") || "";
+    } else {
+      const body = await req.json().catch(() => ({}));
+      ebookId = body.ebookId || "";
     }
 
-    console.log(`Preview request for eBook: ${ebookId}`);
+    if (!ebookId) throw new Error("eBook ID is required");
 
-    // Get ebook details including cached preview URL
-    const { data: ebook, error: ebookError } = await supabaseClient
+    const { data: ebook, error } = await supabaseClient
       .from("ebooks")
-      .select("title, file_url, drive_file_id, preview_url, preview_generated_at")
+      .select("file_url, drive_file_id")
       .eq("id", ebookId)
       .single();
 
-    if (ebookError || !ebook) {
-      throw new Error("eBook not found");
+    if (error || !ebook) throw new Error("eBook not found");
+
+    const rangeHeader = req.headers.get("range");
+    let requestHeaders: HeadersInit = {
+      Accept: "application/pdf",
+    };
+
+    if (rangeHeader) {
+      requestHeaders = {
+        ...requestHeaders,
+        Range: rangeHeader,
+      };
     }
 
-    // Check if we have a cached preview that's less than 7 days old
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    if (ebook.preview_url && ebook.preview_generated_at) {
-      const generatedAt = new Date(ebook.preview_generated_at);
-      if (generatedAt > sevenDaysAgo) {
-        console.log(`Serving cached preview for ${ebookId}`);
-        
-        // Fetch from cache and return with optimized headers
-        const cachedResponse = await fetch(ebook.preview_url);
-        if (cachedResponse.ok) {
-          const fileBuffer = await cachedResponse.arrayBuffer();
-          
-          return new Response(fileBuffer, {
-            status: 200,
-            headers: {
-              ...corsHeaders,
-              "Content-Type": "application/pdf",
-              "Cache-Control": "public, max-age=604800", // 7 days browser cache
-              "Content-Disposition": "inline",
-              "X-Content-Type-Options": "nosniff",
-            },
-          });
-        }
-        console.log("Cache fetch failed, fetching from source");
-      }
-    }
+    let sourceResponse: Response;
 
-    // Fetch from source with optimized settings
-    let fileBuffer: ArrayBuffer;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout (reduced)
+    if (ebook.drive_file_id) {
+      const googleApiKey = Deno.env.get("GOOGLE_API_KEY");
+      if (!googleApiKey) throw new Error("Google API key not configured");
 
-    try {
-      if (ebook.drive_file_id) {
-        const googleApiKey = Deno.env.get("GOOGLE_API_KEY");
-        if (!googleApiKey) {
-          throw new Error("Google API key not configured");
-        }
+      sourceResponse = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${ebook.drive_file_id}?alt=media&key=${googleApiKey}`,
+        { headers: requestHeaders },
+      );
+    } else if (ebook.file_url) {
+      if (ebook.file_url.startsWith("http")) {
+        const driveFileId = getDriveFileIdFromUrl(ebook.file_url);
 
-        console.log(`Fetching from Google Drive: ${ebook.drive_file_id}`);
-        
-        const driveResponse = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${ebook.drive_file_id}?alt=media&key=${googleApiKey}`,
-          {
-            headers: {
-              "Accept": "application/pdf",
-            },
-            signal: controller.signal,
-          }
-        );
+        if (driveFileId) {
+          const googleApiKey = Deno.env.get("GOOGLE_API_KEY");
+          if (!googleApiKey) throw new Error("Google API key not configured");
 
-        if (!driveResponse.ok) {
-          const errorText = await driveResponse.text();
-          console.error("Drive error:", errorText);
-          throw new Error("Failed to fetch file from Google Drive");
-        }
-
-        fileBuffer = await driveResponse.arrayBuffer();
-        console.log(`Downloaded ${fileBuffer.byteLength} bytes from Drive`);
-      } else if (ebook.file_url) {
-        console.log(`Fetching from storage: ${ebook.file_url}`);
-        
-        if (ebook.file_url.startsWith('http')) {
-          const driveUrlMatch = ebook.file_url.match(/\/d\/([a-zA-Z0-9_-]+)/) || ebook.file_url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-
-          if (driveUrlMatch?.[1]) {
-            const googleApiKey = Deno.env.get("GOOGLE_API_KEY");
-            if (!googleApiKey) {
-              throw new Error("Google API key not configured");
-            }
-
-            const driveResponse = await fetch(
-              `https://www.googleapis.com/drive/v3/files/${driveUrlMatch[1]}?alt=media&key=${googleApiKey}`,
-              {
-                headers: {
-                  "Accept": "application/pdf",
-                },
-                signal: controller.signal,
-              }
-            );
-
-            if (!driveResponse.ok) {
-              const errorText = await driveResponse.text();
-              console.error("Drive URL fetch error:", errorText);
-              throw new Error("Failed to fetch file from Google Drive URL");
-            }
-
-            fileBuffer = await driveResponse.arrayBuffer();
-          } else {
-            const response = await fetch(ebook.file_url, {
-              signal: controller.signal,
-            });
-            if (!response.ok) {
-              throw new Error("Failed to fetch file");
-            }
-            fileBuffer = await response.arrayBuffer();
-          }
+          sourceResponse = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${driveFileId}?alt=media&key=${googleApiKey}`,
+            { headers: requestHeaders },
+          );
         } else {
-          const { data: fileData, error: fileError } = await supabaseClient
-            .storage
-            .from("ebook-files")
-            .download(ebook.file_url);
-
-          if (fileError || !fileData) {
-            throw new Error("Failed to download file from storage");
-          }
-          fileBuffer = await fileData.arrayBuffer();
+          sourceResponse = await fetch(ebook.file_url, { headers: requestHeaders });
         }
-        console.log(`Downloaded ${fileBuffer.byteLength} bytes from storage`);
       } else {
-        throw new Error("No file available for this eBook");
+        const { data: signed, error: signError } = await supabaseClient.storage
+          .from("ebook-files")
+          .createSignedUrl(ebook.file_url, 60);
+
+        if (signError || !signed?.signedUrl) throw new Error("Unable to access eBook file");
+        sourceResponse = await fetch(signed.signedUrl, { headers: requestHeaders });
       }
-    } finally {
-      clearTimeout(timeoutId);
+    } else {
+      throw new Error("No file available for this eBook");
     }
 
-    // Cache the preview in storage (async, don't block response)
-    const previewFileName = `preview-${ebookId}.pdf`;
-    
-    // Start caching in background
-    (async () => {
-      try {
-        const { data, error } = await supabaseClient
-          .storage
-          .from("ebook-previews")
-          .upload(previewFileName, new Blob([fileBuffer], { type: "application/pdf" }), {
-            upsert: true,
-            contentType: "application/pdf",
-            cacheControl: "604800", // 7 days
-          });
-        
-        if (!error && data) {
-          const { data: urlData } = supabaseClient
-            .storage
-            .from("ebook-previews")
-            .getPublicUrl(previewFileName);
-          
-          await supabaseClient
-            .from("ebooks")
-            .update({
-              preview_url: urlData.publicUrl,
-              preview_generated_at: new Date().toISOString(),
-            })
-            .eq("id", ebookId);
-          
-          console.log(`Cached preview for ${ebookId}: ${urlData.publicUrl}`);
-        } else if (error) {
-          console.error("Failed to cache preview:", error);
-        }
-      } catch (err) {
-        console.error("Preview caching error:", err);
-      }
-    })();
+    if (!sourceResponse.ok && sourceResponse.status !== 206) {
+      const reason = await sourceResponse.text();
+      console.error("Preview upstream failure:", reason);
+      throw new Error("Failed to fetch PDF content");
+    }
 
-    // Return the PDF immediately with optimized headers
-    return new Response(fileBuffer, {
-      status: 200,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/pdf",
-        "Cache-Control": "public, max-age=86400", // 24 hours
-        "Content-Disposition": "inline",
-        "X-Content-Type-Options": "nosniff",
-      },
+    const headers = new Headers({
+      ...corsHeaders,
+      "Content-Type": sourceResponse.headers.get("content-type") || "application/pdf",
+      "Content-Disposition": "inline",
+      "X-Content-Type-Options": "nosniff",
+      "Accept-Ranges": sourceResponse.headers.get("accept-ranges") || "bytes",
+      "Cache-Control": "public, max-age=3600",
+    });
+
+    const contentRange = sourceResponse.headers.get("content-range");
+    const contentLength = sourceResponse.headers.get("content-length");
+    if (contentRange) headers.set("Content-Range", contentRange);
+    if (contentLength) headers.set("Content-Length", contentLength);
+
+    return new Response(sourceResponse.body, {
+      status: sourceResponse.status === 206 ? 206 : 200,
+      headers,
     });
   } catch (error: any) {
     console.error("Preview error:", error);
-    
-    if (error.name === 'AbortError') {
-      return new Response(
-        JSON.stringify({ error: "Request timeout - please try again" }),
-        {
-          status: 504,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error?.message || "Unknown error" }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });
