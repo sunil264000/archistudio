@@ -43,7 +43,8 @@ interface SourceConfig {
   headers: Record<string, string>;
 }
 
-const sourceCache = new Map<string, SourceConfig>();
+const binaryCache = new Map<string, Uint8Array>();
+const PREVIEW_ENDPOINTS = ['preview-ebook', 'previewebook'] as const;
 
 export function EbookPDFViewer({
   isOpen,
@@ -100,38 +101,79 @@ export function EbookPDFViewer({
     return pages;
   }, [currentPage, maxViewablePages]);
 
+  const fetchPreviewBinary = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const authHeader = session?.access_token ? `Bearer ${session.access_token}` : `Bearer ${anonKey}`;
+
+    let lastError = 'Could not load this document.';
+
+    for (const endpoint of PREVIEW_ENDPOINTS) {
+      try {
+        const response = await fetch(`${supabaseUrl}/functions/v1/${endpoint}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: anonKey,
+            Authorization: authHeader,
+          },
+          body: JSON.stringify({ ebookId, previewPages }),
+        });
+
+        if (!response.ok) {
+          const maybeJson = await response.json().catch(() => null);
+          lastError = maybeJson?.error || `Preview request failed (${response.status})`;
+          continue;
+        }
+
+        const buffer = await response.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+
+        if (bytes.length < 5) {
+          lastError = 'Received empty PDF data.';
+          continue;
+        }
+
+        const magicHeader = new TextDecoder().decode(bytes.slice(0, 5));
+        if (magicHeader !== '%PDF-') {
+          lastError = 'Invalid PDF data received from server.';
+          continue;
+        }
+
+        return bytes;
+      } catch (err: any) {
+        lastError = err?.message || lastError;
+      }
+    }
+
+    throw new Error(lastError);
+  }, [ebookId, previewPages]);
+
   const fetchSource = useCallback(async () => {
     setLoading(true);
     setError(null);
     setPdfBinary(null);
+    setSource(null);
     setFallbackTried(false);
 
     try {
-      const cacheKey = `${ebookId}:${previewPages}`;
-      if (sourceCache.has(cacheKey)) {
-        setSource(sourceCache.get(cacheKey)!);
+      const cacheKey = `${ebookId}:${previewPages}:binary`;
+      if (binaryCache.has(cacheKey)) {
+        setPdfBinary(binaryCache.get(cacheKey)!);
         setLoading(false);
         return;
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      const endpoint = `${supabaseUrl}/functions/v1/previewebook?ebookId=${encodeURIComponent(ebookId)}&previewPages=${previewPages}`;
-      const headers: Record<string, string> = {
-        apikey: anonKey,
-        Authorization: session?.access_token ? `Bearer ${session.access_token}` : `Bearer ${anonKey}`,
-      };
-
-      const nextSource = { url: endpoint, headers };
-      sourceCache.set(cacheKey, nextSource);
-      setSource(nextSource);
+      const binary = await fetchPreviewBinary();
+      binaryCache.set(cacheKey, binary);
+      setPdfBinary(binary);
     } catch (err: any) {
       setError(err?.message || 'Unable to open this PDF right now.');
     } finally {
       setLoading(false);
     }
-  }, [ebookId, previewPages]);
+  }, [ebookId, previewPages, fetchPreviewBinary]);
 
   useEffect(() => {
     if (isOpen && ebookId) {
@@ -150,32 +192,14 @@ export function EbookPDFViewer({
 
     setFallbackTried(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/previewebook`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: anonKey,
-          Authorization: session?.access_token ? `Bearer ${session.access_token}` : `Bearer ${anonKey}`,
-        },
-        body: JSON.stringify({ ebookId, previewPages }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Could not load preview fallback.');
-      }
-
-      const buffer = await response.arrayBuffer();
-      setPdfBinary(new Uint8Array(buffer));
+      const binary = await fetchPreviewBinary();
+      setPdfBinary(binary);
       setError(null);
     } catch (fallbackErr: any) {
       console.error('Fallback PDF load failed', fallbackErr);
       setError(fallbackErr?.message || 'Could not load this document.');
     }
-  }, [ebookId, previewPages, fallbackTried]);
+  }, [fetchPreviewBinary, fallbackTried]);
 
   useEffect(() => {
     if (!containerRef.current || !numPages) return;
