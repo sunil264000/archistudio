@@ -110,7 +110,7 @@ export function EbookPDFViewer({
       const { data: { session } } = await supabase.auth.getSession();
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      const endpoint = `${supabaseUrl}/functions/v1/preview-ebook?ebookId=${encodeURIComponent(ebookId)}&previewPages=${previewPages}`;
+      const endpoint = `${supabaseUrl}/functions/v1/previewebook?ebookId=${encodeURIComponent(ebookId)}&previewPages=${previewPages}`;
       const headers: Record<string, string> = {
         apikey: anonKey,
         Authorization: session?.access_token ? `Bearer ${session.access_token}` : `Bearer ${anonKey}`,
