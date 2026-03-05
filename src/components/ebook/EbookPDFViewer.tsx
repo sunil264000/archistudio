@@ -58,6 +58,7 @@ export function EbookPDFViewer({
   const navigate = useNavigate();
 
   const [source, setSource] = useState<SourceConfig | null>(null);
+  const [pdfBinary, setPdfBinary] = useState<Uint8Array | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(1);
@@ -69,6 +70,7 @@ export function EbookPDFViewer({
   const [searchTerm, setSearchTerm] = useState('');
   const [searching, setSearching] = useState(false);
   const [searchMatches, setSearchMatches] = useState<number[]>([]);
+  const [fallbackTried, setFallbackTried] = useState(false);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const pageRefs = useRef<Record<number, HTMLDivElement | null>>({});
@@ -79,13 +81,16 @@ export function EbookPDFViewer({
   const maxViewablePages = hasAccess ? numPages : Math.min(previewPages, numPages);
 
   const file = useMemo(() => {
+    if (pdfBinary) {
+      return { data: pdfBinary };
+    }
     if (!source) return null;
     return {
       url: source.url,
       httpHeaders: source.headers,
       withCredentials: false,
     };
-  }, [source]);
+  }, [source, pdfBinary]);
 
   const visibleWindow = useMemo(() => {
     const pages = new Set<number>();
@@ -98,6 +103,8 @@ export function EbookPDFViewer({
   const fetchSource = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setPdfBinary(null);
+    setFallbackTried(false);
 
     try {
       const cacheKey = `${ebookId}:${previewPages}`;
@@ -137,6 +144,38 @@ export function EbookPDFViewer({
       void fetchSource();
     }
   }, [isOpen, ebookId, fetchSource]);
+
+  const loadFallbackBinary = useCallback(async () => {
+    if (fallbackTried) return;
+
+    setFallbackTried(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/previewebook`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: anonKey,
+          Authorization: session?.access_token ? `Bearer ${session.access_token}` : `Bearer ${anonKey}`,
+        },
+        body: JSON.stringify({ ebookId, previewPages }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Could not load preview fallback.');
+      }
+
+      const buffer = await response.arrayBuffer();
+      setPdfBinary(new Uint8Array(buffer));
+      setError(null);
+    } catch (fallbackErr: any) {
+      console.error('Fallback PDF load failed', fallbackErr);
+      setError(fallbackErr?.message || 'Could not load this document.');
+    }
+  }, [ebookId, previewPages, fallbackTried]);
 
   useEffect(() => {
     if (!containerRef.current || !numPages) return;
@@ -366,6 +405,10 @@ export function EbookPDFViewer({
               onLoadSuccess={onDocumentLoadSuccess}
               onLoadError={(err) => {
                 console.error('Document load error', err);
+                if (!pdfBinary) {
+                  void loadFallbackBinary();
+                  return;
+                }
                 setError('Could not load this document.');
               }}
               options={{
