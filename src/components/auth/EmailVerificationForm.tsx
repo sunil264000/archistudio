@@ -93,8 +93,11 @@ export function EmailVerificationForm({ email, password, onVerified, onBack }: E
         return;
       }
 
-      // Email is now confirmed! Sign in the user automatically
+      // Email is now confirmed! Wait briefly for DB to propagate, then sign in
       toast.success('Email verified! Signing you in...');
+
+      // Give the edge function's profile update time to propagate
+      await new Promise(r => setTimeout(r, 800));
       
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -107,6 +110,8 @@ export function EmailVerificationForm({ email, password, onVerified, onBack }: E
         return;
       }
 
+      // Wait for auth state to settle before calling onVerified
+      await new Promise(r => setTimeout(r, 500));
       onVerified();
     } catch (err) {
       toast.error('Verification failed. Please try again.');
