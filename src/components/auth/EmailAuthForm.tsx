@@ -162,17 +162,6 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
   };
 
   const handleVerificationSuccess = async () => {
-    // Notify admin about new signup
-    if (pendingEmail) {
-      supabase.functions.invoke('notify-admin', {
-        body: {
-          type: 'new_signup',
-          email: pendingEmail,
-          name: pendingName || pendingEmail.split('@')[0],
-        }
-      }).catch(err => console.error('Admin notify error:', err));
-    }
-
     // Record referral use if referral code was provided
     if (referralCode.trim()) {
       const { data: { user } } = await supabase.auth.getUser();
@@ -195,7 +184,8 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
     }
 
     toast.success('Email verified! Welcome to Archistudio.');
-    onSuccess?.();
+    // Don't call onSuccess() — let Auth.tsx's useEffect redirect
+    // once AuthContext finishes setting the user from the SIGNED_IN event.
   };
 
   const handleBackToForm = () => {

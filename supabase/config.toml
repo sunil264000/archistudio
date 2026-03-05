@@ -98,3 +98,9 @@ verify_jwt = false
 
 [functions.download-ebook-approved]
 verify_jwt = false
+
+[functions.send-daily-digest]
+verify_jwt = false
+
+[functions.notify-admin]
+verify_jwt = false
