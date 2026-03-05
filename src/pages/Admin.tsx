@@ -36,6 +36,7 @@ import { AutoFixLogs } from '@/components/admin/AutoFixLogs';
 import { ContactMessages } from '@/components/admin/ContactMessages';
 import { LuluStreamMigration } from '@/components/admin/LuluStreamMigration';
 import { SessionManagement } from '@/components/admin/SessionManagement';
+import { DownloadRequestManagement } from '@/components/admin/DownloadRequestManagement';
 import { DeployFunctionsPanel } from '@/components/admin/DeployFunctionsPanel';
 import { BulkResourceScanner } from '@/components/admin/BulkResourceScanner';
 import { toast } from 'sonner';
@@ -135,6 +136,8 @@ export default function Admin() {
         return <EbookPricingSettings />;
       case 'ebook-library':
         return <EbookManagement />;
+      case 'download-requests':
+        return <DownloadRequestManagement />;
       case 'ebook-access':
         return <ManualEnrollment />;
       case 'analytics':
