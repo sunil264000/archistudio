@@ -29,8 +29,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
-// Configure PDF.js worker using a reliable URL matched to the library version
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// Configure PDF.js worker using Vite's URL asset handling for guaranteed local loading
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 interface EbookPDFViewerProps {
   isOpen: boolean;
@@ -338,9 +341,9 @@ export function EbookPDFViewer({
                   setError('Unable to fetch this PDF source. Please try again.');
                 }}
                 options={{
-                  cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
+                  cMapUrl: '/pdf-cmaps/',
                   cMapPacked: true,
-                  standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/standard_fonts/`,
+                  standardFontDataUrl: '/pdf-standard_fonts/',
                 }}
                 loading={
                   <div className="flex items-center gap-3 text-muted-foreground">
@@ -366,8 +369,8 @@ export function EbookPDFViewer({
                       pageNumber={currentPage}
                       scale={scale}
                       className="shadow-2xl rounded-lg overflow-hidden ring-1 ring-border/10"
-                      renderTextLayer={true}
-                      renderAnnotationLayer={true}
+                      renderTextLayer={false}
+                      renderAnnotationLayer={false}
                       onLoadSuccess={handlePageLoadSuccess}
                       onLoadError={(err) => {
                         console.error("Page load error:", err);
