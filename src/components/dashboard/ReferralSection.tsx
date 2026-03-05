@@ -45,11 +45,11 @@ export function ReferralSection() {
   const generateReferralCode = async () => {
     if (!user) return;
     setCreating(true);
-    
+
     try {
       // Generate unique code
       const code = `CL${user.id.substring(0, 4).toUpperCase()}${Date.now().toString(36).toUpperCase()}`;
-      
+
       const { data, error } = await supabase
         .from('referrals')
         .insert({
@@ -77,10 +77,10 @@ export function ReferralSection() {
 
   const shareReferral = async () => {
     if (!referral) return;
-    
+
     const shareUrl = `${window.location.origin}/auth?mode=signup&ref=${referral.referral_code}`;
     const shareText = `Join me on Archistudio and learn practical architecture skills! Use my referral code for 10% off: ${referral.referral_code}`;
-    
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -106,7 +106,7 @@ export function ReferralSection() {
     );
   }
 
-  const shareUrl = referral 
+  const shareUrl = referral
     ? `${window.location.origin}/auth?mode=signup&ref=${referral.referral_code}`
     : '';
 
@@ -118,7 +118,7 @@ export function ReferralSection() {
           Refer & Earn ₹100
         </CardTitle>
         <CardDescription>
-          When your friend purchases a course above ₹500, you get a ₹100 discount coupon!
+          When your friend enrolls in a course above ₹500, you get a ₹100 discount coupon!
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -162,13 +162,13 @@ export function ReferralSection() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Your Referral Code</label>
               <div className="flex gap-2">
-                <Input 
-                  value={referral.referral_code} 
-                  readOnly 
+                <Input
+                  value={referral.referral_code}
+                  readOnly
                   className="font-mono text-lg tracking-wider"
                 />
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="icon"
                   onClick={() => copyToClipboard(referral.referral_code)}
                 >
@@ -181,13 +181,13 @@ export function ReferralSection() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Share Link</label>
               <div className="flex gap-2">
-                <Input 
-                  value={shareUrl} 
-                  readOnly 
+                <Input
+                  value={shareUrl}
+                  readOnly
                   className="text-sm"
                 />
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="icon"
                   onClick={() => copyToClipboard(shareUrl)}
                 >
@@ -208,7 +208,7 @@ export function ReferralSection() {
               <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
                 <li>Share your unique referral code with friends</li>
                 <li>They sign up using your code</li>
-                <li>When they buy any course above ₹500</li>
+                <li>When they enroll in any course above ₹500</li>
                 <li>You automatically get a ₹100 discount coupon!</li>
               </ol>
               <p className="text-xs text-muted-foreground mt-3 italic">

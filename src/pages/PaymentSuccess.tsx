@@ -232,7 +232,7 @@ const PaymentSuccess = () => {
                   transition={{ delay: 0.4 }}
                   className="text-muted-foreground"
                 >
-                  Thank you for your purchase. You now have full access to the course.
+                  Thank you for enrolling! You now have full access to the course.
                 </motion.p>
               </div>
 

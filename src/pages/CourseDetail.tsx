@@ -429,7 +429,7 @@ export default function CourseDetail() {
     if (!user) {
       toast({
         title: "Login Required",
-        description: "Please login to purchase this course",
+        description: "Please login to enroll in this course",
         variant: "destructive",
       });
       navigate(`/auth?redirect=/course/${course.slug}`);
@@ -922,7 +922,7 @@ export default function CourseDetail() {
                         ) : (
                           <>
                             <CreditCard className="h-5 w-5 mr-2" />
-                            Buy Now
+                            Enroll Now
                           </>
                         )}
                       </Button>

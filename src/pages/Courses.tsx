@@ -354,7 +354,7 @@ function CourseCard({
 
   const handleBuyNow = async () => {
     if (!user) {
-      toast({ title: 'Login Required', description: 'Please login to purchase this course', variant: 'destructive' });
+      toast({ title: 'Login Required', description: 'Please login to enroll in this course', variant: 'destructive' });
       navigate(`/auth?redirect=/course/${course.slug}`);
       return;
     }
@@ -410,7 +410,7 @@ function CourseCard({
     if (accessInfo.accessType === 'full') return { text: 'Continue Learning', icon: Play, action: () => navigate(`/learn/${course.slug}`), disabled: false };
     if (accessInfo.accessType === 'gift' || accessInfo.accessType === 'launch_free') return { text: 'Access Now', icon: Play, action: () => navigate(`/learn/${course.slug}`), disabled: false };
     if (accessInfo.accessType === 'partial') return { text: 'Unlock More', icon: ShoppingCart, action: () => navigate(`/courses/${course.slug}`), disabled: false };
-    return { text: `Buy Now - ₹${discountedPrice.toLocaleString()}`, icon: CreditCard, action: handleBuyNow, disabled: isLoading };
+    return { text: `Enroll Now - ₹${discountedPrice.toLocaleString()}`, icon: CreditCard, action: handleBuyNow, disabled: isLoading };
   };
 
   const ctaContent = getCTAContent();
@@ -537,7 +537,7 @@ function CourseCard({
             {ctaContent.disabled && isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <><ctaContent.icon className="h-4 w-4 mr-1" />{accessInfo.hasAccess ? 'Continue' : 'Buy'}</>
+              <><ctaContent.icon className="h-4 w-4 mr-1" />{accessInfo.hasAccess ? 'Continue' : 'Enroll Now'}</>
             )}
           </Button>
         </div>

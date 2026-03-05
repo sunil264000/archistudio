@@ -27,7 +27,7 @@ export function BundleDiscountBanner() {
               {currentDiscount > 0 ? (
                 <>You're saving <span className="font-bold text-accent">{currentDiscount}%</span> with {itemCount} courses in cart!</>
               ) : (
-                <>Buy 2 courses, get <span className="font-bold text-accent">10% OFF</span> • Buy 3+, get <span className="font-bold text-accent">20% OFF</span></>
+                <>Enroll in 2 courses, get <span className="font-bold text-accent">10% OFF</span> • Enroll in 3+, get <span className="font-bold text-accent">20% OFF</span></>
               )}
             </p>
           </div>
