@@ -7,9 +7,10 @@ import { useDynamicCourseData } from '@/hooks/useDynamicCourseData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Clock, BookOpen, Star, CheckCircle, Play, ArrowLeft, CreditCard, Loader2, Users, Award, FileText, Lock, Eye, ChevronDown, Video, ShoppingCart } from 'lucide-react';
+import { Clock, BookOpen, Star, CheckCircle, Play, ArrowLeft, CreditCard, Loader2, Users, Award, FileText, Lock, Eye, ChevronDown, Video, ShoppingCart, Tag, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
@@ -206,6 +207,12 @@ export default function CourseDetail() {
     courseLevel?: string;
   } | null>(null);
 
+  // Coupon state
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [couponError, setCouponError] = useState("");
+  const [isVerifyingCoupon, setIsVerifyingCoupon] = useState(false);
+
   // Scroll to top on route change
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -341,9 +348,81 @@ export default function CourseDetail() {
 
   const effectivePriceInr = getPriceInr(course.slug, course.priceInr);
   // Apply exit discount on top of the base price (for Buy Now flow)
-  const buyNowPrice = exitDiscountActive && effectivePriceInr > 0
+  const basePriceAfterExitDiscount = exitDiscountActive && effectivePriceInr > 0
     ? Math.round(effectivePriceInr * (1 - exitDiscountPercent / 100))
     : effectivePriceInr;
+
+  let buyNowPrice = basePriceAfterExitDiscount;
+  if (appliedCoupon) {
+    if (appliedCoupon.discount_type === 'percentage') {
+      buyNowPrice = Math.max(0, buyNowPrice - (buyNowPrice * appliedCoupon.discount_value / 100));
+    } else {
+      buyNowPrice = Math.max(0, buyNowPrice - appliedCoupon.discount_value);
+    }
+    buyNowPrice = Math.round(buyNowPrice);
+  }
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponError("Please enter a coupon code");
+      return;
+    }
+
+    setIsVerifyingCoupon(true);
+    setCouponError("");
+    setAppliedCoupon(null);
+
+    try {
+      const { data: coupon, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', couponCode.trim().toUpperCase())
+        .eq('is_active', true)
+        .single();
+
+      if (error || !coupon) {
+        throw new Error("Invalid or expired coupon code");
+      }
+
+      const now = new Date();
+      if (coupon.valid_from && new Date(coupon.valid_from) > now) {
+        throw new Error("Coupon is not yet valid");
+      }
+      if (coupon.valid_until && new Date(coupon.valid_until) < now) {
+        throw new Error("Coupon has expired");
+      }
+
+      if (coupon.max_uses && coupon.used_count !== null && coupon.used_count >= coupon.max_uses) {
+        throw new Error("Coupon usage limit reached");
+      }
+
+      if (coupon.min_purchase_amount && effectivePriceInr < coupon.min_purchase_amount) {
+        throw new Error(`Minimum purchase amount is ₹${coupon.min_purchase_amount}`);
+      }
+
+      if (coupon.applicable_course_id && coupon.applicable_course_id !== dbCourseId) {
+        throw new Error("This coupon is not valid for this course");
+      }
+
+      setAppliedCoupon(coupon);
+      setCouponError("");
+      toast({
+        title: "Coupon Applied!",
+        description: "Discount applied successfully.",
+      });
+
+    } catch (err: any) {
+      setCouponError(err.message || "Invalid coupon code");
+    } finally {
+      setIsVerifyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+    setCouponError("");
+  };
 
   const handleBuyNow = async () => {
     if (!user) {
@@ -401,6 +480,7 @@ export default function CourseDetail() {
       courseShortDescription: course.shortDescription,
       courseDescription: course.description,
       courseLevel: course.level,
+      couponCode: appliedCoupon?.code,
     });
   };
 
@@ -420,6 +500,7 @@ export default function CourseDetail() {
     await initiatePayment({
       ...pendingPaymentData,
       customerPhone: phone,
+      couponCode: appliedCoupon?.code,
     });
 
     setPendingPaymentData(null);
@@ -674,18 +755,77 @@ export default function CourseDetail() {
                   <div className="flex items-baseline gap-2">
                     {effectivePriceInr === 0 ? (
                       <span className="text-3xl font-bold text-success">Free</span>
-                    ) : saleActive && discountPercent > 0 ? (
+                    ) : (
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-3xl font-bold text-success">₹{calculateDiscountedPrice(effectivePriceInr).toLocaleString()}</span>
-                          <span className="text-lg line-through text-muted-foreground">₹{effectivePriceInr.toLocaleString()}</span>
+                          <span className="text-3xl font-bold text-success">₹{buyNowPrice.toLocaleString()}</span>
+                          {buyNowPrice < effectivePriceInr && (
+                            <span className="text-lg line-through text-muted-foreground">₹{effectivePriceInr.toLocaleString()}</span>
+                          )}
                         </div>
-                        <span className="inline-block px-2 py-0.5 bg-destructive text-destructive-foreground text-xs font-bold rounded">{discountPercent}% OFF</span>
+                        {saleActive && discountPercent > 0 && !appliedCoupon && (
+                          <span className="inline-block px-2 py-0.5 bg-destructive text-destructive-foreground text-xs font-bold rounded">{discountPercent}% OFF</span>
+                        )}
+                        {appliedCoupon && (
+                          <span className="inline-block px-2 py-0.5 bg-success text-success-foreground text-xs font-bold rounded">COUPON APPLIED</span>
+                        )}
                       </div>
-                    ) : (
-                      <span className="text-3xl font-bold">₹{effectivePriceInr.toLocaleString()}</span>
                     )}
                   </div>
+
+                  {/* Coupon UI */}
+                  {(!accessInfo.hasAccess || accessInfo.canPurchase) && effectivePriceInr > 0 && (
+                    <div className="space-y-3 pt-2">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Have a coupon?"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value)}
+                          disabled={isVerifyingCoupon || !!appliedCoupon}
+                          className="h-10 border-accent/20"
+                        />
+                        {appliedCoupon ? (
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-10 w-10 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={handleRemoveCoupon}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="secondary"
+                            className="h-10"
+                            onClick={handleApplyCoupon}
+                            disabled={isVerifyingCoupon || !couponCode.trim()}
+                          >
+                            {isVerifyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+                          </Button>
+                        )}
+                      </div>
+
+                      {couponError && (
+                        <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                          <X className="h-3 w-3" /> {couponError}
+                        </p>
+                      )}
+
+                      {appliedCoupon && (
+                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-success/10 border border-success/20 text-success text-sm">
+                          <div className="flex items-center gap-2 font-medium">
+                            <Tag className="h-4 w-4" />
+                            {appliedCoupon.code} applied!
+                          </div>
+                          <span className="font-bold">
+                            -{appliedCoupon.discount_type === 'percentage'
+                              ? `${appliedCoupon.discount_value}%`
+                              : `₹${appliedCoupon.discount_value}`}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* CTA Button - changes based on access status */}
                   {accessInfo.hasAccess && !accessInfo.canPurchase ? (

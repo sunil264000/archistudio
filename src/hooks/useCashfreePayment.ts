@@ -21,6 +21,7 @@ interface PaymentDetails {
   courseShortDescription?: string;
   courseDescription?: string;
   courseLevel?: string;
+  couponCode?: string;
 }
 
 export const useCashfreePayment = () => {
@@ -122,12 +123,12 @@ export const useCashfreePayment = () => {
 
     } catch (error: any) {
       console.error("Payment error:", error);
-      
+
       // Track failed attempt
       if (attemptId) {
         await updatePurchaseAttempt(attemptId, 'failed', { error: error.message });
       }
-      
+
       toast({
         title: "Payment Error",
         description: error.message || "Failed to initiate payment",

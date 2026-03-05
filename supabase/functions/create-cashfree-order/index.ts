@@ -11,6 +11,7 @@ interface OrderRequest {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  couponCode?: string;
 }
 
 // Input validation helpers
@@ -72,7 +73,7 @@ serve(async (req) => {
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
     const user = authData.user;
 
-    const { courseId, customerName, customerEmail, customerPhone }: OrderRequest = await req.json();
+    const { courseId, customerName, customerEmail, customerPhone, couponCode }: OrderRequest = await req.json();
     console.log("DEBUG NAME RECEIVED:", customerName);
 
     // Validate inputs
@@ -123,10 +124,54 @@ serve(async (req) => {
     }
 
     // Use SERVER-SIDE price from database (not client-supplied amount)
-    const amount = Number(course.price_inr);
+    let amount = Number(course.price_inr);
 
-    if (!amount || amount <= 0) {
-      throw new Error("Invalid course price");
+    // Process coupon if provided
+    let appliedCouponCode = null;
+    let appliedDiscountAmount = 0;
+
+    if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
+      const { data: coupon, error: couponError } = await supabaseClient
+        .from("coupons")
+        .select("*")
+        .eq("code", couponCode.trim().toUpperCase())
+        .eq("is_active", true)
+        .single();
+
+      if (!couponError && coupon) {
+        const now = new Date();
+        const validFrom = coupon.valid_from ? new Date(coupon.valid_from) : null;
+        const validUntil = coupon.valid_until ? new Date(coupon.valid_until) : null;
+
+        const isValidDate = (!validFrom || validFrom <= now) && (!validUntil || validUntil >= now);
+        const hasUsesLeft = !coupon.max_uses || (coupon.used_count || 0) < coupon.max_uses;
+        const meetsMinPurchase = !coupon.min_purchase_amount || amount >= coupon.min_purchase_amount;
+        const appliesToCourse = !coupon.applicable_course_id || coupon.applicable_course_id === course.id;
+
+        if (isValidDate && hasUsesLeft && meetsMinPurchase && appliesToCourse) {
+          appliedCouponCode = coupon.code;
+          if (coupon.discount_type === 'percentage') {
+            appliedDiscountAmount = amount * (coupon.discount_value / 100);
+            amount = Math.max(0, amount - appliedDiscountAmount);
+          } else {
+            appliedDiscountAmount = coupon.discount_value;
+            amount = Math.max(0, amount - appliedDiscountAmount);
+          }
+          amount = Math.round(amount);
+        } else {
+          console.warn("Coupon validation failed:", { couponCode, isValidDate, hasUsesLeft, meetsMinPurchase, appliesToCourse });
+        }
+      }
+    }
+
+    if (amount < 0) {
+      throw new Error("Invalid final price after discount");
+    }
+
+    // If amount is 0, this order shouldn't be processed via cashfree, 
+    // it should be handled by the free enrollment function on the client
+    if (amount === 0) {
+      throw new Error("Course is free after discount. Cannot process via Cashfree.");
     }
 
     const appId = Deno.env.get("CASHFREE_APP_ID");
@@ -199,6 +244,8 @@ serve(async (req) => {
         customer_name: customerName.trim().substring(0, 200),
         customer_email: customerEmail.trim().toLowerCase(),
         customer_phone: customerPhone.replace(/[\s-]/g, ""),
+        coupon_code: appliedCouponCode,
+        discount_amount: appliedDiscountAmount,
       },
     });
 

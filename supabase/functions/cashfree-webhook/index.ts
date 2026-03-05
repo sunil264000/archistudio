@@ -41,7 +41,7 @@ async function verifyWebhookSignature(
 
     const signatureData = encoder.encode(timestamp + rawBody);
     const signatureBuffer = await crypto.subtle.sign("HMAC", key, signatureData);
-    
+
     // Convert to base64
     const computedSignature = btoa(
       String.fromCharCode(...new Uint8Array(signatureBuffer))
@@ -62,13 +62,13 @@ serve(async (req) => {
   try {
     // Get the raw body for signature verification
     const rawBody = await req.text();
-    
+
     // Get webhook signature headers
     const signature = req.headers.get("x-webhook-signature");
     const timestamp = req.headers.get("x-webhook-timestamp");
-    
+
     const secretKey = Deno.env.get("CASHFREE_SECRET_KEY");
-    
+
     if (!secretKey) {
       console.error("CASHFREE_SECRET_KEY not configured");
       return new Response(
@@ -79,10 +79,10 @@ serve(async (req) => {
 
     // Verify webhook signature
     const isValid = await verifyWebhookSignature(rawBody, signature, timestamp, secretKey);
-    
+
     if (!isValid) {
-      console.error("Invalid webhook signature", { 
-        hasSignature: !!signature, 
+      console.error("Invalid webhook signature", {
+        hasSignature: !!signature,
         hasTimestamp: !!timestamp,
         sourceIP: req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip")
       });
@@ -101,7 +101,7 @@ serve(async (req) => {
     console.log("Cashfree webhook received (verified):", JSON.stringify(payload));
 
     const { data } = payload;
-    
+
     if (!data || !data.order) {
       throw new Error("Invalid webhook payload");
     }
@@ -153,7 +153,7 @@ serve(async (req) => {
     // If payment successful, process based on type (regular or EMI)
     if (status === "completed" && paymentData) {
       const isEMI = (paymentData.metadata as any)?.is_emi === true;
-      
+
       if (isEMI) {
         // Handle EMI payment
         await handleEMIPayment(supabaseClient, paymentData, orderId);
@@ -187,7 +187,7 @@ async function handleEMIPayment(supabaseClient: any, paymentData: any, orderId: 
   const metadata = paymentData.metadata as any;
   const moduleIdsToUnlock = metadata?.module_ids_to_unlock || [];
   const paymentPercent = metadata?.payment_percent || 0;
-  
+
   // Update EMI payment record
   const { data: emiPayment, error: emiError } = await supabaseClient
     .from("emi_payments")
@@ -260,9 +260,9 @@ async function handleEMIPayment(supabaseClient: any, paymentData: any, orderId: 
     // Send EMI confirmation email
     const baseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    
+
     const emailType = paymentPercent >= 100 ? "final_unlock" : "confirmation";
-    
+
     fetch(`${baseUrl}/functions/v1/send-emi-email`, {
       method: "POST",
       headers: {
@@ -328,7 +328,7 @@ async function handleFullPayment(supabaseClient: any, paymentData: any, orderId:
       .select("title, slug")
       .eq("id", courseId)
       .single();
-    
+
     if (courseRow) {
       courseName = courseRow.title;
       courseSlug = courseRow.slug;
@@ -357,9 +357,32 @@ async function handleFullPayment(supabaseClient: any, paymentData: any, orderId:
     return;
   }
 
+  // Update coupon usage count if a coupon was used
+  const appliedCouponCode = (paymentData.metadata as any)?.coupon_code as string | undefined;
+  if (appliedCouponCode) {
+    const { data: couponData } = await supabaseClient
+      .from('coupons')
+      .select('used_count')
+      .eq('code', appliedCouponCode)
+      .single();
+
+    if (couponData) {
+      const { error: couponUpdateError } = await supabaseClient
+        .from('coupons')
+        .update({ used_count: (couponData.used_count || 0) + 1 })
+        .eq('code', appliedCouponCode);
+
+      if (couponUpdateError) {
+        console.error("Error updating coupon usage:", couponUpdateError);
+      } else {
+        console.log(`Successfully incremented usage count for coupon: ${appliedCouponCode}`);
+      }
+    }
+  }
+
   // Check for referral reward - only if purchase is above ₹500
   const purchaseAmount = Number(paymentData.amount) || 0;
-  
+
   if (purchaseAmount >= 500) {
     // Check if this user was referred
     const { data: referralUse } = await supabaseClient
@@ -370,11 +393,11 @@ async function handleFullPayment(supabaseClient: any, paymentData: any, orderId:
 
     if (referralUse?.referral_id) {
       const referrerId = (referralUse.referrals as any)?.referrer_id;
-      
+
       if (referrerId) {
         // Create a ₹100 discount coupon for the referrer
         const couponCode = `REF${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-        
+
         const { error: couponError } = await supabaseClient
           .from("coupons")
           .insert({
@@ -394,7 +417,7 @@ async function handleFullPayment(supabaseClient: any, paymentData: any, orderId:
           console.error("Error creating referral coupon:", couponError);
         } else {
           console.log(`Created referral coupon ${couponCode} for referrer ${referrerId}`);
-          
+
           // Update referral stats
           const { data: currentReferral } = await supabaseClient
             .from("referrals")
@@ -403,7 +426,7 @@ async function handleFullPayment(supabaseClient: any, paymentData: any, orderId:
             .single();
 
           const currentTotal = currentReferral?.total_earned_discount || 0;
-          
+
           await supabaseClient
             .from("referrals")
             .update({
@@ -426,7 +449,7 @@ async function handleFullPayment(supabaseClient: any, paymentData: any, orderId:
       }
     }
   }
-  
+
   // Get user email for notification
   const { data: profile } = await supabaseClient
     .from("profiles")
@@ -438,7 +461,7 @@ async function handleFullPayment(supabaseClient: any, paymentData: any, orderId:
     // Send enrollment confirmation email
     const baseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    
+
     fetch(`${baseUrl}/functions/v1/send-enrollment-email`, {
       method: "POST",
       headers: {
