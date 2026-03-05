@@ -118,36 +118,34 @@ export function useDynamicCourseData() {
 
   /**
    * Get dynamic INR price for a course based on content richness.
-   * - Prefer backend price_inr when available.
-   * - Fallback: Calculate price based on slug hash to ensure consistency.
-   * - Price range: ₹500–₹3000 based on perceived content value.
+   * - Prefer backend price_inr when available (set via auto-price-courses function).
+   * - Fallback: Calculate from content metrics using the same algorithm as the backend.
+   * - Price range: ₹399–₹4999 based on lessons and duration.
    */
   const getPriceInr = (courseSlug: string, fallbackPrice: number, durationHours?: number, totalLessons?: number): number => {
     const dynamic = dynamicData[courseSlug];
-    if (typeof dynamic?.price_inr === 'number' && !Number.isNaN(dynamic.price_inr)) {
+    if (typeof dynamic?.price_inr === 'number' && !Number.isNaN(dynamic.price_inr) && dynamic.price_inr > 0) {
       return Math.round(dynamic.price_inr);
     }
 
-    // Generate consistent price based on slug hash for deterministic pricing
+    // Price brackets matching the backend auto-price edge function (₹399–₹4999)
+    const PRICE_BRACKETS = [399, 599, 799, 999, 1299, 1499, 1799, 1999, 2499, 2999, 3499, 3999, 4499, 4999];
+
+    const lessons = totalLessons ?? 0;
+    const hours = durationHours ?? 0;
+
+    // If we have content signals, use the same formula as the backend
+    if (lessons > 0 || hours > 0) {
+      const lessonScore = Math.min(lessons / 50, 1);
+      const durationScore = Math.min(hours / 20, 1);
+      const score = lessonScore * 0.4 + durationScore * 0.6;
+      const idx = Math.round(score * (PRICE_BRACKETS.length - 1));
+      return PRICE_BRACKETS[Math.max(0, Math.min(idx, PRICE_BRACKETS.length - 1))];
+    }
+
+    // Last resort: deterministic hash-based fallback in the new range
     const slugHash = courseSlug.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    
-    // Price tiers based on content indicators
-    const min = 500;
-    const max = 3000;
-    
-    // Calculate a base tier from slug hash (0-4 tiers)
-    const tier = slugHash % 5;
-    
-    // Price brackets: ₹500, ₹999, ₹1499, ₹1999, ₹2499, ₹2999
-    const priceTiers = [499, 799, 999, 1499, 1999, 2499, 2999];
-    
-    // Use content signals if available, otherwise use hash-based tier
-    let tierIndex = tier;
-    if (durationHours && durationHours > 20) tierIndex = Math.min(tierIndex + 2, 6);
-    else if (durationHours && durationHours > 10) tierIndex = Math.min(tierIndex + 1, 6);
-    if (totalLessons && totalLessons > 50) tierIndex = Math.min(tierIndex + 1, 6);
-    
-    return priceTiers[tierIndex % priceTiers.length];
+    return PRICE_BRACKETS[slugHash % PRICE_BRACKETS.length];
   };
 
   return {

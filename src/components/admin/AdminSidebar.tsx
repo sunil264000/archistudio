@@ -5,7 +5,7 @@ import {
   BookOpen, Package, Video, Users, UserPlus, HelpCircle, Bell,
   CreditCard, Sparkles, Award, BarChart3, MessageSquare, Settings,
   ChevronLeft, ChevronRight, LayoutDashboard, Timer, Mail, Send, Library, FileText, KeyRound,
-  Gift, Wallet, Rocket, Zap, Shield, History, Wrench, Inbox, Cloud, Monitor, FolderSync, Download
+  Gift, Wallet, Rocket, Zap, Shield, History, Wrench, Inbox, Cloud, Monitor, FolderSync, Download, TrendingUp
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logo from '@/assets/logo.png';
@@ -63,6 +63,7 @@ const menuGroups: MenuGroup[] = [
       { id: 'payments', label: 'Payments', icon: CreditCard, color: 'text-emerald-500' },
       { id: 'coupons', label: 'Coupons', icon: Sparkles, color: 'text-pink-500' },
       { id: 'sales', label: 'Flash Sales', icon: Timer, color: 'text-destructive' },
+      { id: 'auto-pricing', label: 'Auto-Pricing', icon: TrendingUp, color: 'text-violet-500' },
       { id: 'emi-settings', label: 'EMI Settings', icon: Wallet, color: 'text-amber-500' },
       { id: 'ebooks', label: 'eBooks Pricing', icon: Library, color: 'text-sky-500' },
       { id: 'download-requests', label: 'Download Requests', icon: Download, color: 'text-cyan-500' },

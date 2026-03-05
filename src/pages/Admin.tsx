@@ -39,6 +39,7 @@ import { SessionManagement } from '@/components/admin/SessionManagement';
 import { DownloadRequestManagement } from '@/components/admin/DownloadRequestManagement';
 import { DeployFunctionsPanel } from '@/components/admin/DeployFunctionsPanel';
 import { BulkResourceScanner } from '@/components/admin/BulkResourceScanner';
+import { AutoPricingPanel } from '@/components/admin/AutoPricingPanel';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import {
@@ -126,6 +127,8 @@ export default function Admin() {
         return <CouponManagement />;
       case 'sales':
         return <SalesManagement />;
+      case 'auto-pricing':
+        return <AutoPricingPanel />;
       case 'certificates':
         return <CertificateTemplateSettings />;
       case 'email-testing':
@@ -976,7 +979,7 @@ function SiteSettingsPanel() {
 
 function ResourceScannerPanel() {
   const [courses, setCourses] = useState<any[]>([]);
-  
+
   useEffect(() => {
     supabase.from('courses').select('id, title, slug').order('title').then(({ data }) => {
       setCourses(data || []);
