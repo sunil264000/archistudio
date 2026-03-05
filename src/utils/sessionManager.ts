@@ -69,7 +69,7 @@ export async function validateSession(userId: string): Promise<boolean> {
     .from('user_sessions')
     .update({ last_active_at: new Date().toISOString() })
     .eq('id', data.id)
-    .then(() => {});
+    .then(() => { });
 
   return true;
 }

@@ -155,13 +155,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Session management: register on SIGNED_IN, validate on TOKEN_REFRESHED
       if (event === 'SIGNED_IN' && !sessionRegistered.current) {
         sessionRegistered.current = true;
+        validationInProgress.current = true; // Block validation while registering
         try {
           await registerSession(nextSession.user.id);
         } catch (e) {
           console.error('Session register failed:', e);
+        } finally {
+          validationInProgress.current = false;
         }
       } else if (event === 'TOKEN_REFRESHED' && !validationInProgress.current) {
-        // Only validate on token refresh (periodic check), NOT on initial load
+        // Only validate on token refresh (periodic check), NOT on initial load or during register
         validationInProgress.current = true;
         try {
           const valid = await validateSession(nextSession.user.id);
@@ -179,15 +182,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           validationInProgress.current = false;
         }
       } else if (event === 'INITIAL_SESSION') {
-        // On initial page load, just validate without kicking out
-        // If no local token, register a new session (e.g., page refresh)
         const localToken = localStorage.getItem('session_token');
         if (!localToken && !sessionRegistered.current) {
           sessionRegistered.current = true;
+          validationInProgress.current = true;
           try {
             await registerSession(nextSession.user.id);
           } catch (e) {
             console.error('Session register on init failed:', e);
+          } finally {
+            validationInProgress.current = false;
           }
         }
       }
@@ -205,6 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithEmail = async (email: string, password: string) => {
     try {
       sessionRegistered.current = false;
+      localStorage.removeItem('session_token');
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return { error };
 
@@ -258,6 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = async () => {
     try {
       sessionRegistered.current = false;
+      localStorage.removeItem('session_token');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: `${window.location.origin}/` },
