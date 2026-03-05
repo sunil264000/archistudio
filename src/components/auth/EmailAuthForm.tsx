@@ -123,11 +123,14 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
 
       // Validate referral code if provided
       if (referralCode.trim()) {
-        const { data: referrer } = await supabase
+        const normalizedReferralCode = referralCode.trim().toUpperCase();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: referrer } = await (supabase as any)
           .from('profiles')
           .select('user_id')
-          .eq('referral_code', referralCode.trim().toUpperCase())
-          .single();
+          .eq('referral_code', normalizedReferralCode)
+          .maybeSingle();
+
         if (!referrer) {
           setReferralError('Invalid referral code. Please double-check and try again.');
           setLoading(false);
