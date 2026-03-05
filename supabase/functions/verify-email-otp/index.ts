@@ -10,6 +10,26 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function findAuthUserIdByEmail(supabaseAdmin: ReturnType<typeof createClient>, email: string) {
+  const normalized = email.toLowerCase().trim();
+
+  for (let page = 1; page <= 10; page++) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({
+      page,
+      perPage: 200,
+    });
+
+    if (error) break;
+
+    const user = data?.users?.find((u) => (u.email || '').toLowerCase() === normalized);
+    if (user?.id) return user.id;
+
+    if (!data?.users?.length || data.users.length < 200) break;
+  }
+
+  return null;
+}
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -178,15 +198,40 @@ const handler = async (req: Request): Promise<Response> => {
         .ilike("email", normalizedEmail)
         .maybeSingle();
 
-      if (profileRow?.user_id) {
-        await supabaseAdmin.auth.admin.updateUserById(profileRow.user_id, {
-          email_confirm: true,
-        });
+      const targetUserId = profileRow?.user_id || await findAuthUserIdByEmail(supabaseAdmin, normalizedEmail);
 
+      if (!targetUserId) {
+        return new Response(JSON.stringify({ success: false, error: "Account not found for this email. Please sign up again." }), {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+        email_confirm: true,
+      });
+
+      // Keep profile in sync (create if missing)
+      const { data: existingProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id")
+        .eq("user_id", targetUserId)
+        .maybeSingle();
+
+      if (existingProfile?.user_id) {
         await supabaseAdmin
           .from("profiles")
-          .update({ email_verified: true, updated_at: new Date().toISOString() })
-          .eq("user_id", profileRow.user_id);
+          .update({ email_verified: true, updated_at: new Date().toISOString(), email: normalizedEmail })
+          .eq("user_id", targetUserId);
+      } else {
+        await supabaseAdmin
+          .from("profiles")
+          .insert({
+            user_id: targetUserId,
+            email: normalizedEmail,
+            role: "student",
+            email_verified: true,
+          });
       }
 
       // Clean up OTP
