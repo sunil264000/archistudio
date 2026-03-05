@@ -96,18 +96,35 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
   const onSignupSubmit = async (data: SignupFormData) => {
     setLoading(true);
     try {
+      // Validate referral code FIRST (before signup) to avoid wasting rate-limited signup calls
+      if (referralCode.trim()) {
+        const normalizedReferralCode = referralCode.trim().toUpperCase();
+        const { data: referrerData } = await supabase.rpc('get_referral_by_code', {
+          code: normalizedReferralCode,
+        });
+
+        if (!referrerData || (Array.isArray(referrerData) && referrerData.length === 0)) {
+          setReferralError('Invalid referral code. Please double-check and try again.');
+          setLoading(false);
+          return;
+        }
+        setReferralError('');
+      }
+
       const { error } = await signUpWithEmail(data.email, data.password, data.fullName);
 
       if (error) {
         if (error.message.includes('already registered')) {
           toast.error('This email is already registered. Please login instead.');
+        } else if (error.message.toLowerCase().includes('security purposes') || error.message.toLowerCase().includes('rate limit')) {
+          toast.error('Please wait a few seconds before trying again.');
         } else {
           toast.error(error.message);
         }
         return;
       }
 
-      // Send OTP via our edge function (this is the ONLY email sent on signup now)
+      // Send OTP via our edge function
       const { error: otpError } = await supabase.functions.invoke('verify-email-otp', {
         body: { action: 'send', email: data.email, name: data.fullName },
       });
@@ -120,24 +137,6 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
       setPendingEmail(data.email);
       setPendingPassword(data.password);
       setPendingName(data.fullName);
-
-      // Validate referral code if provided
-      if (referralCode.trim()) {
-        const normalizedReferralCode = referralCode.trim().toUpperCase();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: referrer } = await (supabase as any)
-          .from('profiles')
-          .select('user_id')
-          .eq('referral_code', normalizedReferralCode)
-          .maybeSingle();
-
-        if (!referrer) {
-          setReferralError('Invalid referral code. Please double-check and try again.');
-          setLoading(false);
-          return;
-        }
-        setReferralError('');
-      }
 
       setShowVerification(true);
       toast.info('A 6-digit verification code has been sent to your email!');
@@ -160,15 +159,24 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
       }).catch(err => console.error('Admin notify error:', err));
     }
 
-    // Record referral code in profile if provided
+    // Record referral use if referral code was provided
     if (referralCode.trim()) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase as any)
-          .from('profiles')
-          .update({ referred_by: referralCode.trim().toUpperCase() })
-          .eq('user_id', user.id);
+        const normalizedCode = referralCode.trim().toUpperCase();
+        const { data: referrerData } = await supabase.rpc('get_referral_by_code', {
+          code: normalizedCode,
+        });
+
+        if (referrerData && Array.isArray(referrerData) && referrerData.length > 0) {
+          const referral = referrerData[0];
+          await supabase.from('referral_uses').insert({
+            referral_id: referral.id,
+            referred_user_id: user.id,
+            discount_applied: 0,
+            referrer_reward: 100,
+          });
+        }
       }
     }
 
