@@ -79,7 +79,7 @@ export function EbookPDFViewer({
   const fetchPdfUrl = async () => {
     setLoading(true); setError(null); setLoadingProgress(0);
     try {
-      const functionName = hasAccess ? 'download-ebook' : 'preview-ebook';
+      const functionName = 'preview-ebook';
       const { data: { session } } = await supabase.auth.getSession();
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -110,20 +110,19 @@ export function EbookPDFViewer({
       }
 
       const contentType = response.headers.get('content-type') || '';
-      if (!contentType.includes('application/pdf')) {
-        // Some errors come back as 200 with JSON — catch that
-        const text = await response.text();
-        try {
-          const parsed = JSON.parse(text);
-          throw new Error(parsed.error || 'Unexpected server response');
-        } catch {
-          throw new Error('Server returned unexpected content. Please try again.');
-        }
+      const arrayBuffer = await response.arrayBuffer();
+      const signature = new Uint8Array(arrayBuffer.slice(0, 5));
+      const isPdfSignature = signature[0] === 0x25 && signature[1] === 0x50 && signature[2] === 0x44 && signature[3] === 0x46 && signature[4] === 0x2D;
+
+      if (!contentType.includes('application/pdf') || !isPdfSignature) {
+        throw new Error('The file source returned an invalid PDF. Please retry or contact support.');
       }
 
-      const arrayBuffer = await response.arrayBuffer();
       const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-      setPdfUrl(URL.createObjectURL(blob));
+      setPdfUrl((previousUrl) => {
+        if (previousUrl) URL.revokeObjectURL(previousUrl);
+        return URL.createObjectURL(blob);
+      });
       setLoadingProgress(100);
     } catch (err: any) {
       console.error('Error loading PDF:', err);
@@ -332,6 +331,14 @@ export function EbookPDFViewer({
               <Document
                 file={pdfUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
+                onLoadError={(loadError) => {
+                  console.error('Document load error:', loadError);
+                  setError('Unable to parse this PDF. Please retry in a moment.');
+                }}
+                onSourceError={(sourceError) => {
+                  console.error('Document source error:', sourceError);
+                  setError('Unable to fetch this PDF source. Please try again.');
+                }}
                 options={{
                   cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
                   cMapPacked: true,
@@ -364,6 +371,11 @@ export function EbookPDFViewer({
                       renderTextLayer={false}
                       renderAnnotationLayer={false}
                       onLoadSuccess={handlePageLoadSuccess}
+                      onRenderError={(renderError) => {
+                        console.error('Page render error:', renderError);
+                        setError('This page could not be rendered. Please try reloading the PDF.');
+                        setPageLoading(false);
+                      }}
                       width={typeof window !== 'undefined' && window.innerWidth < 640 ? window.innerWidth - 32 : undefined}
                       loading={
                         <div className="w-full max-w-[600px] aspect-[3/4] flex items-center justify-center bg-muted/10 rounded-lg border border-border/10">
