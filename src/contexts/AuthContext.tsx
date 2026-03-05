@@ -108,7 +108,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const isEmailVerified = userProfile?.email_verified === true;
-      if (!isEmailVerified) {
+      // On SIGNED_IN, the login functions (signInWithEmail / EmailVerificationForm)
+      // already enforce email_verified checks. Allow through to avoid race conditions
+      // where the profile update hasn't propagated yet after OTP verification.
+      // Enforce the gate on INITIAL_SESSION and TOKEN_REFRESHED only.
+      if (!isEmailVerified && event !== 'SIGNED_IN') {
         setSession(null);
         setUser(null);
         setProfile(null);
@@ -117,6 +121,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionRegistered.current = false;
         await supabase.auth.signOut();
         return;
+      }
+
+      // For SIGNED_IN with unverified profile, refetch once (edge function may have just updated it)
+      if (!isEmailVerified && event === 'SIGNED_IN') {
+        // Small delay to let the DB update propagate
+        await new Promise(r => setTimeout(r, 500));
+        const refreshedProfile = await fetchProfile(nextSession.user.id);
+        if (!refreshedProfile?.email_verified) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setHasAdminRole(false);
+          setLoading(false);
+          sessionRegistered.current = false;
+          await supabase.auth.signOut();
+          return;
+        }
+        userProfile = refreshedProfile;
       }
 
       setSession(nextSession);
