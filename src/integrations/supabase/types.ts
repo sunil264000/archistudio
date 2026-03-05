@@ -715,6 +715,59 @@ export type Database = {
           },
         ]
       }
+      download_requests: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          download_granted: boolean | null
+          ebook_id: string
+          id: string
+          payment_order_id: string | null
+          payment_verified: boolean | null
+          price_set: number | null
+          reason: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          download_granted?: boolean | null
+          ebook_id: string
+          id?: string
+          payment_order_id?: string | null
+          payment_verified?: boolean | null
+          price_set?: number | null
+          reason: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          download_granted?: boolean | null
+          ebook_id?: string
+          id?: string
+          payment_order_id?: string | null
+          payment_verified?: boolean | null
+          price_set?: number | null
+          reason?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "download_requests_ebook_id_fkey"
+            columns: ["ebook_id"]
+            isOneToOne: false
+            referencedRelation: "ebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ebook_pricing_settings: {
         Row: {
           full_bundle_price: number
