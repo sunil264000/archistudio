@@ -129,6 +129,14 @@ const AppContent = () => {
           }
 
           if (campaign.is_welcome_promotion) {
+            const signupCode = user.user_metadata?.signup_promo_code;
+            const campaignCode = campaign.coupon_code || 'WELCOME100';
+
+            if (signupCode?.toUpperCase() !== campaignCode.toUpperCase()) {
+              console.log('User not eligible for welcome promotion: code mismatch');
+              continue;
+            }
+
             setWelcomeCampaign(campaign);
             setShowWelcomeModal(true);
             break;

@@ -97,10 +97,14 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
     setLoading(true);
     try {
       // Validate referral code FIRST (before signup) to avoid wasting rate-limited signup calls
-      if (referralCode.trim()) {
-        const normalizedReferralCode = referralCode.trim().toUpperCase();
+      const normalizedPromoCode = referralCode.trim().toUpperCase();
+      const isWelcomeCode = normalizedPromoCode === 'WELCOME100';
+
+      // Validate referral code FIRST (before signup) to avoid wasting rate-limited signup calls
+      // BUT bypass this check if it's the specific WELCOME100 promo code
+      if (referralCode.trim() && !isWelcomeCode) {
         const { data: referrerData } = await supabase.rpc('get_referral_by_code', {
-          code: normalizedReferralCode,
+          code: normalizedPromoCode,
         });
 
         if (!referrerData || (Array.isArray(referrerData) && referrerData.length === 0)) {
@@ -111,7 +115,7 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
         setReferralError('');
       }
 
-      const { error } = await signUpWithEmail(data.email, data.password, data.fullName);
+      const { error } = await signUpWithEmail(data.email, data.password, data.fullName, referralCode.trim());
 
       if (error) {
         if (error.message.includes('already registered')) {
@@ -286,13 +290,13 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
       </div>
       <div className="space-y-2">
         <Label htmlFor="referralCode" className="flex items-center gap-1.5">
-          Referral Code
+          Referral or Promo Code
           <span className="text-xs text-muted-foreground font-normal">(optional)</span>
         </Label>
         <Input
           id="referralCode"
           type="text"
-          placeholder="e.g. ARCH1234"
+          placeholder="e.g. WELCOME100"
           value={referralCode}
           onChange={(e) => { setReferralCode(e.target.value); setReferralError(''); }}
           className="bg-background uppercase"
