@@ -139,43 +139,43 @@ export function EbookPDFViewer({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl w-[98vw] h-[92vh] p-0 overflow-hidden bg-background border-border/40">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 bg-card/60">
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm sm:text-base font-semibold truncate">{ebookTitle}</h3>
-            <Badge variant="outline" className="text-[10px] sm:text-xs border-border/40 mt-1">
+      <DialogContent className="max-w-[98vw] w-[98vw] h-[96vh] p-0 overflow-hidden bg-background border-border/40 flex flex-col">
+        {/* Compact Header */}
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border/40 bg-card/60 shrink-0">
+          <div className="min-w-0 flex-1 flex items-center gap-2">
+            <h3 className="text-sm font-semibold truncate">{ebookTitle}</h3>
+            <Badge variant="outline" className="text-[10px] border-border/40 shrink-0">
               {hasAccess ? 'Full Access' : 'Preview'}
             </Badge>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             {drivePreviewUrl && (
-              <Button variant="outline" size="sm" className="hidden sm:flex gap-1.5" onClick={openInNewTab}>
-                <ExternalLink className="h-3.5 w-3.5" />
-                Open in New Tab
+              <Button variant="outline" size="sm" className="hidden sm:flex gap-1.5 h-7 text-xs" onClick={openInNewTab}>
+                <ExternalLink className="h-3 w-3" />
+                New Tab
               </Button>
             )}
             {hasAccess && (
-              <Button variant="outline" size="sm" className="gap-1.5" onClick={handleDownload} disabled={downloading}>
-                {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={handleDownload} disabled={downloading}>
+                {downloading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
                 <span className="hidden sm:inline">Download</span>
               </Button>
             )}
             {!hasAccess && (
-              <Button size="sm" className="gap-1.5 bg-primary text-primary-foreground" onClick={handlePurchase}>
-                <ShoppingCart className="h-3.5 w-3.5" />
+              <Button size="sm" className="gap-1.5 h-7 text-xs bg-primary text-primary-foreground" onClick={handlePurchase}>
+                <ShoppingCart className="h-3 w-3" />
                 <span className="hidden sm:inline">Purchase</span>
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-hidden relative" style={{ height: 'calc(100% - 60px)' }}>
+        {/* Content - takes all remaining space */}
+        <div className="flex-1 min-h-0 relative">
           {loading && (
             <div className="h-full flex items-center justify-center">
               <div className="flex items-center gap-2 text-muted-foreground">
