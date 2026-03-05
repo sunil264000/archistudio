@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, BookOpen, Play, Award, Clock } from 'lucide-react';
+import { CourseThumbnail } from '@/components/course/CourseThumbnail';
 
 interface EnrolledCourse {
   id: string;
@@ -19,6 +20,7 @@ interface EnrolledCourse {
     thumbnail_url: string | null;
     total_lessons: number | null;
     duration_hours: number | null;
+    category_id: string | null;
   };
   progress: number;
   completedLessons: number;
@@ -45,7 +47,7 @@ export function EnrolledCourses() {
         .from('enrollments')
         .select(`
           id, course_id, enrolled_at,
-          courses:course_id (id, title, slug, thumbnail_url, total_lessons, duration_hours)
+          courses:course_id (id, title, slug, thumbnail_url, total_lessons, duration_hours, category_id)
         `)
         .eq('user_id', user.id)
         .eq('status', 'active');
@@ -217,22 +219,14 @@ export function EnrolledCourses() {
             <div className="grid md:grid-cols-2 gap-4">
               {enrolledCourses.map((enrollment) => (
                 <Card key={enrollment.id} className="overflow-hidden">
-                <div className="aspect-video relative bg-gradient-to-br from-primary/20 to-accent/20">
-                    {enrollment.course.thumbnail_url ? (
-                      <img
-                        src={enrollment.course.thumbnail_url}
-                        alt={enrollment.course.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center');
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                        <BookOpen className="h-12 w-12 text-muted-foreground" />
-                      </div>
-                    )}
+                  <div className="aspect-video relative bg-gradient-to-br from-primary/20 to-accent/20">
+                    <CourseThumbnail
+                      src={enrollment.course.thumbnail_url || ''}
+                      alt={enrollment.course.title}
+                      slug={enrollment.course.slug}
+                      category={enrollment.course.category_id || 'fundamentals'}
+                      className="w-full h-full object-cover"
+                    />
                     {enrollment.progress === 100 && (
                       <div className="absolute top-2 right-2">
                         <Badge className="bg-success text-success-foreground">Completed</Badge>

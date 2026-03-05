@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { categoryImages } from '@/data/courses';
 
 /** Premium gradient SVG placeholder keyed by course title + category */
@@ -40,7 +40,7 @@ function generatePlaceholder(title: string, category: string): string {
       <path d="${iconPath}"/>
     </g>
     <text x="375" y="275" text-anchor="middle" font-family="system-ui,sans-serif" font-size="22" font-weight="700" fill="rgba(255,255,255,.9)" letter-spacing=".03em">${short}</text>
-    <text x="375" y="305" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="hsl(18,70%,55%)" letter-spacing=".15em">${category.toUpperCase().replace(/-/g,' ')}</text>
+    <text x="375" y="305" text-anchor="middle" font-family="system-ui,sans-serif" font-size="12" font-weight="600" fill="hsl(18,70%,55%)" letter-spacing=".15em">${category.toUpperCase().replace(/-/g, ' ')}</text>
     <text x="375" y="400" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="rgba(255,255,255,.25)" letter-spacing=".15em">ARCHISTUDIO</text>
   </svg>`;
 
@@ -57,8 +57,14 @@ interface CourseThumbnailProps {
 
 export function CourseThumbnail({ src, alt, slug, category, className = '' }: CourseThumbnailProps) {
   // 0 = primary URL, 1 = category image, 2 = generated SVG
-  const [stage, setStage] = useState(0);
+  const [stage, setStage] = useState(src ? 0 : 1);
   const errorCountRef = useRef(0);
+
+  // Reset stage if src changes dynamically
+  useEffect(() => {
+    setStage(src ? 0 : 1);
+    errorCountRef.current = 0;
+  }, [src]);
 
   const currentSrc = stage === 0
     ? src

@@ -9,6 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { courseCategories } from "@/data/courses";
+import { CourseThumbnail } from "@/components/course/CourseThumbnail";
 
 interface Course {
   id: string;
@@ -23,6 +25,7 @@ interface Course {
   duration_hours: number | null;
   is_published: boolean | null;
   is_featured: boolean | null;
+  category_id: string | null;
 }
 
 interface CourseEditDialogProps {
@@ -41,29 +44,29 @@ export function CourseEditDialog({ course, open, onOpenChange, onSave }: CourseE
 
   const handleSave = async () => {
     if (!course?.id) return;
-    
+
     setSaving(true);
     try {
       let thumbnailUrl = currentCourse.thumbnail_url;
-      
+
       // If thumbnail URL changed and is external, download and store it permanently
       if (
-        thumbnailUrl && 
+        thumbnailUrl &&
         thumbnailUrl !== course.thumbnail_url &&
         !thumbnailUrl.includes('/storage/v1/object/public/course-thumbnails/')
       ) {
         toast.info('Downloading and storing thumbnail permanently...');
-        
+
         const { data, error: uploadError } = await supabase.functions.invoke('upload-thumbnail', {
           body: { courseId: course.id, imageUrl: thumbnailUrl }
         });
-        
+
         if (uploadError) throw uploadError;
         if (data?.error) throw new Error(data.error);
-        
+
         thumbnailUrl = data.thumbnailUrl;
       }
-      
+
       const { error } = await supabase
         .from("courses")
         .update({
@@ -77,12 +80,13 @@ export function CourseEditDialog({ course, open, onOpenChange, onSave }: CourseE
           duration_hours: currentCourse.duration_hours,
           is_published: currentCourse.is_published,
           is_featured: currentCourse.is_featured,
+          category_id: currentCourse.category_id,
           updated_at: new Date().toISOString(),
         })
         .eq("id", course.id);
 
       if (error) throw error;
-      
+
       toast.success("Course updated successfully");
       setFormData({});
       onSave();
@@ -105,7 +109,7 @@ export function CourseEditDialog({ course, open, onOpenChange, onSave }: CourseE
         <DialogHeader>
           <DialogTitle>Edit Course</DialogTitle>
         </DialogHeader>
-        
+
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="title">Title</Label>
@@ -144,13 +148,35 @@ export function CourseEditDialog({ course, open, onOpenChange, onSave }: CourseE
               placeholder="https://example.com/image.jpg"
             />
             {currentCourse.thumbnail_url && (
-              <img
-                src={currentCourse.thumbnail_url}
-                alt="Thumbnail preview"
-                className="h-32 w-auto object-cover rounded-md border"
-                onError={(e) => (e.currentTarget.style.display = "none")}
-              />
+              <div className="h-40 w-60 overflow-hidden rounded-md border bg-muted">
+                <CourseThumbnail
+                  src={currentCourse.thumbnail_url}
+                  alt="Thumbnail preview"
+                  slug={currentCourse.slug || ''}
+                  category={currentCourse.category_id || 'fundamentals'}
+                  className="h-full w-full object-cover"
+                />
+              </div>
             )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="category">Category</Label>
+            <Select
+              value={currentCourse.category_id || "fundamentals"}
+              onValueChange={(value) => updateField("category_id", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {courseCategories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.icon} {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

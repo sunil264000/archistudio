@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { CourseEditDialog } from '@/components/admin/CourseEditDialog';
 import { LessonManagement } from '@/components/admin/LessonManagement';
 import { CourseManagement } from '@/components/admin/CourseManagement';
+import { CourseThumbnail } from '@/components/course/CourseThumbnail';
 import { CouponManagement } from '@/components/admin/CouponManagement';
 import { CertificateTemplateSettings } from '@/components/admin/CertificateTemplateSettings';
 import { ManualEnrollment } from '@/components/admin/ManualEnrollment';
@@ -265,18 +266,15 @@ function CoursesPanel() {
                 className="flex items-center justify-between p-4 border rounded-xl hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-center gap-4">
-                  {course.thumbnail_url ? (
-                    <img
+                  <div className="h-14 w-20 overflow-hidden rounded-lg border bg-muted">
+                    <CourseThumbnail
                       src={course.thumbnail_url}
                       alt={course.title}
-                      className="h-14 w-20 object-cover rounded-lg"
-                      onError={(e) => (e.currentTarget.style.display = 'none')}
+                      slug={course.slug}
+                      category={course.category_id || 'fundamentals'}
+                      className="h-full w-full object-cover"
                     />
-                  ) : (
-                    <div className="h-14 w-20 bg-muted rounded-lg flex items-center justify-center">
-                      <BookOpen className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                  )}
+                  </div>
                   <div>
                     <p className="font-medium">{course.title}</p>
                     <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">

@@ -14,6 +14,7 @@ import {
   Package, X, Link2, Unlink, FolderSync, ExternalLink,
   ChevronRight, Video, FileText, Plus, Sparkles
 } from 'lucide-react';
+import { CourseThumbnail } from '@/components/course/CourseThumbnail';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -71,6 +72,7 @@ interface Course {
   level: string | null;
   duration_hours: number | null;
   total_lessons: number | null;
+  category_id: string | null;
   drive_folder_id?: string | null;
 }
 
@@ -370,34 +372,39 @@ export function CourseManagement() {
 
   const fetchCourses = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('courses')
-      .select('id, title, slug, description, short_description, price_inr, price_usd, is_published, is_featured, is_highlighted, order_index, thumbnail_url, level, duration_hours, total_lessons')
-      .order('order_index', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('courses')
+        .select('id, title, slug, description, short_description, price_inr, price_usd, is_published, is_featured, is_highlighted, order_index, thumbnail_url, level, duration_hours, total_lessons, category_id')
+        .order('order_index', { ascending: true });
 
-    if (error) {
-      toast.error('Failed to fetch courses');
-    } else {
-      // Check for linked folders in site_settings
-      const { data: settings } = await supabase
-        .from('site_settings')
-        .select('key, value')
-        .like('key', 'course_folder_%');
+      if (error) {
+        toast.error('Failed to fetch courses');
+      } else {
+        // Check for linked folders in site_settings
+        const { data: settings } = await supabase
+          .from('site_settings')
+          .select('key, value')
+          .like('key', 'course_folder_%');
 
-      const folderMap: Record<string, string> = {};
-      (settings || []).forEach(s => {
-        const courseId = s.key.replace('course_folder_', '');
-        folderMap[courseId] = s.value || '';
-      });
+        const folderMap: Record<string, string> = {};
+        (settings || []).forEach(s => {
+          const courseId = s.key.replace('course_folder_', '');
+          folderMap[courseId] = s.value || '';
+        });
 
-      const coursesWithFolders = (data || []).map(c => ({
-        ...c,
-        drive_folder_id: folderMap[c.id] || null
-      }));
+        const coursesWithFolders = (data || []).map(c => ({
+          ...c,
+          drive_folder_id: folderMap[c.id] || null
+        }));
 
-      setCourses(coursesWithFolders);
+        setCourses(coursesWithFolders);
+      }
+    } catch (err) {
+      console.error('fetchCourses error:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const fetchCourseContent = async () => {
@@ -1605,16 +1612,13 @@ export function CourseManagement() {
 
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="w-14 h-10 rounded bg-muted flex items-center justify-center overflow-hidden border border-border">
-                        {(thumbnailEdits[course.id] !== undefined ? thumbnailEdits[course.id] : course.thumbnail_url) ? (
-                          <img
-                            src={thumbnailEdits[course.id] !== undefined ? thumbnailEdits[course.id] : course.thumbnail_url || ''}
-                            alt=""
-                            className="w-full h-full object-cover"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                        ) : (
-                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                        )}
+                        <CourseThumbnail
+                          src={thumbnailEdits[course.id] !== undefined ? thumbnailEdits[course.id] : (course.thumbnail_url || '')}
+                          alt={course.title}
+                          slug={course.slug}
+                          category={course.category_id || 'fundamentals'}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                       <div className="flex items-center gap-1">
                         <Input

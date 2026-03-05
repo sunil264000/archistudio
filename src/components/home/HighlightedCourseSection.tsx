@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { ArrowRight, BookOpen, Clock, Layers, Star, Sparkles, Zap } from 'lucide-react';
+import { CourseThumbnail } from '@/components/course/CourseThumbnail';
 
 interface HighlightedCourse {
   id: string;
@@ -17,6 +18,7 @@ interface HighlightedCourse {
   duration_hours: number | null;
   total_lessons: number | null;
   thumbnail_url: string | null;
+  category_id: string | null;
 }
 
 export function HighlightedCourseSection() {
@@ -28,7 +30,7 @@ export function HighlightedCourseSection() {
     const fetch = async () => {
       const { data } = await supabase
         .from('courses')
-        .select('id, title, slug, short_description, description, price_inr, level, duration_hours, total_lessons, thumbnail_url')
+        .select('id, title, slug, short_description, description, price_inr, level, duration_hours, total_lessons, thumbnail_url, category_id')
         .eq('is_highlighted', true)
         .eq('is_published', true)
         .limit(1)
@@ -57,7 +59,7 @@ export function HighlightedCourseSection() {
       {/* Background effects */}
       <div className="absolute inset-0 bg-gradient-to-b from-background via-primary/[0.02] to-background" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_50%,hsl(var(--accent)/0.04),transparent)]" />
-      
+
       <div className="container-wide relative z-10">
         {/* Section label */}
         <motion.div
@@ -86,22 +88,18 @@ export function HighlightedCourseSection() {
           <div className="relative rounded-3xl overflow-hidden group">
             {/* Animated border glow */}
             <div className="absolute -inset-[1px] rounded-3xl bg-gradient-to-r from-accent/40 via-primary/30 to-accent/40 opacity-60 group-hover:opacity-100 transition-opacity duration-700" />
-            
+
             <div className="relative rounded-3xl overflow-hidden" style={{ background: 'hsl(var(--card))' }}>
               <div className="grid lg:grid-cols-[1fr_1.2fr] gap-0">
                 {/* Left: Thumbnail */}
                 <div className="relative aspect-[16/10] lg:aspect-auto overflow-hidden">
-                  {course.thumbnail_url ? (
-                    <img
-                      src={course.thumbnail_url}
-                      alt={course.title}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                      <BookOpen className="h-16 w-16 text-muted-foreground/30" />
-                    </div>
-                  )}
+                  <CourseThumbnail
+                    src={course.thumbnail_url || ''}
+                    alt={course.title}
+                    slug={course.slug}
+                    category={course.category_id || 'fundamentals'}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
                   {/* Overlay gradient */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-card/80 hidden lg:block" />
                   <div className="absolute inset-0 bg-gradient-to-t from-card/60 to-transparent lg:hidden" />

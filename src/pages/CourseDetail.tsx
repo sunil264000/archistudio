@@ -31,6 +31,7 @@ import { LinkedEbooksHighlight } from '@/components/course/LinkedEbooksHighlight
 import { EMIPaymentOptions } from '@/components/course/EMIPaymentOptions';
 import { useExitDiscount } from '@/hooks/useExitDiscount';
 import { WhatYouLearnCard } from '@/components/course/WhatYouLearnCard';
+import { CourseThumbnail } from '@/components/course/CourseThumbnail';
 
 // Add to Cart Button Component
 function AddToCartButton({ course }: { course: any }) {
@@ -760,15 +761,12 @@ export default function CourseDetail() {
             <div className="lg:col-span-1">
               <Card className="sticky top-24 overflow-hidden border-accent/20 shadow-lg">
                 <div className="aspect-[3/2] relative group bg-muted">
-                  <img
-                    src={getThumbnail(course.slug, categoryImages[course.category] || '/placeholder.svg')}
+                  <CourseThumbnail
+                    src={getThumbnail(course.slug, categoryImages[course.category] || '')}
                     alt={course.title}
-                    loading="eager"
-                    decoding="async"
+                    slug={course.slug}
+                    category={course.category || 'fundamentals'}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    onError={(e) => {
-                      e.currentTarget.src = categoryImages[course.category] || '/placeholder.svg';
-                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent flex items-center justify-center">
                     <Button
