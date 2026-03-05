@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { X, Loader2, ExternalLink, ShoppingCart, Lock } from 'lucide-react';
+import { X, Loader2, ShoppingCart, Lock, MessageSquare, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -74,10 +74,13 @@ export function EbookPDFViewer({
     navigate('/ebooks');
   };
 
-  const openInNewTab = () => {
-    if (driveFileId) {
-      window.open(`https://drive.google.com/file/d/${driveFileId}/preview`, '_blank');
-    }
+  const handleDownloadRequest = () => {
+    onClose();
+    navigate('/contact');
+    toast({
+      title: 'Download Request',
+      description: 'Please submit a download request via the contact form. Additional charges may apply based on your request.',
+    });
   };
 
   const drivePreviewUrl = driveFileId
@@ -96,10 +99,10 @@ export function EbookPDFViewer({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            {drivePreviewUrl && (
-              <Button variant="outline" size="sm" className="hidden sm:flex gap-1.5 h-7 text-xs" onClick={openInNewTab}>
-                <ExternalLink className="h-3 w-3" />
-                New Tab
+            {hasAccess && (
+              <Button variant="outline" size="sm" className="hidden sm:flex gap-1.5 h-7 text-xs" onClick={handleDownloadRequest}>
+                <MessageSquare className="h-3 w-3" />
+                Request Download
               </Button>
             )}
             {!hasAccess && (
@@ -112,6 +115,14 @@ export function EbookPDFViewer({
               <X className="h-4 w-4" />
             </Button>
           </div>
+        </div>
+
+        {/* Download notice banner */}
+        <div className="px-3 py-1.5 bg-muted/30 border-b border-border/20 shrink-0">
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+            <Info className="h-3 w-3 shrink-0" />
+            Downloads are available on request and may involve additional charges depending on your plan. Contact us for details.
+          </p>
         </div>
 
         <div className="flex-1 min-h-0 relative">
