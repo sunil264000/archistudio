@@ -99,27 +99,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Fetch/create profile first so we can enforce custom OTP verification gate
       let userProfile = await fetchProfile(nextSession.user.id);
-      const authEmailVerified = !!nextSession.user.email_confirmed_at;
 
       if (!userProfile) {
         userProfile = await createProfile(
           nextSession.user.id,
           nextSession.user.email || '',
           nextSession.user.user_metadata?.full_name,
-          authEmailVerified
+          false // Never auto-confirm; our custom OTP flow sets this
         );
       }
 
-      // If backend auth confirms email but profile flag is stale, self-heal it
-      if (authEmailVerified && userProfile && !userProfile.email_verified) {
-        await supabase
-          .from('profiles')
-          .update({ email_verified: true, updated_at: new Date().toISOString() })
-          .eq('user_id', nextSession.user.id);
-        userProfile = { ...userProfile, email_verified: true };
-      }
-
-      const isEmailVerified = userProfile?.email_verified === true || authEmailVerified;
+      // ONLY trust the profile's email_verified flag (set by our OTP edge function)
+      // Do NOT trust Supabase's email_confirmed_at since auto-confirm may have set it
+      const isEmailVerified = userProfile?.email_verified === true;
 
       if (!isEmailVerified) {
         if (event === 'SIGNED_IN') {
