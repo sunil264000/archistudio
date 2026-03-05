@@ -12,7 +12,7 @@ interface OrderRequest {
   customerEmail: string;
   customerPhone: string;
   couponCode?: string;
-  amount?: number;
+  amount?: number; // Optional hint from client, but server recalculates if possible
 }
 
 // Input validation helpers
@@ -75,23 +75,14 @@ serve(async (req) => {
     const user = authData.user;
 
     const { courseId, customerName, customerEmail, customerPhone, couponCode, amount: clientAmount }: OrderRequest = await req.json();
-    console.log("DEBUG NAME RECEIVED:", customerName);
 
     // Validate inputs
-    if (!validateName(customerName)) {
-      throw new Error("Invalid customer name");
-    }
-    if (!validateEmail(customerEmail)) {
-      throw new Error("Invalid email address");
-    }
-    if (!validatePhone(customerPhone)) {
-      throw new Error("Invalid phone number");
-    }
-    if (!courseId || typeof courseId !== "string" || courseId.length > 100) {
-      throw new Error("Invalid course ID");
-    }
+    if (!validateName(customerName)) throw new Error("Invalid customer name");
+    if (!validateEmail(customerEmail)) throw new Error("Invalid email address");
+    if (!validatePhone(customerPhone)) throw new Error("Invalid phone number");
+    if (!courseId) throw new Error("Invalid course ID");
 
-    // CRITICAL: Get course from database - courses must exist in DB (no dynamic creation)
+    // CRITICAL: Get course from database
     const { data: course, error: courseError } = await supabaseClient
       .from("courses")
       .select("id, price_inr, title, is_published")
@@ -106,12 +97,9 @@ serve(async (req) => {
       });
     }
 
-    // Verify course is published
-    if (!course.is_published) {
-      throw new Error("Course is not available for purchase");
-    }
+    if (!course.is_published) throw new Error("Course is not available for purchase");
 
-    // ANTI-DOUBLE-PURCHASE: Check if user already has active access
+    // Check existing enrollment
     const { data: existingEnrollment } = await supabaseClient
       .from("enrollments")
       .select("id")
@@ -120,92 +108,73 @@ serve(async (req) => {
       .eq("status", "active")
       .maybeSingle();
 
-    if (existingEnrollment) {
-      throw new Error("You already have access to this course");
-    }
+    if (existingEnrollment) throw new Error("You already have access to this course");
 
-    // Use client-supplied amount to support frontend dynamic pricing (exit intent, bundles, deterministic fallback)
-    // Server-side database price_inr serves as a fallback or ceiling
-    const hasClientAmount = typeof clientAmount === 'number' && clientAmount > 0;
-    let amount = hasClientAmount
-      ? clientAmount
-      : Number(course.price_inr || 0);
+    // SERVER-SIDE PRICE DETERMINATION
+    // We strictly use the DB price as the foundation.
+    // If DB price is missing (0 or null), we use the client amount only if provided.
+    const basePrice = (course.price_inr && course.price_inr > 0)
+      ? Number(course.price_inr)
+      : (clientAmount || 0);
 
-    // Process coupon if provided
+    let finalAmount = basePrice;
+    let discountAmount = 0;
     let appliedCouponCode = null;
-    let appliedDiscountAmount = 0;
 
+    // Apply Coupon logic (Strictly server-side recalculation)
     if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
-      const { data: coupon, error: couponError } = await supabaseClient
+      const normalizedCode = couponCode.trim().toUpperCase();
+      const { data: coupon } = await supabaseClient
         .from("coupons")
         .select("*")
-        .eq("code", couponCode.trim().toUpperCase())
+        .eq("code", normalizedCode)
         .eq("is_active", true)
         .single();
 
-      if (!couponError && coupon) {
+      if (coupon) {
         const now = new Date();
         const validFrom = coupon.valid_from ? new Date(coupon.valid_from) : null;
         const validUntil = coupon.valid_until ? new Date(coupon.valid_until) : null;
 
         const isValidDate = (!validFrom || validFrom <= now) && (!validUntil || validUntil >= now);
         const hasUsesLeft = !coupon.max_uses || (coupon.used_count || 0) < coupon.max_uses;
-        const meetsMinPurchase = !coupon.min_purchase_amount || amount >= coupon.min_purchase_amount;
+        const meetsMinPurchase = !coupon.min_purchase_amount || basePrice >= coupon.min_purchase_amount;
         const appliesToCourse = !coupon.applicable_course_id || coupon.applicable_course_id === course.id;
 
         if (isValidDate && hasUsesLeft && meetsMinPurchase && appliesToCourse) {
-          appliedCouponCode = coupon.code;
-          // Calculate the discount value for logging metadata
-          const basePriceForCalculation = Number(course.price_inr || amount);
+          appliedCouponCode = normalizedCode;
           if (coupon.discount_type === 'percentage') {
-            appliedDiscountAmount = basePriceForCalculation * (coupon.discount_value / 100);
+            discountAmount = Math.round(basePrice * (coupon.discount_value / 100));
           } else {
-            appliedDiscountAmount = coupon.discount_value;
+            discountAmount = coupon.discount_value;
           }
-
-          // Only deduct the coupon if the amount did not come from the front-end, since the front-end price already factors it in
-          if (!hasClientAmount) {
-            amount = Math.max(0, amount - appliedDiscountAmount);
-            amount = Math.round(amount);
-          }
+          finalAmount = Math.max(0, basePrice - discountAmount);
+          console.log(`Coupon Applied: ${normalizedCode}. Base: ${basePrice}, Discount: ${discountAmount}, Final: ${finalAmount}`);
         } else {
-          console.warn("Coupon validation failed:", { couponCode, isValidDate, hasUsesLeft, meetsMinPurchase, appliesToCourse });
+          console.warn("Coupon validation failed server-side", { isValidDate, hasUsesLeft, meetsMinPurchase, appliesToCourse });
         }
       }
     }
 
-    if (amount < 0) {
-      throw new Error("Invalid final price after discount");
-    }
-
-    // If amount is 0, this order shouldn't be processed via cashfree, 
-    // it should be handled by the free enrollment function on the client
-    if (amount === 0) {
-      throw new Error("Course is free after discount. Cannot process via Cashfree.");
+    // EDGE CASE: If price is ₹0 after discount, don't go to Cashfree
+    if (finalAmount <= 0) {
+      return new Response(JSON.stringify({
+        isFree: true,
+        message: "Course is free after discount. Use free enrollment flow.",
+        courseId: course.id
+      }), {
+        status: 200, // Return 200 so the client can read the JSON safely
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const appId = Deno.env.get("CASHFREE_APP_ID");
     const secretKey = Deno.env.get("CASHFREE_SECRET_KEY");
+    if (!appId || !secretKey) throw new Error("Cashfree credentials not configured");
 
-    if (!appId || !secretKey) {
-      throw new Error("Cashfree credentials not configured");
-    }
-
-    // Generate unique order ID
     const orderId = `order_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-    // Cashfree domain whitelisting is strict. Use production domains only.
-    // Support both archistudio.lovable.app and archistudio.shop
-    const reqOrigin = req.headers.get("origin") || "";
-    let redirectBaseUrl = "https://archistudio.lovable.app"; // default
-
-    if (reqOrigin.includes("archistudio.shop")) {
-      redirectBaseUrl = "https://archistudio.shop";
-    } else if (reqOrigin.includes("archistudio.lovable.app")) {
-      redirectBaseUrl = "https://archistudio.lovable.app";
-    }
-
-    // Create Cashfree order with SERVER-SIDE validated price
+    // Create Cashfree order
     const cashfreeResponse = await fetch("https://api.cashfree.com/pg/orders", {
       method: "POST",
       headers: {
@@ -216,7 +185,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         order_id: orderId,
-        order_amount: amount, // Using server-side validated price
+        order_amount: finalAmount,
         order_currency: "INR",
         customer_details: {
           customer_id: user.id,
@@ -225,60 +194,43 @@ serve(async (req) => {
           customer_phone: customerPhone.replace(/[\s-]/g, ""),
         },
         order_meta: {
-          return_url: `${redirectBaseUrl}/payment-success?order_id={order_id}&course=${courseId}`,
-          cancel_url: `${redirectBaseUrl}/payment-failed?order_id={order_id}&course=${courseId}`,
-          notify_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/cashfree-webhook`,
+          return_url: `${req.headers.get("origin")}/payment-success?order_id={order_id}&course=${courseId}`,
+          notify_url: `${supabaseUrl}/functions/v1/cashfree-webhook`,
         },
-        order_note: `Course purchase: ${course.title}`,
       }),
     });
 
     const orderData = await cashfreeResponse.json();
+    if (!cashfreeResponse.ok) throw new Error(orderData.message || "Failed to create order");
 
-    if (!cashfreeResponse.ok) {
-      console.error("Cashfree error:", orderData);
-      throw new Error(orderData.message || "Failed to create order");
-    }
-
-    // Store payment record in pending state
-    const { error: paymentError } = await supabaseClient.from("payments").insert({
+    // Log pending payment
+    await supabaseClient.from("payments").insert({
       user_id: user.id,
       course_id: course.id,
-      amount: amount, // Using server-side validated price
+      amount: finalAmount,
       currency: "INR",
       status: "pending",
       payment_gateway: "cashfree",
       gateway_order_id: orderId,
       metadata: {
-        course_slug: courseId,
-        customer_name: customerName.trim().substring(0, 200),
-        customer_email: customerEmail.trim().toLowerCase(),
-        customer_phone: customerPhone.replace(/[\s-]/g, ""),
         coupon_code: appliedCouponCode,
-        discount_amount: appliedDiscountAmount,
-      },
+        discount_amount: discountAmount,
+        original_price: basePrice
+      }
     });
 
-    if (paymentError) {
-      console.error("Payment record error:", paymentError);
-      // Don't throw - payment can still proceed even if record fails
-    }
+    return new Response(JSON.stringify({
+      orderId: orderData.order_id,
+      paymentSessionId: orderData.payment_session_id,
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
 
-    return new Response(
-      JSON.stringify({
-        orderId: orderData.order_id,
-        paymentSessionId: orderData.payment_session_id,
-        orderStatus: orderData.order_status,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
   } catch (error: any) {
-    console.error("Error creating Cashfree order:", error);
-    return new Response(JSON.stringify({ error: error?.message || "Failed to create order" }), {
-      status: 500,
+    console.error("Payment initiation error:", error);
+    return new Response(JSON.stringify({ error: error.message || "Failed to initiate payment" }), {
+      status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

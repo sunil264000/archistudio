@@ -470,7 +470,7 @@ export default function CourseDetail() {
       return;
     }
 
-    await initiatePayment({
+    const result = await initiatePayment({
       courseId: course.slug,
       amount: buyNowPrice,
       customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
@@ -482,6 +482,12 @@ export default function CourseDetail() {
       courseLevel: course.level,
       couponCode: appliedCoupon?.code,
     });
+
+    // If server says coupon made it free, do free enrollment
+    if (result?.isFree) {
+      console.log("Server indicated course is free after discount. Enrolling...");
+      await handleFreeEnrollment(appliedCoupon?.code);
+    }
   };
 
   const handlePhoneSubmit = async (phone: string) => {
@@ -497,11 +503,17 @@ export default function CourseDetail() {
 
     setShowPhoneDialog(false);
 
-    await initiatePayment({
+    const result = await initiatePayment({
       ...pendingPaymentData,
       customerPhone: phone,
       couponCode: appliedCoupon?.code,
     });
+
+    // If server says coupon made it free, do free enrollment
+    if (result?.isFree) {
+      console.log("Server indicated course is free after discount (phone flow). Enrolling...");
+      await handleFreeEnrollment(appliedCoupon?.code);
+    }
 
     setPendingPaymentData(null);
   };

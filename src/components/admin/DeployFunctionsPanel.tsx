@@ -17,7 +17,9 @@ const EDGE_FUNCTIONS = [
     { slug: 'download-ebook', name: 'Download Ebook', description: 'Serves full PDFs to paying students' },
     { slug: 'cashfree-webhook', name: 'Cashfree Webhook', description: 'Handles payment confirmations from Cashfree' },
     { slug: 'check-course-completion', name: 'Course Completion', description: 'Generates certificates when course is finished' },
-    { slug: 'send-purchase-email', name: 'Purchase Email', description: 'Sends enrollment confirmation emails' },
+    { slug: 'create-cashfree-order', name: 'Create Course Order', description: 'Creates Cashfree orders for course purchases', priority: true },
+    { slug: 'validate-coupon', name: 'Validate Coupon', description: 'Server-side coupon validation engine', priority: true },
+    { slug: 'auto-price-courses', name: 'Auto-Pricing Engine', description: 'Automatically sets course prices based on content metrics', priority: true },
     { slug: 'create-ebook-order', name: 'Create Ebook Order', description: 'Creates Cashfree orders for ebook purchases' },
     { slug: 'sync-ebooks-drive', name: 'Sync Ebooks Drive', description: 'Syncs ebook metadata from Google Drive' },
 ];
