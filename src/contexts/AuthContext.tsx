@@ -30,6 +30,7 @@ interface AuthContextType {
   verifyPhoneOTP: (phone: string, token: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
+  setVerifyingOTP: (verifying: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,6 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [hasAdminRole, setHasAdminRole] = useState(false);
   const sessionRegistered = useRef(false);
   const validationInProgress = useRef(false);
+  const isVerifyingOTP = useRef(false);
+
+  const setVerifyingOTP = (verifying: boolean) => {
+    isVerifyingOTP.current = verifying;
+  };
 
   const checkAdminRole = async (userId: string) => {
     try {
@@ -114,14 +120,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const isEmailVerified = userProfile?.email_verified === true;
 
       if (!isEmailVerified) {
-        if (event === 'SIGNED_IN') {
+        if (event === 'SIGNED_IN' || isVerifyingOTP.current) {
           // After OTP verification the edge function sets email_verified=true.
-          // Give it a moment to propagate, then re-check once.
-          await new Promise(r => setTimeout(r, 1000));
-          const refreshedProfile = await fetchProfile(nextSession.user.id);
-          if (refreshedProfile?.email_verified) {
-            userProfile = refreshedProfile;
-          } else {
+          // Give it more time (up to 3 seconds) to propagate if we are in verification mode.
+          const maxRetries = isVerifyingOTP.current ? 3 : 1;
+          let verified = false;
+
+          for (let i = 0; i < maxRetries; i++) {
+            if (i > 0) await new Promise(r => setTimeout(r, 1000));
+            const refreshedProfile = await fetchProfile(nextSession.user.id);
+            if (refreshedProfile?.email_verified) {
+              userProfile = refreshedProfile;
+              verified = true;
+              break;
+            }
+          }
+
+          if (!verified) {
             // Still not verified — sign out silently
             await supabase.auth.signOut();
             setSession(null);
@@ -321,6 +336,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         verifyPhoneOTP,
         signOut,
         isAdmin: hasAdminRole,
+        setVerifyingOTP,
       }}
     >
       {children}

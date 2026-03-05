@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Loader2, Mail, AlertCircle, RefreshCw, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface EmailVerificationFormProps {
   email: string;
@@ -18,6 +19,7 @@ export function EmailVerificationForm({ email, password, onVerified, onBack }: E
   const [resending, setResending] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
+  const { setVerifyingOTP } = useAuth();
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Countdown timer
@@ -96,22 +98,28 @@ export function EmailVerificationForm({ email, password, onVerified, onBack }: E
       // Email is now confirmed! Wait briefly for DB to propagate, then sign in
       toast.success('Email verified! Signing you in...');
 
+      // Tell AuthContext to wait for us (don't kick out unverified user yet)
+      setVerifyingOTP(true);
+
       // Give the edge function's profile update time to propagate
-      await new Promise(r => setTimeout(r, 800));
-      
+      await new Promise(r => setTimeout(r, 1500));
+
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (signInError) {
+        console.error('Sign in error after verification:', signInError);
         toast.error('Verified but could not auto-login. Please sign in manually.');
+        setVerifyingOTP(false);
         onBack();
         return;
       }
 
       // Wait for auth state to settle before calling onVerified
       await new Promise(r => setTimeout(r, 500));
+      setVerifyingOTP(false);
       onVerified();
     } catch (err) {
       toast.error('Verification failed. Please try again.');
