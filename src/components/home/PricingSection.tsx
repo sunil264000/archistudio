@@ -32,7 +32,8 @@ export function PricingSection() {
     {
       name: 'Single Studio',
       description: 'Perfect for specific skill gaps',
-      priceINR: priceRange ? `₹${priceRange.min.toLocaleString('en-IN')}` : '₹499',
+      priceINR: '₹399',
+      maxPrice: '₹4,999',
       originalPrice: null as string | null,
       period: 'one-time',
       features: [
@@ -41,6 +42,7 @@ export function PricingSection() {
         'Proof of Completion included',
         'Community forum access',
         'Lifetime access',
+        'EMI available on courses above ₹1,699',
       ],
       cta: 'Browse Studios',
       popular: false,
