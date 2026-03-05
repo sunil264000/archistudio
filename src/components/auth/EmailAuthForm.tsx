@@ -115,7 +115,20 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
 
       if (error) {
         if (error.message.includes('already registered')) {
-          // If account already exists, continue with OTP flow (helps unfinished verification cases)
+          // Check if the existing account is already verified
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('email_verified')
+            .ilike('email', data.email)
+            .maybeSingle();
+
+          if (existingProfile?.email_verified) {
+            // Account is verified — block re-signup and redirect to login
+            toast.error('This email is already registered. Please sign in instead.');
+            return;
+          }
+
+          // Account exists but not yet verified (incomplete signup) — offer OTP re-verification
           const { error: resendError } = await supabase.functions.invoke('verify-email-otp', {
             body: { action: 'send', email: data.email, name: data.fullName },
           });
@@ -125,11 +138,11 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
             setPendingPassword(data.password);
             setPendingName(data.fullName);
             setShowVerification(true);
-            toast.info('Account already exists. Enter the 6-digit code sent to your email to continue.');
+            toast.info('Account already exists. Enter the 6-digit code sent to your email to complete verification.');
             return;
           }
 
-          toast.error('This email is already registered. Please login instead.');
+          toast.error('This email is already registered. Please sign in instead.');
         } else if (error.message.toLowerCase().includes('security purposes') || error.message.toLowerCase().includes('rate limit')) {
           toast.error('Please wait a few seconds before trying again.');
         } else {

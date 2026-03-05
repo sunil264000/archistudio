@@ -113,10 +113,63 @@ export function CartSheet() {
     if (items.length === 1) {
       const item = items[0];
       const customerPhone = phone || profile?.phone?.replace(/[\s-]/g, '');
+
+      if (finalPrice === 0) {
+        try {
+          // Process free enrollment directly instead of using Cashfree
+          const { supabase } = await import('@/integrations/supabase/client');
+
+          let { data: dbCourse } = await supabase
+            .from('courses')
+            .select('id')
+            .eq('slug', item.slug)
+            .single();
+
+          if (!dbCourse) {
+            toast({ title: "Error", description: "Course not found", variant: "destructive" });
+            return;
+          }
+
+          const { error: enrollError } = await supabase
+            .from('enrollments')
+            .insert({
+              user_id: user.id,
+              course_id: dbCourse.id,
+              status: 'active',
+            });
+
+          if (enrollError && enrollError.code !== '23505') throw enrollError;
+
+          if (appliedCoupon?.code) {
+            const { data: couponData } = await supabase
+              .from('coupons')
+              .select('used_count')
+              .eq('code', appliedCoupon.code)
+              .single();
+
+            if (couponData) {
+              await supabase
+                .from('coupons')
+                .update({ used_count: (couponData.used_count || 0) + 1 })
+                .eq('code', appliedCoupon.code);
+            }
+          }
+
+          toast({ title: "Success!", description: "Successfully enrolled for free." });
+          clearCart();
+          navigate(`/course/${item.slug}/learn`);
+          return;
+        } catch (e: any) {
+          toast({ title: "Enrollment failed", description: e.message, variant: "destructive" });
+          return;
+        }
+      }
+
       if (!customerPhone || !/^[6-9]\d{9}$/.test(customerPhone.replace(/\s/g, ''))) {
         setShowPhoneDialog(true);
         return;
       }
+
       await initiatePayment({
         courseId: item.slug,
         amount: finalPrice,
@@ -124,9 +177,9 @@ export function CartSheet() {
         customerEmail: user.email || '',
         customerPhone: customerPhone,
         courseTitle: item.title,
+        couponCode: appliedCoupon?.code,
       });
     } else {
-      // Multi-course: navigate to the first course detail page for individual checkout
       toast({
         title: 'One at a time',
         description: `Purchasing "${items[0].title}" first. You can check out the rest after.`,

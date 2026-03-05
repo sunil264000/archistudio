@@ -102,16 +102,21 @@ export function EmailVerificationForm({ email, password, onVerified, onBack }: E
       setVerifyingOTP(true);
 
       // Give the edge function's profile update time to propagate
-      await new Promise(r => setTimeout(r, 2500));
+      await new Promise(r => setTimeout(r, 2000));
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // Retry signInWithPassword up to 4 times (Supabase auth propagation can be slow)
+      let signInError: Error | null = null;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 1000));
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (!error) { signInError = null; break; }
+        signInError = error;
+        console.warn(`Sign-in attempt ${attempt + 1} failed:`, error.message);
+      }
 
       if (signInError) {
-        console.error('Sign in error after verification:', signInError);
-        toast.error('Verified but could not auto-login. Please sign in manually.');
+        console.error('All sign-in attempts failed after verification:', signInError);
+        toast.error('Email verified! Please sign in manually with your new password.');
         setVerifyingOTP(false);
         onBack();
         return;

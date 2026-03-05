@@ -5,7 +5,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ShieldCheck, BookOpen, Award, BarChart3, Gift, Library, Search } from 'lucide-react';
+import { ShieldCheck, BookOpen, Award, BarChart3, Gift, Library, Search, Lock } from 'lucide-react';
 import { EnrolledCourses } from '@/components/dashboard/EnrolledCourses';
 import { Certificates } from '@/components/dashboard/Certificates';
 import { ProgressAnalytics } from '@/components/dashboard/ProgressAnalytics';
@@ -18,6 +18,95 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, CheckCircle2, XCircle, User, BookOpen as BookOpenIcon, Calendar } from 'lucide-react';
+
+function AccountTab() {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast.error('New passwords do not match');
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        setSuccess(true);
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        toast.success('Password updated successfully!');
+        setTimeout(() => setSuccess(false), 4000);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Lock className="h-5 w-5 text-accent" />
+          Change Password
+        </CardTitle>
+        <CardDescription>
+          Update your account password. Google users can use the temporary password emailed to them.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {success ? (
+          <div className="flex items-center gap-3 p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400">
+            <CheckCircle2 className="h-5 w-5 shrink-0" />
+            <p className="text-sm font-medium">Password updated successfully!</p>
+          </div>
+        ) : (
+          <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">New Password</label>
+              <Input
+                type="password"
+                placeholder="At least 8 characters"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                minLength={8}
+                className="bg-background"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Confirm New Password</label>
+              <Input
+                type="password"
+                placeholder="Repeat new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                className="bg-background"
+              />
+            </div>
+            <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+              {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Updating...</> : 'Update Password'}
+            </Button>
+          </form>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+
 
 function VerifyTab() {
   const [certNumber, setCertNumber] = useState('');
@@ -147,6 +236,10 @@ export default function Dashboard() {
                 <Gift className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Refer</span>
               </TabsTrigger>
+              <TabsTrigger value="account" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+                <Lock className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Account</span>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="courses">
@@ -171,6 +264,10 @@ export default function Dashboard() {
 
             <TabsContent value="referrals">
               <ReferralSection />
+            </TabsContent>
+
+            <TabsContent value="account">
+              <AccountTab />
             </TabsContent>
           </Tabs>
         </div>

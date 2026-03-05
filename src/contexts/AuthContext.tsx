@@ -109,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Detect Google OAuth provider
       const provider = nextSession.user.app_metadata?.provider as string | undefined;
       const isGoogleUser = provider === 'google';
+      const isNewProfile = !userProfile; // true when user signs in with Google for the first time
 
       if (!userProfile) {
         // For Google users, email is pre-verified by Google — mark it verified immediately
@@ -132,6 +133,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq('user_id', nextSession.user.id);
         if (userProfile) userProfile = { ...userProfile, email_verified: true };
         isEmailVerified = true;
+      }
+
+      // For brand-new Google users, send them their auto-generated password in the background
+      if (isGoogleUser && isNewProfile && nextSession.user.email) {
+        supabase.functions.invoke('setup-google-password', {
+          body: {
+            userId: nextSession.user.id,
+            email: nextSession.user.email,
+            name: nextSession.user.user_metadata?.full_name || nextSession.user.email.split('@')[0],
+          },
+        }).catch(err => console.error('setup-google-password failed:', err));
       }
 
       if (!isEmailVerified) {

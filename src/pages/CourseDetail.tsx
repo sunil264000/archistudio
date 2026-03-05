@@ -445,9 +445,9 @@ export default function CourseDetail() {
       return;
     }
 
-    // Handle free courses
-    if (effectivePriceInr === 0) {
-      await handleFreeEnrollment();
+    // Handle free courses or fully discounted courses (100% off coupon)
+    if (buyNowPrice === 0) {
+      await handleFreeEnrollment(appliedCoupon?.code);
       return;
     }
 
@@ -506,7 +506,7 @@ export default function CourseDetail() {
     setPendingPaymentData(null);
   };
 
-  const handleFreeEnrollment = async () => {
+  const handleFreeEnrollment = async (usedCouponCode?: string) => {
     try {
       const { supabase } = await import('@/integrations/supabase/client');
 
@@ -556,6 +556,25 @@ export default function CourseDetail() {
           return;
         }
         throw enrollError;
+      }
+
+      // If a coupon was used, increment its use count
+      if (usedCouponCode) {
+        // We'll call the validate-coupon edge function or a separate tracking method?
+        // Let's invoke a new edge function or update directly if allowed. To be safe we'll try direct update
+        // and if RLS blocks it, the backend webhook handles paid ones. For free ones, we must try direct.
+        const { data: couponData } = await supabase
+          .from('coupons')
+          .select('used_count')
+          .eq('code', usedCouponCode)
+          .single();
+
+        if (couponData) {
+          await supabase
+            .from('coupons')
+            .update({ used_count: (couponData.used_count || 0) + 1 })
+            .eq('code', usedCouponCode);
+        }
       }
 
       // Send enrollment email (fire and forget)

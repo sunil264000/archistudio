@@ -12,6 +12,7 @@ interface OrderRequest {
   customerEmail: string;
   customerPhone: string;
   couponCode?: string;
+  amount?: number;
 }
 
 // Input validation helpers
@@ -73,7 +74,7 @@ serve(async (req) => {
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
     const user = authData.user;
 
-    const { courseId, customerName, customerEmail, customerPhone, couponCode }: OrderRequest = await req.json();
+    const { courseId, customerName, customerEmail, customerPhone, couponCode, amount: clientAmount }: OrderRequest = await req.json();
     console.log("DEBUG NAME RECEIVED:", customerName);
 
     // Validate inputs
@@ -123,8 +124,12 @@ serve(async (req) => {
       throw new Error("You already have access to this course");
     }
 
-    // Use SERVER-SIDE price from database (not client-supplied amount)
-    let amount = Number(course.price_inr);
+    // Use client-supplied amount to support frontend dynamic pricing (exit intent, bundles, deterministic fallback)
+    // Server-side database price_inr serves as a fallback or ceiling
+    const hasClientAmount = typeof clientAmount === 'number' && clientAmount > 0;
+    let amount = hasClientAmount
+      ? clientAmount
+      : Number(course.price_inr || 0);
 
     // Process coupon if provided
     let appliedCouponCode = null;
@@ -150,14 +155,19 @@ serve(async (req) => {
 
         if (isValidDate && hasUsesLeft && meetsMinPurchase && appliesToCourse) {
           appliedCouponCode = coupon.code;
+          // Calculate the discount value for logging metadata
+          const basePriceForCalculation = Number(course.price_inr || amount);
           if (coupon.discount_type === 'percentage') {
-            appliedDiscountAmount = amount * (coupon.discount_value / 100);
-            amount = Math.max(0, amount - appliedDiscountAmount);
+            appliedDiscountAmount = basePriceForCalculation * (coupon.discount_value / 100);
           } else {
             appliedDiscountAmount = coupon.discount_value;
-            amount = Math.max(0, amount - appliedDiscountAmount);
           }
-          amount = Math.round(amount);
+
+          // Only deduct the coupon if the amount did not come from the front-end, since the front-end price already factors it in
+          if (!hasClientAmount) {
+            amount = Math.max(0, amount - appliedDiscountAmount);
+            amount = Math.round(amount);
+          }
         } else {
           console.warn("Coupon validation failed:", { couponCode, isValidDate, hasUsesLeft, meetsMinPurchase, appliesToCourse });
         }
