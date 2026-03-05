@@ -155,9 +155,9 @@ export function CartSheet() {
             }
           }
 
-          toast({ title: "Success!", description: "Successfully enrolled for free." });
+          toast({ title: "Success! 🎉", description: "You're now enrolled. Let's start learning!" });
           clearCart();
-          navigate(`/course/${item.slug}/learn`);
+          navigate(`/learn/${item.slug}`);
           return;
         } catch (e: any) {
           toast({ title: "Enrollment failed", description: e.message, variant: "destructive" });

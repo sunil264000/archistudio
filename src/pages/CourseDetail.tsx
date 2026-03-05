@@ -552,7 +552,7 @@ export default function CourseDetail() {
             title: "Already Enrolled",
             description: "You're already enrolled in this course!",
           });
-          navigate(`/course/${course.slug}/learn`);
+          navigate(`/learn/${course.slug}`);
           return;
         }
         throw enrollError;
@@ -593,7 +593,7 @@ export default function CourseDetail() {
         description: "You can now access all course content.",
       });
 
-      navigate(`/course/${course.slug}/learn`);
+      navigate(`/learn/${course.slug}`);
     } catch (error: any) {
       console.error('Free enrollment error:', error);
       toast({
