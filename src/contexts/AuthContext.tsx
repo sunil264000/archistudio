@@ -71,11 +71,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const createProfile = async (userId: string, email: string, fullName?: string) => {
+  const createProfile = async (userId: string, email: string, fullName?: string, emailVerified = false) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .insert({ user_id: userId, email, full_name: fullName || null, role: 'student' })
+        .insert({ user_id: userId, email, full_name: fullName || null, role: 'student', email_verified: emailVerified })
         .select()
         .single();
       if (error) return null;
@@ -97,17 +97,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Fetch profile first so we can enforce custom OTP verification gate
+      // Fetch/create profile first so we can enforce custom OTP verification gate
       let userProfile = await fetchProfile(nextSession.user.id);
+      const authEmailVerified = !!nextSession.user.email_confirmed_at;
+
       if (!userProfile) {
         userProfile = await createProfile(
           nextSession.user.id,
           nextSession.user.email || '',
-          nextSession.user.user_metadata?.full_name
+          nextSession.user.user_metadata?.full_name,
+          authEmailVerified
         );
       }
 
-      const isEmailVerified = userProfile?.email_verified === true;
+      // If backend auth confirms email but profile flag is stale, self-heal it
+      if (authEmailVerified && userProfile && !userProfile.email_verified) {
+        await supabase
+          .from('profiles')
+          .update({ email_verified: true, updated_at: new Date().toISOString() })
+          .eq('user_id', nextSession.user.id);
+        userProfile = { ...userProfile, email_verified: true };
+      }
+
+      const isEmailVerified = userProfile?.email_verified === true || authEmailVerified;
 
       if (!isEmailVerified) {
         if (event === 'SIGNED_IN') {
@@ -209,7 +221,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signedInProfile = await createProfile(
           data.user.id,
           data.user.email || email,
-          data.user.user_metadata?.full_name
+          data.user.user_metadata?.full_name,
+          !!data.user.email_confirmed_at
         );
       }
 
