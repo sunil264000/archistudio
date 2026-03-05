@@ -9,14 +9,11 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { CartProvider } from "@/contexts/CartContext";
 import { PurchaseNotification } from "@/components/social-proof/PurchaseNotification";
 import { FestivalDecorations } from "@/components/festival/FestivalDecorations";
-import { SalesPopup } from "@/components/sales/SalesPopup";
 import { SaleBanner } from "@/components/sales/SaleBanner";
-
-import { ExitIntentPopup } from "@/components/sales/ExitIntentPopup";
-import { DiscountTimerBanner } from "@/components/sales/DiscountTimerBanner";
 import { AmbientAudio } from "@/components/audio/AmbientAudio";
 import { LoginGiftModal } from "@/components/gift/LoginGiftModal";
 import { WelcomePopup } from "@/components/welcome/WelcomePopup";
+import { NewUserOnboardingDialog } from "@/components/auth/NewUserOnboardingDialog";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { useContentProtection } from "@/hooks/useContentProtection";
@@ -68,9 +65,10 @@ const AppContent = () => {
   useContentProtection();
   useScrollReveal();
   useVisitorTracking();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [giftData, setGiftData] = useState<any>(null);
   const [showGiftModal, setShowGiftModal] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const giftCheckDone = useRef(false);
 
   // Check for gift campaigns when user logs in — run only once per user session
@@ -182,6 +180,24 @@ const AppContent = () => {
     return () => clearTimeout(timer);
   }, [user]);
 
+  useEffect(() => {
+    if (!user?.id) {
+      setShowOnboarding(false);
+      return;
+    }
+
+    const checkOnboarding = async () => {
+      const { data } = await (supabase as any)
+        .from('user_onboarding_intake')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      setShowOnboarding(!data);
+    };
+
+    void checkOnboarding();
+  }, [user?.id]);
 
   return (
     <>
@@ -190,6 +206,15 @@ const AppContent = () => {
         onOpenChange={setShowGiftModal}
         giftData={giftData}
       />
+      {user?.id && (
+        <NewUserOnboardingDialog
+          open={showOnboarding}
+          onOpenChange={setShowOnboarding}
+          userId={user.id}
+          defaultName={profile?.full_name || user.email?.split('@')[0] || ''}
+          onCompleted={() => setShowOnboarding(false)}
+        />
+      )}
     </>
   );
 };
@@ -254,12 +279,8 @@ const App = () => (
               <FestivalDecorations />
               <PurchaseNotification />
               <SaleBanner />
-              <SalesPopup />
-              
-              <ExitIntentPopup />
-              <DiscountTimerBanner />
-              <AmbientAudio />
               <AnimatedRoutes />
+              <AmbientAudio />
             </ErrorBoundary>
           </CartProvider>
         </AuthProvider>
