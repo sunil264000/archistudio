@@ -29,7 +29,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
-// Configure PDF.js worker using a more reliable unpkg content-type safe URL
+// Configure PDF.js worker using a reliable URL matched to the library version
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface EbookPDFViewerProps {
@@ -79,7 +79,7 @@ export function EbookPDFViewer({
   const fetchPdfUrl = async () => {
     setLoading(true); setError(null); setLoadingProgress(0);
     try {
-      const functionName = hasAccess ? 'download-ebook' : 'preview-ebook';
+      const functionName = 'preview-ebook';
       const { data: { session } } = await supabase.auth.getSession();
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -100,7 +100,7 @@ export function EbookPDFViewer({
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
         } catch {
-          // JSON parse failed — response body is not JSON (e.g. HTML error page)
+          // JSON parse failed
         }
         if (response.status === 401) errorMessage = 'Please log in to access this eBook.';
         if (response.status === 403) errorMessage = 'You don\'t have access to this eBook. Please purchase it first.';
@@ -110,20 +110,19 @@ export function EbookPDFViewer({
       }
 
       const contentType = response.headers.get('content-type') || '';
-      if (!contentType.includes('application/pdf')) {
-        // Some errors come back as 200 with JSON — catch that
-        const text = await response.text();
-        try {
-          const parsed = JSON.parse(text);
-          throw new Error(parsed.error || 'Unexpected server response');
-        } catch {
-          throw new Error('Server returned unexpected content. Please try again.');
-        }
+      const arrayBuffer = await response.arrayBuffer();
+      const signature = new Uint8Array(arrayBuffer.slice(0, 5));
+      const isPdfSignature = signature[0] === 0x25 && signature[1] === 0x50 && signature[2] === 0x44 && signature[3] === 0x46 && signature[4] === 0x2D;
+
+      if (!contentType.includes('application/pdf') || !isPdfSignature) {
+        throw new Error('The file source returned an invalid PDF. Please retry or contact support.');
       }
 
-      const arrayBuffer = await response.arrayBuffer();
       const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-      setPdfUrl(URL.createObjectURL(blob));
+      setPdfUrl((previousUrl) => {
+        if (previousUrl) URL.revokeObjectURL(previousUrl);
+        return URL.createObjectURL(blob);
+      });
       setLoadingProgress(100);
     } catch (err: any) {
       console.error('Error loading PDF:', err);
@@ -220,7 +219,6 @@ export function EbookPDFViewer({
 
         {/* Premium Header */}
         <div className="relative flex items-center justify-between px-3 sm:px-5 py-2.5 sm:py-3 border-b border-border/30 bg-card/60">
-          {/* Subtle gradient line at top */}
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
@@ -250,7 +248,6 @@ export function EbookPDFViewer({
           </div>
 
           <div className="flex items-center gap-1">
-            {/* Zoom Controls */}
             <div className="hidden md:flex items-center gap-0.5 border border-border/30 rounded-lg p-0.5 bg-muted/30">
               <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md" onClick={zoomOut} disabled={scale <= 0.5}>
                 <ZoomOut className="h-3.5 w-3.5" />
@@ -332,6 +329,14 @@ export function EbookPDFViewer({
               <Document
                 file={pdfUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
+                onLoadError={(loadError) => {
+                  console.error('Document load error:', loadError);
+                  setError('Unable to parse this PDF. Please retry in a moment.');
+                }}
+                onSourceError={(sourceError) => {
+                  console.error('Document source error:', sourceError);
+                  setError('Unable to fetch this PDF source. Please try again.');
+                }}
                 options={{
                   cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
                   cMapPacked: true,
@@ -364,8 +369,14 @@ export function EbookPDFViewer({
                       renderTextLayer={true}
                       renderAnnotationLayer={true}
                       onLoadSuccess={handlePageLoadSuccess}
-                      onLoadError={(err) => console.error("Page load error:", err)}
-                      onRenderError={(err) => console.error("Page render error:", err)}
+                      onLoadError={(err) => {
+                        console.error("Page load error:", err);
+                        setPageLoading(false);
+                      }}
+                      onRenderError={(err) => {
+                        console.error("Page render error:", err);
+                        setPageLoading(false);
+                      }}
                       width={typeof window !== 'undefined' && window.innerWidth < 640 ? window.innerWidth - 32 : undefined}
                       loading={
                         <div className="w-full max-w-[600px] aspect-[3/4] flex items-center justify-center bg-muted/10 rounded-lg border border-border/10">
@@ -400,7 +411,6 @@ export function EbookPDFViewer({
                           transition={{ delay: 0.15, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                           className="text-center p-6 sm:p-10 max-w-md mx-auto"
                         >
-                          {/* Lock icon with glow */}
                           <div className="relative mx-auto mb-6 w-fit">
                             <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-primary/8 border border-primary/15 flex items-center justify-center shadow-xl shadow-primary/5">
                               <Lock className="h-10 w-10 sm:h-12 sm:w-12 text-primary/70" />
@@ -423,7 +433,6 @@ export function EbookPDFViewer({
                             Unlock all <span className="text-primary font-semibold">{numPages} pages</span> for the full experience.
                           </p>
 
-                          {/* Price card */}
                           <div className="bg-card/60 rounded-xl p-4 mb-6 border border-border/30">
                             <div className="flex items-center justify-between mb-1.5">
                               <span className="text-xs sm:text-sm font-medium truncate flex-1 mr-2">{ebookTitle}</span>
@@ -472,7 +481,6 @@ export function EbookPDFViewer({
           </Button>
 
           <div className="flex items-center gap-3 sm:gap-4">
-            {/* Mobile zoom */}
             <div className="flex sm:hidden items-center gap-0.5 border border-border/30 rounded-lg p-0.5 bg-muted/20">
               <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md" onClick={zoomOut} disabled={scale <= 0.5}>
                 <ZoomOut className="h-3.5 w-3.5" />

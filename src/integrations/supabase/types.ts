@@ -472,6 +472,30 @@ export type Database = {
         }
         Relationships: []
       }
+      course_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       course_ebook_links: {
         Row: {
           course_id: string
@@ -608,6 +632,7 @@ export type Database = {
       courses: {
         Row: {
           bundle_id: string | null
+          category_id: string | null
           created_at: string | null
           description: string | null
           duration_hours: number | null
@@ -623,6 +648,8 @@ export type Database = {
           price_usd: number | null
           short_description: string | null
           slug: string
+          subcategory: string | null
+          tags: string[] | null
           thumbnail_url: string | null
           title: string
           total_lessons: number | null
@@ -630,6 +657,7 @@ export type Database = {
         }
         Insert: {
           bundle_id?: string | null
+          category_id?: string | null
           created_at?: string | null
           description?: string | null
           duration_hours?: number | null
@@ -645,6 +673,8 @@ export type Database = {
           price_usd?: number | null
           short_description?: string | null
           slug: string
+          subcategory?: string | null
+          tags?: string[] | null
           thumbnail_url?: string | null
           title: string
           total_lessons?: number | null
@@ -652,6 +682,7 @@ export type Database = {
         }
         Update: {
           bundle_id?: string | null
+          category_id?: string | null
           created_at?: string | null
           description?: string | null
           duration_hours?: number | null
@@ -667,6 +698,8 @@ export type Database = {
           price_usd?: number | null
           short_description?: string | null
           slug?: string
+          subcategory?: string | null
+          tags?: string[] | null
           thumbnail_url?: string | null
           title?: string
           total_lessons?: number | null

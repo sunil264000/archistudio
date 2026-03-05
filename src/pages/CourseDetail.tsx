@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-import { courseCategories, categoryImages } from '@/data/courses';
+import { courseCategories, categoryImages, courses } from '@/data/courses';
 import { useDynamicCourseData } from '@/hooks/useDynamicCourseData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -264,7 +264,7 @@ export default function CourseDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug, course?.slug, effectivePriceForAnalytics]);
 
-  if (dbCourseLoading && !staticCourse) {
+  if (dbCourseLoading && !course) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />

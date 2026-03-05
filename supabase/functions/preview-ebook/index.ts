@@ -101,13 +101,40 @@ serve(async (req) => {
         console.log(`Fetching from storage: ${ebook.file_url}`);
         
         if (ebook.file_url.startsWith('http')) {
-          const response = await fetch(ebook.file_url, {
-            signal: controller.signal,
-          });
-          if (!response.ok) {
-            throw new Error("Failed to fetch file");
+          const driveUrlMatch = ebook.file_url.match(/\/d\/([a-zA-Z0-9_-]+)/) || ebook.file_url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+
+          if (driveUrlMatch?.[1]) {
+            const googleApiKey = Deno.env.get("GOOGLE_API_KEY");
+            if (!googleApiKey) {
+              throw new Error("Google API key not configured");
+            }
+
+            const driveResponse = await fetch(
+              `https://www.googleapis.com/drive/v3/files/${driveUrlMatch[1]}?alt=media&key=${googleApiKey}`,
+              {
+                headers: {
+                  "Accept": "application/pdf",
+                },
+                signal: controller.signal,
+              }
+            );
+
+            if (!driveResponse.ok) {
+              const errorText = await driveResponse.text();
+              console.error("Drive URL fetch error:", errorText);
+              throw new Error("Failed to fetch file from Google Drive URL");
+            }
+
+            fileBuffer = await driveResponse.arrayBuffer();
+          } else {
+            const response = await fetch(ebook.file_url, {
+              signal: controller.signal,
+            });
+            if (!response.ok) {
+              throw new Error("Failed to fetch file");
+            }
+            fileBuffer = await response.arrayBuffer();
           }
-          fileBuffer = await response.arrayBuffer();
         } else {
           const { data: fileData, error: fileError } = await supabaseClient
             .storage
