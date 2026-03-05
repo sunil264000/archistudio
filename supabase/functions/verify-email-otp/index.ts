@@ -170,15 +170,23 @@ const handler = async (req: Request): Promise<Response> => {
         });
       }
 
-      // Code is valid! Confirm the user's email using admin API
-      // Find the user by email
-      const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
-      const targetUser = users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+      // Code is valid! Mark user email as verified in auth + profile
+      const normalizedEmail = email.toLowerCase().trim();
+      const { data: profileRow } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id")
+        .ilike("email", normalizedEmail)
+        .maybeSingle();
 
-      if (targetUser) {
-        await supabaseAdmin.auth.admin.updateUserById(targetUser.id, {
+      if (profileRow?.user_id) {
+        await supabaseAdmin.auth.admin.updateUserById(profileRow.user_id, {
           email_confirm: true,
         });
+
+        await supabaseAdmin
+          .from("profiles")
+          .update({ email_verified: true, updated_at: new Date().toISOString() })
+          .eq("user_id", profileRow.user_id);
       }
 
       // Clean up OTP
