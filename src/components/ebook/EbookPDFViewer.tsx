@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -27,7 +29,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+// Configure PDF.js worker using a more reliable unpkg content-type safe URL
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface EbookPDFViewerProps {
   isOpen: boolean;
@@ -329,6 +332,11 @@ export function EbookPDFViewer({
               <Document
                 file={pdfUrl}
                 onLoadSuccess={onDocumentLoadSuccess}
+                options={{
+                  cMapUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
+                  cMapPacked: true,
+                  standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjs.version}/standard_fonts/`,
+                }}
                 loading={
                   <div className="flex items-center gap-3 text-muted-foreground">
                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -353,9 +361,11 @@ export function EbookPDFViewer({
                       pageNumber={currentPage}
                       scale={scale}
                       className="shadow-2xl rounded-lg overflow-hidden ring-1 ring-border/10"
-                      renderTextLayer={false}
-                      renderAnnotationLayer={false}
+                      renderTextLayer={true}
+                      renderAnnotationLayer={true}
                       onLoadSuccess={handlePageLoadSuccess}
+                      onLoadError={(err) => console.error("Page load error:", err)}
+                      onRenderError={(err) => console.error("Page render error:", err)}
                       width={typeof window !== 'undefined' && window.innerWidth < 640 ? window.innerWidth - 32 : undefined}
                       loading={
                         <div className="w-full max-w-[600px] aspect-[3/4] flex items-center justify-center bg-muted/10 rounded-lg border border-border/10">
