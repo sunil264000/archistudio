@@ -37,6 +37,7 @@ import { ContactMessages } from '@/components/admin/ContactMessages';
 import { LuluStreamMigration } from '@/components/admin/LuluStreamMigration';
 import { SessionManagement } from '@/components/admin/SessionManagement';
 import { DeployFunctionsPanel } from '@/components/admin/DeployFunctionsPanel';
+import { BulkResourceScanner } from '@/components/admin/BulkResourceScanner';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import {
@@ -150,6 +151,8 @@ export default function Admin() {
         return <SessionManagement />;
       case 'deploy':
         return <DeployFunctionsPanel />;
+      case 'resource-scanner':
+        return <ResourceScannerPanel />;
       default:
         return <AdminOverview stats={stats} onNavigate={setActiveTab} />;
     }
@@ -966,4 +969,16 @@ function SiteSettingsPanel() {
       <AmbientAudioSettings />
     </div>
   );
+}
+
+function ResourceScannerPanel() {
+  const [courses, setCourses] = useState<any[]>([]);
+  
+  useEffect(() => {
+    supabase.from('courses').select('id, title, slug').order('title').then(({ data }) => {
+      setCourses(data || []);
+    });
+  }, []);
+
+  return <BulkResourceScanner courses={courses} />;
 }
