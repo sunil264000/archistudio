@@ -102,7 +102,7 @@ export function EmailVerificationForm({ email, password, onVerified, onBack }: E
       setVerifyingOTP(true);
 
       // Give the edge function's profile update time to propagate
-      await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, 2500));
 
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,

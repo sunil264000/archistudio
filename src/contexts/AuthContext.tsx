@@ -106,24 +106,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fetch/create profile first so we can enforce custom OTP verification gate
       let userProfile = await fetchProfile(nextSession.user.id);
 
+      // Detect Google OAuth provider
+      const provider = nextSession.user.app_metadata?.provider as string | undefined;
+      const isGoogleUser = provider === 'google';
+
       if (!userProfile) {
+        // For Google users, email is pre-verified by Google — mark it verified immediately
         userProfile = await createProfile(
           nextSession.user.id,
           nextSession.user.email || '',
           nextSession.user.user_metadata?.full_name,
-          false // Never auto-confirm; our custom OTP flow sets this
+          isGoogleUser // auto-confirm Google users
         );
       }
 
-      // ONLY trust the profile's email_verified flag (set by our OTP edge function)
+      // ONLY trust the profile's email_verified flag (set by our OTP edge function or Google path)
       // Do NOT trust Supabase's email_confirmed_at since auto-confirm may have set it
-      const isEmailVerified = userProfile?.email_verified === true;
+      let isEmailVerified = userProfile?.email_verified === true;
+
+      // If this is a Google user and profile isn't yet marked verified, fix it now
+      if (!isEmailVerified && isGoogleUser) {
+        await supabase
+          .from('profiles')
+          .update({ email_verified: true })
+          .eq('user_id', nextSession.user.id);
+        if (userProfile) userProfile = { ...userProfile, email_verified: true };
+        isEmailVerified = true;
+      }
 
       if (!isEmailVerified) {
         if (event === 'SIGNED_IN' || isVerifyingOTP.current) {
           // After OTP verification the edge function sets email_verified=true.
-          // Give it more time (up to 3 seconds) to propagate if we are in verification mode.
-          const maxRetries = isVerifyingOTP.current ? 3 : 1;
+          // Give it more time (up to 6 seconds) to propagate if we are in verification mode.
+          const maxRetries = isVerifyingOTP.current ? 6 : 1;
           let verified = false;
 
           for (let i = 0; i < maxRetries; i++) {
@@ -281,7 +296,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('session_token');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: `${window.location.origin}/` },
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account',
+          },
+        },
       });
       if (error) return { error };
       return { error: null };

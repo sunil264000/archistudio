@@ -78,8 +78,8 @@ export default function Auth() {
             </CardHeader>
 
             <CardContent className="space-y-6">
-              {/* Google Sign In - Temporarily Hidden */}
-              {/* <GoogleAuthButton />
+              {/* Google Sign In */}
+              <GoogleAuthButton />
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -87,10 +87,10 @@ export default function Auth() {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-card px-2 text-muted-foreground">
-                    Or continue with
+                    Or continue with email
                   </span>
                 </div>
-              </div> */}
+              </div>
 
               {/* Email Auth Form */}
               <EmailAuthForm mode={mode} onSuccess={handleSuccess} />
