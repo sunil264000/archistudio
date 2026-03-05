@@ -116,6 +116,42 @@ export type Database = {
           },
         ]
       }
+      admin_purchase_digest: {
+        Row: {
+          amount: number
+          buyer_email: string
+          buyer_name: string | null
+          created_at: string
+          digest_sent: boolean
+          id: string
+          item_name: string
+          item_type: string
+          order_id: string | null
+        }
+        Insert: {
+          amount?: number
+          buyer_email: string
+          buyer_name?: string | null
+          created_at?: string
+          digest_sent?: boolean
+          id?: string
+          item_name: string
+          item_type?: string
+          order_id?: string | null
+        }
+        Update: {
+          amount?: number
+          buyer_email?: string
+          buyer_name?: string | null
+          created_at?: string
+          digest_sent?: boolean
+          id?: string
+          item_name?: string
+          item_type?: string
+          order_id?: string | null
+        }
+        Relationships: []
+      }
       ai_chat_history: {
         Row: {
           ai_response: string
