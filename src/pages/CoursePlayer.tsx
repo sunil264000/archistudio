@@ -7,6 +7,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { SecureVideoPlayer } from '@/components/video/SecureVideoPlayer';
 import { CourseQA } from '@/components/course/CourseQA';
 import { LessonResources } from '@/components/course/LessonResources';
+import { CourseResources } from '@/components/course/CourseResources';
 import { LockedLessonPlaceholder } from '@/components/course/LockedLessonPlaceholder';
 import { AccessBadge } from '@/components/course/AccessBadge';
 import { Button } from '@/components/ui/button';
@@ -691,7 +692,7 @@ export default function CoursePlayer() {
               {/* Resources & Q&A Section Below Video */}
               {course && currentLesson && (
                 <div className="p-3 md:p-4 border-t">
-                  {/* Downloadable Resources */}
+                  {/* Current Lesson Resources */}
                   <LessonResources lessonId={currentLesson.id} isEnrolled={isEnrolled} />
 
                   <Tabs defaultValue="qa" className="w-full mt-4">
@@ -701,9 +702,17 @@ export default function CoursePlayer() {
                         <span className="hidden sm:inline">Questions & Answers</span>
                         <span className="sm:hidden">Q&A</span>
                       </TabsTrigger>
+                      <TabsTrigger value="resources" className="gap-2 text-xs md:text-sm">
+                        <Download className="h-4 w-4" />
+                        <span className="hidden sm:inline">All Resources</span>
+                        <span className="sm:hidden">Resources</span>
+                      </TabsTrigger>
                     </TabsList>
                     <TabsContent value="qa">
                       <CourseQA courseId={course.id} />
+                    </TabsContent>
+                    <TabsContent value="resources">
+                      <CourseResources courseId={course.id} isEnrolled={isEnrolled} />
                     </TabsContent>
                   </Tabs>
                 </div>
