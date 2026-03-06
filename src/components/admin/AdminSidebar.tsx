@@ -52,6 +52,7 @@ const menuGroups: MenuGroup[] = [
     label: 'Users & Access',
     items: [
       { id: 'users', label: 'Users', icon: Users, color: 'text-cyan-500' },
+      { id: 'onboarding', label: 'Onboarding', icon: Sparkles, color: 'text-pink-500' },
       { id: 'roles', label: 'Roles', icon: Shield, color: 'text-red-500' },
       { id: 'sessions', label: 'Sessions', icon: Monitor, color: 'text-violet-500' },
       { id: 'access', label: 'Access Control', icon: UserPlus, color: 'text-orange-500' },
