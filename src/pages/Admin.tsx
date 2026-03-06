@@ -111,6 +111,8 @@ export default function Admin() {
         return <LessonManagement />;
       case 'users':
         return <UsersPanel />;
+      case 'onboarding':
+        return <OnboardingSubmissions />;
       case 'access':
         return <ManualEnrollment />;
       case 'gift-campaigns':
