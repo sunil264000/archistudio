@@ -211,7 +211,7 @@ export default function Dashboard() {
           </div>
 
           <Tabs defaultValue="courses" className="space-y-6">
-            <TabsList className="w-full max-w-2xl overflow-x-auto flex">
+            <TabsList className="w-full max-w-2xl overflow-x-auto flex no-scrollbar">
               <TabsTrigger value="courses" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
                 <BookOpen className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Studios</span>
