@@ -41,6 +41,7 @@ import { DownloadRequestManagement } from '@/components/admin/DownloadRequestMan
 import { DeployFunctionsPanel } from '@/components/admin/DeployFunctionsPanel';
 import { BulkResourceScanner } from '@/components/admin/BulkResourceScanner';
 import { AutoPricingPanel } from '@/components/admin/AutoPricingPanel';
+import { OnboardingSubmissions } from '@/components/admin/OnboardingSubmissions';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import {
@@ -110,6 +111,8 @@ export default function Admin() {
         return <LessonManagement />;
       case 'users':
         return <UsersPanel />;
+      case 'onboarding':
+        return <OnboardingSubmissions />;
       case 'access':
         return <ManualEnrollment />;
       case 'gift-campaigns':

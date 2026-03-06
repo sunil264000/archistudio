@@ -10,7 +10,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-async function findAuthUserIdByEmail(supabaseAdmin: ReturnType<typeof createClient>, email: string) {
+async function findAuthUserIdByEmail(supabaseAdmin: any, email: string) {
   const normalized = email.toLowerCase().trim();
 
   for (let page = 1; page <= 10; page++) {
