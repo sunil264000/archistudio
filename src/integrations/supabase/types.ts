@@ -1377,9 +1377,46 @@ export type Database = {
           },
         ]
       }
+      login_gift_campaign_ebooks: {
+        Row: {
+          campaign_id: string
+          created_at: string | null
+          ebook_id: string
+          id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string | null
+          ebook_id: string
+          id?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string | null
+          ebook_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "login_gift_campaign_ebooks_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "login_gift_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "login_gift_campaign_ebooks_ebook_id_fkey"
+            columns: ["ebook_id"]
+            isOneToOne: false
+            referencedRelation: "ebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login_gift_campaigns: {
         Row: {
           access_duration_hours: number | null
+          coupon_code: string | null
           created_at: string | null
           cta_text: string | null
           custom_messages: Json | null
@@ -1387,6 +1424,7 @@ export type Database = {
           end_at: string
           id: string
           is_active: boolean | null
+          is_welcome_promotion: boolean | null
           name: string
           random_percent: number | null
           start_at: string
@@ -1394,6 +1432,7 @@ export type Database = {
         }
         Insert: {
           access_duration_hours?: number | null
+          coupon_code?: string | null
           created_at?: string | null
           cta_text?: string | null
           custom_messages?: Json | null
@@ -1401,6 +1440,7 @@ export type Database = {
           end_at: string
           id?: string
           is_active?: boolean | null
+          is_welcome_promotion?: boolean | null
           name: string
           random_percent?: number | null
           start_at: string
@@ -1408,6 +1448,7 @@ export type Database = {
         }
         Update: {
           access_duration_hours?: number | null
+          coupon_code?: string | null
           created_at?: string | null
           cta_text?: string | null
           custom_messages?: Json | null
@@ -1415,6 +1456,7 @@ export type Database = {
           end_at?: string
           id?: string
           is_active?: boolean | null
+          is_welcome_promotion?: boolean | null
           name?: string
           random_percent?: number | null
           start_at?: string
