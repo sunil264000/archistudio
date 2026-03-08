@@ -46,16 +46,23 @@ function useTestimonials() {
   useEffect(() => {
     supabase
       .from('reviews')
-      .select('rating, review, profiles:user_id(full_name)')
+      .select('rating, review, user_id')
       .gte('rating', 4)
       .not('review', 'is', null)
       .order('rating', { ascending: false })
       .limit(4)
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         if (data && data.length >= 2) {
+          // Fetch profile names separately since there's no FK
+          const userIds = [...new Set(data.map((r: any) => r.user_id))];
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('user_id, full_name')
+            .in('user_id', userIds);
+          const nameMap = new Map((profiles || []).map((p: any) => [p.user_id, p.full_name]));
           setTestimonials(data.map((r: any) => ({
             quote: r.review,
-            name: (r.profiles as any)?.full_name || 'Student',
+            name: nameMap.get(r.user_id) || 'Student',
             role: 'Verified Student',
             rating: r.rating,
           })));
