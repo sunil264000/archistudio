@@ -37,7 +37,7 @@ export default function StudentProfile() {
     const fetchAll = async () => {
       setLoading(true);
       const [profileRes, certsRes, portfolioRes, topicsRes, answersRes, sheetsRes, critiquesRes, badgesRes, pointsRes] = await Promise.all([
-        supabase.from('profiles').select('user_id, full_name, avatar_url, bio, created_at').eq('user_id', userId).single(),
+        supabase.from('profiles').select('user_id, full_name, avatar_url, created_at').eq('user_id', userId).single(),
         supabase.from('certificates').select('*, courses:course_id(title, slug)').eq('user_id', userId),
         supabase.from('portfolios').select('*').eq('user_id', userId).eq('is_public', true).maybeSingle(),
         supabase.from('forum_topics').select('id', { count: 'exact' }).eq('user_id', userId),
