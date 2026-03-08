@@ -389,6 +389,118 @@ export type Database = {
           },
         ]
       }
+      competition_submissions: {
+        Row: {
+          competition_id: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string
+          title: string
+          user_id: string
+          vote_count: number | null
+        }
+        Insert: {
+          competition_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url: string
+          title: string
+          user_id: string
+          vote_count?: number | null
+        }
+        Update: {
+          competition_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string
+          title?: string
+          user_id?: string
+          vote_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competition_submissions_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competition_votes: {
+        Row: {
+          created_at: string
+          id: string
+          submission_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          submission_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          submission_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competition_votes_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "competition_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitions: {
+        Row: {
+          brief: string | null
+          cover_image_url: string | null
+          created_at: string
+          description: string
+          end_date: string
+          id: string
+          is_active: boolean | null
+          prize_description: string | null
+          start_date: string
+          submission_count: number | null
+          title: string
+        }
+        Insert: {
+          brief?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description: string
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          prize_description?: string | null
+          start_date?: string
+          submission_count?: number | null
+          title: string
+        }
+        Update: {
+          brief?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          prize_description?: string | null
+          start_date?: string
+          submission_count?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
       contact_messages: {
         Row: {
           created_at: string
@@ -1275,6 +1387,101 @@ export type Database = {
           },
         ]
       }
+      internship_applications: {
+        Row: {
+          cover_note: string | null
+          created_at: string
+          id: string
+          internship_id: string
+          portfolio_url: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          cover_note?: string | null
+          created_at?: string
+          id?: string
+          internship_id: string
+          portfolio_url?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          cover_note?: string | null
+          created_at?: string
+          id?: string
+          internship_id?: string
+          portfolio_url?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internship_applications_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "internships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internships: {
+        Row: {
+          application_count: number | null
+          city: string
+          company_name: string
+          contact_email: string | null
+          created_at: string
+          deadline: string | null
+          description: string
+          id: string
+          is_approved: boolean | null
+          posted_by: string | null
+          requirements: string | null
+          role_type: string | null
+          stipend: string | null
+          title: string
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          application_count?: number | null
+          city: string
+          company_name: string
+          contact_email?: string | null
+          created_at?: string
+          deadline?: string | null
+          description: string
+          id?: string
+          is_approved?: boolean | null
+          posted_by?: string | null
+          requirements?: string | null
+          role_type?: string | null
+          stipend?: string | null
+          title: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          application_count?: number | null
+          city?: string
+          company_name?: string
+          contact_email?: string | null
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          id?: string
+          is_approved?: boolean | null
+          posted_by?: string | null
+          requirements?: string | null
+          role_type?: string | null
+          stipend?: string | null
+          title?: string
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       launch_free_courses: {
         Row: {
           auto_enroll_all: boolean | null
@@ -1318,6 +1525,87 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      learning_track_courses: {
+        Row: {
+          course_id: string
+          id: string
+          is_required: boolean | null
+          order_index: number | null
+          track_id: string
+        }
+        Insert: {
+          course_id: string
+          id?: string
+          is_required?: boolean | null
+          order_index?: number | null
+          track_id: string
+        }
+        Update: {
+          course_id?: string
+          id?: string
+          is_required?: boolean | null
+          order_index?: number | null
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_track_courses_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_track_courses_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "learning_tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_tracks: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          estimated_hours: number | null
+          icon: string | null
+          id: string
+          is_published: boolean | null
+          order_index: number | null
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          estimated_hours?: number | null
+          icon?: string | null
+          id?: string
+          is_published?: boolean | null
+          order_index?: number | null
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          estimated_hours?: number | null
+          icon?: string | null
+          id?: string
+          is_published?: boolean | null
+          order_index?: number | null
+          slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       lesson_resources: {
         Row: {
