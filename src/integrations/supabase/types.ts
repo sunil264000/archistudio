@@ -1093,6 +1093,132 @@ export type Database = {
           },
         ]
       }
+      forum_answers: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_best_answer: boolean | null
+          parent_id: string | null
+          topic_id: string
+          updated_at: string
+          upvote_count: number | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_best_answer?: boolean | null
+          parent_id?: string | null
+          topic_id: string
+          updated_at?: string
+          upvote_count?: number | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_best_answer?: boolean | null
+          parent_id?: string | null
+          topic_id?: string
+          updated_at?: string
+          upvote_count?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "forum_answers_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "forum_answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "forum_answers_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "forum_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      forum_topics: {
+        Row: {
+          answer_count: number | null
+          best_answer_id: string | null
+          category: string
+          content: string
+          created_at: string
+          id: string
+          is_pinned: boolean | null
+          is_resolved: boolean | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          upvote_count: number | null
+          user_id: string
+          view_count: number | null
+        }
+        Insert: {
+          answer_count?: number | null
+          best_answer_id?: string | null
+          category?: string
+          content: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean | null
+          is_resolved?: boolean | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          upvote_count?: number | null
+          user_id: string
+          view_count?: number | null
+        }
+        Update: {
+          answer_count?: number | null
+          best_answer_id?: string | null
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean | null
+          is_resolved?: boolean | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          upvote_count?: number | null
+          user_id?: string
+          view_count?: number | null
+        }
+        Relationships: []
+      }
+      forum_votes: {
+        Row: {
+          created_at: string
+          id: string
+          target_id: string
+          target_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          target_id: string
+          target_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          target_id?: string
+          target_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       import_activity_log: {
         Row: {
           action: string

@@ -47,6 +47,8 @@ import Sitemap from "./pages/Sitemap";
 import Studio from "./pages/Studio";
 import SheetReviews from "./pages/SheetReviews";
 import SheetDetail from "./pages/SheetDetail";
+import Forum from "./pages/Forum";
+import ForumTopic from "./pages/ForumTopic";
 
 const queryClient = new QueryClient();
 
@@ -293,6 +295,8 @@ function AnimatedRoutes() {
           <Route path="/studio" element={<ProtectedRoute><Studio /></ProtectedRoute>} />
           <Route path="/sheets" element={<SheetReviews />} />
           <Route path="/sheets/:id" element={<SheetDetail />} />
+          <Route path="/forum" element={<Forum />} />
+          <Route path="/forum/:id" element={<ForumTopic />} />
           <Route path="/verify/:certNumber" element={<VerifyCertificate />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
