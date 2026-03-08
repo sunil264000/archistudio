@@ -97,7 +97,18 @@ export function AIChatWidget() {
   const { toast } = useToast();
   const { session } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useIsMobile();
+
+  // Detect course context from URL
+  const courseContext = (() => {
+    const path = location.pathname;
+    if (path.startsWith('/learn/') || path.startsWith('/course/') || path.startsWith('/courses/')) {
+      const slug = path.split('/').pop();
+      return slug || null;
+    }
+    return null;
+  })();
 
   // Auto-expand when conversation gets going
   const shouldAutoExpand = messages.length > 3;
