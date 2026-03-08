@@ -44,6 +44,7 @@ import EbookBundle from "./pages/EbookBundle";
 import NotFound from "./pages/NotFound";
 import VerifyCertificate from "./pages/VerifyCertificate";
 import Sitemap from "./pages/Sitemap";
+import Studio from "./pages/Studio";
 
 const queryClient = new QueryClient();
 
