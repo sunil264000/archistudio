@@ -299,6 +299,8 @@ function AnimatedRoutes() {
           <Route path="/sheets/:id" element={<SheetDetail />} />
           <Route path="/forum" element={<Forum />} />
           <Route path="/forum/:id" element={<ForumTopic />} />
+          <Route path="/portfolio/build" element={<ProtectedRoute><PortfolioBuilder /></ProtectedRoute>} />
+          <Route path="/portfolio/:slug" element={<PortfolioView />} />
           <Route path="/verify/:certNumber" element={<VerifyCertificate />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
