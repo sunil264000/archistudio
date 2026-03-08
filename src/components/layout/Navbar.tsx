@@ -208,6 +208,7 @@ export function Navbar() {
             {[
               { to: '/courses', label: 'Courses' },
               { to: '/ebooks', label: 'eBooks' },
+              { to: '/sheets', label: 'Sheets' },
               ...(user ? [{ to: '/studio', label: 'Studio' }] : []),
               { to: '/blog', label: 'Blog' },
             ].map((link) => (
