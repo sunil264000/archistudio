@@ -88,28 +88,29 @@ export function EbookPDFViewer({
     setError(null);
     setLoadingProgress(0);
     try {
-      const { data, error } = await supabase
-        .from('ebooks')
-        .select('drive_file_id, file_url')
-        .eq('id', ebookId)
-        .single();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const proxyUrl = `${supabaseUrl}/functions/v1/previewebook?ebookId=${encodeURIComponent(ebookId)}`;
 
-      if (error || !data) throw new Error('eBook not found');
+      const response = await fetch(proxyUrl, {
+        headers: {
+          apikey: anonKey,
+          Authorization: `Bearer ${anonKey}`,
+        },
+      });
 
-      // Use file_url if available, otherwise construct from drive_file_id
-      const sourceUrl = data.file_url || (data.drive_file_id ? `https://drive.google.com/uc?export=download&id=${data.drive_file_id}` : null);
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        throw new Error(errBody.error || 'Failed to fetch PDF content');
+      }
 
-      if (!sourceUrl) throw new Error('No valid PDF source found');
-
-      const response = await fetch(sourceUrl);
-      if (!response.ok) throw new Error('Failed to fetch PDF content');
-
-      const contentType = response.headers.get('content-type') || '';
       const arrayBuffer = await response.arrayBuffer();
+      if (arrayBuffer.byteLength < 10) throw new Error('Empty PDF response');
+
       const signature = new Uint8Array(arrayBuffer.slice(0, 5));
       const isPdfSignature = signature[0] === 0x25 && signature[1] === 0x50 && signature[2] === 0x44 && signature[3] === 0x46 && signature[4] === 0x2D;
 
-      if (!contentType.includes('application/pdf') && !isPdfSignature) {
+      if (!isPdfSignature) {
         throw new Error('The file source returned an invalid PDF. Please retry or contact support.');
       }
 
