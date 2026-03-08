@@ -228,9 +228,12 @@ export function Navbar() {
           <div className="p-5 space-y-2">
             {[
               { to: '/courses', label: 'Courses' },
+              { to: '/roadmaps', label: 'Learning Paths' },
               { to: '/ebooks', label: 'eBooks' },
-              { to: '/sheets', label: 'Sheets' },
               { to: '/forum', label: 'Forum' },
+              { to: '/sheets', label: 'Sheet Reviews' },
+              { to: '/competitions', label: 'Challenges' },
+              { to: '/internships', label: 'Internships' },
               ...(user ? [{ to: '/portfolio/build', label: 'Portfolio' }, { to: '/studio', label: 'Studio' }] : []),
               { to: '/blog', label: 'Blog' },
             ].map((link) => (
