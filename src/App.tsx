@@ -291,6 +291,8 @@ function AnimatedRoutes() {
           <Route path="/ebook-payment-success" element={<EbookPaymentSuccess />} />
           <Route path="/ebook-payment-failed" element={<EbookPaymentFailed />} />
           <Route path="/studio" element={<ProtectedRoute><Studio /></ProtectedRoute>} />
+          <Route path="/sheets" element={<SheetReviews />} />
+          <Route path="/sheets/:id" element={<SheetDetail />} />
           <Route path="/verify/:certNumber" element={<VerifyCertificate />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
