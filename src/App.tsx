@@ -45,6 +45,8 @@ import NotFound from "./pages/NotFound";
 import VerifyCertificate from "./pages/VerifyCertificate";
 import Sitemap from "./pages/Sitemap";
 import Studio from "./pages/Studio";
+import SheetReviews from "./pages/SheetReviews";
+import SheetDetail from "./pages/SheetDetail";
 
 const queryClient = new QueryClient();
 
