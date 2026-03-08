@@ -51,6 +51,9 @@ import Forum from "./pages/Forum";
 import ForumTopic from "./pages/ForumTopic";
 import PortfolioBuilder from "./pages/PortfolioBuilder";
 import PortfolioView from "./pages/PortfolioView";
+import Internships from "./pages/Internships";
+import Competitions from "./pages/Competitions";
+import Roadmaps from "./pages/Roadmaps";
 
 const queryClient = new QueryClient();
 
