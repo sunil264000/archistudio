@@ -125,7 +125,7 @@ export default function StudentProfile() {
                 <p className="text-sm text-muted-foreground mt-1">
                   {getLevelTitle(points?.level || 1)} · Joined {new Date(profile.created_at).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
                 </p>
-                {profile.bio && <p className="text-sm text-muted-foreground mt-2 max-w-lg">{profile.bio}</p>}
+                
                 <div className="flex flex-wrap items-center gap-3 mt-4 justify-center sm:justify-start">
                   <Badge variant="outline" className="gap-1.5 text-xs border-primary/30 text-primary">
                     <Flame className="h-3 w-3" /> {reputationScore} Rep
