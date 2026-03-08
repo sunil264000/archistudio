@@ -114,6 +114,8 @@ export function Navbar() {
                   { to: '/sheets', label: 'Sheet Reviews' },
                   { to: '/competitions', label: 'Challenges' },
                   { to: '/internships', label: 'Internships' },
+                  { to: '/resources', label: 'Resources' },
+                  { to: '/leaderboard', label: 'Leaderboard' },
                   ...(user ? [{ to: '/portfolio/build', label: 'Portfolio' }] : []),
                   { to: '/blog', label: 'Blog' },
                 ].map(link => (
