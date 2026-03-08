@@ -54,6 +54,9 @@ import PortfolioView from "./pages/PortfolioView";
 import Internships from "./pages/Internships";
 import Competitions from "./pages/Competitions";
 import Roadmaps from "./pages/Roadmaps";
+import StudentProfile from "./pages/StudentProfile";
+import ResourceLibrary from "./pages/ResourceLibrary";
+import Leaderboard from "./pages/Leaderboard";
 
 const queryClient = new QueryClient();
 
@@ -307,6 +310,9 @@ function AnimatedRoutes() {
           <Route path="/internships" element={<Internships />} />
           <Route path="/competitions" element={<Competitions />} />
           <Route path="/roadmaps" element={<Roadmaps />} />
+          <Route path="/profile/:userId" element={<StudentProfile />} />
+          <Route path="/resources" element={<ResourceLibrary />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/verify/:certNumber" element={<VerifyCertificate />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

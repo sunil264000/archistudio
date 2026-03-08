@@ -149,7 +149,7 @@ serve(async (req) => {
       .eq("user_id", userId);
 
     // --- AI Chat ---
-    const { messages } = await req.json();
+    const { messages, courseContext, currentPage } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -157,7 +157,41 @@ serve(async (req) => {
     }
 
     const courseCatalog = await buildCourseCatalog();
-    const systemPrompt = buildSystemPrompt(courseCatalog);
+    let systemPrompt = buildSystemPrompt(courseCatalog);
+
+    // Add context awareness
+    if (courseContext) {
+      const supabaseUrlCtx = Deno.env.get("SUPABASE_URL")!;
+      const serviceRoleKeyCtx = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabaseCtx = createClient(supabaseUrlCtx, serviceRoleKeyCtx);
+      
+      const { data: course } = await supabaseCtx
+        .from("courses")
+        .select("title, description, level, slug")
+        .eq("slug", courseContext)
+        .single();
+      
+      if (course) {
+        systemPrompt += `\n\nCONTEXT: The student is currently viewing/studying the course "${course.title}" (${course.level} level). Tailor your responses to be relevant to this course. If they ask general questions, relate answers back to this course when appropriate.`;
+      }
+    }
+
+    if (currentPage) {
+      const pageHints: Record<string, string> = {
+        '/forum': 'The student is browsing the community forum.',
+        '/sheets': 'The student is on the sheet review page.',
+        '/portfolio/build': 'The student is building their portfolio.',
+        '/ebooks': 'The student is browsing the eBook library.',
+        '/roadmaps': 'The student is exploring learning paths.',
+        '/competitions': 'The student is viewing design challenges.',
+      };
+      for (const [path, hint] of Object.entries(pageHints)) {
+        if (currentPage.startsWith(path)) {
+          systemPrompt += `\n\nPAGE CONTEXT: ${hint}`;
+          break;
+        }
+      }
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

@@ -9,7 +9,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import ReactMarkdown from 'react-markdown';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -97,7 +97,18 @@ export function AIChatWidget() {
   const { toast } = useToast();
   const { session } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useIsMobile();
+
+  // Detect course context from URL
+  const courseContext = (() => {
+    const path = location.pathname;
+    if (path.startsWith('/learn/') || path.startsWith('/course/') || path.startsWith('/courses/')) {
+      const slug = path.split('/').pop();
+      return slug || null;
+    }
+    return null;
+  })();
 
   // Auto-expand when conversation gets going
   const shouldAutoExpand = messages.length > 3;
@@ -154,7 +165,9 @@ export function AIChatWidget() {
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content }))
+          messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
+          courseContext: courseContext || undefined,
+          currentPage: location.pathname,
         }),
       });
 
