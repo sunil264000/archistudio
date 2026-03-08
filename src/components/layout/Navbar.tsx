@@ -237,6 +237,8 @@ export function Navbar() {
               { to: '/competitions', label: 'Challenges' },
               { to: '/internships', label: 'Internships' },
               ...(user ? [{ to: '/portfolio/build', label: 'Portfolio' }, { to: '/studio', label: 'Studio' }] : []),
+              { to: '/resources', label: 'Resources' },
+              { to: '/leaderboard', label: 'Leaderboard' },
               { to: '/blog', label: 'Blog' },
             ].map((link) => (
               <Link 
