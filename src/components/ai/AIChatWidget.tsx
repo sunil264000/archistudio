@@ -165,7 +165,9 @@ export function AIChatWidget() {
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content }))
+          messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
+          courseContext: courseContext || undefined,
+          currentPage: location.pathname,
         }),
       });
 
