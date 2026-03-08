@@ -119,6 +119,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           nextSession.user.user_metadata?.full_name,
           isGoogleUser // auto-confirm Google users
         );
+      } else if (!userProfile.full_name && nextSession.user.user_metadata?.full_name) {
+        // Profile exists but name is missing (e.g., created during brief signup session)
+        // Patch it from user_metadata
+        const metaName = nextSession.user.user_metadata.full_name;
+        await supabase
+          .from('profiles')
+          .update({ full_name: metaName })
+          .eq('user_id', nextSession.user.id);
+        userProfile = { ...userProfile, full_name: metaName };
       }
 
       // ONLY trust the profile's email_verified flag (set by our OTP edge function or Google path)
