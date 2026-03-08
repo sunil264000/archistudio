@@ -28,10 +28,11 @@ interface Message {
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
 
 const QUICK_REPLIES = [
-  'Which course for beginners?',
-  'Best for interior design?',
-  'AutoCAD vs Revit?',
-  'Show pricing',
+  'Help me develop my concept',
+  'How to zone a cultural centre?',
+  'Sheet layout critique tips',
+  'Site analysis checklist',
+  'Best course for beginners?',
 ];
 
 function parseCourseCard(content: string): { cleanContent: string; courseCard?: Message['courseCard'] } {

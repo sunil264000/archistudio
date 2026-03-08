@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Library, Bell } from 'lucide-react';
+import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Library, Bell, ChevronDown } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import logoMark from '@/assets/logo-mark.png';
 import { useState, useEffect } from 'react';
 import { CartSheet } from '@/components/cart/CartSheet';
@@ -88,11 +89,9 @@ export function Navbar() {
           <div className="flex items-center gap-0.5 text-sm">
             {[
               { to: '/courses', label: 'Courses' },
+              { to: '/roadmaps', label: 'Paths' },
               { to: '/ebooks', label: 'eBooks', icon: Library },
-              { to: '/sheets', label: 'Sheets' },
-              { to: '/forum', label: 'Forum' },
-              ...(user ? [{ to: '/portfolio/build', label: 'Portfolio' }, { to: '/studio', label: 'Studio' }] : []),
-              { to: '/blog', label: 'Blog' },
+              ...(user ? [{ to: '/studio', label: 'Studio' }] : []),
             ].map((link) => (
               <Link 
                 key={link.to}
@@ -103,6 +102,27 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
+
+            {/* Community dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger className="px-4 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all duration-300 flex items-center gap-1 text-sm outline-none">
+                Community <ChevronDown className="h-3 w-3" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-44">
+                {[
+                  { to: '/forum', label: 'Forum' },
+                  { to: '/sheets', label: 'Sheet Reviews' },
+                  { to: '/competitions', label: 'Challenges' },
+                  { to: '/internships', label: 'Internships' },
+                  ...(user ? [{ to: '/portfolio/build', label: 'Portfolio' }] : []),
+                  { to: '/blog', label: 'Blog' },
+                ].map(link => (
+                  <DropdownMenuItem key={link.to} asChild>
+                    <Link to={link.to} className="cursor-pointer">{link.label}</Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <div className="w-px h-5 bg-border/50 mx-2" />
@@ -208,9 +228,12 @@ export function Navbar() {
           <div className="p-5 space-y-2">
             {[
               { to: '/courses', label: 'Courses' },
+              { to: '/roadmaps', label: 'Learning Paths' },
               { to: '/ebooks', label: 'eBooks' },
-              { to: '/sheets', label: 'Sheets' },
               { to: '/forum', label: 'Forum' },
+              { to: '/sheets', label: 'Sheet Reviews' },
+              { to: '/competitions', label: 'Challenges' },
+              { to: '/internships', label: 'Internships' },
               ...(user ? [{ to: '/portfolio/build', label: 'Portfolio' }, { to: '/studio', label: 'Studio' }] : []),
               { to: '/blog', label: 'Blog' },
             ].map((link) => (

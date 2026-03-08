@@ -51,6 +51,9 @@ import Forum from "./pages/Forum";
 import ForumTopic from "./pages/ForumTopic";
 import PortfolioBuilder from "./pages/PortfolioBuilder";
 import PortfolioView from "./pages/PortfolioView";
+import Internships from "./pages/Internships";
+import Competitions from "./pages/Competitions";
+import Roadmaps from "./pages/Roadmaps";
 
 const queryClient = new QueryClient();
 
@@ -301,6 +304,9 @@ function AnimatedRoutes() {
           <Route path="/forum/:id" element={<ForumTopic />} />
           <Route path="/portfolio/build" element={<ProtectedRoute><PortfolioBuilder /></ProtectedRoute>} />
           <Route path="/portfolio/:slug" element={<PortfolioView />} />
+          <Route path="/internships" element={<Internships />} />
+          <Route path="/competitions" element={<Competitions />} />
+          <Route path="/roadmaps" element={<Roadmaps />} />
           <Route path="/verify/:certNumber" element={<VerifyCertificate />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
