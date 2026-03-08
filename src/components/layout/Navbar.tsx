@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Library, Bell } from 'lucide-react';
+import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Library, Bell, ChevronDown } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import logoMark from '@/assets/logo-mark.png';
 import { useState, useEffect } from 'react';
 import { CartSheet } from '@/components/cart/CartSheet';
