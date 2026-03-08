@@ -49,6 +49,8 @@ import SheetReviews from "./pages/SheetReviews";
 import SheetDetail from "./pages/SheetDetail";
 import Forum from "./pages/Forum";
 import ForumTopic from "./pages/ForumTopic";
+import PortfolioBuilder from "./pages/PortfolioBuilder";
+import PortfolioView from "./pages/PortfolioView";
 
 const queryClient = new QueryClient();
 
