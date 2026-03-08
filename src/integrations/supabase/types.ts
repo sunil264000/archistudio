@@ -1814,6 +1814,130 @@ export type Database = {
           },
         ]
       }
+      portfolio_pages: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          order_index: number | null
+          portfolio_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number | null
+          portfolio_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number | null
+          portfolio_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_pages_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portfolio_sections: {
+        Row: {
+          caption: string | null
+          content: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          layout: string | null
+          order_index: number | null
+          page_id: string
+          section_type: string
+        }
+        Insert: {
+          caption?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          layout?: string | null
+          order_index?: number | null
+          page_id: string
+          section_type?: string
+        }
+        Update: {
+          caption?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          layout?: string | null
+          order_index?: number | null
+          page_id?: string
+          section_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_sections_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "portfolio_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portfolios: {
+        Row: {
+          accent_color: string | null
+          bio: string | null
+          contact_email: string | null
+          created_at: string
+          id: string
+          is_public: boolean | null
+          slug: string
+          subtitle: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accent_color?: string | null
+          bio?: string | null
+          contact_email?: string | null
+          created_at?: string
+          id?: string
+          is_public?: boolean | null
+          slug: string
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accent_color?: string | null
+          bio?: string | null
+          contact_email?: string | null
+          created_at?: string
+          id?: string
+          is_public?: boolean | null
+          slug?: string
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ai_queries_reset_at: string | null
