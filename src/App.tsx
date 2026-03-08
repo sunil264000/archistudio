@@ -295,6 +295,8 @@ function AnimatedRoutes() {
           <Route path="/studio" element={<ProtectedRoute><Studio /></ProtectedRoute>} />
           <Route path="/sheets" element={<SheetReviews />} />
           <Route path="/sheets/:id" element={<SheetDetail />} />
+          <Route path="/forum" element={<Forum />} />
+          <Route path="/forum/:id" element={<ForumTopic />} />
           <Route path="/verify/:certNumber" element={<VerifyCertificate />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
