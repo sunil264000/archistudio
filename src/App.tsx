@@ -47,6 +47,8 @@ import Sitemap from "./pages/Sitemap";
 import Studio from "./pages/Studio";
 import SheetReviews from "./pages/SheetReviews";
 import SheetDetail from "./pages/SheetDetail";
+import Forum from "./pages/Forum";
+import ForumTopic from "./pages/ForumTopic";
 
 const queryClient = new QueryClient();
 
