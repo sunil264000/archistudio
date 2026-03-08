@@ -54,6 +54,9 @@ import PortfolioView from "./pages/PortfolioView";
 import Internships from "./pages/Internships";
 import Competitions from "./pages/Competitions";
 import Roadmaps from "./pages/Roadmaps";
+import StudentProfile from "./pages/StudentProfile";
+import ResourceLibrary from "./pages/ResourceLibrary";
+import Leaderboard from "./pages/Leaderboard";
 
 const queryClient = new QueryClient();
 
