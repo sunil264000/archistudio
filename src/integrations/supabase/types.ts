@@ -1940,6 +1940,131 @@ export type Database = {
           },
         ]
       }
+      sheet_critique_upvotes: {
+        Row: {
+          created_at: string
+          critique_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          critique_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          critique_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sheet_critique_upvotes_critique_id_fkey"
+            columns: ["critique_id"]
+            isOneToOne: false
+            referencedRelation: "sheet_critiques"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sheet_critiques: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_best_answer: boolean | null
+          parent_id: string | null
+          sheet_id: string
+          updated_at: string
+          upvote_count: number | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_best_answer?: boolean | null
+          parent_id?: string | null
+          sheet_id: string
+          updated_at?: string
+          upvote_count?: number | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_best_answer?: boolean | null
+          parent_id?: string | null
+          sheet_id?: string
+          updated_at?: string
+          upvote_count?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sheet_critiques_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "sheet_critiques"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sheet_critiques_sheet_id_fkey"
+            columns: ["sheet_id"]
+            isOneToOne: false
+            referencedRelation: "sheet_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sheet_reviews: {
+        Row: {
+          created_at: string
+          critique_count: number | null
+          description: string | null
+          id: string
+          is_featured: boolean | null
+          sheet_url: string
+          status: string
+          tags: string[] | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          critique_count?: number | null
+          description?: string | null
+          id?: string
+          is_featured?: boolean | null
+          sheet_url: string
+          status?: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          critique_count?: number | null
+          description?: string | null
+          id?: string
+          is_featured?: boolean | null
+          sheet_url?: string
+          status?: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           description: string | null
