@@ -17,7 +17,6 @@ interface ProfileData {
   user_id: string;
   full_name: string;
   avatar_url: string | null;
-  bio: string | null;
   created_at: string;
 }
 
