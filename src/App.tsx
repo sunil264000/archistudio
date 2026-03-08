@@ -304,6 +304,9 @@ function AnimatedRoutes() {
           <Route path="/forum/:id" element={<ForumTopic />} />
           <Route path="/portfolio/build" element={<ProtectedRoute><PortfolioBuilder /></ProtectedRoute>} />
           <Route path="/portfolio/:slug" element={<PortfolioView />} />
+          <Route path="/internships" element={<Internships />} />
+          <Route path="/competitions" element={<Competitions />} />
+          <Route path="/roadmaps" element={<Roadmaps />} />
           <Route path="/verify/:certNumber" element={<VerifyCertificate />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
