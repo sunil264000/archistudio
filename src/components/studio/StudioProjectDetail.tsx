@@ -13,6 +13,9 @@ import { StudioFilesTab } from './tabs/StudioFilesTab';
 import { StudioNotesTab } from './tabs/StudioNotesTab';
 import { StudioTimelineTab } from './tabs/StudioTimelineTab';
 import { StudioCommentsTab } from './tabs/StudioCommentsTab';
+import { StudioTasksTab } from './tabs/StudioTasksTab';
+import { StudioMilestonesTab } from './tabs/StudioMilestonesTab';
+import { ShareButtons } from '@/components/social/ShareButtons';
 
 interface StudioProjectDetailProps {
   projectId: string;
