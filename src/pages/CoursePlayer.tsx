@@ -55,6 +55,7 @@ export default function CoursePlayer() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [course, setCourse] = useState<any>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
@@ -89,6 +90,7 @@ export default function CoursePlayer() {
     }
 
     fetchCourseData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug, user]);
 
   const fetchCourseData = async () => {
@@ -138,7 +140,7 @@ export default function CoursePlayer() {
 
       // Fetch user progress (only if logged in)
       const allLessonIds = sortedModules.flatMap(m => m.lessons.map(l => l.id));
-      let progressMap: Record<string, LessonProgress> = {};
+      const progressMap: Record<string, LessonProgress> = {};
 
       if (user && allLessonIds.length > 0) {
         const { data: progressData } = await supabase

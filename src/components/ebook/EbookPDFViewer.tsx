@@ -77,6 +77,7 @@ export function EbookPDFViewer({
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [requestReason, setRequestReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [existingRequest, setExistingRequest] = useState<any>(null);
 
   const maxViewablePages = hasAccess ? numPages : previewPages;
@@ -118,9 +119,10 @@ export function EbookPDFViewer({
       const objectUrl = URL.createObjectURL(blob);
       setPdfData(objectUrl);
       setLoadingProgress(100);
-    } catch (err: any) {
-      setError(err?.message || 'Could not load eBook content');
-      toast({ title: 'Error', description: err?.message || 'Could not load eBook', variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Could not load eBook content';
+      setError(message);
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }
