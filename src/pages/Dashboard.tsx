@@ -16,6 +16,7 @@ import { SheetCritiqueFeed } from '@/components/dashboard/SheetCritiqueFeed';
 import { UnifiedSearch } from '@/components/dashboard/UnifiedSearch';
 import { ContinueLearning } from '@/components/dashboard/ContinueLearning';
 import { LiveCommunityFeed } from '@/components/dashboard/LiveCommunityFeed';
+import { SkillTree } from '@/components/dashboard/SkillTree';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { ProfileCompletion } from '@/components/profile/ProfileCompletion';
 import { UsernameSetup } from '@/components/profile/UsernameSetup';
@@ -220,7 +221,12 @@ export default function Dashboard() {
             <TabsContent value="courses"><EnrolledCourses /></TabsContent>
             <TabsContent value="sheets"><SheetCritiqueFeed /></TabsContent>
             <TabsContent value="ebooks"><PurchasedEbooks /></TabsContent>
-            <TabsContent value="progress"><ProgressAnalytics /></TabsContent>
+            <TabsContent value="progress">
+              <div className="space-y-8">
+                <SkillTree />
+                <ProgressAnalytics />
+              </div>
+            </TabsContent>
             <TabsContent value="certificates"><Certificates /></TabsContent>
             <TabsContent value="referrals"><ReferralSection /></TabsContent>
             <TabsContent value="verify"><VerifyTab /></TabsContent>

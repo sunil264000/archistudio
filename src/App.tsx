@@ -59,6 +59,8 @@ import ResourceLibrary from "./pages/ResourceLibrary";
 import Leaderboard from "./pages/Leaderboard";
 import DailyChallenges from "./pages/DailyChallenges";
 import PublicProfile from "./pages/PublicProfile";
+import PortfolioDiscovery from "./pages/PortfolioDiscovery";
+import CaseStudies from "./pages/CaseStudies";
 
 const queryClient = new QueryClient();
 
@@ -318,6 +320,8 @@ function AnimatedRoutes() {
           <Route path="/challenges" element={<DailyChallenges />} />
           <Route path="/verify/:certNumber" element={<VerifyCertificate />} />
           <Route path="/u/:username" element={<PublicProfile />} />
+          <Route path="/portfolios" element={<PortfolioDiscovery />} />
+          <Route path="/case-studies" element={<CaseStudies />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </motion.div>
