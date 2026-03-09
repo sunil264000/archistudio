@@ -59,6 +59,8 @@ import ResourceLibrary from "./pages/ResourceLibrary";
 import Leaderboard from "./pages/Leaderboard";
 import DailyChallenges from "./pages/DailyChallenges";
 import PublicProfile from "./pages/PublicProfile";
+import PortfolioDiscovery from "./pages/PortfolioDiscovery";
+import CaseStudies from "./pages/CaseStudies";
 
 const queryClient = new QueryClient();
 
