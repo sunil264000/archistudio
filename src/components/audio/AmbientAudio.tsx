@@ -80,7 +80,6 @@ export function AmbientAudio() {
     };
 
     audio.onerror = () => {
-      console.error('Audio failed to load, trying fallback');
       if (audioUrl !== FALLBACK_AUDIO_URL) {
         setAudioUrl(FALLBACK_AUDIO_URL);
       } else {
