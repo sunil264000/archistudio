@@ -2975,6 +2975,33 @@ export type Database = {
           },
         ]
       }
+      rate_limit_buckets: {
+        Row: {
+          bucket_key: string
+          created_at: string | null
+          id: string
+          identifier: string
+          request_count: number | null
+          window_start: string | null
+        }
+        Insert: {
+          bucket_key: string
+          created_at?: string | null
+          id?: string
+          identifier: string
+          request_count?: number | null
+          window_start?: string | null
+        }
+        Update: {
+          bucket_key?: string
+          created_at?: string | null
+          id?: string
+          identifier?: string
+          request_count?: number | null
+          window_start?: string | null
+        }
+        Relationships: []
+      }
       recommendation_logs: {
         Row: {
           ai_generated: boolean | null
@@ -3194,6 +3221,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      server_cache: {
+        Row: {
+          cache_key: string
+          cache_value: Json
+          created_at: string | null
+          expires_at: string
+        }
+        Insert: {
+          cache_key: string
+          cache_value: Json
+          created_at?: string | null
+          expires_at: string
+        }
+        Update: {
+          cache_key?: string
+          cache_value?: Json
+          created_at?: string | null
+          expires_at?: string
+        }
+        Relationships: []
       }
       sheet_annotations: {
         Row: {
@@ -4491,6 +4539,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_rate_limit: {
+        Args: {
+          p_bucket_key: string
+          p_identifier: string
+          p_max_requests: number
+          p_window_seconds: number
+        }
+        Returns: Json
+      }
+      cleanup_expired_cache: { Args: never; Returns: undefined }
       get_referral_by_code: {
         Args: { code: string }
         Returns: {
@@ -4516,6 +4574,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      upsert_cache: {
+        Args: { p_key: string; p_ttl_seconds?: number; p_value: Json }
+        Returns: undefined
       }
     }
     Enums: {
