@@ -49,6 +49,7 @@ export function Navbar() {
 
   const navLinks = [
     { to: '/courses', label: 'Courses' },
+    { to: '/explore', label: 'Explore' },
     { to: '/roadmaps', label: 'Paths' },
     { to: '/ebooks', label: 'eBooks', icon: Library },
     ...(user ? [{ to: '/studio', label: 'Studio' }] : []),

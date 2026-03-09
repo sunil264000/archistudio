@@ -64,6 +64,7 @@ import PublicProfile from "./pages/PublicProfile";
 import PortfolioDiscovery from "./pages/PortfolioDiscovery";
 import CaseStudies from "./pages/CaseStudies";
 import LearningMap from "./pages/LearningMap";
+import Explore from "./pages/Explore";
 import { queryClient, prefetchCriticalData } from "@/lib/queryClient";
 
 // Warm cache on app load
