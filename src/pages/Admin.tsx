@@ -169,6 +169,19 @@ export default function Admin() {
         return <EngagementAnalytics />;
       case 'deploy':
         return <DeployFunctionsPanel />;
+      case 'system-health':
+        return <SystemHealthPanel />;
+      case 'moderation':
+        return <ModerationPanel />;
+      case 'activity-feed':
+        return (
+          <div className="max-w-2xl">
+            <h2 className="text-xl font-bold mb-4">Live Activity Feed</h2>
+            <ActivityFeed />
+          </div>
+        );
+      case 'ai-mentor':
+        return <AIMentorPanel />;
       case 'resource-scanner':
         return <ResourceScannerPanel />;
       default:
