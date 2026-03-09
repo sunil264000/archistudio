@@ -213,28 +213,28 @@ export default function Admin() {
       <main
         className={cn(
           "pt-20 pb-8 transition-all duration-300",
-          sidebarCollapsed ? "ml-[72px]" : "ml-64"
+          sidebarCollapsed ? "ml-16" : "ml-[260px]"
         )}
       >
-        <div className="container mx-auto px-4 lg:px-8">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-4 mb-6">
+        <div className="px-6 lg:px-10 max-w-[1400px]">
+          {/* Breadcrumb - Minimal */}
+          <div className="flex items-center gap-3 mb-6">
             <Link to="/dashboard">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
+              <Button variant="ghost" size="sm" className="gap-1.5 h-7 text-xs text-muted-foreground hover:text-foreground">
+                <ArrowLeft className="h-3 w-3" />
+                Dashboard
               </Button>
             </Link>
-            <span className="text-muted-foreground">/</span>
-            <span className="font-medium capitalize">{activeTab}</span>
+            <span className="text-border">/</span>
+            <span className="text-sm font-medium capitalize">{activeTab.replace(/-/g, ' ')}</span>
           </div>
 
           {/* Dynamic Content */}
           <motion.div
             key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
           >
             {renderContent()}
           </motion.div>

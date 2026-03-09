@@ -9,7 +9,7 @@ import {
   HeartPulse, Activity, Brain, ShieldAlert, ListTodo, Flag, Gauge
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import logo from '@/assets/logo.png';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -35,7 +35,7 @@ const menuGroups: MenuGroup[] = [
     label: 'Dashboard',
     items: [
       { id: 'overview', label: 'Overview', icon: LayoutDashboard, color: 'text-blue-500' },
-      { id: 'realtime', label: 'Realtime', icon: Zap, color: 'text-accent' },
+      { id: 'realtime', label: 'Realtime', icon: Zap, color: 'text-amber-500' },
       { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-indigo-500' },
       { id: 'engagement', label: 'Engagement', icon: TrendingUp, color: 'text-emerald-500' },
       { id: 'auto-fix-logs', label: 'Auto-Fix Logs', icon: Wrench, color: 'text-teal-500' },
@@ -106,111 +106,123 @@ const menuGroups: MenuGroup[] = [
       { id: 'video-migration', label: 'Video Migration', icon: Cloud, color: 'text-sky-500' },
       { id: 'resource-scanner', label: 'Resource Scanner', icon: FolderSync, color: 'text-emerald-500' },
       { id: 'deploy', label: 'Deploy Functions', icon: Rocket, color: 'text-primary' },
-      { id: 'settings', label: 'Settings', icon: Settings, color: 'text-gray-500' },
+      { id: 'settings', label: 'Settings', icon: Settings, color: 'text-muted-foreground' },
     ],
   },
 ];
 
 export function AdminSidebar({ activeTab, onTabChange, collapsed, onCollapsedChange }: AdminSidebarProps) {
   return (
-    <motion.aside
-      initial={false}
-      animate={{ width: collapsed ? 72 : 256 }}
-      className={cn(
-        "fixed left-0 top-16 bottom-0 z-40 bg-card border-r flex flex-col",
-        "transition-shadow duration-300"
-      )}
-    >
-      {/* Logo */}
-      <div className="p-4 border-b flex items-center gap-3">
-        <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
-          <img
-            src={logo}
-            alt="Logo"
-            className="h-8 w-8 object-contain"
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          />
-        </div>
-        {!collapsed && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex-1 min-w-0"
-          >
-            <h2 className="font-bold text-sm truncate">Admin Panel</h2>
-            <p className="text-xs text-muted-foreground">Manage everything</p>
-          </motion.div>
+    <TooltipProvider delayDuration={0}>
+      <motion.aside
+        initial={false}
+        animate={{ width: collapsed ? 64 : 260 }}
+        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+        className={cn(
+          "fixed left-0 top-16 bottom-0 z-40 bg-card/95 backdrop-blur-sm border-r border-border/50 flex flex-col",
         )}
-      </div>
-
-      {/* Menu Items - Grouped */}
-      <ScrollArea className="flex-1 py-2">
-        <nav className="px-3">
-          {menuGroups.map((group, gi) => (
-            <div key={group.label} className={gi > 0 ? 'mt-4' : ''}>
-              {!collapsed && (
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 px-3 mb-1">
-                  {group.label}
-                </p>
-              )}
-              {collapsed && gi > 0 && (
-                <div className="mx-3 my-2 border-t border-border/40" />
-              )}
-              <div className="space-y-0.5">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-
-                  return (
-                    <Button
-                      key={item.id}
-                      variant={isActive ? "secondary" : "ghost"}
-                      className={cn(
-                        "w-full justify-start gap-3 h-9 text-sm",
-                        collapsed && "justify-center px-0",
-                        isActive && "bg-accent/10 text-accent font-medium"
-                      )}
-                      onClick={() => onTabChange(item.id)}
-                    >
-                      <Icon className={cn("h-4 w-4 flex-shrink-0", isActive ? "text-accent" : item.color)} />
-                      {!collapsed && (
-                        <motion.span
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="truncate"
-                        >
-                          {item.label}
-                        </motion.span>
-                      )}
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
-      </ScrollArea>
-
-      {/* Collapse Toggle */}
-      <div className="p-3 border-t">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-center"
-          onClick={() => onCollapsedChange(!collapsed)}
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <>
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Collapse
-            </>
+      >
+        {/* Brand */}
+        <div className="p-3 border-b border-border/40 flex items-center gap-3 shrink-0">
+          <div className={cn(
+            "h-9 w-9 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0",
+            "border border-accent/10"
+          )}>
+            <LayoutDashboard className="h-4 w-4 text-accent" />
+          </div>
+          {!collapsed && (
+            <motion.div
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex-1 min-w-0"
+            >
+              <h2 className="font-semibold text-sm truncate">Command Center</h2>
+              <p className="text-[10px] text-muted-foreground/70">Admin Panel</p>
+            </motion.div>
           )}
-        </Button>
-      </div>
-    </motion.aside>
+        </div>
+
+        {/* Menu */}
+        <ScrollArea className="flex-1 py-2">
+          <nav className={cn("px-2", collapsed && "px-1.5")}>
+            {menuGroups.map((group, gi) => (
+              <div key={group.label} className={gi > 0 ? 'mt-3' : ''}>
+                {!collapsed && (
+                  <p className="text-[9px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/50 px-3 mb-1.5 mt-1">
+                    {group.label}
+                  </p>
+                )}
+                {collapsed && gi > 0 && (
+                  <div className="mx-2 my-2 border-t border-border/30" />
+                )}
+                <div className="space-y-0.5">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+
+                    const btn = (
+                      <button
+                        key={item.id}
+                        className={cn(
+                          "w-full flex items-center gap-2.5 rounded-lg text-sm transition-all duration-200",
+                          collapsed ? "justify-center h-9 w-9 mx-auto" : "h-8 px-3",
+                          isActive
+                            ? "bg-accent/12 text-accent font-medium shadow-sm shadow-accent/5"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        )}
+                        onClick={() => onTabChange(item.id)}
+                      >
+                        <Icon className={cn(
+                          "h-4 w-4 flex-shrink-0 transition-colors",
+                          isActive ? "text-accent" : item.color
+                        )} />
+                        {!collapsed && (
+                          <span className="truncate text-[13px]">{item.label}</span>
+                        )}
+                        {isActive && !collapsed && (
+                          <div className="ml-auto h-1.5 w-1.5 rounded-full bg-accent" />
+                        )}
+                      </button>
+                    );
+
+                    if (collapsed) {
+                      return (
+                        <Tooltip key={item.id}>
+                          <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                          <TooltipContent side="right" className="text-xs">
+                            {item.label}
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    }
+
+                    return btn;
+                  })}
+                </div>
+              </div>
+            ))}
+          </nav>
+        </ScrollArea>
+
+        {/* Collapse Toggle */}
+        <div className="p-2 border-t border-border/40 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-center h-8 text-muted-foreground hover:text-foreground"
+            onClick={() => onCollapsedChange(!collapsed)}
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <>
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                <span className="text-xs">Collapse</span>
+              </>
+            )}
+          </Button>
+        </div>
+      </motion.aside>
+    </TooltipProvider>
   );
 }
