@@ -350,6 +350,8 @@ const App = () => (
               <SaleBanner />
               <AnimatedRoutes />
               <AmbientAudio />
+              <FloatingAIMentor />
+              <AchievementUnlockToast />
             </ErrorBoundary>
           </CartProvider>
         </AuthProvider>
