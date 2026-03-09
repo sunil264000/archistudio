@@ -130,7 +130,8 @@ export default function StudentProfile() {
                 </p>
                 
                 <div className="flex flex-wrap items-center gap-3 mt-4 justify-center sm:justify-start">
-                  <Badge variant="outline" className="gap-1.5 text-xs border-primary/30 text-primary">
+                  <FollowButton targetUserId={userId!} />
+                  <Badge variant="outline" className="gap-1.5 text-xs border-accent/30 text-accent">
                     <Flame className="h-3 w-3" /> {reputationScore} Rep
                   </Badge>
                   <Badge variant="outline" className="gap-1.5 text-xs">
@@ -141,11 +142,14 @@ export default function StudentProfile() {
                   </Badge>
                   {portfolio && (
                     <Link to={`/portfolio/${portfolio.slug}`}>
-                      <Badge variant="outline" className="gap-1.5 text-xs hover:bg-primary/5 cursor-pointer">
+                      <Badge variant="outline" className="gap-1.5 text-xs hover:bg-accent/5 cursor-pointer">
                         <ExternalLink className="h-3 w-3" /> Portfolio
                       </Badge>
                     </Link>
                   )}
+                </div>
+                <div className="mt-3">
+                  <FollowStats userId={userId!} />
                 </div>
               </div>
             </div>
