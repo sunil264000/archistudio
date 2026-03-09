@@ -314,6 +314,7 @@ function AnimatedRoutes() {
           <Route path="/profile/:userId" element={<StudentProfile />} />
           <Route path="/resources" element={<ResourceLibrary />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/challenges" element={<DailyChallenges />} />
           <Route path="/verify/:certNumber" element={<VerifyCertificate />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
