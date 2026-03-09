@@ -328,6 +328,7 @@ function AnimatedRoutes() {
           <Route path="/u/:username" element={<PublicProfile />} />
           <Route path="/portfolios" element={<PortfolioDiscovery />} />
           <Route path="/case-studies" element={<CaseStudies />} />
+          <Route path="/explore" element={<Explore />} />
           <Route path="/learning-map" element={<LearningMap />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
