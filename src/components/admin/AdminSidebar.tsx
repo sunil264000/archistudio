@@ -50,6 +50,7 @@ const menuGroups: MenuGroup[] = [
       { id: 'bundles', label: 'Bundles', icon: Package, color: 'text-purple-500' },
       { id: 'lessons', label: 'Lessons', icon: Video, color: 'text-green-500' },
       { id: 'ebook-library', label: 'eBook Library', icon: FileText, color: 'text-cyan-500' },
+      { id: 'learning-paths', label: 'Learning Paths', icon: KeyRound, color: 'text-indigo-500' },
     ],
   },
   {
