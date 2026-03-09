@@ -77,7 +77,7 @@ export function EbookPDFViewer({
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [requestReason, setRequestReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [existingRequest, setExistingRequest] = useState<any>(null);
+  const [existingRequest, setExistingRequest] = useState<Record<string, unknown> | null>(null);
 
   const maxViewablePages = hasAccess ? numPages : previewPages;
   const progressPercent = numPages > 0 ? (currentPage / maxViewablePages) * 100 : 0;
