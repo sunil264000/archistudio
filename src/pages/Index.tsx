@@ -15,6 +15,7 @@ const CourseStructureSection = lazy(() => import('@/components/home/CourseStruct
 const ComparisonSection = lazy(() => import('@/components/home/ComparisonSection').then(m => ({ default: m.ComparisonSection })));
 const TestimonialsSection = lazy(() => import('@/components/home/TestimonialsSection').then(m => ({ default: m.TestimonialsSection })));
 const FinalCTASection = lazy(() => import('@/components/home/FinalCTASection').then(m => ({ default: m.FinalCTASection })));
+const CommunityFeedSection = lazy(() => import('@/components/home/CommunityFeedSection').then(m => ({ default: m.CommunityFeedSection })));
 
 const SectionLoader = () => (
   <div className="w-full py-12 flex items-center justify-center">
