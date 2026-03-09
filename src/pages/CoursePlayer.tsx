@@ -55,7 +55,7 @@ export default function CoursePlayer() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [course, setCourse] = useState<any>(null);
+  const [course, setCourse] = useState<Record<string, unknown> | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [progress, setProgress] = useState<Record<string, LessonProgress>>({});
