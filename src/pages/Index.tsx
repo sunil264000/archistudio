@@ -52,6 +52,7 @@ export default function Index() {
       <AnimatedBackground intensity="light" />
       <Navbar />
       
+      <main id="main-content">
       <HeroSection />
       
       <HighlightedCourseSection />
