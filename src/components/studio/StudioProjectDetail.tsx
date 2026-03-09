@@ -16,6 +16,8 @@ import { StudioTimelineTab } from './tabs/StudioTimelineTab';
 import { StudioCommentsTab } from './tabs/StudioCommentsTab';
 import { StudioTasksTab } from './tabs/StudioTasksTab';
 import { StudioMilestonesTab } from './tabs/StudioMilestonesTab';
+import { StudioKanbanBoard } from './StudioKanbanBoard';
+import { StudioProjectOverview } from './StudioProjectOverview';
 import { ShareButtons } from '@/components/social/ShareButtons';
 
 interface StudioProjectDetailProps {
