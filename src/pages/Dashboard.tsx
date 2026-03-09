@@ -193,7 +193,17 @@ export default function Dashboard() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="journey"><JourneyOverview /></TabsContent>
+            <TabsContent value="journey">
+              <div className="grid lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <JourneyOverview />
+                </div>
+                <div className="space-y-6">
+                  <ProfileCompletion />
+                  <UsernameSetup />
+                </div>
+              </div>
+            </TabsContent>
             <TabsContent value="courses"><EnrolledCourses /></TabsContent>
             <TabsContent value="sheets"><SheetCritiqueFeed /></TabsContent>
             <TabsContent value="ebooks"><PurchasedEbooks /></TabsContent>
