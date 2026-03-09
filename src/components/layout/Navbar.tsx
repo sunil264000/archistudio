@@ -49,6 +49,7 @@ export function Navbar() {
 
   const navLinks = [
     { to: '/courses', label: 'Courses' },
+    { to: '/explore', label: 'Explore' },
     { to: '/roadmaps', label: 'Paths' },
     { to: '/ebooks', label: 'eBooks', icon: Library },
     ...(user ? [{ to: '/studio', label: 'Studio' }] : []),
@@ -71,6 +72,7 @@ export function Navbar() {
 
   const mobileLinks = [
     { to: '/courses', label: 'Courses' },
+    { to: '/explore', label: 'Explore' },
     { to: '/roadmaps', label: 'Learning Paths' },
     { to: '/learning-map', label: 'Learning Map' },
     { to: '/ebooks', label: 'eBooks' },
