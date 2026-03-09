@@ -31,6 +31,7 @@ import { GiftCampaignManagement } from '@/components/admin/GiftCampaignManagemen
 import { EMISettingsManagement } from '@/components/admin/EMISettingsManagement';
 import { LaunchFreeCourseManagement } from '@/components/admin/LaunchFreeCourseManagement';
 import { RealtimeAnalytics } from '@/components/admin/RealtimeAnalytics';
+import { EngagementAnalytics } from '@/components/admin/EngagementAnalytics';
 import { RoleManagement } from '@/components/admin/RoleManagement';
 import { EmailLogs } from '@/components/admin/EmailLogs';
 import { AutoFixLogs } from '@/components/admin/AutoFixLogs';
