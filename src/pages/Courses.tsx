@@ -284,28 +284,21 @@ export default function Courses() {
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 function CourseCardSkeleton() {
   return (
-    <Card className="overflow-hidden border-border/50 bg-card/80">
-      <Skeleton className="aspect-video w-full" />
-      <CardHeader className="pb-2 space-y-2">
+    <Card className="overflow-hidden border-border/30 bg-card/50">
+      <Skeleton className="aspect-[16/10] w-full" />
+      <div className="p-4 space-y-3">
         <div className="flex gap-2">
-          <Skeleton className="h-5 w-16 rounded-full" />
-          <Skeleton className="h-5 w-20 rounded-full" />
+          <Skeleton className="h-5 w-14 rounded-full" />
+          <Skeleton className="h-5 w-18 rounded-full" />
         </div>
-        <Skeleton className="h-5 w-full rounded" />
-        <Skeleton className="h-5 w-4/5 rounded" />
         <Skeleton className="h-4 w-full rounded" />
-        <Skeleton className="h-4 w-3/4 rounded" />
-      </CardHeader>
-      <CardContent>
-        <div className="flex gap-4 mb-4">
-          <Skeleton className="h-4 w-16 rounded" />
-          <Skeleton className="h-4 w-20 rounded" />
+        <Skeleton className="h-4 w-4/5 rounded" />
+        <Skeleton className="h-3 w-full rounded" />
+        <div className="flex items-center justify-between pt-2">
+          <Skeleton className="h-6 w-20 rounded" />
+          <Skeleton className="h-8 w-20 rounded-lg" />
         </div>
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-7 w-24 rounded" />
-          <Skeleton className="h-9 w-16 rounded" />
-        </div>
-      </CardContent>
+      </div>
     </Card>
   );
 }
