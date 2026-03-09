@@ -317,6 +317,7 @@ function AnimatedRoutes() {
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/challenges" element={<DailyChallenges />} />
           <Route path="/verify/:certNumber" element={<VerifyCertificate />} />
+          <Route path="/u/:username" element={<PublicProfile />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </motion.div>

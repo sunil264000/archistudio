@@ -145,7 +145,11 @@ export function Navbar() {
             </DropdownMenu>
           </div>
 
-          <div className="w-px h-5 bg-border/40 mx-2" />
+          <div className="w-px h-5 bg-border/40 mx-1" />
+
+          <GlobalSearch />
+
+          <div className="w-px h-5 bg-border/40 mx-1" />
 
           <CartSheet />
 
