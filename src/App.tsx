@@ -320,6 +320,8 @@ function AnimatedRoutes() {
           <Route path="/challenges" element={<DailyChallenges />} />
           <Route path="/verify/:certNumber" element={<VerifyCertificate />} />
           <Route path="/u/:username" element={<PublicProfile />} />
+          <Route path="/portfolios" element={<PortfolioDiscovery />} />
+          <Route path="/case-studies" element={<CaseStudies />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </motion.div>
