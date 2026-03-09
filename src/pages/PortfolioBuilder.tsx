@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { SEOHead } from '@/components/seo/SEOHead';
@@ -12,11 +12,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useMyPortfolio, usePortfolioSections } from '@/hooks/usePortfolio';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Plus, Trash2, ChevronUp, ChevronDown, Image as ImageIcon,
-  Type, Heading, FileText, ExternalLink, Loader2, Upload, Globe, Copy, Check
+  Type, Heading, FileText, ExternalLink, Loader2, Upload, Globe, Copy, Check,
+  Import, Paintbrush, FileImage, Trophy
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { ShareButtons } from '@/components/social/ShareButtons';
 
 function SectionEditor({ pageId }: { pageId: string }) {
   const { user } = useAuth();
