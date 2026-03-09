@@ -81,6 +81,7 @@ export default function Index() {
         <FinalCTASection />
       </Suspense>
       
+      </main>
       <Footer />
     </div>
   );
