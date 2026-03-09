@@ -11,7 +11,6 @@ import {
 } from '@/components/animations/AnimatedSection';
 import { supabase } from '@/integrations/supabase/client';
 
-// Icon mapping for dynamic content
 const iconMap: Record<string, any> = {
   'site': MapPin, 'drawing': PenTool, 'construction': Layers, 'structural': Building2,
   'sustain': Leaf, 'spec': FileText, 'detail': Ruler, 'service': Lightbulb,
@@ -27,11 +26,8 @@ function pickIcon(title: string) {
   return Lightbulb;
 }
 
-// Generate learning points from course modules/lessons
 function generateLearningPoints(modules: any[]): { icon: any; title: string; description: string }[] {
   if (!modules || modules.length === 0) return [];
-  
-  // Take up to 8 modules and create learning points
   return modules.slice(0, 8).map(mod => ({
     icon: pickIcon(mod.title),
     title: mod.title,
@@ -39,7 +35,6 @@ function generateLearningPoints(modules: any[]): { icon: any; title: string; des
   }));
 }
 
-// Default/fallback modules
 const defaultModules = [
   { icon: MapPin, title: 'Site Analysis', description: 'Read sites like experienced architects. Context, constraints, opportunities.' },
   { icon: PenTool, title: 'Working Drawings', description: 'Complete drawing sets that contractors can actually build from.' },
@@ -56,7 +51,6 @@ export function WhatYouLearnSection() {
   const [courseTitle, setCourseTitle] = useState('');
 
   useEffect(() => {
-    // Fetch the highlighted course's modules for dynamic content
     const fetchHighlightedModules = async () => {
       const { data: course } = await supabase
         .from('courses')
@@ -67,7 +61,6 @@ export function WhatYouLearnSection() {
         .maybeSingle();
 
       if (!course) return;
-
       setCourseTitle(course.title);
 
       const { data: dbModules } = await supabase
@@ -88,28 +81,28 @@ export function WhatYouLearnSection() {
 
   return (
     <section className="section-padding relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-secondary/20 to-background" />
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-secondary/10 to-background" />
       
       <div className="container-wide relative">
         <motion.div 
-          className="max-w-3xl mx-auto text-center mb-14 sm:mb-20"
-          initial={{ opacity: 0, y: 20 }}
+          className="max-w-2xl mx-auto text-center mb-16"
+          initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.5 }}
         >
           <div className="section-label mb-4">The Curriculum</div>
-          <h2 className="font-display font-bold mb-4">What You'll Actually Learn</h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
+          <h2 className="font-display mb-4">What You'll Actually Learn</h2>
+          <p className="text-body text-muted-foreground max-w-lg mx-auto">
             {courseTitle
               ? `Key modules from ${courseTitle} — each built on real-world project experience.`
-              : 'Eight comprehensive modules covering everything your college skipped. Each built on real-world project experience.'
+              : 'Eight comprehensive modules covering everything your college skipped.'
             }
           </p>
         </motion.div>
 
         <motion.div 
-          className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4"
           variants={staggerContainerFast}
           initial="hidden"
           whileInView="visible"
@@ -121,14 +114,14 @@ export function WhatYouLearnSection() {
               <motion.div 
                 key={i}
                 variants={fadeInUp}
-                className="group p-4 sm:p-6 rounded-xl card-glass hover:border-accent/30 transition-colors duration-300"
+                className="group p-5 sm:p-6 rounded-xl card-glass hover:border-accent/20 transition-all duration-300"
               >
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-secondary flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-accent/10 transition-colors duration-300">
-                  <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-accent" />
+                <div className="w-10 h-10 rounded-lg bg-secondary/80 flex items-center justify-center mb-4 group-hover:bg-accent/10 transition-colors duration-300">
+                  <Icon className="h-[18px] w-[18px] text-accent" />
                 </div>
                 
-                <h3 className="font-semibold text-sm sm:text-base mb-1 sm:mb-2 group-hover:text-accent transition-colors duration-300">{module.title}</h3>
-                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">{module.description}</p>
+                <h4 className="font-display font-semibold text-sm mb-1.5 group-hover:text-accent transition-colors duration-300">{module.title}</h4>
+                <p className="text-body-sm text-muted-foreground leading-relaxed">{module.description}</p>
               </motion.div>
             );
           })}

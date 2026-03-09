@@ -19,7 +19,7 @@ const tracks = [
     ],
     accentClass: 'text-success',
     bgClass: 'bg-success/8',
-    borderClass: 'hover:border-success/30',
+    borderClass: 'hover:border-success/25',
   },
   {
     level: 'Intermediate',
@@ -34,7 +34,7 @@ const tracks = [
     ],
     accentClass: 'text-accent',
     bgClass: 'bg-accent/8',
-    borderClass: 'hover:border-accent/30',
+    borderClass: 'hover:border-accent/25',
   },
   {
     level: 'Advanced',
@@ -49,7 +49,7 @@ const tracks = [
     ],
     accentClass: 'text-blueprint',
     bgClass: 'bg-blueprint/8',
-    borderClass: 'hover:border-blueprint/30',
+    borderClass: 'hover:border-blueprint/25',
   },
 ];
 
@@ -58,23 +58,23 @@ export function CourseStructureSection() {
     <section className="section-padding relative overflow-hidden">
       <div className="container-wide">
         <motion.div 
-          className="max-w-3xl mx-auto text-center mb-14 sm:mb-20"
-          initial={{ opacity: 0, y: 20 }}
+          className="max-w-2xl mx-auto text-center mb-16"
+          initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.5 }}
         >
           <div className="section-label mb-4">Learning Path</div>
-          <h2 className="font-display font-bold mb-4">
+          <h2 className="font-display mb-4">
             A Clear Path from Student to Practitioner
           </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
+          <p className="text-body text-muted-foreground max-w-lg mx-auto">
             Three progressive tracks. Each builds on the last. Start where you are, end where you want to be.
           </p>
         </motion.div>
 
         <motion.div 
-          className="grid lg:grid-cols-3 gap-4 sm:gap-5 max-w-6xl mx-auto"
+          className="grid lg:grid-cols-3 gap-5 max-w-5xl mx-auto"
           variants={staggerContainer}
           initial="hidden"
           whileInView="visible"
@@ -87,18 +87,18 @@ export function CourseStructureSection() {
               className={`relative flex flex-col p-6 sm:p-7 rounded-2xl card-glass ${track.borderClass} transition-colors duration-300 group`}
             >
               {/* Level badge */}
-              <div className={`inline-flex self-start px-3 py-1 rounded-full text-xs font-medium ${track.accentClass} ${track.bgClass} border border-current/10`}>
+              <div className={`inline-flex self-start px-3 py-1 rounded-full text-caption font-semibold ${track.accentClass} ${track.bgClass}`}>
                 {track.level}
               </div>
 
               <div className="mt-5 flex-1">
-                <h3 className="text-2xl font-bold mb-1">{track.title}</h3>
-                <p className={`text-sm ${track.accentClass} font-medium mb-4`}>{track.duration}</p>
-                <p className="text-muted-foreground text-sm mb-6 leading-relaxed">{track.description}</p>
+                <h3 className="font-display text-xl font-bold mb-1">{track.title}</h3>
+                <p className={`text-caption ${track.accentClass} font-semibold mb-4`}>{track.duration}</p>
+                <p className="text-body-sm text-muted-foreground mb-6 leading-relaxed">{track.description}</p>
 
-                <ul className="space-y-2.5">
+                <ul className="space-y-3">
                   {track.topics.map((topic, j) => (
-                    <li key={j} className="flex items-start gap-2.5 text-sm">
+                    <li key={j} className="flex items-start gap-2.5 text-body-sm">
                       <CheckCircle className={`h-4 w-4 ${track.accentClass} mt-0.5 shrink-0`} />
                       <span className="text-muted-foreground">{topic}</span>
                     </li>

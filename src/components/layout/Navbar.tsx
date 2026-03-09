@@ -7,7 +7,6 @@ import logoMark from '@/assets/logo-mark.png';
 import { useState, useEffect } from 'react';
 import { CartSheet } from '@/components/cart/CartSheet';
 import { supabase } from '@/integrations/supabase/client';
-import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 export function Navbar() {
@@ -29,7 +28,6 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Fetch unread notifications
   useEffect(() => {
     if (!user) { setUnreadCount(0); setNotifications([]); return; }
     const fetchNotifs = async () => {
@@ -66,6 +64,39 @@ export function Navbar() {
     }
   }, []);
 
+  const navLinks = [
+    { to: '/courses', label: 'Courses' },
+    { to: '/roadmaps', label: 'Paths' },
+    { to: '/ebooks', label: 'eBooks', icon: Library },
+    ...(user ? [{ to: '/studio', label: 'Studio' }] : []),
+  ];
+
+  const communityLinks = [
+    { to: '/forum', label: 'Forum' },
+    { to: '/sheets', label: 'Sheet Reviews' },
+    { to: '/competitions', label: 'Competitions' },
+    { to: '/challenges', label: 'Daily Challenges' },
+    { to: '/internships', label: 'Internships' },
+    { to: '/resources', label: 'Resources' },
+    { to: '/leaderboard', label: 'Leaderboard' },
+    ...(user ? [{ to: '/portfolio/build', label: 'Portfolio' }] : []),
+    { to: '/blog', label: 'Blog' },
+  ];
+
+  const mobileLinks = [
+    { to: '/courses', label: 'Courses' },
+    { to: '/roadmaps', label: 'Learning Paths' },
+    { to: '/ebooks', label: 'eBooks' },
+    { to: '/forum', label: 'Forum' },
+    { to: '/sheets', label: 'Sheet Reviews' },
+    { to: '/competitions', label: 'Challenges' },
+    { to: '/internships', label: 'Internships' },
+    ...(user ? [{ to: '/portfolio/build', label: 'Portfolio' }, { to: '/studio', label: 'Studio' }] : []),
+    { to: '/resources', label: 'Resources' },
+    { to: '/leaderboard', label: 'Leaderboard' },
+    { to: '/blog', label: 'Blog' },
+  ];
+
   return (
     <header 
       className={`sticky z-50 transition-all duration-300 ${
@@ -78,25 +109,20 @@ export function Navbar() {
       <nav className="container-wide py-3 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="group flex items-center gap-2.5">
-          <img src={logoMark} alt="Archistudio" className="h-9 w-9 rounded-xl object-cover shadow-[0_0_16px_hsl(var(--accent)/0.2)]" />
-          <span className="font-display font-bold text-lg tracking-tight text-foreground">
+          <img src={logoMark} alt="Archistudio" className="h-8 w-8 rounded-lg object-cover" />
+          <span className="font-display font-bold text-base tracking-tight text-foreground">
             Archistudio
           </span>
         </Link>
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-1">
-          <div className="flex items-center gap-0.5 text-sm">
-            {[
-              { to: '/courses', label: 'Courses' },
-              { to: '/roadmaps', label: 'Paths' },
-              { to: '/ebooks', label: 'eBooks', icon: Library },
-              ...(user ? [{ to: '/studio', label: 'Studio' }] : []),
-            ].map((link) => (
+          <div className="flex items-center gap-0.5">
+            {navLinks.map((link) => (
               <Link 
                 key={link.to}
                 to={link.to} 
-                className="px-4 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all duration-300 flex items-center gap-1.5"
+                className="px-3.5 py-2 rounded-lg text-body-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all duration-300 flex items-center gap-1.5"
               >
                 {link.icon && <link.icon className="h-3.5 w-3.5" />}
                 {link.label}
@@ -105,30 +131,20 @@ export function Navbar() {
 
             {/* Community dropdown */}
             <DropdownMenu>
-              <DropdownMenuTrigger className="px-4 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all duration-300 flex items-center gap-1 text-sm outline-none">
+              <DropdownMenuTrigger className="px-3.5 py-2 rounded-lg text-body-sm text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-all duration-300 flex items-center gap-1 outline-none">
                 Community <ChevronDown className="h-3 w-3" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-44">
-                {[
-                  { to: '/forum', label: 'Forum' },
-                  { to: '/sheets', label: 'Sheet Reviews' },
-                  { to: '/competitions', label: 'Competitions' },
-                  { to: '/challenges', label: 'Daily Challenges' },
-                  { to: '/internships', label: 'Internships' },
-                  { to: '/resources', label: 'Resources' },
-                  { to: '/leaderboard', label: 'Leaderboard' },
-                  ...(user ? [{ to: '/portfolio/build', label: 'Portfolio' }] : []),
-                  { to: '/blog', label: 'Blog' },
-                ].map(link => (
+                {communityLinks.map(link => (
                   <DropdownMenuItem key={link.to} asChild>
-                    <Link to={link.to} className="cursor-pointer">{link.label}</Link>
+                    <Link to={link.to} className="cursor-pointer text-body-sm">{link.label}</Link>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
 
-          <div className="w-px h-5 bg-border/50 mx-2" />
+          <div className="w-px h-5 bg-border/40 mx-2" />
 
           <CartSheet />
 
@@ -136,7 +152,7 @@ export function Navbar() {
           {user && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-xl relative">
+                <Button variant="ghost" size="icon" className="rounded-lg relative">
                   <Bell className="h-4 w-4" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-[10px] text-destructive-foreground flex items-center justify-center font-bold">
@@ -147,11 +163,11 @@ export function Navbar() {
               </PopoverTrigger>
               <PopoverContent className="w-80 p-0" align="end">
                 <div className="p-3 border-b">
-                  <h4 className="font-semibold text-sm">Notifications</h4>
+                  <h4 className="font-display font-semibold text-body-sm">Notifications</h4>
                 </div>
                 <div className="max-h-64 overflow-auto">
                   {notifications.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-6">No new notifications</p>
+                    <p className="text-body-sm text-muted-foreground text-center py-6">No new notifications</p>
                   ) : (
                     notifications.map(n => (
                       <div key={n.id} className="p-3 border-b last:border-0 hover:bg-muted/50 transition-colors cursor-pointer"
@@ -161,8 +177,8 @@ export function Navbar() {
                           setUnreadCount(prev => Math.max(0, prev - 1));
                         }}
                       >
-                        <p className="text-sm font-medium">{n.title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                        <p className="text-body-sm font-medium">{n.title}</p>
+                        <p className="text-caption text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
                         <p className="text-[10px] text-muted-foreground mt-1">
                           {new Date(n.created_at).toLocaleDateString()}
                         </p>
@@ -174,24 +190,24 @@ export function Navbar() {
             </Popover>
           )}
 
-          <Button variant="ghost" size="icon" onClick={toggleDarkMode} className="rounded-xl">
+          <Button variant="ghost" size="icon" onClick={toggleDarkMode} className="rounded-lg">
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
           {loading ? (
-            <div className="h-9 w-20 animate-pulse rounded-xl bg-muted" />
+            <div className="h-9 w-20 animate-pulse rounded-lg bg-muted" />
           ) : user ? (
             <div className="flex items-center gap-2 ml-1">
               {isAdmin && (
                 <Link to="/admin">
-                  <Button variant="ghost" size="sm" className="gap-1.5 text-accent">
+                  <Button variant="ghost" size="sm" className="gap-1.5 text-accent text-body-sm">
                     <ShieldCheck className="h-4 w-4" />
                     Admin
                   </Button>
                 </Link>
               )}
               <Link to="/dashboard">
-                <Button variant="ghost" size="sm" className="gap-1.5">
+                <Button variant="ghost" size="sm" className="gap-1.5 text-body-sm">
                   <User className="h-4 w-4" />
                   {profile?.full_name || 'Dashboard'}
                 </Button>
@@ -203,13 +219,13 @@ export function Navbar() {
           ) : (
             <div className="flex items-center gap-2 ml-1">
               <Link to="/auth">
-                <Button variant="ghost" size="sm">Sign In</Button>
+                <Button variant="ghost" size="sm" className="text-body-sm">Sign In</Button>
               </Link>
               <Link to="/auth?mode=signup">
-                  <Button size="sm" className="gap-1.5 group bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_0_16px_hsl(var(--accent)/0.2)]">
-                    Get Started
-                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                  </Button>
+                <Button size="sm" className="gap-1.5 group bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_0_16px_hsl(var(--accent)/0.15)] text-body-sm">
+                  Get Started
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+                </Button>
               </Link>
             </div>
           )}
@@ -217,7 +233,7 @@ export function Navbar() {
 
         {/* Mobile Menu Button */}
         <button
-          className="md:hidden p-3 -mr-2 rounded-xl hover:bg-muted transition-colors touch-target min-w-[48px] min-h-[48px] flex items-center justify-center"
+          className="md:hidden p-3 -mr-2 rounded-lg hover:bg-muted transition-colors touch-target min-w-[48px] min-h-[48px] flex items-center justify-center"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
         >
@@ -228,24 +244,12 @@ export function Navbar() {
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-border/30 bg-card safe-area-inset">
-          <div className="p-5 space-y-2">
-            {[
-              { to: '/courses', label: 'Courses' },
-              { to: '/roadmaps', label: 'Learning Paths' },
-              { to: '/ebooks', label: 'eBooks' },
-              { to: '/forum', label: 'Forum' },
-              { to: '/sheets', label: 'Sheet Reviews' },
-              { to: '/competitions', label: 'Challenges' },
-              { to: '/internships', label: 'Internships' },
-              ...(user ? [{ to: '/portfolio/build', label: 'Portfolio' }, { to: '/studio', label: 'Studio' }] : []),
-              { to: '/resources', label: 'Resources' },
-              { to: '/leaderboard', label: 'Leaderboard' },
-              { to: '/blog', label: 'Blog' },
-            ].map((link) => (
+          <div className="p-5 space-y-1.5">
+            {mobileLinks.map((link) => (
               <Link 
                 key={link.to}
                 to={link.to} 
-                className="block text-foreground py-3.5 px-4 rounded-xl hover:bg-secondary transition-colors text-base font-medium touch-target"
+                className="block text-foreground py-3 px-4 rounded-lg hover:bg-secondary transition-colors text-body font-medium touch-target"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {link.label}
@@ -254,7 +258,7 @@ export function Navbar() {
             
             <button 
               onClick={() => { toggleDarkMode(); setMobileMenuOpen(false); }}
-              className="w-full text-left text-foreground py-3.5 px-4 rounded-xl hover:bg-secondary transition-colors flex items-center gap-2.5 text-base font-medium touch-target"
+              className="w-full text-left text-foreground py-3 px-4 rounded-lg hover:bg-secondary transition-colors flex items-center gap-2.5 text-body font-medium touch-target"
             >
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               {isDark ? 'Light Mode' : 'Dark Mode'}
@@ -265,19 +269,19 @@ export function Navbar() {
                 <>
                   {isAdmin && (
                     <Link to="/admin" onClick={() => setMobileMenuOpen(false)}>
-                      <Button variant="outline" className="w-full gap-2 min-h-[48px] text-base text-accent">
+                      <Button variant="outline" className="w-full gap-2 min-h-[48px] text-body text-accent">
                         <ShieldCheck className="h-5 w-5" />
                         Admin Panel
                       </Button>
                     </Link>
                   )}
                   <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full gap-2 justify-start min-h-[48px] text-base">
+                    <Button variant="ghost" className="w-full gap-2 justify-start min-h-[48px] text-body">
                       <User className="h-5 w-5" />
                       {profile?.full_name || 'Dashboard'}
                     </Button>
                   </Link>
-                  <Button variant="outline" className="w-full gap-2 min-h-[48px] text-base" onClick={() => { signOut(); setMobileMenuOpen(false); }}>
+                  <Button variant="outline" className="w-full gap-2 min-h-[48px] text-body" onClick={() => { signOut(); setMobileMenuOpen(false); }}>
                     <LogOut className="h-5 w-5" />
                     Sign Out
                   </Button>
@@ -285,10 +289,10 @@ export function Navbar() {
               ) : !loading ? (
                 <>
                   <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" className="w-full min-h-[48px] text-base">Sign In</Button>
+                    <Button variant="outline" className="w-full min-h-[48px] text-body">Sign In</Button>
                   </Link>
                   <Link to="/auth?mode=signup" onClick={() => setMobileMenuOpen(false)}>
-                    <Button className="w-full gap-2 min-h-[48px] text-base bg-accent text-accent-foreground hover:bg-accent/90">
+                    <Button className="w-full gap-2 min-h-[48px] text-body bg-accent text-accent-foreground hover:bg-accent/90">
                       Get Started
                       <ArrowRight className="h-5 w-5" />
                     </Button>
