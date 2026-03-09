@@ -15,6 +15,8 @@ import { JourneyOverview } from '@/components/dashboard/JourneyOverview';
 import { SheetCritiqueFeed } from '@/components/dashboard/SheetCritiqueFeed';
 import { UnifiedSearch } from '@/components/dashboard/UnifiedSearch';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
+import { ProfileCompletion } from '@/components/profile/ProfileCompletion';
+import { UsernameSetup } from '@/components/profile/UsernameSetup';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
