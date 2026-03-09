@@ -58,6 +58,7 @@ import StudentProfile from "./pages/StudentProfile";
 import ResourceLibrary from "./pages/ResourceLibrary";
 import Leaderboard from "./pages/Leaderboard";
 import DailyChallenges from "./pages/DailyChallenges";
+import PublicProfile from "./pages/PublicProfile";
 
 const queryClient = new QueryClient();
 
