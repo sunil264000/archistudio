@@ -5,7 +5,8 @@ import {
   BookOpen, Package, Video, Users, UserPlus, HelpCircle, Bell,
   CreditCard, Sparkles, Award, BarChart3, MessageSquare, Settings,
   ChevronLeft, ChevronRight, LayoutDashboard, Timer, Mail, Send, Library, FileText, KeyRound,
-  Gift, Wallet, Rocket, Zap, Shield, History, Wrench, Inbox, Cloud, Monitor, FolderSync, Download, TrendingUp
+  Gift, Wallet, Rocket, Zap, Shield, History, Wrench, Inbox, Cloud, Monitor, FolderSync, Download, TrendingUp,
+  HeartPulse, Activity, Brain, ShieldAlert
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logo from '@/assets/logo.png';
