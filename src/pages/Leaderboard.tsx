@@ -58,36 +58,54 @@ export default function Leaderboard() {
               {leaderboard.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-12">No data yet. Start learning to earn points!</p>
               ) : (
-                <div className="space-y-2">
-                  {leaderboard.map((entry, i) => (
-                    <Card key={entry.user_id} className={`${entry.user_id === user?.id ? 'ring-2 ring-primary/30' : ''} bg-card/50`}>
-                      <CardContent className="p-4 flex items-center gap-4">
-                        <div className="w-8 flex justify-center">{getRankIcon(i)}</div>
-                        <Link to={`/profile/${entry.user_id}`} className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
-                            {entry.avatar_url ? (
-                              <img src={entry.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
-                            ) : (
-                              entry.full_name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-foreground truncate">
-                              {entry.full_name || 'Student'}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {LEVEL_TITLES[entry.level] || 'Apprentice'} · Level {entry.level}
-                            </p>
-                          </div>
-                        </Link>
-                        <div className="text-right shrink-0">
-                          <p className="text-sm font-bold text-foreground">{entry.points}</p>
-                          <p className="text-[10px] text-muted-foreground">points</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                <>
+                  {/* Podium for top 3 */}
+                  {leaderboard.length >= 3 && (
+                    <LeaderboardPodium top3={leaderboard.slice(0, 3)} />
+                  )}
+
+                  {/* Full list */}
+                  <div className="space-y-2">
+                    {leaderboard.map((entry, i) => (
+                      <motion.div
+                        key={entry.user_id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.03 }}
+                      >
+                        <Card className={`${entry.user_id === user?.id ? 'ring-2 ring-primary/30' : ''} bg-card/50 hover:border-accent/20 transition-colors`}>
+                          <CardContent className="p-4 flex items-center gap-4">
+                            <div className="w-8 flex justify-center">{getRankIcon(i)}</div>
+                            <Link to={`/profile/${entry.user_id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
+                                {entry.avatar_url ? (
+                                  <img src={entry.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
+                                ) : (
+                                  entry.full_name?.charAt(0)?.toUpperCase() || <User className="h-4 w-4" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-foreground truncate">
+                                  {entry.full_name || 'Student'}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {LEVEL_TITLES[entry.level] || 'Apprentice'} · Level {entry.level}
+                                </p>
+                              </div>
+                            </Link>
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-bold text-foreground flex items-center gap-1">
+                                {entry.points}
+                                {i < 3 && <TrendingUp className="h-3 w-3 text-emerald-500" />}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">points</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
 

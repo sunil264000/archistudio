@@ -137,9 +137,18 @@ export function StudioProjectDetail({ projectId, onBack }: StudioProjectDetailPr
         </div>
       </div>
 
+      {/* Overview */}
+      <StudioProjectOverview
+        projectId={projectId}
+        filesCount={files.length}
+        notesCount={notes.length}
+        commentsCount={comments.length}
+      />
+
       {/* Tabs */}
-      <Tabs defaultValue="tasks" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+      <Tabs defaultValue="kanban" className="w-full">
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="kanban">Kanban</TabsTrigger>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="milestones">Milestones</TabsTrigger>
           <TabsTrigger value="files">Files ({files.length})</TabsTrigger>
@@ -147,6 +156,10 @@ export function StudioProjectDetail({ projectId, onBack }: StudioProjectDetailPr
           <TabsTrigger value="timeline">Timeline</TabsTrigger>
           <TabsTrigger value="comments">Comments</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="kanban" className="mt-4">
+          <StudioKanbanBoard projectId={projectId} />
+        </TabsContent>
 
         <TabsContent value="tasks" className="mt-4">
           <StudioTasksTab projectId={projectId} />
