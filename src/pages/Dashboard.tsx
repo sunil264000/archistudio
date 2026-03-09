@@ -16,6 +16,7 @@ import { SheetCritiqueFeed } from '@/components/dashboard/SheetCritiqueFeed';
 import { UnifiedSearch } from '@/components/dashboard/UnifiedSearch';
 import { ContinueLearning } from '@/components/dashboard/ContinueLearning';
 import { LiveCommunityFeed } from '@/components/dashboard/LiveCommunityFeed';
+import { SkillTree } from '@/components/dashboard/SkillTree';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { ProfileCompletion } from '@/components/profile/ProfileCompletion';
 import { UsernameSetup } from '@/components/profile/UsernameSetup';
