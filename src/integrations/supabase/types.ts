@@ -56,6 +56,39 @@ export type Database = {
         }
         Relationships: []
       }
+      activity_feed: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          target_id: string | null
+          target_title: string | null
+          target_type: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_title?: string | null
+          target_type?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_title?: string | null
+          target_type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       activity_history: {
         Row: {
           activity_type: string
@@ -2019,6 +2052,48 @@ export type Database = {
           },
         ]
       }
+      moderation_queue: {
+        Row: {
+          action_taken: string | null
+          content_id: string
+          content_preview: string | null
+          content_type: string
+          created_at: string | null
+          id: string
+          reason: string | null
+          reported_by: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string | null
+        }
+        Insert: {
+          action_taken?: string | null
+          content_id: string
+          content_preview?: string | null
+          content_type: string
+          created_at?: string | null
+          id?: string
+          reason?: string | null
+          reported_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Update: {
+          action_taken?: string | null
+          content_id?: string
+          content_preview?: string | null
+          content_type?: string
+          created_at?: string | null
+          id?: string
+          reason?: string | null
+          reported_by?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       modules: {
         Row: {
           course_id: string
@@ -2207,6 +2282,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string | null
+          event_type: string
+          id: string
+          payload: Json | null
+          processed: boolean | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string | null
+          event_type: string
+          id?: string
+          payload?: Json | null
+          processed?: boolean | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          processed?: boolean | null
+        }
+        Relationships: []
       }
       point_transactions: {
         Row: {
@@ -3243,6 +3345,45 @@ export type Database = {
         }
         Relationships: []
       }
+      system_errors: {
+        Row: {
+          attempts: number | null
+          auto_fix_attempted: boolean | null
+          created_at: string | null
+          error_type: string
+          id: string
+          payload: Json | null
+          resolution_note: string | null
+          resolved: boolean | null
+          resolved_at: string | null
+          service: string
+        }
+        Insert: {
+          attempts?: number | null
+          auto_fix_attempted?: boolean | null
+          created_at?: string | null
+          error_type: string
+          id?: string
+          payload?: Json | null
+          resolution_note?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          service: string
+        }
+        Update: {
+          attempts?: number | null
+          auto_fix_attempted?: boolean | null
+          created_at?: string | null
+          error_type?: string
+          id?: string
+          payload?: Json | null
+          resolution_note?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          service?: string
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           badge_description: string | null
@@ -3521,6 +3662,30 @@ export type Database = {
           points?: number | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_rate_limits: {
+        Row: {
+          action_type: string
+          count: number | null
+          id: string
+          user_id: string
+          window_start: string | null
+        }
+        Insert: {
+          action_type: string
+          count?: number | null
+          id?: string
+          user_id: string
+          window_start?: string | null
+        }
+        Update: {
+          action_type?: string
+          count?: number | null
+          id?: string
+          user_id?: string
+          window_start?: string | null
         }
         Relationships: []
       }
