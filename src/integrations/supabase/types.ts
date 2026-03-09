@@ -1344,6 +1344,36 @@ export type Database = {
           },
         ]
       }
+      feature_flags: {
+        Row: {
+          description: string | null
+          enabled: boolean | null
+          flag_key: string
+          id: string
+          rollout_percentage: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          enabled?: boolean | null
+          flag_key: string
+          id?: string
+          rollout_percentage?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          enabled?: boolean | null
+          flag_key?: string
+          id?: string
+          rollout_percentage?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       forum_answers: {
         Row: {
           content: string
@@ -1621,6 +1651,51 @@ export type Database = {
         }
         Relationships: []
       }
+      job_queue: {
+        Row: {
+          attempts: number | null
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          job_type: string
+          max_attempts: number | null
+          payload: Json | null
+          priority: number | null
+          scheduled_for: string | null
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          job_type: string
+          max_attempts?: number | null
+          payload?: Json | null
+          priority?: number | null
+          scheduled_for?: string | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          job_type?: string
+          max_attempts?: number | null
+          payload?: Json | null
+          priority?: number | null
+          scheduled_for?: string | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       launch_free_courses: {
         Row: {
           auto_enroll_all: boolean | null
@@ -1664,6 +1739,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      learning_path_courses: {
+        Row: {
+          course_id: string
+          id: string
+          order_index: number | null
+          path_id: string
+        }
+        Insert: {
+          course_id: string
+          id?: string
+          order_index?: number | null
+          path_id: string
+        }
+        Update: {
+          course_id?: string
+          id?: string
+          order_index?: number | null
+          path_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_path_courses_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_path_courses_path_id_fkey"
+            columns: ["path_id"]
+            isOneToOne: false
+            referencedRelation: "learning_paths"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_paths: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_published: boolean | null
+          order_index: number | null
+          slug: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_published?: boolean | null
+          order_index?: number | null
+          slug: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_published?: boolean | null
+          order_index?: number | null
+          slug?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       learning_track_courses: {
         Row: {
@@ -2170,6 +2320,36 @@ export type Database = {
           },
         ]
       }
+      notification_templates: {
+        Row: {
+          body_template: string
+          channels: string[] | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          template_key: string
+          title_template: string
+        }
+        Insert: {
+          body_template: string
+          channels?: string[] | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          template_key: string
+          title_template: string
+        }
+        Update: {
+          body_template?: string
+          channels?: string[] | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          template_key?: string
+          title_template?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           action_url: string | null
@@ -2418,6 +2598,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      portfolio_views: {
+        Row: {
+          created_at: string | null
+          id: string
+          page_viewed: string | null
+          portfolio_id: string
+          referrer: string | null
+          time_spent_seconds: number | null
+          viewer_id: string | null
+          viewer_ip: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          page_viewed?: string | null
+          portfolio_id: string
+          referrer?: string | null
+          time_spent_seconds?: number | null
+          viewer_id?: string | null
+          viewer_ip?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          page_viewed?: string | null
+          portfolio_id?: string
+          referrer?: string | null
+          time_spent_seconds?: number | null
+          viewer_id?: string | null
+          viewer_ip?: string | null
+        }
+        Relationships: []
       }
       portfolios: {
         Row: {
@@ -3381,6 +3594,30 @@ export type Database = {
           resolved?: boolean | null
           resolved_at?: string | null
           service?: string
+        }
+        Relationships: []
+      }
+      system_metrics: {
+        Row: {
+          id: string
+          metric_name: string
+          metric_value: number
+          recorded_at: string | null
+          tags: Json | null
+        }
+        Insert: {
+          id?: string
+          metric_name: string
+          metric_value: number
+          recorded_at?: string | null
+          tags?: Json | null
+        }
+        Update: {
+          id?: string
+          metric_name?: string
+          metric_value?: number
+          recorded_at?: string | null
+          tags?: Json | null
         }
         Relationships: []
       }
