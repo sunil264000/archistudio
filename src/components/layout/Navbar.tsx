@@ -112,7 +112,8 @@ export function Navbar() {
                 {[
                   { to: '/forum', label: 'Forum' },
                   { to: '/sheets', label: 'Sheet Reviews' },
-                  { to: '/competitions', label: 'Challenges' },
+                  { to: '/competitions', label: 'Competitions' },
+                  { to: '/challenges', label: 'Daily Challenges' },
                   { to: '/internships', label: 'Internships' },
                   { to: '/resources', label: 'Resources' },
                   { to: '/leaderboard', label: 'Leaderboard' },

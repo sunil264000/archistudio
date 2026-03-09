@@ -57,6 +57,7 @@ import Roadmaps from "./pages/Roadmaps";
 import StudentProfile from "./pages/StudentProfile";
 import ResourceLibrary from "./pages/ResourceLibrary";
 import Leaderboard from "./pages/Leaderboard";
+import DailyChallenges from "./pages/DailyChallenges";
 
 const queryClient = new QueryClient();
 
@@ -313,6 +314,7 @@ function AnimatedRoutes() {
           <Route path="/profile/:userId" element={<StudentProfile />} />
           <Route path="/resources" element={<ResourceLibrary />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/challenges" element={<DailyChallenges />} />
           <Route path="/verify/:certNumber" element={<VerifyCertificate />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

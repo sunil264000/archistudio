@@ -389,6 +389,73 @@ export type Database = {
           },
         ]
       }
+      challenge_submissions: {
+        Row: {
+          caption: string | null
+          challenge_id: string
+          created_at: string
+          id: string
+          image_url: string
+          user_id: string
+          vote_count: number | null
+        }
+        Insert: {
+          caption?: string | null
+          challenge_id: string
+          created_at?: string
+          id?: string
+          image_url: string
+          user_id: string
+          vote_count?: number | null
+        }
+        Update: {
+          caption?: string | null
+          challenge_id?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          user_id?: string
+          vote_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_submissions_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "daily_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      challenge_votes: {
+        Row: {
+          created_at: string
+          id: string
+          submission_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          submission_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          submission_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_votes_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "challenge_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competition_submissions: {
         Row: {
           competition_id: string
@@ -862,6 +929,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      daily_challenges: {
+        Row: {
+          active_date: string
+          brief: string
+          category: string | null
+          created_at: string
+          created_by: string | null
+          difficulty: string | null
+          id: string
+          is_active: boolean | null
+          submission_count: number | null
+          title: string
+        }
+        Insert: {
+          active_date?: string
+          brief: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          difficulty?: string | null
+          id?: string
+          is_active?: boolean | null
+          submission_count?: number | null
+          title: string
+        }
+        Update: {
+          active_date?: string
+          brief?: string
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          difficulty?: string | null
+          id?: string
+          is_active?: boolean | null
+          submission_count?: number | null
+          title?: string
+        }
+        Relationships: []
       }
       download_requests: {
         Row: {
@@ -2832,6 +2938,53 @@ export type Database = {
           },
         ]
       }
+      studio_project_milestones: {
+        Row: {
+          completed: boolean | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          order_index: number | null
+          project_id: string
+          target_date: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number | null
+          project_id: string
+          target_date?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number | null
+          project_id?: string
+          target_date?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_project_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "studio_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       studio_project_notes: {
         Row: {
           content: string
@@ -2863,6 +3016,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "studio_project_notes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "studio_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_project_tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          order_index: number | null
+          priority: string | null
+          project_id: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          order_index?: number | null
+          priority?: string | null
+          project_id: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          order_index?: number | null
+          priority?: string | null
+          project_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_project_tasks_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "studio_projects"

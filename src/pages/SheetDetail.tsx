@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, ThumbsUp, Award, MessageSquare, Loader2, Star, Send, Reply } from 'lucide-react';
+import { ShareButtons } from '@/components/social/ShareButtons';
 import { useState } from 'react';
 import { SEOHead } from '@/components/seo/SEOHead';
 import type { SheetCritique } from '@/hooks/useSheetReviews';
@@ -105,6 +106,7 @@ export default function SheetDetail() {
                       <Star className="h-3 w-3" /> Featured
                     </Badge>
                   )}
+                  <ShareButtons url={`/sheets/${sheet.id}`} title={sheet.title} description={sheet.description || undefined} />
                 </div>
                 <h1 className="text-2xl font-display font-bold">{sheet.title}</h1>
                 {sheet.description && (

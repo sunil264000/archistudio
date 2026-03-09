@@ -13,6 +13,9 @@ import { StudioFilesTab } from './tabs/StudioFilesTab';
 import { StudioNotesTab } from './tabs/StudioNotesTab';
 import { StudioTimelineTab } from './tabs/StudioTimelineTab';
 import { StudioCommentsTab } from './tabs/StudioCommentsTab';
+import { StudioTasksTab } from './tabs/StudioTasksTab';
+import { StudioMilestonesTab } from './tabs/StudioMilestonesTab';
+import { ShareButtons } from '@/components/social/ShareButtons';
 
 interface StudioProjectDetailProps {
   projectId: string;
@@ -110,17 +113,30 @@ export function StudioProjectDetail({ projectId, onBack }: StudioProjectDetailPr
             {project.visibility === 'public' ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
             {project.visibility === 'public' ? 'Public' : 'Private'}
           </Button>
+          {project.visibility === 'public' && (
+            <ShareButtons url={`/studio`} title={project.title} description={project.description || undefined} />
+          )}
         </div>
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="files" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="tasks" className="w-full">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="milestones">Milestones</TabsTrigger>
           <TabsTrigger value="files">Files ({files.length})</TabsTrigger>
           <TabsTrigger value="notes">Notes ({notes.length})</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline ({timeline.length})</TabsTrigger>
-          <TabsTrigger value="comments">Comments ({comments.length})</TabsTrigger>
+          <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <TabsTrigger value="comments">Comments</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="tasks" className="mt-4">
+          <StudioTasksTab projectId={projectId} />
+        </TabsContent>
+
+        <TabsContent value="milestones" className="mt-4">
+          <StudioMilestonesTab projectId={projectId} />
+        </TabsContent>
 
         <TabsContent value="files" className="mt-4">
           <StudioFilesTab files={files} onUpload={uploadFile} onDelete={deleteFile} />
