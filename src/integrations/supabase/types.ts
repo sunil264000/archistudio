@@ -3120,6 +3120,60 @@ export type Database = {
           },
         ]
       }
+      sheet_annotations: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_resolved: boolean | null
+          message: string
+          parent_id: string | null
+          sheet_id: string
+          updated_at: string | null
+          user_id: string
+          x_percent: number
+          y_percent: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_resolved?: boolean | null
+          message: string
+          parent_id?: string | null
+          sheet_id: string
+          updated_at?: string | null
+          user_id: string
+          x_percent: number
+          y_percent: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_resolved?: boolean | null
+          message?: string
+          parent_id?: string | null
+          sheet_id?: string
+          updated_at?: string | null
+          user_id?: string
+          x_percent?: number
+          y_percent?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sheet_annotations_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "sheet_annotations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sheet_annotations_sheet_id_fkey"
+            columns: ["sheet_id"]
+            isOneToOne: false
+            referencedRelation: "sheet_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sheet_critique_upvotes: {
         Row: {
           created_at: string

@@ -13,6 +13,8 @@ import { ArrowLeft, ThumbsUp, Award, MessageSquare, Loader2, Star, Send, Reply, 
 import { ShareButtons } from '@/components/social/ShareButtons';
 import { useState } from 'react';
 import { SEOHead } from '@/components/seo/SEOHead';
+import { SheetAnnotationLayer } from '@/components/sheets/SheetAnnotationLayer';
+import { useSheetAnnotations } from '@/hooks/useSheetAnnotations';
 import type { SheetCritique } from '@/hooks/useSheetReviews';
 
 export default function SheetDetail() {
@@ -20,6 +22,7 @@ export default function SheetDetail() {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const { sheet, critiques, loading, addCritique, toggleUpvote, markBestAnswer, refetch } = useSheetDetail(id);
+  const { annotations, refetch: refetchAnnotations } = useSheetAnnotations(id);
   const [newCritique, setNewCritique] = useState('');
   const [posting, setPosting] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -103,13 +106,24 @@ export default function SheetDetail() {
           <div className="grid lg:grid-cols-[1fr_400px] gap-8">
             {/* Sheet Image */}
             <div>
-              <div className="rounded-xl overflow-hidden border border-border/40 bg-card">
+              <div className="rounded-xl overflow-hidden border border-border/40 bg-card relative">
+                <SheetAnnotationLayer
+                  sheetId={sheet.id}
+                  annotations={annotations}
+                  onAnnotationAdded={refetchAnnotations}
+                  enabled={!!user}
+                />
                 <img
                   src={sheet.sheet_url}
                   alt={sheet.title}
                   className="w-full object-contain max-h-[80vh]"
                 />
               </div>
+              {annotations.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {annotations.filter(a => !a.parent_id).length} annotation{annotations.filter(a => !a.parent_id).length !== 1 ? 's' : ''} • Click pins to view
+                </p>
+              )}
             </div>
 
             {/* Sidebar */}

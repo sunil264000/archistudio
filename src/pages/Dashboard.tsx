@@ -5,7 +5,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ShieldCheck, BookOpen, Award, BarChart3, Gift, Library, Search, Lock, Compass, FileImage, Zap } from 'lucide-react';
+import { ShieldCheck, BookOpen, Award, BarChart3, Gift, Library, Search, Lock, Compass, FileImage, Zap, Bell } from 'lucide-react';
 import { EnrolledCourses } from '@/components/dashboard/EnrolledCourses';
 import { Certificates } from '@/components/dashboard/Certificates';
 import { ProgressAnalytics } from '@/components/dashboard/ProgressAnalytics';
@@ -14,6 +14,8 @@ import { PurchasedEbooks } from '@/components/dashboard/PurchasedEbooks';
 import { JourneyOverview } from '@/components/dashboard/JourneyOverview';
 import { SheetCritiqueFeed } from '@/components/dashboard/SheetCritiqueFeed';
 import { UnifiedSearch } from '@/components/dashboard/UnifiedSearch';
+import { ContinueLearning } from '@/components/dashboard/ContinueLearning';
+import { LiveCommunityFeed } from '@/components/dashboard/LiveCommunityFeed';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { ProfileCompletion } from '@/components/profile/ProfileCompletion';
 import { UsernameSetup } from '@/components/profile/UsernameSetup';
@@ -22,7 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, CheckCircle2, XCircle, User, BookOpen as BookOpenIcon, Calendar } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, User, BookOpen as BookOpenIcon, Calendar, Users, Activity } from 'lucide-react';
 
 function AccountTab() {
   const [newPassword, setNewPassword] = useState('');
@@ -195,12 +197,23 @@ export default function Dashboard() {
 
             <TabsContent value="journey">
               <div className="grid lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 space-y-6">
+                  <ContinueLearning />
                   <JourneyOverview />
                 </div>
                 <div className="space-y-6">
                   <ProfileCompletion />
                   <UsernameSetup />
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-accent" /> Community Activity
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <LiveCommunityFeed maxItems={10} />
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
             </TabsContent>
