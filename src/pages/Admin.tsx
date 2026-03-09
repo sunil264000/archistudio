@@ -43,6 +43,10 @@ import { DeployFunctionsPanel } from '@/components/admin/DeployFunctionsPanel';
 import { BulkResourceScanner } from '@/components/admin/BulkResourceScanner';
 import { AutoPricingPanel } from '@/components/admin/AutoPricingPanel';
 import { OnboardingSubmissions } from '@/components/admin/OnboardingSubmissions';
+import { SystemHealthPanel } from '@/components/admin/SystemHealthPanel';
+import { ModerationPanel } from '@/components/admin/ModerationPanel';
+import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
+import { AIMentorPanel } from '@/components/ai/AIMentorPanel';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import {
@@ -164,6 +168,19 @@ export default function Admin() {
         return <EngagementAnalytics />;
       case 'deploy':
         return <DeployFunctionsPanel />;
+      case 'system-health':
+        return <SystemHealthPanel />;
+      case 'moderation':
+        return <ModerationPanel />;
+      case 'activity-feed':
+        return (
+          <div className="max-w-2xl">
+            <h2 className="text-xl font-bold mb-4">Live Activity Feed</h2>
+            <ActivityFeed />
+          </div>
+        );
+      case 'ai-mentor':
+        return <AIMentorPanel />;
       case 'resource-scanner':
         return <ResourceScannerPanel />;
       default:

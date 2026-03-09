@@ -5,7 +5,8 @@ import {
   BookOpen, Package, Video, Users, UserPlus, HelpCircle, Bell,
   CreditCard, Sparkles, Award, BarChart3, MessageSquare, Settings,
   ChevronLeft, ChevronRight, LayoutDashboard, Timer, Mail, Send, Library, FileText, KeyRound,
-  Gift, Wallet, Rocket, Zap, Shield, History, Wrench, Inbox, Cloud, Monitor, FolderSync, Download, TrendingUp
+  Gift, Wallet, Rocket, Zap, Shield, History, Wrench, Inbox, Cloud, Monitor, FolderSync, Download, TrendingUp,
+  HeartPulse, Activity, Brain, ShieldAlert
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import logo from '@/assets/logo.png';
@@ -38,6 +39,8 @@ const menuGroups: MenuGroup[] = [
       { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-indigo-500' },
       { id: 'engagement', label: 'Engagement', icon: TrendingUp, color: 'text-emerald-500' },
       { id: 'auto-fix-logs', label: 'Auto-Fix Logs', icon: Wrench, color: 'text-teal-500' },
+      { id: 'system-health', label: 'System Health', icon: HeartPulse, color: 'text-rose-500' },
+      { id: 'activity-feed', label: 'Activity Feed', icon: Activity, color: 'text-sky-500' },
     ],
   },
   {
@@ -94,6 +97,8 @@ const menuGroups: MenuGroup[] = [
     label: 'System',
     items: [
       { id: 'certificates', label: 'Certificates', icon: Award, color: 'text-amber-500' },
+      { id: 'moderation', label: 'Moderation', icon: ShieldAlert, color: 'text-red-500' },
+      { id: 'ai-mentor', label: 'AI Mentor', icon: Brain, color: 'text-purple-500' },
       { id: 'video-migration', label: 'Video Migration', icon: Cloud, color: 'text-sky-500' },
       { id: 'resource-scanner', label: 'Resource Scanner', icon: FolderSync, color: 'text-emerald-500' },
       { id: 'deploy', label: 'Deploy Functions', icon: Rocket, color: 'text-primary' },
