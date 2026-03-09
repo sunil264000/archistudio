@@ -213,6 +213,7 @@ export default function PortfolioBuilder() {
               <p className="text-sm text-muted-foreground">Edit your portfolio and manage project pages</p>
             </div>
             <div className="flex gap-2 flex-wrap">
+              <ShareButtons url={`/portfolio/${portfolio.slug}`} title={portfolio.title} />
               <Button variant="outline" size="sm" onClick={copyLink} className="gap-1.5">
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} {copied ? 'Copied' : 'Copy Link'}
               </Button>
