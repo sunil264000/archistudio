@@ -115,6 +115,91 @@ function SectionEditor({ pageId }: { pageId: string }) {
   );
 }
 
+function ImportFromPlatformDialog({ portfolioId, userId, onImported }: { portfolioId: string; userId: string; onImported: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [items, setItems] = useState<{ type: string; id: string; title: string; image?: string }[]>([]);
+  const [loadingItems, setLoadingItems] = useState(false);
+
+  const fetchImportableItems = async () => {
+    setLoadingItems(true);
+    const allItems: typeof items = [];
+
+    // Studio projects
+    const { data: projects } = await (supabase as any).from('studio_projects').select('id, title, cover_image_url').eq('user_id', userId);
+    (projects || []).forEach((p: any) => allItems.push({ type: 'project', id: p.id, title: p.title, image: p.cover_image_url }));
+
+    // Sheet reviews
+    const { data: sheets } = await supabase.from('sheet_reviews').select('id, title, thumbnail_url, sheet_url').eq('user_id', userId);
+    (sheets || []).forEach((s: any) => allItems.push({ type: 'sheet', id: s.id, title: s.title, image: s.thumbnail_url || s.sheet_url }));
+
+    // Competition submissions
+    const { data: comps } = await supabase.from('competition_submissions').select('id, title, image_url');
+    (comps || []).filter((c: any) => c.user_id === userId).forEach((c: any) => allItems.push({ type: 'competition', id: c.id, title: c.title, image: c.image_url }));
+
+    setItems(allItems);
+    setLoadingItems(false);
+  };
+
+  const handleImport = async (item: typeof items[0]) => {
+    setImporting(true);
+    // Create a new portfolio page from this item
+    const { data: page } = await (supabase as any).from('portfolio_pages').insert({
+      portfolio_id: portfolioId, title: item.title, order_index: 999,
+    }).select().single();
+
+    if (page && item.image) {
+      await (supabase as any).from('portfolio_sections').insert({
+        page_id: page.id, section_type: 'image', image_url: item.image, order_index: 0, layout: 'full',
+      });
+    }
+    setImporting(false);
+    toast({ title: `Imported "${item.title}" to portfolio` });
+    onImported();
+  };
+
+  const typeIcons: Record<string, any> = { project: Paintbrush, sheet: FileImage, competition: Trophy };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (v) fetchImportableItems(); }}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="gap-1.5"><Import className="h-3.5 w-3.5" /> Import from Platform</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader><DialogTitle>Import to Portfolio</DialogTitle></DialogHeader>
+        <p className="text-sm text-muted-foreground">Convert your sheets, studio projects, and competition entries into portfolio pages.</p>
+        {loadingItems ? (
+          <div className="py-6 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></div>
+        ) : items.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">No items to import. Upload sheets or create studio projects first!</p>
+        ) : (
+          <div className="max-h-60 overflow-y-auto space-y-1">
+            {items.map((item) => {
+              const Icon = typeIcons[item.type] || FileImage;
+              return (
+                <div key={`${item.type}-${item.id}`} className="flex items-center gap-3 p-2.5 rounded-lg border border-border/50 hover:bg-muted/30">
+                  {item.image ? (
+                    <img src={item.image} alt="" className="h-10 w-10 rounded object-cover shrink-0" />
+                  ) : (
+                    <div className="h-10 w-10 rounded bg-muted flex items-center justify-center shrink-0"><Icon className="h-4 w-4 text-muted-foreground" /></div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{item.title}</p>
+                    <Badge variant="outline" className="text-[10px] capitalize">{item.type}</Badge>
+                  </div>
+                  <Button size="sm" variant="ghost" onClick={() => handleImport(item)} disabled={importing}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function PortfolioBuilder() {
   const { user } = useAuth();
   const { portfolio, pages, loading, createPortfolio, updatePortfolio, addPage, updatePage, deletePage, reorderPages } = useMyPortfolio();
