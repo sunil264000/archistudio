@@ -57,6 +57,7 @@ import Roadmaps from "./pages/Roadmaps";
 import StudentProfile from "./pages/StudentProfile";
 import ResourceLibrary from "./pages/ResourceLibrary";
 import Leaderboard from "./pages/Leaderboard";
+import DailyChallenges from "./pages/DailyChallenges";
 
 const queryClient = new QueryClient();
 
