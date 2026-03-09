@@ -1,21 +1,19 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Library, Bell, ChevronDown } from 'lucide-react';
+import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Library, ChevronDown } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import logoMark from '@/assets/logo-mark.png';
 import { useState, useEffect } from 'react';
 import { CartSheet } from '@/components/cart/CartSheet';
 import { supabase } from '@/integrations/supabase/client';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { GlobalSearch } from '@/components/search/GlobalSearch';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 
 export function Navbar() {
   const { user, profile, signOut, loading, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [notifications, setNotifications] = useState<any[]>([]);
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
       return document.documentElement.classList.contains('dark');
@@ -29,23 +27,7 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    if (!user) { setUnreadCount(0); setNotifications([]); return; }
-    const fetchNotifs = async () => {
-      const { data, count } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact' })
-        .eq('user_id', user.id)
-        .eq('read', false)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      setUnreadCount(count || 0);
-      setNotifications(data || []);
-    };
-    fetchNotifs();
-    const interval = setInterval(fetchNotifs, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
+  // Notifications are now handled by the NotificationCenter component
 
   const toggleDarkMode = () => {
     const newDark = !isDark;
@@ -80,19 +62,25 @@ export function Navbar() {
     { to: '/internships', label: 'Internships' },
     { to: '/resources', label: 'Resources' },
     { to: '/leaderboard', label: 'Leaderboard' },
-    ...(user ? [{ to: '/portfolio/build', label: 'Portfolio' }] : []),
+    { to: '/learning-map', label: 'Learning Map' },
+    { to: '/portfolios', label: 'Portfolios' },
+    { to: '/case-studies', label: 'Case Studies' },
+    ...(user ? [{ to: '/portfolio/build', label: 'My Portfolio' }] : []),
     { to: '/blog', label: 'Blog' },
   ];
 
   const mobileLinks = [
     { to: '/courses', label: 'Courses' },
     { to: '/roadmaps', label: 'Learning Paths' },
+    { to: '/learning-map', label: 'Learning Map' },
     { to: '/ebooks', label: 'eBooks' },
     { to: '/forum', label: 'Forum' },
     { to: '/sheets', label: 'Sheet Reviews' },
     { to: '/competitions', label: 'Challenges' },
     { to: '/internships', label: 'Internships' },
-    ...(user ? [{ to: '/portfolio/build', label: 'Portfolio' }, { to: '/studio', label: 'Studio' }] : []),
+    { to: '/portfolios', label: 'Portfolios' },
+    { to: '/case-studies', label: 'Case Studies' },
+    ...(user ? [{ to: '/portfolio/build', label: 'My Portfolio' }, { to: '/studio', label: 'Studio' }] : []),
     { to: '/resources', label: 'Resources' },
     { to: '/leaderboard', label: 'Leaderboard' },
     { to: '/blog', label: 'Blog' },
@@ -153,47 +141,8 @@ export function Navbar() {
 
           <CartSheet />
 
-          {/* Notification Bell */}
-          {user && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-lg relative">
-                  <Bell className="h-4 w-4" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-[10px] text-destructive-foreground flex items-center justify-center font-bold">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="end">
-                <div className="p-3 border-b">
-                  <h4 className="font-display font-semibold text-body-sm">Notifications</h4>
-                </div>
-                <div className="max-h-64 overflow-auto">
-                  {notifications.length === 0 ? (
-                    <p className="text-body-sm text-muted-foreground text-center py-6">No new notifications</p>
-                  ) : (
-                    notifications.map(n => (
-                      <div key={n.id} className="p-3 border-b last:border-0 hover:bg-muted/50 transition-colors cursor-pointer"
-                        onClick={async () => {
-                          await supabase.from('notifications').update({ read: true }).eq('id', n.id);
-                          setNotifications(prev => prev.filter(x => x.id !== n.id));
-                          setUnreadCount(prev => Math.max(0, prev - 1));
-                        }}
-                      >
-                        <p className="text-body-sm font-medium">{n.title}</p>
-                        <p className="text-caption text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          {new Date(n.created_at).toLocaleDateString()}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
-          )}
+          {/* Notification Center */}
+          {user && <NotificationCenter />}
 
           <Button variant="ghost" size="icon" onClick={toggleDarkMode} className="rounded-lg">
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

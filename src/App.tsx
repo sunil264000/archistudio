@@ -16,6 +16,8 @@ import { WelcomePromotionModal } from "@/components/welcome/WelcomePromotionModa
 import { WelcomePopup } from "@/components/welcome/WelcomePopup";
 import { NewUserOnboardingDialog } from "@/components/auth/NewUserOnboardingDialog";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { FloatingAIMentor } from "@/components/ai/FloatingAIMentor";
+import { AchievementUnlockToast } from "@/components/gamification/AchievementUnlockToast";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
@@ -348,6 +350,8 @@ const App = () => (
               <SaleBanner />
               <AnimatedRoutes />
               <AmbientAudio />
+              <FloatingAIMentor />
+              <AchievementUnlockToast />
             </ErrorBoundary>
           </CartProvider>
         </AuthProvider>

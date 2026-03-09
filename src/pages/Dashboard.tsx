@@ -17,6 +17,8 @@ import { UnifiedSearch } from '@/components/dashboard/UnifiedSearch';
 import { ContinueLearning } from '@/components/dashboard/ContinueLearning';
 import { LiveCommunityFeed } from '@/components/dashboard/LiveCommunityFeed';
 import { SkillTree } from '@/components/dashboard/SkillTree';
+import { SmartRecommendations } from '@/components/dashboard/SmartRecommendations';
+import { StreakTracker } from '@/components/dashboard/StreakTracker';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { ProfileCompletion } from '@/components/profile/ProfileCompletion';
 import { UsernameSetup } from '@/components/profile/UsernameSetup';
@@ -200,9 +202,11 @@ export default function Dashboard() {
               <div className="grid lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                   <ContinueLearning />
+                  <SmartRecommendations />
                   <JourneyOverview />
                 </div>
                 <div className="space-y-6">
+                  <StreakTracker />
                   <ProfileCompletion />
                   <UsernameSetup />
                   <Card>
