@@ -61,6 +61,7 @@ import DailyChallenges from "./pages/DailyChallenges";
 import PublicProfile from "./pages/PublicProfile";
 import PortfolioDiscovery from "./pages/PortfolioDiscovery";
 import CaseStudies from "./pages/CaseStudies";
+import LearningMap from "./pages/LearningMap";
 
 const queryClient = new QueryClient();
 
