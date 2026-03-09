@@ -39,6 +39,8 @@ const menuGroups: MenuGroup[] = [
       { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'text-indigo-500' },
       { id: 'engagement', label: 'Engagement', icon: TrendingUp, color: 'text-emerald-500' },
       { id: 'auto-fix-logs', label: 'Auto-Fix Logs', icon: Wrench, color: 'text-teal-500' },
+      { id: 'system-health', label: 'System Health', icon: HeartPulse, color: 'text-rose-500' },
+      { id: 'activity-feed', label: 'Activity Feed', icon: Activity, color: 'text-sky-500' },
     ],
   },
   {
