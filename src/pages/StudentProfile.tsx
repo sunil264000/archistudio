@@ -217,6 +217,10 @@ export default function StudentProfile() {
               )}
             </TabsContent>
 
+            <TabsContent value="achievements">
+              <AchievementGrid userId={userId!} />
+            </TabsContent>
+
             <TabsContent value="certificates" className="space-y-4">
               {certificates.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-12">No certificates yet</p>
