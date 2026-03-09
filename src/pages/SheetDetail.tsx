@@ -1,13 +1,15 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { useSheetDetail } from '@/hooks/useSheetReviews';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, ThumbsUp, Award, MessageSquare, Loader2, Star, Send, Reply } from 'lucide-react';
+import { ArrowLeft, ThumbsUp, Award, MessageSquare, Loader2, Star, Send, Reply, Briefcase } from 'lucide-react';
 import { ShareButtons } from '@/components/social/ShareButtons';
 import { useState } from 'react';
 import { SEOHead } from '@/components/seo/SEOHead';
@@ -17,11 +19,28 @@ export default function SheetDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
-  const { sheet, critiques, loading, addCritique, toggleUpvote, markBestAnswer } = useSheetDetail(id);
+  const { sheet, critiques, loading, addCritique, toggleUpvote, markBestAnswer, refetch } = useSheetDetail(id);
   const [newCritique, setNewCritique] = useState('');
   const [posting, setPosting] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
+
+  // Realtime critique updates
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`sheet-critiques-${id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'sheet_critiques',
+        filter: `sheet_id=eq.${id}`,
+      }, () => {
+        refetch();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id, refetch]);
 
   const handlePost = async () => {
     if (!newCritique.trim()) return;
@@ -97,7 +116,7 @@ export default function SheetDetail() {
             <div className="space-y-6">
               {/* Title & Meta */}
               <div>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <Badge variant={sheet.status === 'open' ? 'default' : 'secondary'}>
                     {sheet.status === 'open' ? 'Open for Critique' : 'Resolved'}
                   </Badge>
@@ -127,6 +146,15 @@ export default function SheetDetail() {
                   </p>
                 </div>
               </div>
+
+              {/* Cross-link: Add to Portfolio */}
+              {isOwner && (
+                <Link to="/portfolio/build">
+                  <Button variant="outline" size="sm" className="w-full gap-1.5">
+                    <Briefcase className="h-3.5 w-3.5" /> Add to Portfolio
+                  </Button>
+                </Link>
+              )}
 
               {/* Tags */}
               {sheet.tags.length > 0 && (
@@ -255,7 +283,6 @@ function CritiqueCard({
           </div>
           <p className="text-sm text-foreground/90 whitespace-pre-wrap">{critique.content}</p>
 
-          {/* Actions */}
           <div className="flex items-center gap-3 mt-3">
             <Button
               variant="ghost"
@@ -290,7 +317,6 @@ function CritiqueCard({
             )}
           </div>
 
-          {/* Reply form */}
           {replyTo === critique.id && (
             <div className="mt-3 flex gap-2">
               <Textarea
@@ -306,7 +332,6 @@ function CritiqueCard({
             </div>
           )}
 
-          {/* Replies */}
           {critique.replies && critique.replies.length > 0 && (
             <div className="mt-4 space-y-3 pl-4 border-l-2 border-border/30">
               {critique.replies.map(reply => (

@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useProjectDetail } from '@/hooks/useStudioProjects';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Eye, EyeOff, Edit2, Save } from 'lucide-react';
+import { Eye, EyeOff, Edit2, Save, FileImage, MessageSquare as ForumIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -113,6 +114,21 @@ export function StudioProjectDetail({ projectId, onBack }: StudioProjectDetailPr
             {project.visibility === 'public' ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
             {project.visibility === 'public' ? 'Public' : 'Private'}
           </Button>
+          
+          {/* Cross-link: Submit sheet for review */}
+          <Link to="/sheets">
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <FileImage className="h-3.5 w-3.5" /> Submit Sheet
+            </Button>
+          </Link>
+          
+          {/* Cross-link: Ask for help on forum */}
+          <Link to="/forum">
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <ForumIcon className="h-3.5 w-3.5" /> Ask Help
+            </Button>
+          </Link>
+
           {project.visibility === 'public' && (
             <ShareButtons url={`/studio`} title={project.title} description={project.description || undefined} />
           )}

@@ -8,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Zap, Upload, Heart, Trophy, Clock, Users, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Zap, Upload, Heart, Trophy, Users, Loader2, Image as ImageIcon, AlertCircle, RefreshCw, Camera, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 
@@ -47,20 +48,47 @@ export default function DailyChallenges() {
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [caption, setCaption] = useState('');
   const [uploadOpen, setUploadOpen] = useState(false);
 
   useEffect(() => { fetchChallenges(); }, []);
 
+  // Realtime vote updates
+  useEffect(() => {
+    if (!selectedChallenge) return;
+    const channel = supabase
+      .channel(`challenge-votes-${selectedChallenge.id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'challenge_votes',
+      }, () => {
+        fetchSubmissions(selectedChallenge.id);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedChallenge?.id]);
+
   const fetchChallenges = async () => {
     setLoading(true);
-    const { data } = await (supabase as any)
+    setError(null);
+    const { data, error: fetchError } = await (supabase as any)
       .from('daily_challenges')
       .select('*')
       .eq('is_active', true)
       .order('active_date', { ascending: false })
       .limit(10);
+    
+    if (fetchError) {
+      console.error('Failed to load challenges:', fetchError);
+      setError('Failed to load challenges');
+      toast.error('Failed to load challenges');
+      setLoading(false);
+      return;
+    }
+
     setChallenges(data || []);
     if (data && data.length > 0 && !selectedChallenge) {
       setSelectedChallenge(data[0]);
@@ -70,11 +98,17 @@ export default function DailyChallenges() {
   };
 
   const fetchSubmissions = async (challengeId: string) => {
-    const { data } = await (supabase as any)
+    const { data, error: fetchError } = await (supabase as any)
       .from('challenge_submissions')
       .select('*')
       .eq('challenge_id', challengeId)
       .order('vote_count', { ascending: false });
+
+    if (fetchError) {
+      console.error('Failed to load submissions:', fetchError);
+      toast.error('Failed to load submissions');
+      return;
+    }
 
     if (data && data.length > 0) {
       const userIds = [...new Set(data.map((s: any) => s.user_id))] as string[];
@@ -113,12 +147,14 @@ export default function DailyChallenges() {
 
     const { data: urlData } = supabase.storage.from('competition-uploads').getPublicUrl(path);
     
-    await (supabase as any).from('challenge_submissions').insert({
+    const { error: insertErr } = await (supabase as any).from('challenge_submissions').insert({
       challenge_id: selectedChallenge.id,
       user_id: user.id,
       image_url: urlData.publicUrl,
       caption: caption || null,
     });
+
+    if (insertErr) { toast.error('Failed to submit'); setSubmitting(false); return; }
 
     setCaption('');
     setUploadOpen(false);
@@ -137,9 +173,10 @@ export default function DailyChallenges() {
         vote_count: Math.max(0, submission.vote_count - 1)
       }).eq('id', submission.id);
     } else {
-      await (supabase as any).from('challenge_votes').insert({
+      const { error } = await (supabase as any).from('challenge_votes').insert({
         submission_id: submission.id, user_id: user.id,
       });
+      if (error) { toast.error('Failed to vote'); return; }
       await (supabase as any).from('challenge_submissions').update({
         vote_count: submission.vote_count + 1
       }).eq('id', submission.id);
@@ -153,7 +190,7 @@ export default function DailyChallenges() {
       <Navbar />
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
             <div>
               <h1 className="text-3xl font-display font-bold flex items-center gap-3">
                 <Zap className="h-8 w-8 text-accent" />
@@ -161,10 +198,34 @@ export default function DailyChallenges() {
               </h1>
               <p className="text-muted-foreground mt-1">Quick design tasks. Submit sketches. Community votes.</p>
             </div>
+            {/* Cross-link: Add to portfolio */}
+            {user && submissions.some(s => s.user_id === user.id) && (
+              <Button variant="outline" size="sm" asChild className="gap-1.5">
+                <a href="/portfolio/build"><LinkIcon className="h-3.5 w-3.5" /> Add to Portfolio</a>
+              </Button>
+            )}
           </div>
 
-          {loading ? (
-            <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-accent" /></div>
+          {error ? (
+            <div className="text-center py-20 space-y-3">
+              <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
+              <p className="text-sm text-destructive">{error}</p>
+              <Button variant="outline" size="sm" onClick={fetchChallenges} className="gap-1.5">
+                <RefreshCw className="h-3.5 w-3.5" /> Retry
+              </Button>
+            </div>
+          ) : loading ? (
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}
+              </div>
+              <div className="lg:col-span-2 space-y-4">
+                <Skeleton className="h-32 rounded-xl" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[1, 2].map(i => <Skeleton key={i} className="h-64 rounded-xl" />)}
+                </div>
+              </div>
+            </div>
           ) : challenges.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
@@ -206,7 +267,7 @@ export default function DailyChallenges() {
                   <>
                     <Card className="border-accent/20">
                       <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
                           <CardTitle className="text-xl">{selectedChallenge.title}</CardTitle>
                           {user && (
                             <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
@@ -223,15 +284,42 @@ export default function DailyChallenges() {
                                     value={caption}
                                     onChange={(e) => setCaption(e.target.value)}
                                   />
-                                  <Input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) handleSubmit(file);
-                                    }}
-                                    disabled={submitting}
-                                  />
+                                  {/* Camera capture for mobile */}
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <label className="cursor-pointer">
+                                      <div className="flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed border-border hover:border-accent/40 transition-colors">
+                                        <Camera className="h-5 w-5 text-muted-foreground" />
+                                        <span className="text-sm text-muted-foreground">Camera</span>
+                                      </div>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        capture="environment"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) handleSubmit(file);
+                                        }}
+                                        disabled={submitting}
+                                      />
+                                    </label>
+                                    <label className="cursor-pointer">
+                                      <div className="flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed border-border hover:border-accent/40 transition-colors">
+                                        <Upload className="h-5 w-5 text-muted-foreground" />
+                                        <span className="text-sm text-muted-foreground">Gallery</span>
+                                      </div>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) handleSubmit(file);
+                                        }}
+                                        disabled={submitting}
+                                      />
+                                    </label>
+                                  </div>
                                   {submitting && <p className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Uploading...</p>}
                                 </div>
                               </DialogContent>
@@ -244,7 +332,6 @@ export default function DailyChallenges() {
                       </CardContent>
                     </Card>
 
-                    {/* Submissions grid */}
                     {submissions.length === 0 ? (
                       <Card>
                         <CardContent className="py-8 text-center">
@@ -263,7 +350,7 @@ export default function DailyChallenges() {
                           >
                             <Card className="overflow-hidden">
                               <div className="aspect-square bg-muted">
-                                <img src={sub.image_url} alt={sub.caption || 'Submission'} className="w-full h-full object-cover" />
+                                <img src={sub.image_url} alt={sub.caption || 'Submission'} className="w-full h-full object-cover" loading="lazy" />
                               </div>
                               <CardContent className="p-3">
                                 {sub.caption && <p className="text-sm text-foreground mb-1">{sub.caption}</p>}

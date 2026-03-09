@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Link } from 'react-router-dom';
-import { Plus, MessageSquare, Star, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Plus, MessageSquare, Star, Upload, Loader2, Image as ImageIcon, Camera, SortAsc } from 'lucide-react';
 import { SEOHead } from '@/components/seo/SEOHead';
 
 const TAGS = ['Concept', 'Presentation', 'Portfolio', 'Thesis', 'Competition', 'Interior', 'Urban Design'];
@@ -19,13 +20,19 @@ export default function SheetReviews() {
   const { user } = useAuth();
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [showFeatured, setShowFeatured] = useState(false);
+  const [sortBy, setSortBy] = useState<'latest' | 'most_critiques'>('latest');
   const [uploadOpen, setUploadOpen] = useState(false);
 
-  const filtered = sheets.filter(s => {
-    if (showFeatured && !s.is_featured) return false;
-    if (activeTag && !s.tags.includes(activeTag)) return false;
-    return true;
-  });
+  const filtered = sheets
+    .filter(s => {
+      if (showFeatured && !s.is_featured) return false;
+      if (activeTag && !s.tags.includes(activeTag)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'most_critiques') return b.critique_count - a.critique_count;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,7 +80,7 @@ export default function SheetReviews() {
           </div>
 
           {/* Filters */}
-          <div className="flex flex-wrap gap-2 mb-8">
+          <div className="flex flex-wrap items-center gap-2 mb-8">
             <Button
               variant={!showFeatured && !activeTag ? 'default' : 'outline'}
               size="sm"
@@ -99,6 +106,18 @@ export default function SheetReviews() {
                 {tag}
               </Button>
             ))}
+            <div className="ml-auto flex items-center gap-2">
+              <SortAsc className="h-3.5 w-3.5 text-muted-foreground" />
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+                <SelectTrigger className="w-36 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="latest">Latest</SelectItem>
+                  <SelectItem value="most_critiques">Most Critiques</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Grid */}
@@ -109,20 +128,20 @@ export default function SheetReviews() {
           ) : filtered.length === 0 ? (
             <div className="text-center py-20">
               <ImageIcon className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-              <p className="text-muted-foreground">No sheets yet. Be the first to upload!</p>
+              <p className="text-muted-foreground">No sheets found. {activeTag ? 'Try a different tag.' : 'Be the first to upload!'}</p>
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filtered.map(sheet => (
                 <Link key={sheet.id} to={`/sheets/${sheet.id}`} className="group">
                   <div className="rounded-xl border border-border/40 bg-card overflow-hidden hover:border-accent/40 transition-all duration-300 hover:shadow-lg">
-                    {/* Thumbnail */}
                     <div className="aspect-[4/3] bg-muted relative overflow-hidden">
                       {sheet.thumbnail_url ? (
                         <img
                           src={sheet.thumbnail_url}
                           alt={sheet.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          loading="lazy"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -142,7 +161,6 @@ export default function SheetReviews() {
                       </Badge>
                     </div>
 
-                    {/* Info */}
                     <div className="p-4 space-y-2">
                       <h3 className="font-semibold text-foreground line-clamp-1 group-hover:text-accent transition-colors">
                         {sheet.title}
@@ -208,26 +226,25 @@ function UploadForm({ onSubmit }: { onSubmit: (file: File, title: string, desc: 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* File upload */}
       <div>
         <label className="block text-sm font-medium mb-1.5">Sheet Image / PDF</label>
-        <div className="border-2 border-dashed border-border/60 rounded-lg p-4 text-center hover:border-accent/40 transition-colors cursor-pointer relative">
-          <input
-            type="file"
-            accept="image/*,.pdf"
-            onChange={handleFile}
-            className="absolute inset-0 opacity-0 cursor-pointer"
-          />
-          {preview ? (
-            <img src={preview} alt="Preview" className="max-h-40 mx-auto rounded" />
-          ) : (
-            <div className="py-4">
-              <Upload className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Drop your sheet or click to browse</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">JPG, PNG, or PDF up to 20MB</p>
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <label className="cursor-pointer">
+            <div className="flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed border-border hover:border-accent/40 transition-colors">
+              <Camera className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Camera</span>
             </div>
-          )}
+            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
+          </label>
+          <label className="cursor-pointer">
+            <div className="flex items-center justify-center gap-2 p-3 rounded-lg border-2 border-dashed border-border hover:border-accent/40 transition-colors">
+              <Upload className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Gallery / File</span>
+            </div>
+            <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleFile} />
+          </label>
         </div>
+        {preview && <img src={preview} alt="Preview" className="max-h-40 mx-auto rounded" />}
         {file && <p className="text-xs text-muted-foreground mt-1">{file.name}</p>}
       </div>
 
