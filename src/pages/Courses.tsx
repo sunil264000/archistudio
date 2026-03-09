@@ -414,121 +414,134 @@ function CourseCard({
 
   return (
     <Card
-      className={`group overflow-hidden transition-shadow duration-300 hover:shadow-xl border-border/50 bg-card/80 hover:-translate-y-1 ${featured ? 'border-accent/50 shadow-accent/10' : ''
-        } ${course.isHighlighted ? 'ring-2 ring-warning/50 shadow-warning/20' : ''}`}
+      className={`group overflow-hidden transition-all duration-500 border-border/30 bg-card/50 hover:bg-card/80 hover:shadow-[var(--shadow-medium)] hover:-translate-y-0.5 ${
+        featured ? 'border-accent/20' : ''
+      } ${course.isHighlighted ? 'ring-1 ring-accent/30' : ''}`}
     >
-      <div className="aspect-video relative overflow-hidden bg-secondary">
+      {/* Thumbnail */}
+      <div className="aspect-[16/10] relative overflow-hidden bg-muted/30">
         <CourseThumbnail
           src={course.thumbnail || thumbnailFallback}
           alt={course.title}
           slug={course.slug}
           category={course.category}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        
+        {/* Subtle gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-card/60 via-transparent to-transparent" />
 
-        {course.isHighlighted && (
-          <div className="absolute top-2 left-2">
-            <Badge className="bg-warning text-warning-foreground border-0 shadow-lg">
-              <Sparkles className="h-3 w-3 mr-1" /> Recommended
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex gap-1.5">
+          {course.isHighlighted && (
+            <Badge className="bg-accent/90 text-accent-foreground border-0 text-[10px] px-2 py-0.5 backdrop-blur-sm">
+              <Sparkles className="h-2.5 w-2.5 mr-1" /> Recommended
             </Badge>
+          )}
+          {featured && !course.isHighlighted && (
+            <Badge className="bg-foreground/80 text-background border-0 text-[10px] px-2 py-0.5 backdrop-blur-sm">
+              <Star className="h-2.5 w-2.5 mr-1 fill-current" /> Featured
+            </Badge>
+          )}
+        </div>
+
+        {accessInfo.accessType !== 'none' && (
+          <div className="absolute top-3 right-3">
+            <AccessBadge
+              accessType={accessInfo.accessType}
+              unlockedPercent={accessInfo.unlockedPercent}
+              expiryDate={accessInfo.giftExpiry || accessInfo.launchFreeExpiry}
+            />
           </div>
         )}
 
-        {featured && !course.isHighlighted && (
-          <div className="absolute top-2 right-2">
-            <Badge className="bg-warning text-warning-foreground border-0 animate-pulse">
-              <Star className="h-3 w-3 mr-1 fill-current" /> Featured
-            </Badge>
-          </div>
-        )}
-
-        <div className="absolute inset-0 flex items-center justify-center bg-background/70 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto">
+        {/* Hover overlay with CTA */}
+        <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-400 pointer-events-none group-hover:pointer-events-auto">
           <div className="flex flex-col gap-2">
             <Button
               onClick={ctaContent.action}
               disabled={ctaContent.disabled}
+              size="sm"
               className={`shadow-lg ${accessInfo.hasAccess ? 'bg-success hover:bg-success/90 text-success-foreground' : 'bg-accent hover:bg-accent/90 text-accent-foreground'}`}
             >
               {ctaContent.disabled && isLoading ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</>
+                <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Processing</>
               ) : (
-                <><ctaContent.icon className="h-4 w-4 mr-2" />{ctaContent.text}</>
+                <><ctaContent.icon className="h-3.5 w-3.5 mr-1.5" />{ctaContent.text}</>
               )}
             </Button>
-            <Button variant="outline" className="bg-background/80" onClick={() => navigate(`/courses/${course.slug}`)}>
+            <Button variant="outline" size="sm" className="bg-background/80 text-xs" onClick={() => navigate(`/courses/${course.slug}`)}>
               View Details
             </Button>
           </div>
         </div>
       </div>
 
-      <CardHeader className="pb-2">
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <Badge variant="outline" className={`${levelColors[course.level]} transition-colors duration-300`}>
+      {/* Content */}
+      <div className="p-4 space-y-3">
+        {/* Tags */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 font-medium ${levelColors[course.level]}`}>
             {course.level}
           </Badge>
-          <Badge variant="secondary" className="text-xs">
+          <span className="text-[10px] text-muted-foreground/60">•</span>
+          <span className="text-[10px] text-muted-foreground font-medium">
             {courseCategories.find(c => c.id === course.category)?.name || course.category}
-          </Badge>
-          {accessInfo.accessType !== 'none' && (
-            <AccessBadge
-              accessType={accessInfo.accessType}
-              unlockedPercent={accessInfo.unlockedPercent}
-              expiryDate={accessInfo.giftExpiry || accessInfo.launchFreeExpiry}
-            />
-          )}
+          </span>
         </div>
-        <CardTitle className="text-lg line-clamp-2 group-hover:text-accent transition-colors duration-300">
-          {course.title}
-        </CardTitle>
-        <CardDescription className="line-clamp-2">
-          {course.shortDescription}
-        </CardDescription>
-      </CardHeader>
 
-      <CardContent>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+        {/* Title */}
+        <h3 className="text-sm font-semibold leading-snug line-clamp-2 text-foreground group-hover:text-accent transition-colors duration-300">
+          <Link to={`/course/${course.slug}`}>{course.title}</Link>
+        </h3>
+
+        {/* Description */}
+        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+          {course.shortDescription}
+        </p>
+
+        {/* Meta */}
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground/70">
           <span className="flex items-center gap-1">
-            <Clock className="h-4 w-4" /> {course.durationHours > 0 ? `${course.durationHours}h` : 'Self-paced'}
+            <Clock className="h-3 w-3" /> {course.durationHours > 0 ? `${course.durationHours}h` : 'Self-paced'}
           </span>
           <span className="flex items-center gap-1">
-            <BookOpen className="h-4 w-4" /> {course.totalLessons || '–'} sessions
+            <BookOpen className="h-3 w-3" /> {course.totalLessons || '–'} lessons
           </span>
         </div>
-        <div className="flex items-center justify-between">
+
+        {/* Price + CTA */}
+        <div className="flex items-center justify-between pt-2 border-t border-border/20">
           <div>
             {saleActive && discountPercent > 0 ? (
-              <>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-xl text-success">₹{discountedPrice.toLocaleString()}</span>
-                  <span className="text-sm line-through text-muted-foreground">₹{effectivePriceInr.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center gap-1 text-xs">
-                  <Flame className="h-3 w-3 text-destructive" />
-                  <span className="text-destructive font-medium">{discountPercent}% OFF</span>
-                </div>
-              </>
-            ) : (
-              <div className="font-bold text-xl text-foreground">
-                {effectivePriceInr > 0 ? `₹${effectivePriceInr.toLocaleString()}` : 'Free'}
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-bold text-base text-foreground">₹{discountedPrice.toLocaleString()}</span>
+                <span className="text-[11px] line-through text-muted-foreground/50">₹{effectivePriceInr.toLocaleString()}</span>
+                <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4 font-semibold">
+                  {discountPercent}% OFF
+                </Badge>
               </div>
+            ) : (
+              <span className="font-bold text-base text-foreground">
+                {effectivePriceInr > 0 ? `₹${effectivePriceInr.toLocaleString()}` : 'Free'}
+              </span>
             )}
           </div>
           <Button
             size="sm"
+            variant={accessInfo.hasAccess ? 'default' : 'outline'}
             onClick={ctaContent.action}
             disabled={ctaContent.disabled}
-            className={`transition-all duration-300 hover:scale-105 ${accessInfo.hasAccess ? 'bg-success hover:bg-success/90' : ''}`}
+            className={`text-xs h-8 px-3 ${accessInfo.hasAccess ? 'bg-success hover:bg-success/90 border-0' : 'hover:bg-accent hover:text-accent-foreground hover:border-accent'}`}
           >
             {ctaContent.disabled && isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <><ctaContent.icon className="h-4 w-4 mr-1" />{accessInfo.hasAccess ? 'Continue' : 'Enroll Now'}</>
+              <>{accessInfo.hasAccess ? 'Continue' : 'Enroll'}</>
             )}
           </Button>
         </div>
-      </CardContent>
+      </div>
 
       <PhoneNumberDialog
         open={showPhoneDialog}
