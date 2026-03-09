@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, ThumbsUp, Award, MessageSquare, Loader2, Star, Send, Reply } from 'lucide-react';
+import { ShareButtons } from '@/components/social/ShareButtons';
 import { useState } from 'react';
 import { SEOHead } from '@/components/seo/SEOHead';
 import type { SheetCritique } from '@/hooks/useSheetReviews';
