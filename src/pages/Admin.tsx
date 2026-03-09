@@ -47,6 +47,10 @@ import { SystemHealthPanel } from '@/components/admin/SystemHealthPanel';
 import { ModerationPanel } from '@/components/admin/ModerationPanel';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { AIMentorPanel } from '@/components/ai/AIMentorPanel';
+import { JobQueuePanel } from '@/components/admin/JobQueuePanel';
+import { FeatureFlagPanel } from '@/components/admin/FeatureFlagPanel';
+import { SystemMonitorPanel } from '@/components/admin/SystemMonitorPanel';
+import { LearningPathPanel } from '@/components/admin/LearningPathPanel';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import {
@@ -181,6 +185,14 @@ export default function Admin() {
         );
       case 'ai-mentor':
         return <AIMentorPanel />;
+      case 'job-queue':
+        return <JobQueuePanel />;
+      case 'feature-flags':
+        return <FeatureFlagPanel />;
+      case 'system-monitor':
+        return <SystemMonitorPanel />;
+      case 'learning-paths':
+        return <LearningPathPanel />;
       case 'resource-scanner':
         return <ResourceScannerPanel />;
       default:
