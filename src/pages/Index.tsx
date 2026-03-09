@@ -79,6 +79,10 @@ export default function Index() {
       </Suspense>
       
       <Suspense fallback={<SectionLoader />}>
+        <CommunityFeedSection />
+      </Suspense>
+      
+      <Suspense fallback={<SectionLoader />}>
         <FinalCTASection />
       </Suspense>
       
