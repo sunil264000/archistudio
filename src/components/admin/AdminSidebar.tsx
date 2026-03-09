@@ -97,6 +97,8 @@ const menuGroups: MenuGroup[] = [
     label: 'System',
     items: [
       { id: 'certificates', label: 'Certificates', icon: Award, color: 'text-amber-500' },
+      { id: 'moderation', label: 'Moderation', icon: ShieldAlert, color: 'text-red-500' },
+      { id: 'ai-mentor', label: 'AI Mentor', icon: Brain, color: 'text-purple-500' },
       { id: 'video-migration', label: 'Video Migration', icon: Cloud, color: 'text-sky-500' },
       { id: 'resource-scanner', label: 'Resource Scanner', icon: FolderSync, color: 'text-emerald-500' },
       { id: 'deploy', label: 'Deploy Functions', icon: Rocket, color: 'text-primary' },
