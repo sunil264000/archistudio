@@ -275,6 +275,10 @@ export default function PortfolioBuilder() {
                     <Button onClick={handleAddPage} disabled={!newPageTitle.trim()}>Create Page</Button>
                   </DialogContent>
                 </Dialog>
+                <ImportFromPlatformDialog portfolioId={portfolio.id} userId={user?.id || ''} onImported={() => {
+                  // Refresh pages
+                  window.location.reload();
+                }} />
               </div>
 
               {pages.length === 0 ? (
