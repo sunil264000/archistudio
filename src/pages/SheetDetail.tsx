@@ -106,6 +106,7 @@ export default function SheetDetail() {
                       <Star className="h-3 w-3" /> Featured
                     </Badge>
                   )}
+                  <ShareButtons url={`/sheets/${sheet.id}`} title={sheet.title} description={sheet.description || undefined} />
                 </div>
                 <h1 className="text-2xl font-display font-bold">{sheet.title}</h1>
                 {sheet.description && (
