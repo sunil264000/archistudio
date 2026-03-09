@@ -185,6 +185,14 @@ export default function Admin() {
         );
       case 'ai-mentor':
         return <AIMentorPanel />;
+      case 'job-queue':
+        return <JobQueuePanel />;
+      case 'feature-flags':
+        return <FeatureFlagPanel />;
+      case 'system-monitor':
+        return <SystemMonitorPanel />;
+      case 'learning-paths':
+        return <LearningPathPanel />;
       case 'resource-scanner':
         return <ResourceScannerPanel />;
       default:
