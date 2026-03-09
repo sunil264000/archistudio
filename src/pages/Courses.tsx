@@ -143,88 +143,79 @@ export default function Courses() {
       {/* Highlighted Flagship Course */}
       <HighlightedCourseSection />
 
-      {/* Hero Section */}
-      <section className="pt-6 sm:pt-8 pb-8 sm:pb-12 relative overflow-hidden">
+      {/* Hero — calm editorial style */}
+      <section className="pt-8 sm:pt-12 pb-10 sm:pb-14 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.02] via-transparent to-transparent" />
         <div className="container mx-auto px-4 text-center relative">
-          <div className="mb-4 sm:mb-6">
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-secondary/60 text-foreground text-sm font-medium border border-accent/20">
-              <GraduationCap className="h-3 w-3 sm:h-4 sm:w-4 text-accent" />
-              {loading ? '...' : `${allCourses.length}+`} Courses
-            </div>
-          </div>
+          <Badge variant="outline" className="mb-5 gap-1.5 text-xs font-medium border-border/50">
+            <GraduationCap className="h-3 w-3 text-accent" />
+            {loading ? '...' : `${allCourses.length}`} Programs Available
+          </Badge>
 
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4">
-            Master Architecture & Design
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 tracking-tight">
+            Architecture & Design
+            <br />
+            <span className="text-muted-foreground font-medium text-[0.85em]">Course Catalog</span>
           </h1>
 
-          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8 px-2">
-            Professional studio programs covering 3ds Max, Revit, SketchUp, AutoCAD, and more
+          <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto mb-8 leading-relaxed">
+            Professional programs covering 3ds Max, Revit, SketchUp, AutoCAD, and more — taught the way offices actually work.
           </p>
 
           {/* Search Bar */}
-          <div className="max-w-xl mx-auto relative">
-            <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+          <div className="max-w-lg mx-auto relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search courses..."
+              placeholder="Search by name, tool, or topic..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 sm:pl-12 h-12 sm:h-14 text-base sm:text-lg border-2 border-border/50 focus:border-accent transition-colors duration-200 bg-background/80 shadow-lg"
+              className="pl-11 h-12 text-sm border-border/40 bg-card/50 focus:bg-card transition-colors duration-300 shadow-[var(--shadow-soft)]"
             />
           </div>
-
-          <p className="text-xs sm:text-sm text-muted-foreground mt-4 sm:mt-6 px-2">
-            Confused about which studio to pick?{' '}
-            <span className="text-accent font-medium ml-1">Click the chat button below for help!</span>
-          </p>
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="py-4 sm:py-6 md:py-8 border-b border-border/50 bg-background sticky top-14 sm:top-16 z-40">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center gap-2 mb-3 sm:mb-4">
-            <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-accent shrink-0" />
-            <span className="font-medium text-sm sm:text-base">Filter by Category:</span>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
+      {/* Categories — horizontal pill bar */}
+      <section className="border-y border-border/30 bg-background/80 backdrop-blur-sm sticky top-14 sm:top-16 z-40">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap">
             <Button
-              variant={selectedCategory === null ? 'default' : 'outline'}
+              variant={selectedCategory === null ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setSelectedCategory(null)}
-              className="transition-all duration-300 hover:scale-105 shrink-0 min-h-[40px] text-sm"
+              className="shrink-0 text-xs font-medium h-8 px-3"
             >
-              All Courses
+              All
             </Button>
-            {courseCategories.map((cat, index) => (
+            {courseCategories.map((cat) => (
               <Button
                 key={cat.id}
-                variant={selectedCategory === cat.id ? 'default' : 'outline'}
+                variant={selectedCategory === cat.id ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setSelectedCategory(cat.id)}
-                className="transition-all duration-300 hover:scale-105 shrink-0 min-h-[40px] text-sm whitespace-nowrap"
-                style={{ animationDelay: `${index * 0.05}s` }}
+                className="shrink-0 text-xs font-medium h-8 px-3 whitespace-nowrap gap-1.5"
               >
-                {cat.icon} {cat.name}
+                <span className="text-xs">{cat.icon}</span> {cat.name}
               </Button>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Featured Courses */}
-      {!selectedCategory && !searchQuery && (
-        <section className="py-8 sm:py-10 md:py-12">
+      {/* Featured Courses — only on default view */}
+      {!selectedCategory && !searchQuery && featuredCourses.length > 0 && (
+        <section className="py-10 sm:py-14">
           <div className="container mx-auto px-4">
-            <div className="flex items-center gap-2 mb-3 sm:mb-4">
-              <Star className="h-5 w-5 sm:h-6 sm:w-6 text-warning fill-warning" />
-              <h2 className="text-xl sm:text-2xl font-bold">Featured Courses</h2>
+            <div className="flex items-center gap-2.5 mb-6">
+              <div className="h-5 w-0.5 bg-accent rounded-full" />
+              <h2 className="text-lg sm:text-xl font-semibold tracking-tight">Featured Programs</h2>
             </div>
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {[1, 2, 3].map(i => <CourseCardSkeleton key={i} />)}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {featuredCourses.slice(0, 6).map((course, index) => (
                   <CourseCard
                     key={course.id}
@@ -243,29 +234,32 @@ export default function Courses() {
       )}
 
       {/* All Courses */}
-      <section className="py-8 sm:py-10 md:py-12 bg-muted/30">
+      <section className={`py-10 sm:py-14 ${!selectedCategory && !searchQuery ? 'bg-muted/20 border-t border-border/20' : ''}`}>
         <div className="container mx-auto px-4">
-          <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 line-accent">
-            {selectedCategory
-              ? courseCategories.find(c => c.id === selectedCategory)?.name
-              : searchQuery
-                ? `Search Results (${filteredCourses.length})`
-                : 'All Courses'}
-          </h2>
+          <div className="flex items-center gap-2.5 mb-6">
+            <div className="h-5 w-0.5 bg-foreground/20 rounded-full" />
+            <h2 className="text-lg sm:text-xl font-semibold tracking-tight">
+              {selectedCategory
+                ? courseCategories.find(c => c.id === selectedCategory)?.name
+                : searchQuery
+                  ? `Results (${filteredCourses.length})`
+                  : 'All Programs'}
+            </h2>
+          </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {Array.from({ length: 12 }).map((_, i) => <CourseCardSkeleton key={i} />)}
             </div>
           ) : sortedCourses.length === 0 ? (
-            <div className="text-center py-8 sm:py-12">
-              <p className="text-muted-foreground text-base sm:text-lg">No courses found matching your criteria.</p>
-              <Button variant="outline" className="mt-4 min-h-[44px]" onClick={() => { setSelectedCategory(null); setSearchQuery(''); }}>
+            <div className="text-center py-16">
+              <p className="text-muted-foreground">No courses found matching your criteria.</p>
+              <Button variant="outline" className="mt-4" onClick={() => { setSelectedCategory(null); setSearchQuery(''); }}>
                 Clear Filters
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {sortedCourses.map((course, index) => (
                 <CourseCard
                   key={course.id}
