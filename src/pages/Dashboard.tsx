@@ -197,12 +197,23 @@ export default function Dashboard() {
 
             <TabsContent value="journey">
               <div className="grid lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 space-y-6">
+                  <ContinueLearning />
                   <JourneyOverview />
                 </div>
                 <div className="space-y-6">
                   <ProfileCompletion />
                   <UsernameSetup />
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-accent" /> Community Activity
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <LiveCommunityFeed maxItems={10} />
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
             </TabsContent>
