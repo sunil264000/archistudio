@@ -53,7 +53,6 @@ function useTestimonials() {
       .limit(4)
       .then(async ({ data }) => {
         if (data && data.length >= 2) {
-          // Fetch profile names separately since there's no FK
           const userIds = [...new Set(data.map((r: any) => r.user_id))];
           const { data: profiles } = await supabase
             .from('profiles')
@@ -78,23 +77,23 @@ export function TestimonialsSection() {
     <section className="section-padding relative overflow-hidden">
       <div className="container-wide">
         <motion.div 
-          className="max-w-3xl mx-auto text-center mb-14 sm:mb-20"
-          initial={{ opacity: 0, y: 20 }}
+          className="max-w-2xl mx-auto text-center mb-16"
+          initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.5 }}
         >
-          <div className="section-label mb-4">What They Say</div>
-          <h2 className="font-display font-bold mb-4">
+          <div className="section-label mb-4">Student Stories</div>
+          <h2 className="font-display mb-4">
             From Skeptics to <span className="text-accent">Practitioners</span>
           </h2>
-          <p className="text-muted-foreground max-w-lg mx-auto">
+          <p className="text-body text-muted-foreground max-w-md mx-auto">
             Don't take our word for it. Here's what students and architects are saying.
           </p>
         </motion.div>
 
         <motion.div 
-          className="grid md:grid-cols-2 gap-4 sm:gap-5 max-w-5xl mx-auto"
+          className="grid md:grid-cols-2 gap-5 max-w-4xl mx-auto"
           variants={staggerContainerFast}
           initial="hidden"
           whileInView="visible"
@@ -104,32 +103,31 @@ export function TestimonialsSection() {
             <motion.div 
               key={i}
               variants={fadeInUp}
-              className="relative p-6 sm:p-7 rounded-2xl card-glass"
+              className="relative p-7 rounded-2xl card-glass"
             >
-              {/* Quote icon */}
-              <Quote className="h-8 w-8 text-accent/15 absolute top-5 right-5" />
+              <Quote className="h-7 w-7 text-accent/10 absolute top-6 right-6" />
               
-              {/* Star rating */}
+              {/* Stars */}
               <div className="flex gap-0.5 mb-5">
                 {[...Array(testimonial.rating)].map((_, j) => (
-                  <Star key={j} className="h-4 w-4 fill-accent text-accent" />
+                  <Star key={j} className="h-3.5 w-3.5 fill-accent text-accent" />
                 ))}
               </div>
               
               <blockquote>
-                <p className="text-muted-foreground leading-relaxed mb-6 text-sm">
+                <p className="text-body-sm text-muted-foreground leading-relaxed mb-6">
                   "{testimonial.quote}"
                 </p>
                 
                 <footer className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center border border-accent/20">
-                    <span className="text-xs font-semibold text-accent">
+                  <div className="h-9 w-9 rounded-full bg-accent/8 flex items-center justify-center border border-accent/15">
+                    <span className="text-[10px] font-bold text-accent">
                       {testimonial.name.split(' ').map(n => n[0]).join('')}
                     </span>
                   </div>
                   <div>
-                    <div className="font-medium text-sm">{testimonial.name}</div>
-                    <div className="text-xs text-muted-foreground">{testimonial.role}</div>
+                    <div className="font-display font-semibold text-body-sm text-foreground">{testimonial.name}</div>
+                    <div className="text-caption text-muted-foreground">{testimonial.role}</div>
                   </div>
                 </footer>
               </blockquote>

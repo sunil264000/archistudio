@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Instagram, Facebook, Twitter, Youtube, Linkedin, ArrowUpRight } from 'lucide-react';
 import logoMark from '@/assets/logo-mark.png';
 
-
 interface SocialLinks {
   instagram_url: string;
   facebook_url: string;
@@ -45,43 +44,42 @@ export function Footer() {
   const activeSocials = socialIcons.filter(s => socialLinks[s.key as keyof SocialLinks]);
 
   return (
-    <footer className="relative border-t border-border/20 glass">
-      {/* Top accent line */}
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-accent/20 to-transparent" />
+    <footer className="relative border-t border-border/15">
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-accent/15 to-transparent" />
       
       <div className="container-wide py-16 sm:py-20">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-12 mb-12 motion-stagger">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-12 mb-14">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1 space-y-5">
             <div className="flex items-center gap-2.5">
-              <img src={logoMark} alt="Archistudio" className="h-8 w-8 rounded-lg object-cover" />
-              <span className="font-display font-bold text-lg text-foreground">Archistudio</span>
+              <img src={logoMark} alt="Archistudio" className="h-7 w-7 rounded-md object-cover" />
+              <span className="font-display font-bold text-base text-foreground">Archistudio</span>
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
+            <p className="text-body-sm text-muted-foreground leading-relaxed max-w-xs">
               Practical architecture education for the real world. Built by architects, for architects.
             </p>
             
             {activeSocials.length > 0 && (
               <div className="flex gap-2">
-                  {activeSocials.map((social) => (
-                    <a
-                      key={social.key}
-                      href={socialLinks[social.key as keyof SocialLinks]}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2.5 rounded-xl bg-secondary/40 hover:bg-accent hover:text-accent-foreground transition-all duration-300 border border-border/30 hover:border-accent/40 touch-target min-w-[44px] min-h-[44px] flex items-center justify-center"
-                      aria-label={social.label}
-                    >
-                      <social.icon className="h-4 w-4" />
-                    </a>
-                  ))}
+                {activeSocials.map((social) => (
+                  <a
+                    key={social.key}
+                    href={socialLinks[social.key as keyof SocialLinks]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2.5 rounded-lg bg-secondary/50 hover:bg-accent hover:text-accent-foreground transition-all duration-300 border border-border/20 hover:border-accent/30 touch-target min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    aria-label={social.label}
+                  >
+                    <social.icon className="h-4 w-4" />
+                  </a>
+                ))}
               </div>
             )}
           </div>
 
           {/* Links */}
           {[
-            { title: 'Studios', links: [
+            { title: 'Courses', links: [
               { label: 'All Programs', to: '/courses' },
               { label: 'Beginner Track', to: '/courses?level=beginner' },
               { label: 'Advanced Track', to: '/courses?level=advanced' },
@@ -97,13 +95,13 @@ export function Footer() {
             ]},
           ].map((section) => (
             <div key={section.title}>
-              <h4 className="text-xs font-medium tracking-[0.12em] uppercase text-foreground mb-5">{section.title}</h4>
-              <ul className="space-y-3 text-sm">
+              <h4 className="font-display text-caption uppercase tracking-[0.14em] text-foreground mb-5 font-semibold">{section.title}</h4>
+              <ul className="space-y-3">
                 {section.links.map((link) => (
                   <li key={link.to}>
                     <Link 
                       to={link.to} 
-                      className="text-muted-foreground hover:text-foreground transition-colors duration-300 inline-flex items-center gap-1 group py-0.5"
+                      className="text-body-sm text-muted-foreground hover:text-foreground transition-colors duration-300 inline-flex items-center gap-1 group py-0.5"
                     >
                       {link.label}
                       <ArrowUpRight className="h-3 w-3 opacity-0 -translate-y-0.5 translate-x-0.5 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0 transition-all duration-300 hidden sm:block" />
@@ -118,10 +116,10 @@ export function Footer() {
         <div className="divider-metallic mb-8" />
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-safe">
-          <div className="text-xs text-muted-foreground">
+          <div className="text-caption text-muted-foreground">
             © {new Date().getFullYear()} Archistudio. All rights reserved.
           </div>
-          <div className="text-xs text-muted-foreground/60">
+          <div className="text-caption text-muted-foreground/50">
             For architects who want to build, not just design.
           </div>
         </div>

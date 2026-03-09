@@ -18,34 +18,31 @@ export function ProblemSection() {
   return (
     <section className="section-padding relative overflow-hidden">
       <div className="container-wide">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-            {/* Left - heading */}
+        <div className="max-w-5xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+            {/* Left */}
             <motion.div 
-              className="space-y-6"
+              className="space-y-5"
               variants={staggerContainer}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, margin: "-100px" }}
             >
               <motion.div variants={fadeInLeft} className="section-label">The Reality</motion.div>
-              <motion.h2 
-                variants={fadeInLeft}
-                className="font-display font-bold leading-tight"
-              >
+              <motion.h2 variants={fadeInLeft} className="font-display leading-tight">
                 Architecture College
                 <br />
                 Taught You Theory.
                 <br />
                 <span className="text-muted-foreground">But Not How to Practice.</span>
               </motion.h2>
-              <motion.p variants={fadeInLeft} className="text-muted-foreground leading-relaxed max-w-md">
+              <motion.p variants={fadeInLeft} className="text-body text-muted-foreground max-w-md">
                 Five years of education, countless studio projects, dozens of reviews — 
                 and yet most graduates walk into their first job feeling completely unprepared.
               </motion.p>
             </motion.div>
 
-            {/* Right - problem cards */}
+            {/* Right */}
             <motion.div 
               className="space-y-3"
               variants={staggerContainer}
@@ -57,14 +54,14 @@ export function ProblemSection() {
                 <motion.div 
                   key={i}
                   variants={fadeInRight}
-                  className="flex items-start gap-4 p-4 sm:p-5 rounded-xl card-glass group"
+                  className="flex items-start gap-4 p-5 rounded-xl card-glass group"
                 >
                   <div className="shrink-0 mt-0.5">
-                    <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-lg bg-warning/8 flex items-center justify-center">
                       <AlertTriangle className="h-4 w-4 text-warning" />
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{problem}</p>
+                  <p className="text-body-sm text-muted-foreground leading-relaxed">{problem}</p>
                 </motion.div>
               ))}
             </motion.div>
@@ -72,15 +69,15 @@ export function ProblemSection() {
 
           {/* Transition */}
           <motion.div 
-            className="mt-14 sm:mt-16 text-center"
-            initial={{ opacity: 0, y: 16 }}
+            className="mt-16 text-center"
+            initial={{ opacity: 0, y: 14 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
             <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full card-glass">
               <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-              <p className="text-sm font-medium">We're here to bridge that gap. <span className="text-accent">Permanently.</span></p>
+              <p className="text-body-sm font-medium text-foreground">We're here to bridge that gap. <span className="text-accent">Permanently.</span></p>
             </div>
           </motion.div>
         </div>
