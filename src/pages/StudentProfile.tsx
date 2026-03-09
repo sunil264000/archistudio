@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SEOHead } from '@/components/seo/SEOHead';
+import { FollowButton } from '@/components/profile/FollowButton';
+import { FollowStats } from '@/components/profile/FollowStats';
+import { AchievementGrid } from '@/components/profile/AchievementGrid';
 import {
   Award, BookOpen, Trophy, MessageSquare, Star, ExternalLink,
   Loader2, User, GraduationCap, Flame, Shield
