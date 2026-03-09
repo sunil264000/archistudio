@@ -104,3 +104,12 @@ verify_jwt = false
 
 [functions.notify-admin]
 verify_jwt = false
+
+[functions.system-repair]
+verify_jwt = false
+
+[functions.event-processor]
+verify_jwt = false
+
+[functions.ai-design-mentor]
+verify_jwt = false
