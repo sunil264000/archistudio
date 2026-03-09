@@ -48,13 +48,13 @@ export function Footer() {
       <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-accent/15 to-transparent" />
       
       <div className="container-wide py-16 sm:py-20">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-12 mb-14">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-10 md:gap-8 mb-14">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1 space-y-5">
-            <div className="flex items-center gap-2.5">
+            <Link to="/" className="flex items-center gap-2.5">
               <img src={logoMark} alt="Archistudio" className="h-7 w-7 rounded-md object-cover" />
               <span className="font-display font-bold text-base text-foreground">Archistudio</span>
-            </div>
+            </Link>
             <p className="text-body-sm text-muted-foreground leading-relaxed max-w-xs">
               Practical architecture education for the real world. Built by architects, for architects.
             </p>
@@ -79,24 +79,37 @@ export function Footer() {
 
           {/* Links */}
           {[
-            { title: 'Courses', links: [
-              { label: 'All Programs', to: '/courses' },
-              { label: 'Beginner Track', to: '/courses?level=beginner' },
-              { label: 'Advanced Track', to: '/courses?level=advanced' },
+            { title: 'Learn', links: [
+              { label: 'All Courses', to: '/courses' },
+              { label: 'Explore', to: '/explore' },
+              { label: 'Learning Paths', to: '/roadmaps' },
+              { label: 'Learning Map', to: '/learning-map' },
+              { label: 'eBooks', to: '/ebooks' },
+              { label: 'Resources', to: '/resources' },
             ]},
-            { title: 'Company', links: [
+            { title: 'Community', links: [
+              { label: 'Forum', to: '/forum' },
+              { label: 'Sheet Reviews', to: '/sheets' },
+              { label: 'Competitions', to: '/competitions' },
+              { label: 'Daily Challenges', to: '/challenges' },
+              { label: 'Internships', to: '/internships' },
+              { label: 'Portfolios', to: '/portfolios' },
+              { label: 'Leaderboard', to: '/leaderboard' },
+            ]},
+            { title: 'Discover', links: [
+              { label: 'Case Studies', to: '/case-studies' },
               { label: 'Blog', to: '/blog' },
-              { label: 'Contact', to: '/contact' },
               { label: 'Sitemap', to: '/sitemap' },
             ]},
-            { title: 'Legal', links: [
+            { title: 'Company', links: [
+              { label: 'Contact Us', to: '/contact' },
               { label: 'Terms & Conditions', to: '/terms' },
               { label: 'Privacy Policy', to: '/privacy' },
             ]},
           ].map((section) => (
             <div key={section.title}>
               <h4 className="font-display text-caption uppercase tracking-[0.14em] text-foreground mb-5 font-semibold">{section.title}</h4>
-              <ul className="space-y-3">
+              <ul className="space-y-2.5">
                 {section.links.map((link) => (
                   <li key={link.to}>
                     <Link 

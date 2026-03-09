@@ -355,6 +355,10 @@ export default function Explore() {
                 { label: 'Case Studies', link: '/case-studies', icon: Image },
                 { label: 'Student Portfolios', link: '/portfolios', icon: Layers },
                 { label: 'Resource Library', link: '/resources', icon: Globe },
+                { label: 'Learning Paths', link: '/roadmaps', icon: TrendingUp },
+                { label: 'eBooks', link: '/ebooks', icon: Newspaper },
+                { label: 'Forum', link: '/forum', icon: Layers },
+                { label: 'Leaderboard', link: '/leaderboard', icon: TrendingUp },
               ].map(q => (
                 <Link key={q.label} to={q.link}>
                   <Card className="group bg-card/50 hover:bg-card/80 border-border/30 hover:border-border/50 transition-all duration-300 cursor-pointer">
