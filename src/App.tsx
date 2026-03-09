@@ -61,6 +61,7 @@ import DailyChallenges from "./pages/DailyChallenges";
 import PublicProfile from "./pages/PublicProfile";
 import PortfolioDiscovery from "./pages/PortfolioDiscovery";
 import CaseStudies from "./pages/CaseStudies";
+import LearningMap from "./pages/LearningMap";
 
 const queryClient = new QueryClient();
 
@@ -322,6 +323,7 @@ function AnimatedRoutes() {
           <Route path="/u/:username" element={<PublicProfile />} />
           <Route path="/portfolios" element={<PortfolioDiscovery />} />
           <Route path="/case-studies" element={<CaseStudies />} />
+          <Route path="/learning-map" element={<LearningMap />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </motion.div>
