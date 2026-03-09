@@ -13,6 +13,8 @@ import { ArrowLeft, ThumbsUp, Award, MessageSquare, Loader2, Star, Send, Reply, 
 import { ShareButtons } from '@/components/social/ShareButtons';
 import { useState } from 'react';
 import { SEOHead } from '@/components/seo/SEOHead';
+import { SheetAnnotationLayer } from '@/components/sheets/SheetAnnotationLayer';
+import { useSheetAnnotations } from '@/hooks/useSheetAnnotations';
 import type { SheetCritique } from '@/hooks/useSheetReviews';
 
 export default function SheetDetail() {
