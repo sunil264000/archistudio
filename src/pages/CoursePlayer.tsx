@@ -20,11 +20,12 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
   ChevronLeft, Play, CheckCircle, Lock, Clock,
   BookOpen, Award, ChevronRight, CheckCircle2, MessageCircle, Download,
-  Menu, X, List
+  Menu, X, List, Layers, GraduationCap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CourseCompletionModal } from '@/components/course/CourseCompletionModal';
 import { IssueReportButton } from '@/components/course/IssueReportButton';
+import { motion } from 'framer-motion';
 
 interface Module {
   id: string;
@@ -55,7 +56,6 @@ export default function CoursePlayer() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [course, setCourse] = useState<any>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
@@ -66,251 +66,112 @@ export default function CoursePlayer() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
 
-  // Use access control hook for proper access checking (enrollment, gift, EMI, launch free)
   const accessInfo = useAccessControl(user?.id, course?.id);
-
-  // Derived enrollment state from access control
   const isEnrolled = accessInfo.hasAccess;
-
-  // Refs to prevent re-fetching on tab switch or re-renders
   const hasFetchedRef = useRef(false);
   const courseSlugRef = useRef<string | null>(null);
-
-  // Throttle progress writes to avoid flooding the network (can cause playback stutter)
   const lastProgressSaveRef = useRef<Record<string, number>>({});
-
-  // Get lesson ID from URL query param if present
   const lessonIdFromUrl = searchParams.get('lesson');
 
   useEffect(() => {
-    // Allow non-logged-in users to view free preview lessons
-    // Prevent re-fetching if we already have the data for this course
-    if (hasFetchedRef.current && courseSlugRef.current === slug && course) {
-      return;
-    }
-
+    if (hasFetchedRef.current && courseSlugRef.current === slug && course) return;
     fetchCourseData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug, user]);
 
   const fetchCourseData = async () => {
     if (!slug) return;
-
     setLoading(true);
     try {
-      // Fetch course
       const { data: courseData, error: courseError } = await supabase
-        .from('courses')
-        .select('*')
-        .eq('slug', slug)
-        .single();
-
-      if (courseError || !courseData) {
-        toast.error('Course not found');
-        navigate('/courses');
-        return;
-      }
-
+        .from('courses').select('*').eq('slug', slug).single();
+      if (courseError || !courseData) { toast.error('Course not found'); navigate('/courses'); return; }
       setCourse(courseData);
 
-      // Note: Enrollment/access is now handled by useAccessControl hook
-      // We still need to determine initial lesson selection based on access
-
-      // Fetch modules with lessons
       const { data: modulesData } = await supabase
         .from('modules')
-        .select(`
-          id, title, order_index,
-          lessons (
-            id, title, description, video_url, 
-            duration_minutes, order_index, is_free_preview
-          )
-        `)
-        .eq('course_id', courseData.id)
-        .order('order_index');
+        .select(`id, title, order_index, lessons (id, title, description, video_url, duration_minutes, order_index, is_free_preview)`)
+        .eq('course_id', courseData.id).order('order_index');
 
       const sortedModules = (modulesData || []).map(mod => ({
         ...mod,
-        lessons: (mod.lessons as Lesson[]).sort((a, b) =>
-          (a.order_index || 0) - (b.order_index || 0)
-        ),
+        lessons: (mod.lessons as Lesson[]).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)),
       }));
-
       setModules(sortedModules);
 
-      // Fetch user progress (only if logged in)
       const allLessonIds = sortedModules.flatMap(m => m.lessons.map(l => l.id));
       const progressMap: Record<string, LessonProgress> = {};
-
       if (user && allLessonIds.length > 0) {
         const { data: progressData } = await supabase
-          .from('progress')
-          .select('lesson_id, completed, last_position_seconds')
-          .eq('user_id', user.id)
-          .in('lesson_id', allLessonIds);
-
-        (progressData || []).forEach(p => {
-          progressMap[p.lesson_id] = p;
-        });
+          .from('progress').select('lesson_id, completed, last_position_seconds')
+          .eq('user_id', user.id).in('lesson_id', allLessonIds);
+        (progressData || []).forEach(p => { progressMap[p.lesson_id] = p; });
         setProgress(progressMap);
       }
 
-      // Set initial lesson - prioritize URL param, then find first free preview
       const allLessonsFlat = sortedModules.flatMap(m => m.lessons);
-
       let initialLesson: Lesson | null = null;
-
-      // Note: At this point we don't have accessInfo yet (hook runs after course is set)
-      // So we use basic checks here, and full access control happens in the render
-
-      // 1. Check URL param
-      if (lessonIdFromUrl) {
-        const fromUrl = allLessonsFlat.find(l => l.id === lessonIdFromUrl) || null;
-        if (fromUrl) {
-          // We'll let the player show locked placeholder if needed
-          initialLesson = fromUrl;
-        }
-      }
-
-      // 2. If not logged in, find first free preview lesson or auto-free first lesson
-      if (!initialLesson && !user) {
-        initialLesson = allLessonsFlat.find(l => l.is_free_preview) || allLessonsFlat[0] || null;
-      }
-
-      // 3. If logged in, find first incomplete lesson (auto-continue)
+      if (lessonIdFromUrl) initialLesson = allLessonsFlat.find(l => l.id === lessonIdFromUrl) || null;
+      if (!initialLesson && !user) initialLesson = allLessonsFlat.find(l => l.is_free_preview) || allLessonsFlat[0] || null;
       if (!initialLesson && user && Object.keys(progressMap).length > 0) {
-        const completedIds = new Set(
-          Object.entries(progressMap)
-            .filter(([_, p]) => p.completed)
-            .map(([id]) => id)
-        );
+        const completedIds = new Set(Object.entries(progressMap).filter(([_, p]) => p.completed).map(([id]) => id));
         initialLesson = allLessonsFlat.find(l => !completedIds.has(l.id)) || null;
       }
+      if (!initialLesson && allLessonsFlat.length > 0) initialLesson = allLessonsFlat[0];
+      if (initialLesson) setCurrentLesson(initialLesson);
 
-      // 4. Fallback to first lesson
-      if (!initialLesson && allLessonsFlat.length > 0) {
-        initialLesson = allLessonsFlat[0];
-      }
-
-      if (initialLesson) {
-        setCurrentLesson(initialLesson);
-      }
-
-      // Mark as fetched to prevent refetching on tab switch
       hasFetchedRef.current = true;
       courseSlugRef.current = slug || null;
-    } catch (error) {
-      console.error('Error fetching course:', error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { console.error('Error fetching course:', error); }
+    finally { setLoading(false); }
   };
 
-  const handleLessonSelect = (lesson: Lesson) => {
-    // Allow selecting any lesson - the player will show locked placeholder if needed
-    setCurrentLesson(lesson);
-    setSidebarOpen(false); // Close sidebar on mobile after selection
-  };
+  const handleLessonSelect = (lesson: Lesson) => { setCurrentLesson(lesson); setSidebarOpen(false); };
 
   const handleProgress = useCallback(async (progressPercent: number, currentTime: number) => {
     if (!currentLesson || !user) return;
-
-    // Update watch progress state for UI
     setWatchProgress(progressPercent);
-
-    // Show finish button at 95% or more
-    if (progressPercent >= 95 && !progress[currentLesson.id]?.completed) {
-      setShowFinishButton(true);
-    }
-
-    // Save progress every 10 seconds (but only when we cross a new 10s boundary)
+    if (progressPercent >= 95 && !progress[currentLesson.id]?.completed) setShowFinishButton(true);
     const roundedTime = Math.floor(currentTime / 10) * 10;
     const lastSaved = lastProgressSaveRef.current[currentLesson.id] ?? -1;
     if (roundedTime <= lastSaved) return;
-
     lastProgressSaveRef.current[currentLesson.id] = roundedTime;
-
-    supabase
-      .from('progress')
-      .upsert(
-        {
-          user_id: user.id,
-          lesson_id: currentLesson.id,
-          last_position_seconds: roundedTime,
-          watch_time_seconds: roundedTime,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: 'user_id,lesson_id',
-        }
-      )
-      .then(({ error }) => {
-        if (error) console.error('Progress save failed:', error);
-      });
+    supabase.from('progress').upsert({
+      user_id: user.id, lesson_id: currentLesson.id,
+      last_position_seconds: roundedTime, watch_time_seconds: roundedTime,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,lesson_id' }).then(({ error }) => { if (error) console.error('Progress save failed:', error); });
   }, [currentLesson, user, progress]);
 
   const handleComplete = useCallback(async () => {
     if (!currentLesson || !user) return;
-
     await supabase.from('progress').upsert({
-      user_id: user.id,
-      lesson_id: currentLesson.id,
-      completed: true,
-      completed_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }, {
-      onConflict: 'user_id,lesson_id',
-    });
-
-    setProgress(prev => ({
-      ...prev,
-      [currentLesson.id]: { ...prev[currentLesson.id], completed: true, lesson_id: currentLesson.id, last_position_seconds: 0 },
-    }));
-
-    setShowFinishButton(false);
-    setWatchProgress(0);
-
+      user_id: user.id, lesson_id: currentLesson.id, completed: true,
+      completed_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,lesson_id' });
+    setProgress(prev => ({ ...prev, [currentLesson.id]: { ...prev[currentLesson.id], completed: true, lesson_id: currentLesson.id, last_position_seconds: 0 } }));
+    setShowFinishButton(false); setWatchProgress(0);
     toast.success('Lesson completed! 🎉');
-
-    // Check for course completion
     const allLessons = modules.flatMap(m => m.lessons);
     const newCompletedCount = Object.values(progress).filter(p => p.completed).length + 1;
     if (newCompletedCount >= allLessons.length && course?.id) {
-      // Trigger certificate generation in background
-      supabase.functions.invoke('check-course-completion', {
-        body: { userId: user.id, courseId: course.id }
-      }).catch(console.error);
-
-      // Show completion modal immediately with celebration
+      supabase.functions.invoke('check-course-completion', { body: { userId: user.id, courseId: course.id } }).catch(console.error);
       setTimeout(() => setShowCompletionModal(true), 500);
     }
   }, [currentLesson, user, modules, progress, course]);
 
-  const handleFinishLesson = () => {
-    handleComplete();
-  };
-
   const goToNextLesson = () => {
     if (!currentLesson) return;
-
     const allLessons = modules.flatMap(m => m.lessons);
-    const currentIndex = allLessons.findIndex(l => l.id === currentLesson.id);
-    if (currentIndex < allLessons.length - 1) {
-      handleLessonSelect(allLessons[currentIndex + 1]);
-    }
+    const idx = allLessons.findIndex(l => l.id === currentLesson.id);
+    if (idx < allLessons.length - 1) handleLessonSelect(allLessons[idx + 1]);
   };
-
   const goToPrevLesson = () => {
     if (!currentLesson) return;
-
     const allLessons = modules.flatMap(m => m.lessons);
-    const currentIndex = allLessons.findIndex(l => l.id === currentLesson.id);
-    if (currentIndex > 0) {
-      handleLessonSelect(allLessons[currentIndex - 1]);
-    }
+    const idx = allLessons.findIndex(l => l.id === currentLesson.id);
+    if (idx > 0) handleLessonSelect(allLessons[idx - 1]);
   };
 
-  // Calculate overall progress
   const totalLessons = modules.reduce((sum, m) => sum + m.lessons.length, 0);
   const completedLessons = Object.values(progress).filter(p => p.completed).length;
   const overallProgress = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
@@ -319,67 +180,61 @@ export default function CoursePlayer() {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="flex items-center justify-center h-[60vh]">
-          <div className="flex flex-col items-center gap-4">
+        <div className="flex items-center justify-center h-[80vh]">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center gap-4"
+          >
             <div className="relative w-16 h-16">
-              <div className="absolute inset-0 rounded-full border-4 border-muted animate-pulse" />
-              <div className="absolute inset-0 rounded-full border-4 border-t-accent animate-spin" />
+              <div className="absolute inset-0 rounded-2xl border-2 border-accent/20 animate-pulse" />
+              <div className="absolute inset-0 rounded-2xl border-2 border-t-accent animate-spin" />
+              <div className="absolute inset-3 rounded-lg bg-accent/10 flex items-center justify-center">
+                <Play className="h-5 w-5 text-accent" />
+              </div>
             </div>
-            <p className="text-muted-foreground animate-pulse">Loading your course...</p>
-          </div>
+            <p className="text-sm text-muted-foreground">Loading your course...</p>
+          </motion.div>
         </div>
       </div>
     );
   }
 
-  // Sidebar content component (reused in both desktop and mobile)
+  // Sidebar content
   const SidebarContent = () => (
     <>
-      <div className="p-4 border-b bg-gradient-to-b from-muted/30 to-transparent">
+      <div className="p-4 border-b border-border/40 bg-gradient-to-b from-card to-transparent">
         <Link to={`/course/${slug}`}>
-          <Button variant="ghost" size="sm" className="gap-2 mb-3 hover:bg-accent/10 hover:text-accent transition-all">
-            <ChevronLeft className="h-4 w-4" />
+          <Button variant="ghost" size="sm" className="gap-2 mb-3 -ml-1 text-xs hover:bg-accent/8 hover:text-accent">
+            <ChevronLeft className="h-3.5 w-3.5" />
             Back to Course
           </Button>
         </Link>
 
         <div className="space-y-3">
-          {/* Course title with better styling */}
-          <div className="space-y-2">
-            <h2 className="font-semibold text-sm md:text-base leading-snug break-words whitespace-normal">
-              {course?.title}
-            </h2>
+          <h2 className="font-semibold text-sm leading-snug">{course?.title}</h2>
 
-            {/* Access Badge with animation */}
-            {accessInfo.accessType !== 'none' && (
-              <div className="animate-fade-in">
-                <AccessBadge
-                  accessType={accessInfo.accessType}
-                  unlockedPercent={accessInfo.unlockedPercent}
-                  expiryDate={accessInfo.giftExpiry || accessInfo.launchFreeExpiry}
-                />
-              </div>
-            )}
-          </div>
+          {accessInfo.accessType !== 'none' && (
+            <AccessBadge
+              accessType={accessInfo.accessType}
+              unlockedPercent={accessInfo.unlockedPercent}
+              expiryDate={accessInfo.giftExpiry || accessInfo.launchFreeExpiry}
+            />
+          )}
         </div>
 
-        {/* Signup prompt for non-logged-in users - Enhanced design */}
         {!user && (
-          <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-accent/15 via-accent/10 to-transparent border border-accent/20 shadow-sm">
+          <div className="mt-4 p-4 rounded-xl bg-accent/8 border border-accent/15">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
-                <Award className="h-5 w-5 text-accent" />
+              <div className="w-9 h-9 rounded-lg bg-accent/15 flex items-center justify-center shrink-0">
+                <GraduationCap className="h-4 w-4 text-accent" />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-accent text-sm mb-1">Like what you see?</p>
-                <p className="text-muted-foreground text-xs mb-3 leading-relaxed">
-                  Sign up free to unlock all lessons and track your learning progress!
+              <div className="flex-1">
+                <p className="font-medium text-accent text-xs mb-1">Unlock Full Access</p>
+                <p className="text-muted-foreground text-[11px] mb-2.5 leading-relaxed">
+                  Sign up to track progress and access all lessons.
                 </p>
-                <Button
-                  size="sm"
-                  onClick={() => navigate('/auth')}
-                  className="w-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-sm"
-                >
+                <Button size="sm" onClick={() => navigate('/auth')} className="w-full h-8 text-xs bg-accent hover:bg-accent/90 text-accent-foreground">
                   Sign Up Free
                 </Button>
               </div>
@@ -387,16 +242,15 @@ export default function CoursePlayer() {
           </div>
         )}
 
-        {/* Progress section - Enhanced */}
         {user && (
-          <div className="mt-4 p-3 rounded-xl bg-muted/30 border border-border/50">
+          <div className="mt-4 p-3 rounded-xl bg-muted/30 border border-border/40">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-medium text-muted-foreground">Your Progress</span>
-              <span className="text-sm font-bold text-accent">{completedLessons}/{totalLessons}</span>
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Progress</span>
+              <span className="text-xs font-bold text-accent">{Math.round(overallProgress)}%</span>
             </div>
-            <Progress value={overallProgress} className="h-2.5" />
+            <Progress value={overallProgress} className="h-1.5" />
             <p className="text-[10px] text-muted-foreground mt-1.5">
-              {completedLessons} of {totalLessons} lessons completed
+              {completedLessons} of {totalLessons} lessons
             </p>
           </div>
         )}
@@ -405,121 +259,79 @@ export default function CoursePlayer() {
       <ScrollArea className="flex-1">
         <Accordion type="multiple" defaultValue={modules.map(m => m.id)} className="p-3">
           {modules.map((module, modIdx) => {
-            // Check if this module is unlocked (for partial EMI access)
             const isModuleUnlocked = accessInfo.accessType === 'partial'
-              ? accessInfo.unlockedModuleIds.includes(module.id)
-              : isEnrolled;
-
-            // Calculate module progress
+              ? accessInfo.unlockedModuleIds.includes(module.id) : isEnrolled;
             const moduleLessons = module.lessons;
             const moduleCompletedCount = moduleLessons.filter(l => progress[l.id]?.completed).length;
             const moduleProgress = moduleLessons.length > 0 ? (moduleCompletedCount / moduleLessons.length) * 100 : 0;
 
             return (
-              <AccordionItem key={module.id} value={module.id} className="border-b border-border/30 last:border-b-0">
-                <AccordionTrigger className="hover:no-underline px-3 py-3.5 hover:bg-muted/30 rounded-lg transition-colors [&[data-state=open]]:bg-muted/20">
-                  <div className="flex items-start gap-3 text-left min-w-0 flex-1">
-                    {/* Module number badge */}
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold ${moduleProgress === 100
-                        ? 'bg-success/20 text-success'
-                        : 'bg-accent/10 text-accent'
-                      }`}>
-                      {moduleProgress === 100 ? (
-                        <CheckCircle className="h-4 w-4" />
-                      ) : (
-                        modIdx + 1
-                      )}
+              <AccordionItem key={module.id} value={module.id} className="border-b border-border/20 last:border-b-0">
+                <AccordionTrigger className="hover:no-underline px-3 py-3 hover:bg-muted/20 rounded-lg transition-colors [&[data-state=open]]:bg-muted/10">
+                  <div className="flex items-center gap-3 text-left min-w-0 flex-1">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-[11px] font-bold ${
+                      moduleProgress === 100
+                        ? 'bg-emerald-500/15 text-emerald-500'
+                        : 'bg-accent/8 text-accent'
+                    }`}>
+                      {moduleProgress === 100 ? <CheckCircle className="h-3.5 w-3.5" /> : modIdx + 1}
                     </div>
-
                     <div className="flex-1 min-w-0">
-                      <span className="text-sm font-medium leading-snug break-words whitespace-normal block">
-                        {module.title}
-                      </span>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[10px] text-muted-foreground">
-                          {moduleLessons.length} lessons
-                        </span>
+                      <span className="text-[13px] font-medium leading-snug block truncate">{module.title}</span>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] text-muted-foreground">{moduleLessons.length} lessons</span>
                         {user && moduleCompletedCount > 0 && (
-                          <span className="text-[10px] text-accent font-medium">
-                            {moduleCompletedCount}/{moduleLessons.length} done
-                          </span>
+                          <span className="text-[10px] text-accent">{moduleCompletedCount}/{moduleLessons.length}</span>
                         )}
                         {accessInfo.accessType === 'partial' && !isModuleUnlocked && (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                            <Lock className="h-2.5 w-2.5" />
-                            Locked
-                          </span>
+                          <Lock className="h-2.5 w-2.5 text-muted-foreground/60" />
                         )}
                       </div>
                     </div>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pb-2 pt-1">
-                  <div className="space-y-1 pl-1">
+                <AccordionContent className="pb-2 pt-0.5">
+                  <div className="space-y-0.5 pl-1">
                     {module.lessons.map((lesson, lessonIdx) => {
                       const isCompleted = progress[lesson.id]?.completed;
-                      // Auto-free: first lesson of first module is always free
                       const isAutoFreePreview = modIdx === 0 && lessonIdx === 0;
                       const isEffectiveFreePreview = lesson.is_free_preview || isAutoFreePreview;
-                      // Lesson is locked if: no access AND not free preview
-                      const isLocked = isEffectiveFreePreview
-                        ? false
-                        : accessInfo.accessType === 'partial'
-                          ? !isModuleUnlocked
-                          : !isEnrolled;
+                      const isLocked = isEffectiveFreePreview ? false
+                        : accessInfo.accessType === 'partial' ? !isModuleUnlocked : !isEnrolled;
                       const isCurrent = currentLesson?.id === lesson.id;
 
                       return (
                         <button
                           key={lesson.id}
                           onClick={() => handleLessonSelect(lesson)}
-                          className={`w-full flex items-start gap-3 p-3 rounded-xl text-left text-sm transition-all group ${isCurrent
-                              ? 'bg-gradient-to-r from-accent to-accent/80 text-accent-foreground shadow-md shadow-accent/20'
+                          className={`w-full flex items-center gap-2.5 p-2.5 rounded-lg text-left text-[13px] transition-all duration-200 ${
+                            isCurrent
+                              ? 'bg-accent text-accent-foreground shadow-sm shadow-accent/20'
                               : isLocked
-                                ? 'text-muted-foreground hover:bg-muted/30 opacity-60'
-                                : 'hover:bg-muted/50'
-                            }`}
+                                ? 'text-muted-foreground/50 hover:bg-muted/20'
+                                : 'hover:bg-muted/30 text-foreground/80 hover:text-foreground'
+                          }`}
                         >
-                          {/* Status icon */}
-                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all ${isCurrent
-                              ? 'bg-white/20'
-                              : isCompleted
-                                ? 'bg-success/15 text-success'
-                                : isLocked
-                                  ? 'bg-muted/50'
-                                  : 'bg-muted group-hover:bg-accent/10 group-hover:text-accent'
-                            }`}>
-                            {isLocked ? (
-                              <Lock className="h-3.5 w-3.5" />
-                            ) : isCompleted ? (
-                              <CheckCircle className="h-4 w-4" />
-                            ) : isCurrent ? (
-                              <Play className="h-3.5 w-3.5 fill-current" />
-                            ) : (
-                              <Play className="h-3.5 w-3.5" />
-                            )}
+                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs transition-all ${
+                            isCurrent ? 'bg-white/20'
+                              : isCompleted ? 'bg-emerald-500/10 text-emerald-500'
+                                : isLocked ? 'bg-muted/30' : 'bg-muted/40'
+                          }`}>
+                            {isLocked ? <Lock className="h-3 w-3" />
+                              : isCompleted ? <CheckCircle className="h-3.5 w-3.5" />
+                                : <Play className={`h-3 w-3 ${isCurrent ? 'fill-current' : ''}`} />}
                           </span>
 
                           <div className="flex-1 min-w-0">
-                            <span className="block leading-snug break-words whitespace-normal font-medium">
-                              {lesson.title}
-                            </span>
-                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                            <span className="block leading-snug truncate font-medium">{lesson.title}</span>
+                            <div className="flex items-center gap-1.5 mt-0.5">
                               {isEffectiveFreePreview && !isEnrolled && (
-                                <Badge className="bg-success/15 text-success border-success/20 text-[10px] px-2 py-0.5 font-medium">
-                                  Free Preview
-                                </Badge>
+                                <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[9px] px-1.5 py-0 h-4">Free</Badge>
                               )}
                               {!!lesson.duration_minutes && lesson.duration_minutes > 0 && (
-                                <span className={`text-[10px] flex items-center gap-1 ${isCurrent ? 'opacity-80' : 'opacity-60'}`}>
-                                  <Clock className="h-3 w-3" />
-                                  {lesson.duration_minutes} min
+                                <span className={`text-[10px] flex items-center gap-0.5 ${isCurrent ? 'opacity-70' : 'opacity-50'}`}>
+                                  <Clock className="h-2.5 w-2.5" />{lesson.duration_minutes}m
                                 </span>
-                              )}
-                              {isCurrent && (
-                                <Badge className="bg-white/20 text-[10px] px-2 py-0.5 border-0 font-medium">
-                                  Now Playing
-                                </Badge>
                               )}
                             </div>
                           </div>
@@ -540,49 +352,48 @@ export default function CoursePlayer() {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      {/* Mobile Header with Lesson Toggle */}
-      <div className="md:hidden sticky top-16 z-40 bg-background/95 backdrop-blur-sm border-b px-3 py-2 flex items-center gap-2 safe-area-inset">
+      {/* Mobile Header */}
+      <div className="md:hidden sticky top-16 z-40 bg-card/95 backdrop-blur-sm border-b border-border/40 px-3 py-2 flex items-center gap-2">
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2 touch-target shrink-0">
-              <List className="h-4 w-4" />
-              <span className="text-xs">Lessons</span>
+            <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs border-border/50">
+              <Layers className="h-3.5 w-3.5" />
+              Lessons
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[90vw] max-w-sm p-0 flex flex-col">
+          <SheetContent side="left" className="w-[88vw] max-w-sm p-0 flex flex-col">
             <SidebarContent />
           </SheetContent>
         </Sheet>
 
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium truncate">{currentLesson?.title || 'Select a lesson'}</p>
+          {user && <Progress value={overallProgress} className="h-0.5 mt-1" />}
         </div>
 
-        {/* Quick nav arrows for mobile */}
-        <div className="flex gap-1 shrink-0">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToPrevLesson}>
-            <ChevronLeft className="h-4 w-4" />
+        <div className="flex gap-0.5 shrink-0">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goToPrevLesson}>
+            <ChevronLeft className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={goToNextLesson}>
-            <ChevronRight className="h-4 w-4" />
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goToNextLesson}>
+            <ChevronRight className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
 
       <div className="flex flex-col md:flex-row md:h-[calc(100vh-4rem)]">
-        {/* Sidebar - Hidden on mobile, shown via Sheet */}
-        <aside className="hidden md:flex w-80 border-r bg-card flex-col shrink-0">
+        {/* Desktop Sidebar */}
+        <aside className="hidden md:flex w-80 border-r border-border/40 bg-card/50 flex-col shrink-0">
           <SidebarContent />
         </aside>
 
-        {/* Main Content - Video Player */}
-        <main className="flex-1 flex flex-col overflow-auto mobile-scroll">
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col overflow-auto">
           {currentLesson ? (
             <ScrollArea className="flex-1">
-              {/* Video Container - Full width on mobile with proper aspect ratio */}
-              <div className="bg-black flex items-center justify-center">
+              {/* Video */}
+              <div className="bg-black">
                 {(() => {
-                  // Auto-free first lesson
                   const allLessonsFlat = modules.flatMap(m => m.lessons);
                   const isFirstLesson = allLessonsFlat.length > 0 && allLessonsFlat[0].id === currentLesson.id;
                   const isEffectiveFree = currentLesson.is_free_preview || isFirstLesson;
@@ -590,7 +401,7 @@ export default function CoursePlayer() {
 
                   if (isLocked) {
                     return (
-                      <div className="w-full py-6 md:py-10 px-4">
+                      <div className="w-full py-8 px-4">
                         <LockedLessonPlaceholder
                           title={currentLesson.title}
                           description={currentLesson.description}
@@ -621,101 +432,84 @@ export default function CoursePlayer() {
                   }
 
                   return (
-                    <div className="text-center text-white py-8 md:py-16 px-4">
-                      <BookOpen className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-4 opacity-50" />
-                      <p className="text-sm md:text-base">No video available for this lesson</p>
-                      {currentLesson.description && (
-                        <p className="mt-4 text-xs md:text-sm opacity-75 max-w-md">
-                          {currentLesson.description}
-                        </p>
-                      )}
+                    <div className="text-center text-white/70 py-16 px-4">
+                      <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">No video available for this lesson</p>
                     </div>
                   );
                 })()}
               </div>
 
-              {/* Lesson Info Bar */}
-              <div className="border-t p-3 md:p-4 bg-card">
-                <div className="flex flex-col gap-3">
-                  {/* Title and status */}
-                  <div className="flex items-start justify-between gap-2">
+              {/* Lesson Info Bar - Redesigned */}
+              <div className="border-t border-border/40 bg-card">
+                <div className="p-4 md:p-5">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-sm md:text-base truncate">{currentLesson.title}</h3>
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h3 className="font-semibold text-base">{currentLesson.title}</h3>
                         {progress[currentLesson.id]?.completed && (
-                          <Badge variant="secondary" className="bg-success/10 text-success shrink-0 text-xs">
+                          <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[10px] h-5">
                             <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Done
+                            Complete
                           </Badge>
                         )}
                       </div>
                       {currentLesson.description && (
-                        <p className="text-xs md:text-sm text-muted-foreground mt-1 line-clamp-2">
-                          {currentLesson.description}
-                        </p>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{currentLesson.description}</p>
                       )}
                     </div>
 
-                    {/* Mark as Complete Button - always available for incomplete lessons */}
-                    {isEnrolled && !progress[currentLesson.id]?.completed && (
-                      <Button
-                        size="sm"
-                        onClick={handleFinishLesson}
-                        className="bg-success hover:bg-success/90 text-success-foreground shrink-0 text-xs md:text-sm gap-1"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span>Mark Complete</span>
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {isEnrolled && !progress[currentLesson.id]?.completed && (
+                        <Button
+                          size="sm"
+                          onClick={handleComplete}
+                          className="bg-emerald-500 hover:bg-emerald-600 text-white gap-1.5 h-8 text-xs shadow-sm"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Complete
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Navigation Buttons - Hidden on mobile (they're in the header now) */}
-                  <div className="hidden md:flex gap-2 justify-end items-center">
-                    {isEnrolled && course && currentLesson && (
-                      <IssueReportButton
-                        courseId={course.id}
-                        courseTitle={course.title}
-                        lessonId={currentLesson.id}
-                        lessonTitle={currentLesson.title}
-                      />
-                    )}
-                    <Button variant="outline" size="sm" onClick={goToPrevLesson}>
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Previous
-                    </Button>
-                    <Button size="sm" onClick={goToNextLesson}>
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
-                    </Button>
+                  {/* Nav Buttons */}
+                  <div className="hidden md:flex gap-2 justify-between items-center mt-4 pt-3 border-t border-border/30">
+                    <div className="flex gap-2">
+                      {isEnrolled && course && currentLesson && (
+                        <IssueReportButton
+                          courseId={course.id} courseTitle={course.title}
+                          lessonId={currentLesson.id} lessonTitle={currentLesson.title}
+                        />
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={goToPrevLesson} className="h-8 text-xs border-border/50">
+                        <ChevronLeft className="h-3.5 w-3.5 mr-1" />Previous
+                      </Button>
+                      <Button size="sm" onClick={goToNextLesson} className="h-8 text-xs">
+                        Next<ChevronRight className="h-3.5 w-3.5 ml-1" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Resources & Q&A Section Below Video */}
+              {/* Resources & Q&A */}
               {course && currentLesson && (
-                <div className="p-3 md:p-4 border-t">
-                  {/* Current Lesson Resources */}
+                <div className="p-4 md:p-5 border-t border-border/30">
                   <LessonResources lessonId={currentLesson.id} isEnrolled={isEnrolled} />
-
-                  <Tabs defaultValue="qa" className="w-full mt-4">
-                    <TabsList className="mb-4">
-                      <TabsTrigger value="qa" className="gap-2 text-xs md:text-sm">
-                        <MessageCircle className="h-4 w-4" />
-                        <span className="hidden sm:inline">Questions & Answers</span>
-                        <span className="sm:hidden">Q&A</span>
+                  <Tabs defaultValue="qa" className="w-full mt-5">
+                    <TabsList className="mb-4 bg-muted/30 border border-border/30">
+                      <TabsTrigger value="qa" className="gap-1.5 text-xs data-[state=active]:bg-card">
+                        <MessageCircle className="h-3.5 w-3.5" />Q&A
                       </TabsTrigger>
-                      <TabsTrigger value="resources" className="gap-2 text-xs md:text-sm">
-                        <Download className="h-4 w-4" />
-                        <span className="hidden sm:inline">All Resources</span>
-                        <span className="sm:hidden">Resources</span>
+                      <TabsTrigger value="resources" className="gap-1.5 text-xs data-[state=active]:bg-card">
+                        <Download className="h-3.5 w-3.5" />Resources
                       </TabsTrigger>
                     </TabsList>
-                    <TabsContent value="qa">
-                      <CourseQA courseId={course.id} />
-                    </TabsContent>
-                    <TabsContent value="resources">
-                      <CourseResources courseId={course.id} isEnrolled={isEnrolled} />
-                    </TabsContent>
+                    <TabsContent value="qa"><CourseQA courseId={course.id} /></TabsContent>
+                    <TabsContent value="resources"><CourseResources courseId={course.id} isEnrolled={isEnrolled} /></TabsContent>
                   </Tabs>
                 </div>
               )}
@@ -723,29 +517,21 @@ export default function CoursePlayer() {
           ) : (
             <div className="flex-1 flex items-center justify-center p-8">
               <div className="text-center">
-                <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-muted-foreground">Select a lesson to start learning</p>
-                <Button
-                  variant="outline"
-                  className="mt-4 md:hidden"
-                  onClick={() => setSidebarOpen(true)}
-                >
-                  <List className="h-4 w-4 mr-2" />
-                  View Lessons
+                <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
+                <p className="text-muted-foreground text-sm">Select a lesson to start learning</p>
+                <Button variant="outline" className="mt-4 md:hidden text-xs" onClick={() => setSidebarOpen(true)}>
+                  <List className="h-3.5 w-3.5 mr-1.5" />View Lessons
                 </Button>
               </div>
             </div>
           )}
         </main>
       </div>
-      {/* Course Completion Celebration Modal */}
+
       {user && course && (
         <CourseCompletionModal
-          open={showCompletionModal}
-          onOpenChange={setShowCompletionModal}
-          courseName={course.title}
-          courseId={course.id}
-          userId={user.id}
+          open={showCompletionModal} onOpenChange={setShowCompletionModal}
+          courseName={course.title} courseId={course.id} userId={user.id}
         />
       )}
     </div>
