@@ -22,6 +22,7 @@ export default function SheetDetail() {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const { sheet, critiques, loading, addCritique, toggleUpvote, markBestAnswer, refetch } = useSheetDetail(id);
+  const { annotations, refetch: refetchAnnotations } = useSheetAnnotations(id);
   const [newCritique, setNewCritique] = useState('');
   const [posting, setPosting] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
