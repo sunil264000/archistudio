@@ -360,6 +360,54 @@ export type Database = {
           },
         ]
       }
+      case_studies: {
+        Row: {
+          architect: string
+          brief: string
+          created_at: string | null
+          id: string
+          image_url: string | null
+          is_published: boolean | null
+          location: string
+          order_index: number | null
+          tags: string[] | null
+          title: string
+          type: string
+          updated_at: string | null
+          year: string
+        }
+        Insert: {
+          architect: string
+          brief: string
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_published?: boolean | null
+          location: string
+          order_index?: number | null
+          tags?: string[] | null
+          title: string
+          type: string
+          updated_at?: string | null
+          year: string
+        }
+        Update: {
+          architect?: string
+          brief?: string
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_published?: boolean | null
+          location?: string
+          order_index?: number | null
+          tags?: string[] | null
+          title?: string
+          type?: string
+          updated_at?: string | null
+          year?: string
+        }
+        Relationships: []
+      }
       certificate_settings: {
         Row: {
           accent_color: string | null
@@ -2927,6 +2975,33 @@ export type Database = {
           },
         ]
       }
+      recommendation_logs: {
+        Row: {
+          ai_generated: boolean | null
+          created_at: string | null
+          id: string
+          reason: string | null
+          recommended_course_ids: string[] | null
+          user_id: string
+        }
+        Insert: {
+          ai_generated?: boolean | null
+          created_at?: string | null
+          id?: string
+          reason?: string | null
+          recommended_course_ids?: string[] | null
+          user_id: string
+        }
+        Update: {
+          ai_generated?: boolean | null
+          created_at?: string | null
+          id?: string
+          reason?: string | null
+          recommended_course_ids?: string[] | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       referral_uses: {
         Row: {
           course_id: string | null
@@ -4227,6 +4302,33 @@ export type Database = {
           logout_reason?: string | null
           os?: string | null
           session_token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_streaks: {
+        Row: {
+          current_streak: number | null
+          id: string
+          last_active_date: string | null
+          longest_streak: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          current_streak?: number | null
+          id?: string
+          last_active_date?: string | null
+          longest_streak?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          current_streak?: number | null
+          id?: string
+          last_active_date?: string | null
+          longest_streak?: number | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

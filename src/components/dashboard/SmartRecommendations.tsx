@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
-import { Sparkles, BookOpen, ArrowRight, TrendingUp, Loader2 } from 'lucide-react';
+import { Sparkles, ArrowRight, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface RecommendedCourse {
@@ -19,105 +19,57 @@ interface RecommendedCourse {
 }
 
 export function SmartRecommendations() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [recommendations, setRecommendations] = useState<RecommendedCourse[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchRecommendations = useCallback(async () => {
-    if (!user) return;
+    if (!user || !session?.access_token) return;
     setLoading(true);
 
     try {
-      // Get user's enrolled courses
-      const { data: enrollments } = await supabase
-        .from('enrollments')
-        .select('course_id')
-        .eq('user_id', user.id)
-        .eq('status', 'active');
+      // Call the backend edge function for smart recommendations
+      const { data, error } = await supabase.functions.invoke('smart-recommendations', {});
 
-      const enrolledIds = new Set((enrollments || []).map((e: any) => e.course_id));
+      if (error) throw error;
 
-      // Get user's completed courses for level inference
-      const { data: certs } = await supabase
-        .from('certificates')
-        .select('course_id')
-        .eq('user_id', user.id);
-      const completedIds = new Set((certs || []).map((c: any) => c.course_id));
-
-      // Get enrolled course details for category/tag matching
-      const { data: enrolledCourses } = await supabase
-        .from('courses')
-        .select('category_id, tags, level')
-        .in('id', Array.from(enrolledIds).length > 0 ? Array.from(enrolledIds) : ['none']);
-
-      const enrolledCategories = new Set((enrolledCourses || []).map((c: any) => c.category_id).filter(Boolean));
-      const enrolledTags = new Set((enrolledCourses || []).flatMap((c: any) => c.tags || []));
-      const enrolledLevels = new Set((enrolledCourses || []).map((c: any) => c.level).filter(Boolean));
-
-      // Fetch all published courses
-      const { data: allCourses } = await supabase
-        .from('courses')
-        .select('id, title, slug, thumbnail_url, level, short_description, category_id, tags, is_featured')
-        .eq('is_published', true)
-        .order('order_index');
-
-      if (!allCourses) { setLoading(false); return; }
-
-      // Score each unenrolled course
-      const scored = allCourses
-        .filter(c => !enrolledIds.has(c.id))
-        .map(c => {
-          let score = 0;
-          let reason = '';
-
-          // Same category bonus
-          if (c.category_id && enrolledCategories.has(c.category_id)) {
-            score += 3;
-            reason = 'Related to your current studies';
-          }
-
-          // Tag overlap
-          const tagOverlap = (c.tags || []).filter((t: string) => enrolledTags.has(t)).length;
-          if (tagOverlap > 0) {
-            score += tagOverlap * 2;
-            if (!reason) reason = 'Matches your interests';
-          }
-
-          // Level progression
-          if (enrolledLevels.has('beginner') && c.level === 'intermediate') {
-            score += 2;
-            if (!reason) reason = 'Next step in your journey';
-          }
-          if (enrolledLevels.has('intermediate') && c.level === 'advanced') {
-            score += 2;
-            if (!reason) reason = 'Level up your skills';
-          }
-
-          // Featured bonus
-          if (c.is_featured) {
-            score += 1;
-            if (!reason) reason = 'Popular course';
-          }
-
-          // New user: recommend beginner courses
-          if (enrolledIds.size === 0 && c.level === 'beginner') {
-            score += 3;
-            reason = 'Great starting point';
-          }
-
-          if (!reason) reason = 'Expand your skillset';
-
-          return { ...c, score, reason };
-        })
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 4);
-
-      setRecommendations(scored);
+      if (data?.recommendations) {
+        setRecommendations(data.recommendations.slice(0, 4));
+      }
     } catch (err) {
       console.error('Recommendation error:', err);
+      // Fallback to client-side recommendations
+      await fallbackRecommendations();
     }
     setLoading(false);
-  }, [user]);
+  }, [user, session]);
+
+  const fallbackRecommendations = async () => {
+    if (!user) return;
+
+    const { data: enrollments } = await supabase
+      .from('enrollments')
+      .select('course_id')
+      .eq('user_id', user.id)
+      .eq('status', 'active');
+
+    const enrolledIds = new Set((enrollments || []).map((e: any) => e.course_id));
+
+    const { data: allCourses } = await supabase
+      .from('courses')
+      .select('id, title, slug, thumbnail_url, level, short_description, is_featured')
+      .eq('is_published', true)
+      .order('order_index');
+
+    if (!allCourses) return;
+
+    const recs = allCourses
+      .filter(c => !enrolledIds.has(c.id))
+      .slice(0, 4)
+      .map(c => ({ ...c, reason: c.is_featured ? 'Popular course' : 'Expand your skillset' }));
+
+    setRecommendations(recs);
+  };
 
   useEffect(() => { fetchRecommendations(); }, [fetchRecommendations]);
 
@@ -143,7 +95,7 @@ export function SmartRecommendations() {
         <Sparkles className="h-4 w-4 text-accent" />
         <h3 className="text-sm font-semibold text-foreground">Recommended for You</h3>
         <Badge variant="outline" className="text-[10px] ml-auto gap-1">
-          <TrendingUp className="h-2.5 w-2.5" /> Personalized
+          <TrendingUp className="h-2.5 w-2.5" /> AI-Powered
         </Badge>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
