@@ -221,7 +221,12 @@ export default function Dashboard() {
             <TabsContent value="courses"><EnrolledCourses /></TabsContent>
             <TabsContent value="sheets"><SheetCritiqueFeed /></TabsContent>
             <TabsContent value="ebooks"><PurchasedEbooks /></TabsContent>
-            <TabsContent value="progress"><ProgressAnalytics /></TabsContent>
+            <TabsContent value="progress">
+              <div className="space-y-8">
+                <SkillTree />
+                <ProgressAnalytics />
+              </div>
+            </TabsContent>
             <TabsContent value="certificates"><Certificates /></TabsContent>
             <TabsContent value="referrals"><ReferralSection /></TabsContent>
             <TabsContent value="verify"><VerifyTab /></TabsContent>
