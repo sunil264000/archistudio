@@ -114,6 +114,21 @@ export function StudioProjectDetail({ projectId, onBack }: StudioProjectDetailPr
             {project.visibility === 'public' ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
             {project.visibility === 'public' ? 'Public' : 'Private'}
           </Button>
+          
+          {/* Cross-link: Submit sheet for review */}
+          <Link to="/sheets">
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <FileImage className="h-3.5 w-3.5" /> Submit Sheet
+            </Button>
+          </Link>
+          
+          {/* Cross-link: Ask for help on forum */}
+          <Link to="/forum">
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <ForumIcon className="h-3.5 w-3.5" /> Ask Help
+            </Button>
+          </Link>
+
           {project.visibility === 'public' && (
             <ShareButtons url={`/studio`} title={project.title} description={project.description || undefined} />
           )}
