@@ -3,9 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Trash2, CheckCircle2, Circle, Milestone } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Plus, Trash2, CheckCircle2, Circle, AlertCircle, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface MilestoneItem {
   id: string;
@@ -28,14 +29,21 @@ export function StudioMilestonesTab({ projectId }: StudioMilestonesTabProps) {
   const [newTitle, setNewTitle] = useState('');
   const [newDate, setNewDate] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchMilestones = async () => {
-    const { data } = await (supabase as any)
+    setError(null);
+    const { data, error: fetchError } = await (supabase as any)
       .from('studio_project_milestones')
       .select('*')
       .eq('project_id', projectId)
       .order('order_index')
       .order('created_at');
+    if (fetchError) {
+      console.error('Failed to load milestones:', fetchError);
+      setError('Failed to load milestones');
+      toast.error('Failed to load milestones');
+    }
     setMilestones(data || []);
     setLoading(false);
   };
@@ -44,36 +52,59 @@ export function StudioMilestonesTab({ projectId }: StudioMilestonesTabProps) {
 
   const addMilestone = async () => {
     if (!newTitle.trim() || !user) return;
-    await (supabase as any).from('studio_project_milestones').insert({
+    const { error } = await (supabase as any).from('studio_project_milestones').insert({
       project_id: projectId,
       user_id: user.id,
       title: newTitle.trim(),
       target_date: newDate || null,
     });
+    if (error) { toast.error('Failed to add milestone'); return; }
     setNewTitle('');
     setNewDate('');
     fetchMilestones();
   };
 
   const toggleMilestone = async (m: MilestoneItem) => {
-    await (supabase as any).from('studio_project_milestones').update({
+    const { error } = await (supabase as any).from('studio_project_milestones').update({
       completed: !m.completed,
       completed_at: !m.completed ? new Date().toISOString() : null,
     }).eq('id', m.id);
+    if (error) { toast.error('Failed to update milestone'); return; }
     fetchMilestones();
   };
 
   const deleteMilestone = async (id: string) => {
-    await (supabase as any).from('studio_project_milestones').delete().eq('id', id);
+    const { error } = await (supabase as any).from('studio_project_milestones').delete().eq('id', id);
+    if (error) { toast.error('Failed to delete milestone'); return; }
     fetchMilestones();
   };
 
   const completedCount = milestones.filter(m => m.completed).length;
   const progress = milestones.length > 0 ? Math.round((completedCount / milestones.length) * 100) : 0;
 
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-4 w-full rounded" />
+        {[1, 2].map(i => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8 space-y-3">
+        <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
+        <p className="text-sm text-destructive">{error}</p>
+        <Button variant="outline" size="sm" onClick={fetchMilestones} className="gap-1.5">
+          <RefreshCw className="h-3.5 w-3.5" /> Retry
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      {/* Progress bar */}
       {milestones.length > 0 && (
         <div className="space-y-1">
           <div className="flex justify-between text-xs text-muted-foreground">
@@ -84,7 +115,6 @@ export function StudioMilestonesTab({ projectId }: StudioMilestonesTabProps) {
         </div>
       )}
 
-      {/* Add milestone */}
       <div className="flex gap-2">
         <Input
           placeholder="Milestone title..."
@@ -93,22 +123,16 @@ export function StudioMilestonesTab({ projectId }: StudioMilestonesTabProps) {
           onKeyDown={(e) => e.key === 'Enter' && addMilestone()}
           className="flex-1"
         />
-        <Input
-          type="date"
-          value={newDate}
-          onChange={(e) => setNewDate(e.target.value)}
-          className="w-36"
-        />
+        <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="w-36" />
         <Button onClick={addMilestone} size="sm" className="gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90">
           <Plus className="h-4 w-4" />
         </Button>
       </div>
 
-      {milestones.length === 0 && !loading && (
+      {milestones.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-6">No milestones yet. Track your project progress!</p>
       )}
 
-      {/* Milestone list */}
       <div className="space-y-2">
         {milestones.map((m) => (
           <div key={m.id} className={`flex items-start gap-3 p-3 rounded-lg border transition-colors group ${m.completed ? 'border-accent/20 bg-accent/5' : 'border-border/50 hover:bg-muted/30'}`}>

@@ -3,10 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, GripVertical, Calendar, Flag } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Plus, Trash2, Flag, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Task {
@@ -36,14 +36,21 @@ export function StudioTasksTab({ projectId }: StudioTasksTabProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTitle, setNewTitle] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchTasks = async () => {
-    const { data } = await (supabase as any)
+    setError(null);
+    const { data, error: fetchError } = await (supabase as any)
       .from('studio_project_tasks')
       .select('*')
       .eq('project_id', projectId)
       .order('order_index')
       .order('created_at');
+    if (fetchError) {
+      console.error('Failed to load tasks:', fetchError);
+      setError('Failed to load tasks');
+      toast.error('Failed to load tasks');
+    }
     setTasks(data || []);
     setLoading(false);
   };
@@ -52,36 +59,60 @@ export function StudioTasksTab({ projectId }: StudioTasksTabProps) {
 
   const addTask = async () => {
     if (!newTitle.trim() || !user) return;
-    await (supabase as any).from('studio_project_tasks').insert({
+    const { error } = await (supabase as any).from('studio_project_tasks').insert({
       project_id: projectId,
       user_id: user.id,
       title: newTitle.trim(),
     });
+    if (error) { toast.error('Failed to add task'); return; }
     setNewTitle('');
     fetchTasks();
   };
 
   const toggleTask = async (task: Task) => {
     const newStatus = task.status === 'done' ? 'todo' : 'done';
-    await (supabase as any).from('studio_project_tasks').update({
+    const { error } = await (supabase as any).from('studio_project_tasks').update({
       status: newStatus,
       completed_at: newStatus === 'done' ? new Date().toISOString() : null,
     }).eq('id', task.id);
+    if (error) { toast.error('Failed to update task'); return; }
     fetchTasks();
   };
 
   const updatePriority = async (id: string, priority: string) => {
-    await (supabase as any).from('studio_project_tasks').update({ priority }).eq('id', id);
+    const { error } = await (supabase as any).from('studio_project_tasks').update({ priority }).eq('id', id);
+    if (error) { toast.error('Failed to update priority'); return; }
     fetchTasks();
   };
 
   const deleteTask = async (id: string) => {
-    await (supabase as any).from('studio_project_tasks').delete().eq('id', id);
+    const { error } = await (supabase as any).from('studio_project_tasks').delete().eq('id', id);
+    if (error) { toast.error('Failed to delete task'); return; }
     fetchTasks();
   };
 
   const todoTasks = tasks.filter(t => t.status !== 'done');
   const doneTasks = tasks.filter(t => t.status === 'done');
+
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full rounded-lg" />)}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8 space-y-3">
+        <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
+        <p className="text-sm text-destructive">{error}</p>
+        <Button variant="outline" size="sm" onClick={fetchTasks} className="gap-1.5">
+          <RefreshCw className="h-3.5 w-3.5" /> Retry
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -99,19 +130,14 @@ export function StudioTasksTab({ projectId }: StudioTasksTabProps) {
         </Button>
       </div>
 
-      {/* Active tasks */}
-      {todoTasks.length === 0 && !loading && (
+      {todoTasks.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-6">No tasks yet. Add one above!</p>
       )}
 
       <div className="space-y-1">
         {todoTasks.map((task) => (
           <div key={task.id} className="flex items-center gap-2 p-2.5 rounded-lg border border-border/50 hover:bg-muted/30 group transition-colors">
-            <Checkbox
-              checked={false}
-              onCheckedChange={() => toggleTask(task)}
-              className="shrink-0"
-            />
+            <Checkbox checked={false} onCheckedChange={() => toggleTask(task)} className="shrink-0" />
             <span className="flex-1 text-sm text-foreground">{task.title}</span>
             <Flag className={`h-3.5 w-3.5 shrink-0 ${PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.medium}`} />
             <Select value={task.priority} onValueChange={(v) => updatePriority(task.id, v)}>
@@ -135,7 +161,6 @@ export function StudioTasksTab({ projectId }: StudioTasksTabProps) {
         ))}
       </div>
 
-      {/* Completed tasks */}
       {doneTasks.length > 0 && (
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Completed ({doneTasks.length})</p>
