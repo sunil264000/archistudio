@@ -77,7 +77,7 @@ export default function DailyChallenges() {
       .order('vote_count', { ascending: false });
 
     if (data && data.length > 0) {
-      const userIds = [...new Set(data.map((s: any) => s.user_id))];
+      const userIds = [...new Set(data.map((s: any) => s.user_id))] as string[];
       const { data: profiles } = await supabase.from('profiles').select('user_id, full_name').in('user_id', userIds);
       const nameMap = new Map((profiles || []).map((p: any) => [p.user_id, p.full_name]));
 

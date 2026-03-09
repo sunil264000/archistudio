@@ -47,7 +47,7 @@ export function ShareButtons({ url, title, description, variant = 'outline', siz
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-44">
         <DropdownMenuItem onClick={copyLink} className="gap-2 cursor-pointer">
-          {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+          {copied ? <Check className="h-4 w-4 text-accent" /> : <Copy className="h-4 w-4" />}
           Copy Link
         </DropdownMenuItem>
         {shareLinks.map((link) => (
