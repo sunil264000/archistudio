@@ -3,18 +3,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Flame, Calendar, Trophy, Star } from 'lucide-react';
+import { Flame, Star, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface StreakData {
   currentStreak: number;
   longestStreak: number;
   todayActive: boolean;
-  weekActivity: boolean[]; // last 7 days
+  weekActivity: boolean[];
 }
 
 export function StreakTracker() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [streak, setStreak] = useState<StreakData>({
     currentStreak: 0,
     longestStreak: 0,
@@ -22,60 +22,57 @@ export function StreakTracker() {
     weekActivity: [false, false, false, false, false, false, false],
   });
 
-  const calcStreak = useCallback(async () => {
+  const fetchStreak = useCallback(async () => {
     if (!user) return;
-    
-    // Get activity_history for last 30 days
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const { data } = await (supabase as any)
-      .from('activity_history')
-      .select('started_at')
-      .eq('user_id', user.id)
-      .gte('started_at', thirtyDaysAgo)
-      .order('started_at', { ascending: false });
 
-    if (!data || data.length === 0) return;
+    try {
+      // Try backend streak data first
+      const { data: streakData } = await (supabase as any)
+        .from('user_streaks')
+        .select('current_streak, longest_streak, last_active_date')
+        .eq('user_id', user.id)
+        .single();
 
-    // Get unique active dates
-    const activeDates = new Set(
-      data.map((a: any) => new Date(a.started_at).toISOString().split('T')[0])
-    );
+      // Get activity for week heatmap
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: activities } = await supabase
+        .from('activity_history')
+        .select('started_at')
+        .eq('user_id', user.id)
+        .gte('started_at', sevenDaysAgo);
 
-    // Calculate current streak
-    let current = 0;
-    const today = new Date();
-    for (let i = 0; i < 30; i++) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-      if (activeDates.has(dateStr)) {
-        current++;
-      } else if (i === 0) {
-        // Today not active yet, check from yesterday
-        continue;
-      } else {
-        break;
+      const activeDates = new Set(
+        (activities || []).map((a: any) => new Date(a.started_at).toISOString().split('T')[0])
+      );
+
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+
+      const weekActivity = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(today);
+        d.setDate(d.getDate() - (6 - i));
+        return activeDates.has(d.toISOString().split('T')[0]);
+      });
+
+      setStreak({
+        currentStreak: streakData?.current_streak || 0,
+        longestStreak: streakData?.longest_streak || 0,
+        todayActive: activeDates.has(todayStr),
+        weekActivity,
+      });
+
+      // Track this page view as activity & update streak via backend
+      if (session?.access_token) {
+        supabase.functions.invoke('update-streak', {
+          body: { activity_type: 'dashboard_visit', page_url: '/dashboard' },
+        }).catch(() => {}); // fire-and-forget
       }
+    } catch (err) {
+      console.error('Streak fetch error:', err);
     }
+  }, [user, session]);
 
-    // Week activity (last 7 days)
-    const weekActivity = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(today);
-      d.setDate(d.getDate() - (6 - i));
-      return activeDates.has(d.toISOString().split('T')[0]);
-    });
-
-    const todayStr = today.toISOString().split('T')[0];
-
-    setStreak({
-      currentStreak: current,
-      longestStreak: Math.max(current, 0), // simplified
-      todayActive: activeDates.has(todayStr),
-      weekActivity,
-    });
-  }, [user]);
-
-  useEffect(() => { calcStreak(); }, [calcStreak]);
+  useEffect(() => { fetchStreak(); }, [fetchStreak]);
 
   if (!user) return null;
 
@@ -97,6 +94,13 @@ export function StreakTracker() {
             </Badge>
           )}
         </div>
+
+        {/* Longest streak */}
+        {streak.longestStreak > 0 && (
+          <p className="text-[10px] text-muted-foreground mb-2 text-center">
+            🏆 Longest: {streak.longestStreak} days
+          </p>
+        )}
 
         {/* Week heatmap */}
         <div className="flex items-center gap-1.5 justify-center">
@@ -126,7 +130,8 @@ export function StreakTracker() {
             className="mt-3 flex items-center justify-center gap-1.5 text-[10px] text-accent"
           >
             <Trophy className="h-3 w-3" />
-            {streak.currentStreak >= 7 ? 'Week warrior! 🔥' : 
+            {streak.currentStreak >= 30 ? '💎 Month Master!' :
+             streak.currentStreak >= 7 ? 'Week warrior! 🔥' : 
              streak.currentStreak >= 5 ? 'Incredible consistency!' :
              'Great momentum!'}
           </motion.div>

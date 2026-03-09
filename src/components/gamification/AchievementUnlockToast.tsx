@@ -1,17 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Star, Award, Zap, BookOpen, MessageSquare, Flame } from 'lucide-react';
-
-const ACHIEVEMENT_ICONS: Record<string, any> = {
-  course: BookOpen,
-  forum: MessageSquare,
-  streak: Flame,
-  social: Star,
-  default: Trophy,
-};
+import { Trophy } from 'lucide-react';
 
 interface UnlockedAchievement {
   title: string;
@@ -22,47 +13,55 @@ interface UnlockedAchievement {
 }
 
 export function AchievementUnlockToast() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [shown, setShown] = useState<string[]>([]);
   const [current, setCurrent] = useState<UnlockedAchievement | null>(null);
 
-  const checkAchievements = useCallback(async () => {
-    if (!user) return;
+  const triggerAchievementCheck = useCallback(async () => {
+    if (!user || !session?.access_token) return;
 
-    const { data: userAchievements } = await (supabase as any)
-      .from('user_achievements')
-      .select('achievement_id, created_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(1);
+    try {
+      // Call backend to check & grant achievements
+      const { data } = await supabase.functions.invoke('check-achievements', {});
 
-    if (!userAchievements?.length) return;
+      if (data?.unlocked?.length > 0) {
+        // Fetch the newly unlocked achievement details
+        const { data: userAchievements } = await (supabase as any)
+          .from('user_achievements')
+          .select('achievement_id, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-    const latest = userAchievements[0];
-    if (shown.includes(latest.achievement_id)) return;
+        if (!userAchievements?.length) return;
 
-    // Check if earned in last 30 seconds
-    const earnedAt = new Date(latest.created_at);
-    if (Date.now() - earnedAt.getTime() > 30000) return;
+        const latest = userAchievements[0];
+        if (shown.includes(latest.achievement_id)) return;
 
-    const { data: achievement } = await (supabase as any)
-      .from('achievements')
-      .select('title, description, icon, category, points')
-      .eq('id', latest.achievement_id)
-      .single();
+        const { data: achievement } = await (supabase as any)
+          .from('achievements')
+          .select('title, description, icon, category, points')
+          .eq('id', latest.achievement_id)
+          .single();
 
-    if (achievement) {
-      setShown(prev => [...prev, latest.achievement_id]);
-      setCurrent(achievement);
-      setTimeout(() => setCurrent(null), 5000);
+        if (achievement) {
+          setShown(prev => [...prev, latest.achievement_id]);
+          setCurrent(achievement);
+          setTimeout(() => setCurrent(null), 5000);
+        }
+      }
+    } catch (err) {
+      console.error('Achievement check error:', err);
     }
-  }, [user, shown]);
+  }, [user, session, shown]);
 
   useEffect(() => {
     if (!user) return;
-    const interval = setInterval(checkAchievements, 10000);
+    // Check on mount and every 30 seconds
+    triggerAchievementCheck();
+    const interval = setInterval(triggerAchievementCheck, 30000);
     return () => clearInterval(interval);
-  }, [user, checkAchievements]);
+  }, [user, triggerAchievementCheck]);
 
   return (
     <AnimatePresence>
