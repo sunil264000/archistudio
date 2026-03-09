@@ -90,6 +90,7 @@ export default function CoursePlayer() {
     }
 
     fetchCourseData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug, user]);
 
   const fetchCourseData = async () => {

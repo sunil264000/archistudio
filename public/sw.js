@@ -1,7 +1,7 @@
 // Service Worker - Network First with Aggressive Video Caching
 // Videos are cached for instant replays and smooth seeking
 
-const APP_CACHE = 'archistudio-app-v3';
+const APP_CACHE = 'archistudio-app-v4';
 const VIDEO_CACHE = 'archistudio-video-v1';
 const MAX_VIDEO_CACHE_SIZE = 50; // max cached video entries
 
