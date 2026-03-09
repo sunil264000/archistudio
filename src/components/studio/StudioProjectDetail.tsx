@@ -120,13 +120,23 @@ export function StudioProjectDetail({ projectId, onBack }: StudioProjectDetailPr
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="files" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="tasks" className="w-full">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="milestones">Milestones</TabsTrigger>
           <TabsTrigger value="files">Files ({files.length})</TabsTrigger>
           <TabsTrigger value="notes">Notes ({notes.length})</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline ({timeline.length})</TabsTrigger>
-          <TabsTrigger value="comments">Comments ({comments.length})</TabsTrigger>
+          <TabsTrigger value="timeline">Timeline</TabsTrigger>
+          <TabsTrigger value="comments">Comments</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="tasks" className="mt-4">
+          <StudioTasksTab projectId={projectId} />
+        </TabsContent>
+
+        <TabsContent value="milestones" className="mt-4">
+          <StudioMilestonesTab projectId={projectId} />
+        </TabsContent>
 
         <TabsContent value="files" className="mt-4">
           <StudioFilesTab files={files} onUpload={uploadFile} onDelete={deleteFile} />
