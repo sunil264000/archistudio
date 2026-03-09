@@ -54,7 +54,7 @@ export default function PortfolioDiscovery() {
     }
 
     // Fetch author names
-    const userIds = [...new Set(data.map((p: any) => p.user_id))];
+    const userIds = [...new Set(data.map((p: any) => p.user_id))] as string[];
     const { data: profiles } = await supabase
       .from('profiles')
       .select('user_id, full_name')
