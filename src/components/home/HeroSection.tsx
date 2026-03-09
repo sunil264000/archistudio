@@ -60,71 +60,71 @@ export function HeroSection() {
   const liveStats = useLiveStats();
   
   return (
-    <section className="relative min-h-[92vh] flex items-center overflow-hidden">
-      {/* Ambient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-secondary/20 via-background to-background" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,hsl(var(--accent)/0.04),transparent)]" />
+    <section className="relative min-h-[90vh] flex items-center overflow-hidden">
+      {/* Ambient background — subtle, calm */}
+      <div className="absolute inset-0 bg-gradient-to-b from-muted/30 via-background to-background" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,hsl(var(--accent)/0.03),transparent)]" />
       
       <div className="relative section-padding w-full z-10">
         <div className="container-wide">
           <div className="max-w-4xl mx-auto">
             <div className="grid lg:grid-cols-[1.3fr_0.7fr] gap-16 items-center">
               {/* Left content */}
-              <div className="space-y-8 text-center lg:text-left">
+              <div className="space-y-7 text-center lg:text-left">
                 {/* Label */}
                 <motion.div 
                   custom={0} variants={fadeUp} initial="hidden" animate="visible"
-                  className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full card-glass"
+                  className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-border/40 bg-card/30"
                 >
-                  <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                   <span className="font-display text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
                     For Students & Fresh Architects
                   </span>
                 </motion.div>
                 
-                {/* Headline */}
+                {/* Headline — calmer, editorial */}
                 <motion.div custom={1} variants={fadeUp} initial="hidden" animate="visible">
                   <h1 className="font-display">
                     Learn Architecture
                     <br />
-                    <span className="text-gradient-accent">the Way It's Actually</span>
+                    <span className="text-muted-foreground/80">the Way It's Actually</span>
                     <br />
-                    <span className="text-gradient-accent">Practiced</span>
+                    <span className="text-accent">Practiced.</span>
                   </h1>
                 </motion.div>
                 
                 {/* Subheadline */}
                 <motion.p 
                   custom={2} variants={fadeUp} initial="hidden" animate="visible"
-                  className="text-body-lg text-muted-foreground max-w-lg mx-auto lg:mx-0"
+                  className="text-body-lg text-muted-foreground max-w-lg mx-auto lg:mx-0 leading-relaxed"
                 >
                   This platform teaches what architecture colleges and CAD institutes don't:{' '}
-                  <span className="text-foreground font-medium">how real buildings are designed, detailed, and executed in offices.</span>
+                  <span className="text-foreground/80 font-medium">how real buildings are designed, detailed, and executed in offices.</span>
                 </motion.p>
                 
-                {/* CTAs */}
+                {/* CTAs — cleaner */}
                 <motion.div 
                   custom={3} variants={fadeUp} initial="hidden" animate="visible"
                   className="flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start"
                 >
                   <Link to={user ? "/courses" : "/auth?mode=signup"} className="w-full sm:w-auto">
-                    <Button size="xl" className="gap-2.5 group w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_4px_24px_hsl(var(--accent)/0.2)]">
+                    <Button size="xl" className="gap-2.5 group w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_4px_20px_hsl(var(--accent)/0.15)]">
                       {user ? "Explore Courses" : "Start Learning Free"}
                       <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                     </Button>
                   </Link>
-                  <Link to="/courses" className="w-full sm:w-auto">
-                    <Button variant="glass" size="xl" className="gap-2 w-full sm:w-auto">
+                  <Link to="/explore" className="w-full sm:w-auto">
+                    <Button variant="ghost" size="xl" className="gap-2 w-full sm:w-auto text-muted-foreground hover:text-foreground">
                       <Play className="h-4 w-4" />
-                      Browse Courses
+                      Discover & Explore
                     </Button>
                   </Link>
                 </motion.div>
                 
-                {/* Stats */}
+                {/* Stats — minimal */}
                 <motion.div 
                   custom={4} variants={fadeUp} initial="hidden" animate="visible"
-                  className="flex items-center gap-8 sm:gap-12 justify-center lg:justify-start pt-2"
+                  className="flex items-center gap-10 sm:gap-14 justify-center lg:justify-start pt-4"
                 >
                   {[
                     { value: liveStats.courses, label: 'Courses' },
@@ -133,7 +133,7 @@ export function HeroSection() {
                   ].map((stat) => (
                     <div key={stat.label} className="text-center lg:text-left">
                       <div className="font-display text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{stat.value}</div>
-                      <div className="text-caption text-muted-foreground mt-0.5">{stat.label}</div>
+                      <div className="text-[11px] tracking-wider uppercase text-muted-foreground/60 mt-1 font-medium">{stat.label}</div>
                     </div>
                   ))}
                 </motion.div>
@@ -145,11 +145,11 @@ export function HeroSection() {
                 className="hidden lg:block"
               >
                 <div className="relative">
-                  <div className="relative rounded-2xl card-glass p-8 space-y-6 overflow-hidden">
-                    <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
+                  <div className="relative rounded-2xl border border-border/30 bg-card/40 p-8 space-y-6 overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-accent/20 to-transparent" />
                     
                     <div className="space-y-5">
-                      <div className="section-label">What You'll Master</div>
+                      <div className="text-[10px] font-semibold tracking-[0.15em] uppercase text-muted-foreground/60">What You'll Master</div>
                       
                       {[
                         'Working Drawings & Detailing',
@@ -166,16 +166,16 @@ export function HeroSection() {
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.4, ease: ease as unknown as [number, number, number, number], delay: 0.7 + i * 0.08 }}
                         >
-                          <div className="w-1 h-1 rounded-full bg-accent shrink-0" />
-                          <span className="text-body-sm text-muted-foreground">{item}</span>
+                          <div className="w-1 h-1 rounded-full bg-accent/60 shrink-0" />
+                          <span className="text-body-sm text-muted-foreground/80">{item}</span>
                         </motion.div>
                       ))}
                     </div>
                     
-                    <div className="absolute bottom-0 right-0 w-16 h-16 border-t border-l border-border/15 rounded-tl-2xl" />
+                    <div className="absolute bottom-0 right-0 w-16 h-16 border-t border-l border-border/10 rounded-tl-2xl" />
                   </div>
                   
-                  <div className="absolute -bottom-2.5 -right-2.5 inset-x-2.5 h-full rounded-2xl border border-border/15 bg-secondary/8 -z-10" />
+                  <div className="absolute -bottom-2.5 -right-2.5 inset-x-2.5 h-full rounded-2xl border border-border/10 bg-muted/5 -z-10" />
                 </div>
               </motion.div>
             </div>
