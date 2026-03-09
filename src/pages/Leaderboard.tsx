@@ -7,7 +7,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { useGamification } from '@/hooks/useGamification';
 import { useAuth } from '@/contexts/AuthContext';
-import { Trophy, Medal, Flame, Shield, Star, Crown, User } from 'lucide-react';
+import { Trophy, Medal, Flame, Shield, Star, Crown, User, TrendingUp } from 'lucide-react';
+import { LeaderboardPodium } from '@/components/leaderboard/LeaderboardPodium';
+import { motion } from 'framer-motion';
 
 const LEVEL_TITLES: Record<number, string> = {
   1: 'Apprentice', 2: 'Student', 3: 'Student Designer',
