@@ -31,6 +31,7 @@ import { GiftCampaignManagement } from '@/components/admin/GiftCampaignManagemen
 import { EMISettingsManagement } from '@/components/admin/EMISettingsManagement';
 import { LaunchFreeCourseManagement } from '@/components/admin/LaunchFreeCourseManagement';
 import { RealtimeAnalytics } from '@/components/admin/RealtimeAnalytics';
+import { EngagementAnalytics } from '@/components/admin/EngagementAnalytics';
 import { RoleManagement } from '@/components/admin/RoleManagement';
 import { EmailLogs } from '@/components/admin/EmailLogs';
 import { AutoFixLogs } from '@/components/admin/AutoFixLogs';
@@ -159,6 +160,8 @@ export default function Admin() {
         return <LuluStreamMigration />;
       case 'sessions':
         return <SessionManagement />;
+      case 'engagement':
+        return <EngagementAnalytics />;
       case 'deploy':
         return <DeployFunctionsPanel />;
       case 'resource-scanner':
