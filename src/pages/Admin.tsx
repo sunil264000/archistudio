@@ -160,6 +160,8 @@ export default function Admin() {
         return <LuluStreamMigration />;
       case 'sessions':
         return <SessionManagement />;
+      case 'engagement':
+        return <EngagementAnalytics />;
       case 'deploy':
         return <DeployFunctionsPanel />;
       case 'resource-scanner':
