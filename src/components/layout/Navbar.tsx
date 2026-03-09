@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { CartSheet } from '@/components/cart/CartSheet';
 import { supabase } from '@/integrations/supabase/client';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { GlobalSearch } from '@/components/search/GlobalSearch';
 
 export function Navbar() {
   const { user, profile, signOut, loading, isAdmin } = useAuth();
