@@ -36,6 +36,7 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background">
+      <a href="#main-content" className="skip-to-content">Skip to content</a>
       <SEOHead 
         title="Archistudio - Professional Architecture Training"
         description="This platform teaches what architecture colleges and CAD institutes don't: how real buildings are designed, detailed, and executed in offices. Master 3ds Max, AutoCAD, Revit, SketchUp and more."
@@ -51,6 +52,7 @@ export default function Index() {
       <AnimatedBackground intensity="light" />
       <Navbar />
       
+      <main id="main-content">
       <HeroSection />
       
       <HighlightedCourseSection />
@@ -79,6 +81,7 @@ export default function Index() {
         <FinalCTASection />
       </Suspense>
       
+      </main>
       <Footer />
     </div>
   );

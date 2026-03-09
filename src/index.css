@@ -408,12 +408,48 @@
     }
   }
 
+  /* Disable hover effects on touch devices */
+  @media (pointer: coarse) {
+    .hover-lift:hover,
+    .magnetic-hover:hover,
+    .interactive-card:hover,
+    .card-architectural:hover,
+    .card-3d:hover {
+      transform: none !important;
+      box-shadow: var(--shadow-soft) !important;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+  }
+
+  /* ═══ ACCESSIBILITY ═══ */
+  /* High contrast focus indicators */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Skip to content link */
+  .skip-to-content {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 9999;
+    padding: 0.75rem 1.5rem;
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    font-weight: 600;
+    border-radius: 0 0 var(--radius) 0;
+  }
+
+  .skip-to-content:focus {
+    left: 0;
   }
 
   /* ═══ ANIMATIONS ═══ */
