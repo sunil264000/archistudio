@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { CartSheet } from '@/components/cart/CartSheet';
 import { supabase } from '@/integrations/supabase/client';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { GlobalSearch } from '@/components/search/GlobalSearch';
 
 export function Navbar() {
   const { user, profile, signOut, loading, isAdmin } = useAuth();
@@ -144,7 +145,11 @@ export function Navbar() {
             </DropdownMenu>
           </div>
 
-          <div className="w-px h-5 bg-border/40 mx-2" />
+          <div className="w-px h-5 bg-border/40 mx-1" />
+
+          <GlobalSearch />
+
+          <div className="w-px h-5 bg-border/40 mx-1" />
 
           <CartSheet />
 

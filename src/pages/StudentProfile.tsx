@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SEOHead } from '@/components/seo/SEOHead';
+import { FollowButton } from '@/components/profile/FollowButton';
+import { FollowStats } from '@/components/profile/FollowStats';
+import { AchievementGrid } from '@/components/profile/AchievementGrid';
 import {
   Award, BookOpen, Trophy, MessageSquare, Star, ExternalLink,
   Loader2, User, GraduationCap, Flame, Shield
@@ -127,7 +130,8 @@ export default function StudentProfile() {
                 </p>
                 
                 <div className="flex flex-wrap items-center gap-3 mt-4 justify-center sm:justify-start">
-                  <Badge variant="outline" className="gap-1.5 text-xs border-primary/30 text-primary">
+                  <FollowButton targetUserId={userId!} />
+                  <Badge variant="outline" className="gap-1.5 text-xs border-accent/30 text-accent">
                     <Flame className="h-3 w-3" /> {reputationScore} Rep
                   </Badge>
                   <Badge variant="outline" className="gap-1.5 text-xs">
@@ -138,11 +142,14 @@ export default function StudentProfile() {
                   </Badge>
                   {portfolio && (
                     <Link to={`/portfolio/${portfolio.slug}`}>
-                      <Badge variant="outline" className="gap-1.5 text-xs hover:bg-primary/5 cursor-pointer">
+                      <Badge variant="outline" className="gap-1.5 text-xs hover:bg-accent/5 cursor-pointer">
                         <ExternalLink className="h-3 w-3" /> Portfolio
                       </Badge>
                     </Link>
                   )}
+                </div>
+                <div className="mt-3">
+                  <FollowStats userId={userId!} />
                 </div>
               </div>
             </div>
@@ -154,6 +161,7 @@ export default function StudentProfile() {
           <Tabs defaultValue="overview" className="space-y-6">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="achievements">Achievements</TabsTrigger>
               <TabsTrigger value="certificates">Certificates</TabsTrigger>
               <TabsTrigger value="badges">Badges</TabsTrigger>
               <TabsTrigger value="contributions">Contributions</TabsTrigger>
@@ -207,6 +215,10 @@ export default function StudentProfile() {
                   </div>
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="achievements">
+              <AchievementGrid userId={userId!} />
             </TabsContent>
 
             <TabsContent value="certificates" className="space-y-4">

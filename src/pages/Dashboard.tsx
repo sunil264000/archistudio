@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Navbar } from '@/components/layout/Navbar';
@@ -15,6 +15,8 @@ import { JourneyOverview } from '@/components/dashboard/JourneyOverview';
 import { SheetCritiqueFeed } from '@/components/dashboard/SheetCritiqueFeed';
 import { UnifiedSearch } from '@/components/dashboard/UnifiedSearch';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
+import { ProfileCompletion } from '@/components/profile/ProfileCompletion';
+import { UsernameSetup } from '@/components/profile/UsernameSetup';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -191,7 +193,17 @@ export default function Dashboard() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="journey"><JourneyOverview /></TabsContent>
+            <TabsContent value="journey">
+              <div className="grid lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <JourneyOverview />
+                </div>
+                <div className="space-y-6">
+                  <ProfileCompletion />
+                  <UsernameSetup />
+                </div>
+              </div>
+            </TabsContent>
             <TabsContent value="courses"><EnrolledCourses /></TabsContent>
             <TabsContent value="sheets"><SheetCritiqueFeed /></TabsContent>
             <TabsContent value="ebooks"><PurchasedEbooks /></TabsContent>

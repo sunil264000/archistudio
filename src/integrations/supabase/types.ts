@@ -56,6 +56,39 @@ export type Database = {
         }
         Relationships: []
       }
+      achievements: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          key: string
+          points: number
+          title: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key: string
+          points?: number
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key?: string
+          points?: number
+          title?: string
+        }
+        Relationships: []
+      }
       activity_feed: {
         Row: {
           action: string
@@ -488,6 +521,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      community_feed: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          target_id: string | null
+          target_title: string | null
+          target_type: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_title?: string | null
+          target_type: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_title?: string | null
+          target_type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       competition_submissions: {
         Row: {
@@ -2674,11 +2740,44 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_completion_tasks: {
+        Row: {
+          description: string | null
+          icon: string | null
+          id: string
+          key: string
+          order_index: number
+          points: number
+          title: string
+        }
+        Insert: {
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key: string
+          order_index?: number
+          points?: number
+          title: string
+        }
+        Update: {
+          description?: string | null
+          icon?: string | null
+          id?: string
+          key?: string
+          order_index?: number
+          points?: number
+          title?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ai_queries_reset_at: string | null
           ai_queries_used_today: number | null
           avatar_url: string | null
+          bio: string | null
+          city: string | null
+          college: string | null
           created_at: string | null
           email: string | null
           email_verified: boolean | null
@@ -2686,7 +2785,10 @@ export type Database = {
           id: string
           phone: string | null
           phone_verified: boolean | null
+          reputation_title: string | null
           role: string | null
+          skills: string[] | null
+          social_links: Json | null
           two_factor_enabled: boolean | null
           updated_at: string | null
           user_id: string
@@ -2695,6 +2797,9 @@ export type Database = {
           ai_queries_reset_at?: string | null
           ai_queries_used_today?: number | null
           avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          college?: string | null
           created_at?: string | null
           email?: string | null
           email_verified?: boolean | null
@@ -2702,7 +2807,10 @@ export type Database = {
           id?: string
           phone?: string | null
           phone_verified?: boolean | null
+          reputation_title?: string | null
           role?: string | null
+          skills?: string[] | null
+          social_links?: Json | null
           two_factor_enabled?: boolean | null
           updated_at?: string | null
           user_id: string
@@ -2711,6 +2819,9 @@ export type Database = {
           ai_queries_reset_at?: string | null
           ai_queries_used_today?: number | null
           avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          college?: string | null
           created_at?: string | null
           email?: string | null
           email_verified?: boolean | null
@@ -2718,7 +2829,10 @@ export type Database = {
           id?: string
           phone?: string | null
           phone_verified?: boolean | null
+          reputation_title?: string | null
           role?: string | null
+          skills?: string[] | null
+          social_links?: Json | null
           two_factor_enabled?: boolean | null
           updated_at?: string | null
           user_id?: string
@@ -3621,6 +3735,35 @@ export type Database = {
         }
         Relationships: []
       }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_badges: {
         Row: {
           badge_description: string | null
@@ -3647,6 +3790,27 @@ export type Database = {
           badge_name?: string
           earned_at?: string | null
           id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_completed_tasks: {
+        Row: {
+          completed_at: string
+          id: string
+          task_key: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          id?: string
+          task_key: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          task_key?: string
           user_id?: string
         }
         Relationships: []
@@ -3687,6 +3851,27 @@ export type Database = {
           id?: string
           initial_duration_seconds?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
         }
         Relationships: []
       }
@@ -3992,6 +4177,30 @@ export type Database = {
         }
         Relationships: []
       }
+      usernames: {
+        Row: {
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       video_migrations: {
         Row: {
           course_id: string | null
@@ -4132,6 +4341,17 @@ export type Database = {
           id: string
           referral_code: string
           referrer_id: string
+        }[]
+      }
+      global_search: {
+        Args: { result_limit?: number; search_query: string }
+        Returns: {
+          description: string
+          relevance: number
+          result_id: string
+          result_type: string
+          slug: string
+          title: string
         }[]
       }
       has_role: {
