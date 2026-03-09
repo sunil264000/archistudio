@@ -118,9 +118,10 @@ export function EbookPDFViewer({
       const objectUrl = URL.createObjectURL(blob);
       setPdfData(objectUrl);
       setLoadingProgress(100);
-    } catch (err: any) {
-      setError(err?.message || 'Could not load eBook content');
-      toast({ title: 'Error', description: err?.message || 'Could not load eBook', variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Could not load eBook content';
+      setError(message);
+      toast({ title: 'Error', description: message, variant: 'destructive' });
     } finally {
       setLoading(false);
     }

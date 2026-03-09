@@ -138,7 +138,7 @@ export default function CoursePlayer() {
 
       // Fetch user progress (only if logged in)
       const allLessonIds = sortedModules.flatMap(m => m.lessons.map(l => l.id));
-      let progressMap: Record<string, LessonProgress> = {};
+      const progressMap: Record<string, LessonProgress> = {};
 
       if (user && allLessonIds.length > 0) {
         const { data: progressData } = await supabase
