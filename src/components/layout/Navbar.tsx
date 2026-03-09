@@ -27,23 +27,7 @@ export function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    if (!user) { setUnreadCount(0); setNotifications([]); return; }
-    const fetchNotifs = async () => {
-      const { data, count } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact' })
-        .eq('user_id', user.id)
-        .eq('read', false)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      setUnreadCount(count || 0);
-      setNotifications(data || []);
-    };
-    fetchNotifs();
-    const interval = setInterval(fetchNotifs, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
+  // Notifications are now handled by the NotificationCenter component
 
   const toggleDarkMode = () => {
     const newDark = !isDark;
