@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 
 interface Props {
   children: ReactNode;
+  /** Optional fallback UI */
+  fallback?: ReactNode;
 }
 
 interface State {
@@ -23,18 +25,16 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught:', error, errorInfo);
-    // Log to site_settings for admin Auto-Fix Logs
     try {
       const { supabase } = require('@/integrations/supabase/client');
-      supabase.from('site_settings').upsert({
-        key: `error_${Date.now()}`,
-        value: JSON.stringify({
+      supabase.from('system_errors').insert({
+        service: 'frontend',
+        error_type: 'react_crash',
+        payload: {
           message: error.message,
           stack: error.stack?.slice(0, 500),
           component: errorInfo.componentStack?.slice(0, 300),
-          timestamp: new Date().toISOString(),
-        }),
-        description: 'Auto-logged frontend crash',
+        },
       }).then(() => {});
     } catch {}
   }
@@ -45,31 +45,33 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) return this.props.fallback;
+
       return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <div className="max-w-md w-full text-center space-y-6">
-            <div className="mx-auto w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center">
-              <AlertTriangle className="h-10 w-10 text-destructive" />
+        <div className="min-h-screen bg-background flex items-center justify-center p-6">
+          <div className="max-w-sm w-full text-center space-y-6">
+            <div className="mx-auto w-16 h-16 rounded-2xl bg-destructive/8 flex items-center justify-center">
+              <AlertTriangle className="h-7 w-7 text-destructive" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold mb-2">Something went wrong</h1>
-              <p className="text-muted-foreground">
+              <h1 className="font-display text-xl font-bold mb-2 text-foreground">Something went wrong</h1>
+              <p className="text-body-sm text-muted-foreground">
                 An unexpected error occurred. Our team has been notified.
               </p>
             </div>
             {this.state.error && (
-              <div className="p-3 rounded-lg bg-muted text-left">
-                <p className="text-xs font-mono text-muted-foreground truncate">
+              <div className="p-3 rounded-lg bg-muted text-left" role="alert">
+                <p className="text-[11px] font-mono text-muted-foreground truncate">
                   {this.state.error.message}
                 </p>
               </div>
             )}
             <div className="flex gap-3 justify-center">
-              <Button onClick={this.handleRetry} className="gap-2">
+              <Button onClick={this.handleRetry} className="gap-2" aria-label="Retry loading the page">
                 <RefreshCw className="h-4 w-4" />
                 Try Again
               </Button>
-              <Button variant="outline" onClick={() => window.location.href = '/'} className="gap-2">
+              <Button variant="outline" onClick={() => window.location.href = '/'} className="gap-2" aria-label="Go to homepage">
                 <Home className="h-4 w-4" />
                 Go Home
               </Button>
