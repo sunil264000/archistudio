@@ -49,6 +49,7 @@ export function GlobalSearch() {
         result_limit: 15,
       });
       if (!error && data) setResults(data as SearchResult[]);
+      else setResults([]);
       setLoading(false);
     }, 300);
 
@@ -81,7 +82,7 @@ export function GlobalSearch() {
       </div>
 
       {open && (query.length >= 2) && (
-        <div className="absolute top-full mt-2 w-full bg-card border border-border rounded-xl shadow-elevated z-50 max-h-80 overflow-y-auto">
+        <div className="absolute top-full mt-2 w-full min-w-[320px] bg-card border border-border rounded-xl shadow-elevated z-50 max-h-80 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -99,18 +100,18 @@ export function GlobalSearch() {
                   <button
                     key={`${result.result_type}-${result.result_id}-${i}`}
                     onClick={() => handleSelect(result)}
-                    className="w-full text-left flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                    className="w-full text-left flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
                   >
                     <div className={`shrink-0 p-1.5 rounded-md ${config.color}`}>
                       <Icon className="h-3.5 w-3.5" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground truncate">{result.title}</p>
+                    <div className="flex-1 overflow-hidden">
+                      <p className="text-sm font-medium text-foreground truncate">{result.title || 'Untitled'}</p>
                       {result.description && (
                         <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{result.description}</p>
                       )}
                     </div>
-                    <Badge variant="outline" className="text-[10px] shrink-0">{config.label}</Badge>
+                    <Badge variant="outline" className="text-[10px] shrink-0 ml-2">{config.label}</Badge>
                   </button>
                 );
               })}
