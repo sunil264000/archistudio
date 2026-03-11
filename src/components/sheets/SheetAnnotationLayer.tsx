@@ -26,6 +26,7 @@ interface SheetAnnotationLayerProps {
   annotations: Annotation[];
   onAnnotationAdded: () => void;
   enabled?: boolean;
+  children?: React.ReactNode;
 }
 
 export function SheetAnnotationLayer({ sheetId, annotations, onAnnotationAdded, enabled = true }: SheetAnnotationLayerProps) {
