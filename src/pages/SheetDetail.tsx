@@ -106,18 +106,19 @@ export default function SheetDetail() {
           <div className="grid lg:grid-cols-[1fr_400px] gap-8">
             {/* Sheet Image */}
             <div>
-              <div className="rounded-xl overflow-hidden border border-border/40 bg-card relative">
+              <div className="rounded-xl overflow-hidden border border-border/40 bg-card">
                 <SheetAnnotationLayer
                   sheetId={sheet.id}
                   annotations={annotations}
                   onAnnotationAdded={refetchAnnotations}
                   enabled={!!user}
-                />
-                <img
-                  src={sheet.sheet_url}
-                  alt={sheet.title}
-                  className="w-full object-contain max-h-[80vh]"
-                />
+                >
+                  <img
+                    src={sheet.sheet_url}
+                    alt={sheet.title}
+                    className="w-full object-contain max-h-[80vh]"
+                  />
+                </SheetAnnotationLayer>
               </div>
               {annotations.length > 0 && (
                 <p className="text-xs text-muted-foreground mt-2">
