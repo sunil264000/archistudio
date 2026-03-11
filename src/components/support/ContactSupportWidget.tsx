@@ -110,7 +110,7 @@ export function ContactSupportWidget() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-24 right-24 z-50 w-80 sm:w-96"
+            className="fixed bottom-24 left-6 z-50 w-80 sm:w-96"
           >
             <Card className="shadow-2xl border-2">
               <CardHeader className="bg-gradient-to-r from-accent/10 to-primary/10 pb-4">

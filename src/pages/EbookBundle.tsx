@@ -154,6 +154,38 @@ export default function EbookBundle() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Please login to download');
 
+      // Check if user has an approved download request
+      const { data: approvedRequest } = await supabase
+        .from('download_requests')
+        .select('id, status, download_granted, payment_verified, price_set')
+        .eq('ebook_id', ebookId)
+        .eq('user_id', session.user.id)
+        .eq('status', 'approved')
+        .eq('download_granted', true)
+        .maybeSingle();
+
+      if (!approvedRequest) {
+        // Check if there's a pending request
+        const { data: pendingRequest } = await supabase
+          .from('download_requests')
+          .select('id, status')
+          .eq('ebook_id', ebookId)
+          .eq('user_id', session.user.id)
+          .in('status', ['pending', 'approved'])
+          .maybeSingle();
+
+        if (pendingRequest?.status === 'pending') {
+          toast({ title: 'Request Pending', description: 'Your download request is awaiting admin approval.', variant: 'default' });
+        } else if (pendingRequest?.status === 'approved' && !approvedRequest) {
+          toast({ title: 'Payment Required', description: 'Your request is approved. Please complete payment first.', variant: 'default' });
+        } else {
+          toast({ title: 'Request Download', description: 'Please submit a download request first. Admin approval is required.', variant: 'default' });
+        }
+        setDownloading(null);
+        return;
+      }
+
+      // If approved and granted, proceed with download
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       
