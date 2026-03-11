@@ -331,6 +331,7 @@ function AnimatedRoutes() {
           <Route path="/case-studies" element={<CaseStudies />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/learning-map" element={<LearningMap />} />
+          <Route path="/studio-rooms" element={<ProtectedRoute><StudioRooms /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </motion.div>
