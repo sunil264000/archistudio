@@ -29,7 +29,7 @@ interface SheetAnnotationLayerProps {
   children?: React.ReactNode;
 }
 
-export function SheetAnnotationLayer({ sheetId, annotations, onAnnotationAdded, enabled = true }: SheetAnnotationLayerProps) {
+export function SheetAnnotationLayer({ sheetId, annotations, onAnnotationAdded, enabled = true, children }: SheetAnnotationLayerProps) {
   const { user } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
   const [placingMode, setPlacingMode] = useState(false);
