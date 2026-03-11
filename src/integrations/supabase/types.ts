@@ -3762,6 +3762,134 @@ export type Database = {
         }
         Relationships: []
       }
+      studio_room_members: {
+        Row: {
+          id: string
+          joined_at: string
+          role: string
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          role?: string
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          role?: string
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_room_members_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "studio_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_room_reviews: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          image_url: string | null
+          parent_id: string | null
+          review_type: string
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          parent_id?: string | null
+          review_type?: string
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          parent_id?: string | null
+          review_type?: string
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_room_reviews_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "studio_room_reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "studio_room_reviews_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "studio_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_rooms: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          created_by: string
+          deadline: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          max_members: number | null
+          mentor_id: string | null
+          mentor_name: string | null
+          theme: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          created_by: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_members?: number | null
+          mentor_id?: string | null
+          mentor_name?: string | null
+          theme?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          created_by?: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_members?: number | null
+          mentor_id?: string | null
+          mentor_name?: string | null
+          theme?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
