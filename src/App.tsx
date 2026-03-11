@@ -65,6 +65,7 @@ import PortfolioDiscovery from "./pages/PortfolioDiscovery";
 import CaseStudies from "./pages/CaseStudies";
 import LearningMap from "./pages/LearningMap";
 import Explore from "./pages/Explore";
+import StudioRooms from "./pages/StudioRooms";
 import { queryClient, prefetchCriticalData } from "@/lib/queryClient";
 
 // Warm cache on app load
@@ -330,6 +331,7 @@ function AnimatedRoutes() {
           <Route path="/case-studies" element={<CaseStudies />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/learning-map" element={<LearningMap />} />
+          <Route path="/studio-rooms" element={<ProtectedRoute><StudioRooms /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </motion.div>

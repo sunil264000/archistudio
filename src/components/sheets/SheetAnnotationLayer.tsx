@@ -26,9 +26,10 @@ interface SheetAnnotationLayerProps {
   annotations: Annotation[];
   onAnnotationAdded: () => void;
   enabled?: boolean;
+  children?: React.ReactNode;
 }
 
-export function SheetAnnotationLayer({ sheetId, annotations, onAnnotationAdded, enabled = true }: SheetAnnotationLayerProps) {
+export function SheetAnnotationLayer({ sheetId, annotations, onAnnotationAdded, enabled = true, children }: SheetAnnotationLayerProps) {
   const { user } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
   const [placingMode, setPlacingMode] = useState(false);
@@ -109,7 +110,7 @@ export function SheetAnnotationLayer({ sheetId, annotations, onAnnotationAdded, 
 
   return (
     <div className="relative" ref={containerRef}>
-      {/* Toolbar */}
+      {children}
       {enabled && user && (
         <div className="absolute top-3 right-3 z-20 flex gap-2">
           <Button
