@@ -84,11 +84,11 @@ export function ContactSupportWidget() {
 
   return (
     <>
-      {/* Floating Button — positioned to avoid overlap with FloatingAIMentor (bottom-6 right-6) */}
+      {/* Floating Button — positioned on left side to avoid overlap with FloatingAIMentor (bottom-6 right-6) */}
       <motion.div
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
-        className="fixed bottom-6 right-24 z-50"
+        className="fixed bottom-6 left-6 z-50"
       >
         <Button
           onClick={() => setIsOpen(!isOpen)}
