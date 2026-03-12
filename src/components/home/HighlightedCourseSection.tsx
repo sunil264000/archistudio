@@ -81,7 +81,7 @@ export function HighlightedCourseSection() {
           <div className="relative rounded-2xl overflow-hidden card-glass group">
             <div className="grid lg:grid-cols-[1fr_1.1fr] gap-0">
               {/* Left: Thumbnail */}
-              <div className="relative aspect-[16/10] lg:aspect-auto overflow-hidden">
+              <div className="relative aspect-[16/10] lg:min-h-[320px] overflow-hidden">
                 <CourseThumbnail
                   src={course.thumbnail_url || ''}
                   alt={course.title}
