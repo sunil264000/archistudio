@@ -81,13 +81,13 @@ export function HighlightedCourseSection() {
           <div className="relative rounded-2xl overflow-hidden card-glass group">
             <div className="grid lg:grid-cols-[1fr_1.1fr] gap-0">
               {/* Left: Thumbnail */}
-              <div className="relative aspect-[16/10] lg:min-h-[320px] overflow-hidden">
+              <div className="relative aspect-[16/10] overflow-hidden">
                 <CourseThumbnail
                   src={course.thumbnail_url || ''}
                   alt={course.title}
                   slug={course.slug}
                   category={course.category_id || 'fundamentals'}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-card/70 hidden lg:block" />
                 <div className="absolute inset-0 bg-gradient-to-t from-card/50 to-transparent lg:hidden" />
