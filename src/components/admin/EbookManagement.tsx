@@ -207,8 +207,13 @@ export function EbookManagement() {
   };
 
   const togglePublished = async (id: string, currentState: boolean) => {
-    const { error } = await supabase.from('ebooks').update({ is_published: !currentState }).eq('id', id);
-    if (!error) fetchEbooks();
+    const { error } = await supabase.from('ebooks').update({ is_published: !currentState, updated_at: new Date().toISOString() }).eq('id', id);
+    if (!error) {
+      toast({ title: !currentState ? "eBook Visible" : "eBook Hidden", description: "Visibility updated and auto-saved." });
+      fetchEbooks();
+    } else {
+      toast({ title: "Error", description: "Failed to update visibility.", variant: "destructive" });
+    }
   };
 
   const filteredEbooks = searchQuery.trim()
