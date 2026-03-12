@@ -62,6 +62,8 @@ serve(async (req) => {
             });
         }
 
+        const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+
         // Check admin role using user_roles table
         const { data: roleData } = await serviceClient
             .from("user_roles")
