@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const MIN_PRICE = 399;
@@ -62,15 +62,17 @@ serve(async (req) => {
             });
         }
 
-        // Check admin role
         const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
-        const { data: profile } = await serviceClient
-            .from("profiles")
+
+        // Check admin role using user_roles table
+        const { data: roleData } = await serviceClient
+            .from("user_roles")
             .select("role")
             .eq("user_id", authData.user.id)
-            .single();
+            .eq("role", "admin")
+            .maybeSingle();
 
-        if (!profile || profile.role !== "admin") {
+        if (!roleData) {
             return new Response(JSON.stringify({ error: "Forbidden: admin only" }), {
                 status: 403,
                 headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -111,13 +113,23 @@ serve(async (req) => {
                 continue;
             }
 
-            // Count lessons from the modules/lessons table for accuracy
-            const { count: lessonCount } = await serviceClient
-                .from("lessons")
-                .select("id", { count: "exact", head: true })
+            // Count lessons via modules → lessons join
+            const { data: moduleIds } = await serviceClient
+                .from("modules")
+                .select("id")
                 .eq("course_id", course.id);
 
-            const lessons = lessonCount ?? course.total_lessons ?? 0;
+            let lessonCount = 0;
+            if (moduleIds && moduleIds.length > 0) {
+                const ids = moduleIds.map(m => m.id);
+                const { count } = await serviceClient
+                    .from("lessons")
+                    .select("id", { count: "exact", head: true })
+                    .in("module_id", ids);
+                lessonCount = count ?? 0;
+            }
+
+            const lessons = lessonCount || course.total_lessons || 0;
             const durationHours = course.duration_hours ?? 0;
 
             const score = calcScore(lessons, durationHours);
