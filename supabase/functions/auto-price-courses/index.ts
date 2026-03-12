@@ -62,15 +62,15 @@ serve(async (req) => {
             });
         }
 
-        // Check admin role
-        const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
-        const { data: profile } = await serviceClient
-            .from("profiles")
+        // Check admin role using user_roles table
+        const { data: roleData } = await serviceClient
+            .from("user_roles")
             .select("role")
             .eq("user_id", authData.user.id)
-            .single();
+            .eq("role", "admin")
+            .maybeSingle();
 
-        if (!profile || profile.role !== "admin") {
+        if (!roleData) {
             return new Response(JSON.stringify({ error: "Forbidden: admin only" }), {
                 status: 403,
                 headers: { ...corsHeaders, "Content-Type": "application/json" },
