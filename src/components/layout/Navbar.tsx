@@ -99,9 +99,9 @@ export function Navbar() {
     >
       <nav className="container-wide py-3 flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="group flex items-center gap-2.5">
+        <Link to="/" className="group flex items-center gap-2.5 shrink-0 mr-4">
           <img src={logoMark} alt="Archistudio" className="h-8 w-8 rounded-lg object-cover" />
-          <span className="font-display font-bold text-base tracking-tight text-foreground">
+          <span className="font-display font-bold text-base tracking-tight text-foreground whitespace-nowrap">
             Archistudio
           </span>
         </Link>

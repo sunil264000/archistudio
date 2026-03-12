@@ -193,16 +193,13 @@ export function EbookManagement() {
   };
 
   const handleSaveThumbnail = async (ebookId: string, url: string) => {
-    if (!url.trim()) {
-      toast({ title: "Error", description: "Please enter a thumbnail URL", variant: "destructive" });
-      return;
-    }
+    const isRemoving = !url.trim();
     setSavingThumbnail(ebookId);
-    const { error } = await supabase.from('ebooks').update({ cover_image_url: url.trim(), updated_at: new Date().toISOString() }).eq('id', ebookId);
+    const { error } = await supabase.from('ebooks').update({ cover_image_url: isRemoving ? null : url.trim(), updated_at: new Date().toISOString() }).eq('id', ebookId);
     if (error) {
-      toast({ title: "Error", description: "Failed to save thumbnail", variant: "destructive" });
+      toast({ title: "Error", description: isRemoving ? "Failed to remove cover" : "Failed to save thumbnail", variant: "destructive" });
     } else {
-      toast({ title: "Thumbnail Saved", description: "Cover image updated successfully" });
+      toast({ title: isRemoving ? "Cover Removed" : "Thumbnail Saved", description: isRemoving ? "Cover image removed" : "Cover image updated successfully" });
       setThumbnailUrl('');
       fetchEbooks();
     }
@@ -538,8 +535,13 @@ function EbookRow({ ebook, showImages, uploading, savingThumbnail, onEdit, onDel
               </div>
             </div>
 
-            {/* Actions */}
+             {/* Actions */}
             <div className="flex items-center gap-1.5 shrink-0">
+              {ebook.cover_image_url ? (
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive/80" title="Remove cover" onClick={() => onSaveThumbnail(ebook.id, '')}>
+                  <EyeOff className="h-3.5 w-3.5" />
+                </Button>
+              ) : null}
               <Button variant="ghost" size="icon" className="h-7 w-7" title="Set thumbnail" onClick={() => { setShowThumbInput(!showThumbInput); setThumbUrl(ebook.cover_image_url || ''); }}>
                 <ImagePlus className="h-3.5 w-3.5" />
               </Button>
