@@ -193,16 +193,13 @@ export function EbookManagement() {
   };
 
   const handleSaveThumbnail = async (ebookId: string, url: string) => {
-    if (!url.trim()) {
-      toast({ title: "Error", description: "Please enter a thumbnail URL", variant: "destructive" });
-      return;
-    }
+    const isRemoving = !url.trim();
     setSavingThumbnail(ebookId);
-    const { error } = await supabase.from('ebooks').update({ cover_image_url: url.trim(), updated_at: new Date().toISOString() }).eq('id', ebookId);
+    const { error } = await supabase.from('ebooks').update({ cover_image_url: isRemoving ? null : url.trim(), updated_at: new Date().toISOString() }).eq('id', ebookId);
     if (error) {
-      toast({ title: "Error", description: "Failed to save thumbnail", variant: "destructive" });
+      toast({ title: "Error", description: isRemoving ? "Failed to remove cover" : "Failed to save thumbnail", variant: "destructive" });
     } else {
-      toast({ title: "Thumbnail Saved", description: "Cover image updated successfully" });
+      toast({ title: isRemoving ? "Cover Removed" : "Thumbnail Saved", description: isRemoving ? "Cover image removed" : "Cover image updated successfully" });
       setThumbnailUrl('');
       fetchEbooks();
     }
