@@ -538,8 +538,13 @@ function EbookRow({ ebook, showImages, uploading, savingThumbnail, onEdit, onDel
               </div>
             </div>
 
-            {/* Actions */}
+             {/* Actions */}
             <div className="flex items-center gap-1.5 shrink-0">
+              {ebook.cover_image_url ? (
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive/80" title="Remove cover" onClick={() => onSaveThumbnail(ebook.id, '')}>
+                  <EyeOff className="h-3.5 w-3.5" />
+                </Button>
+              ) : null}
               <Button variant="ghost" size="icon" className="h-7 w-7" title="Set thumbnail" onClick={() => { setShowThumbInput(!showThumbInput); setThumbUrl(ebook.cover_image_url || ''); }}>
                 <ImagePlus className="h-3.5 w-3.5" />
               </Button>
