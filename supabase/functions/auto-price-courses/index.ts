@@ -111,13 +111,23 @@ serve(async (req) => {
                 continue;
             }
 
-            // Count lessons from the modules/lessons table for accuracy
-            const { count: lessonCount } = await serviceClient
-                .from("lessons")
-                .select("id", { count: "exact", head: true })
+            // Count lessons via modules → lessons join
+            const { data: moduleIds } = await serviceClient
+                .from("modules")
+                .select("id")
                 .eq("course_id", course.id);
 
-            const lessons = lessonCount ?? course.total_lessons ?? 0;
+            let lessonCount = 0;
+            if (moduleIds && moduleIds.length > 0) {
+                const ids = moduleIds.map(m => m.id);
+                const { count } = await serviceClient
+                    .from("lessons")
+                    .select("id", { count: "exact", head: true })
+                    .in("module_id", ids);
+                lessonCount = count ?? 0;
+            }
+
+            const lessons = lessonCount || course.total_lessons || 0;
             const durationHours = course.duration_hours ?? 0;
 
             const score = calcScore(lessons, durationHours);
