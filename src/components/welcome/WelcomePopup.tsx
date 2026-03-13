@@ -127,7 +127,7 @@ export function WelcomePopup() {
 
           {/* Modal */}
           <motion.div
-            className="relative w-full max-w-[420px] rounded-2xl shadow-2xl overflow-hidden"
+            className="relative w-full max-w-sm sm:max-w-[420px] rounded-2xl shadow-2xl overflow-hidden"
             style={{
               background: 'linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%)',
               border: '1px solid hsl(var(--border))',
