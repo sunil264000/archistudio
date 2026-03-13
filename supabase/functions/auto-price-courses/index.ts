@@ -6,11 +6,11 @@ const corsHeaders = {
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MIN_PRICE = 399;
+const MIN_PRICE = 499;
 const MAX_PRICE = 4999;
 
-// Price brackets snapped to nice numbers (₹399 → ₹4999)
-const PRICE_BRACKETS = [399, 599, 799, 999, 1299, 1499, 1799, 1999, 2499, 2999, 3499, 3999, 4499, 4999];
+// Price brackets snapped to nice numbers (₹499 → ₹4999)
+const PRICE_BRACKETS = [499, 699, 899, 1199, 1499, 1799, 1999, 2499, 2999, 3499, 3999, 4499, 4999];
 
 /**
  * Calculate a content score (0.0 – 1.0) based on lessons and duration.
