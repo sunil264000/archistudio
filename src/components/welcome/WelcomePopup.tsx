@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Sparkles, Quote } from 'lucide-react';
+import { X, Sparkles, Quote, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const architectureQuotes = [
@@ -53,9 +53,7 @@ const architectureQuotes = [
   { quote: "The job of buildings is to improve human relations: architecture must ease them, not make them worse.", author: "Ralph Erskine" },
   { quote: "Material, craftsmanship, and the right tools — these are what define good building.", author: "Tadao Ando" },
   { quote: "To me, the drawn language is a very revealing language: one can see in a few lines whether a man is really an architect.", author: "Eero Saarinen" },
-  { quote: "There is hardly anything in the world that some man cannot make a little worse and sell a little cheaper, and the people who consider price only are this man's lawful prey.", author: "John Ruskin" },
   { quote: "Architecture is not an inspirational business, it's a rational procedure to do sensible and hopefully beautiful things.", author: "Harry Seidler" },
-  { quote: "Don't build a glass house if you're worried about saving money on heating.", author: "Philip Johnson" },
   { quote: "You have to give the floor the same love as the ceiling.", author: "Rem Koolhaas" },
   { quote: "The road to the future leads us smiling towards the past.", author: "Aldo Rossi" },
   { quote: "Sustainability can't be like some sort of moral sacrifice or political dilemma or a philanthropical cause. It has to be a design challenge.", author: "Bjarke Ingels" },
@@ -65,7 +63,6 @@ const architectureQuotes = [
   { quote: "No architecture can be truly noble which is not imperfect.", author: "John Ruskin" },
   { quote: "Geometry enlightens the intellect and sets one's mind right.", author: "Ibn Khaldun" },
   { quote: "Build your lot on the edge of a lake and see your soul reflected in nature every morning.", author: "Alvar Aalto" },
-  { quote: "What people want, above all, is order.", author: "Stephen Gardiner" },
   { quote: "Beauty perishes in life, but is immortal in art.", author: "Leonardo da Vinci" },
   { quote: "The architecture of a place is really a story about the people who live there.", author: "Kengo Kuma" },
   { quote: "One of the great beauties of architecture is that each time it is like life starting all over again.", author: "Renzo Piano" },
@@ -79,15 +76,11 @@ const architectureQuotes = [
   { quote: "Color is a power which directly influences the soul.", author: "Wassily Kandinsky" },
   { quote: "True architecture is always objective and is the expression of the inner structure of our time.", author: "Ludwig Mies van der Rohe" },
   { quote: "We are called to be architects of the future, not its victims.", author: "Buckminster Fuller" },
-  { quote: "I believe the common denominator of the universe is not harmony, but chaos, hostility and murder.", author: "Werner Herzog" },
 ];
 
-// Deterministic daily shuffle using a seed based on the date
 function getDailyQuote(quotes: typeof architectureQuotes): typeof architectureQuotes[0] {
   const today = new Date();
-  // Create a unique seed from date components for pseudo-random feel
   const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-  // Simple hash to spread indices widely
   const hash = ((seed * 2654435761) >>> 0) % quotes.length;
   return quotes[hash];
 }
@@ -104,7 +97,7 @@ export function WelcomePopup() {
 
     setTodayQuote(getDailyQuote(architectureQuotes));
 
-    const timer = setTimeout(() => setIsVisible(true), 1800);
+    const timer = setTimeout(() => setIsVisible(true), 2000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -121,11 +114,11 @@ export function WelcomePopup() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.4 }}
         >
           {/* Backdrop */}
           <motion.div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/70 backdrop-blur-md"
             onClick={handleClose}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -134,34 +127,42 @@ export function WelcomePopup() {
 
           {/* Modal */}
           <motion.div
-            className="relative w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
-            initial={{ scale: 0.8, y: 40, opacity: 0 }}
+            className="relative w-full max-w-[420px] rounded-2xl shadow-2xl overflow-hidden"
+            style={{
+              background: 'linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%)',
+              border: '1px solid hsl(var(--border))',
+            }}
+            initial={{ scale: 0.85, y: 50, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
-            exit={{ scale: 0.9, y: 20, opacity: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            exit={{ scale: 0.9, y: 30, opacity: 0 }}
+            transition={{ type: 'spring', damping: 22, stiffness: 260, delay: 0.1 }}
           >
-            {/* Top accent bar */}
-            <div className="h-1.5 bg-gradient-to-r from-accent via-primary to-accent" />
+            {/* Top accent gradient */}
+            <div className="h-1 bg-gradient-to-r from-accent via-primary to-accent/60" />
+
+            {/* Ambient glow */}
+            <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-accent/8 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-16 -left-16 w-32 h-32 rounded-full bg-primary/6 blur-3xl pointer-events-none" />
 
             {/* Floating particles */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              {[...Array(6)].map((_, i) => (
+              {[...Array(5)].map((_, i) => (
                 <motion.div
                   key={i}
-                  className="absolute w-1.5 h-1.5 rounded-full bg-accent/20"
+                  className="absolute w-1 h-1 rounded-full bg-accent/25"
                   style={{
-                    left: `${15 + i * 15}%`,
-                    top: `${20 + (i % 3) * 25}%`,
+                    left: `${12 + i * 18}%`,
+                    top: `${18 + (i % 3) * 28}%`,
                   }}
                   animate={{
-                    y: [-8, 8, -8],
-                    opacity: [0.2, 0.5, 0.2],
+                    y: [-6, 6, -6],
+                    opacity: [0.15, 0.4, 0.15],
                   }}
                   transition={{
-                    duration: 3 + i * 0.5,
+                    duration: 3.5 + i * 0.4,
                     repeat: Infinity,
                     ease: 'easeInOut',
-                    delay: i * 0.3,
+                    delay: i * 0.4,
                   }}
                 />
               ))}
@@ -170,24 +171,38 @@ export function WelcomePopup() {
             {/* Close button */}
             <button
               onClick={handleClose}
-              className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-muted/80 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              className="absolute top-3.5 right-3.5 z-10 p-1.5 rounded-full bg-muted/60 hover:bg-muted transition-all text-muted-foreground hover:text-foreground hover:scale-110"
+              aria-label="Close"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
 
             {/* Content */}
-            <div className="relative px-6 py-8 text-center">
+            <div className="relative px-7 pt-8 pb-7 text-center">
               {/* Icon */}
               <motion.div
-                className="mx-auto w-14 h-14 rounded-full bg-accent/10 flex items-center justify-center mb-4"
-                animate={{ rotate: [0, 5, -5, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                className="mx-auto w-12 h-12 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-5"
+                animate={{ rotate: [0, 3, -3, 0] }}
+                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
               >
-                <Sparkles className="w-7 h-7 text-accent" />
+                <Sparkles className="w-6 h-6 text-accent" />
+              </motion.div>
+
+              {/* Badge */}
+              <motion.div
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 mb-4"
+                initial={{ y: 8, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                <span className="text-[11px] font-semibold tracking-wider uppercase text-accent">
+                  Thought of the Day
+                </span>
               </motion.div>
 
               <motion.h2
-                className="text-xl font-bold text-foreground mb-1"
+                className="text-2xl font-bold text-foreground mb-1 tracking-tight"
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.15 }}
@@ -196,28 +211,35 @@ export function WelcomePopup() {
               </motion.h2>
 
               <motion.p
-                className="text-sm text-muted-foreground mb-5"
+                className="text-sm text-muted-foreground mb-6"
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.25 }}
               >
-                Today's Architecture Thought
+                India's premium architecture learning platform
               </motion.p>
 
               {/* Quote card */}
               <motion.div
-                className="relative bg-muted/50 border border-border rounded-xl p-5 mb-6"
+                className="relative rounded-xl p-5 mb-7 text-left"
+                style={{
+                  background: 'hsl(var(--muted) / 0.4)',
+                  border: '1px solid hsl(var(--border))',
+                }}
                 initial={{ y: 15, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.35 }}
               >
-                <Quote className="w-5 h-5 text-accent/40 mb-2 mx-auto" />
+                <Quote className="w-8 h-8 text-accent/20 mb-3" />
                 <p className="text-foreground font-medium italic leading-relaxed text-[15px]">
                   "{todayQuote.quote}"
                 </p>
-                <p className="text-accent font-semibold text-sm mt-3">
-                  — {todayQuote.author}
-                </p>
+                <div className="flex items-center gap-2 mt-4">
+                  <div className="h-px flex-1 bg-border" />
+                  <p className="text-accent font-semibold text-xs tracking-wide">
+                    {todayQuote.author}
+                  </p>
+                </div>
               </motion.div>
 
               {/* CTA */}
@@ -230,21 +252,22 @@ export function WelcomePopup() {
                 <Button
                   onClick={handleClose}
                   variant="default"
-                  className="flex-1"
+                  className="flex-1 gap-2 group"
                   size="lg"
                 >
-                  Explore Courses
+                  Start Learning
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                 </Button>
                 <Button
                   onClick={() => {
                     handleClose();
-                    window.location.href = '/contact';
+                    window.location.href = '/courses';
                   }}
                   variant="outline"
                   className="flex-1"
                   size="lg"
                 >
-                  Get in Touch
+                  Browse Courses
                 </Button>
               </motion.div>
             </div>
