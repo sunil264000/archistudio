@@ -129,7 +129,7 @@ export function useDynamicCourseData() {
     }
 
     // Price brackets matching the backend auto-price edge function (₹399–₹4999)
-    const PRICE_BRACKETS = [399, 599, 799, 999, 1299, 1499, 1799, 1999, 2499, 2999, 3499, 3999, 4499, 4999];
+    const PRICE_BRACKETS = [499, 699, 899, 1199, 1499, 1799, 1999, 2499, 2999, 3499, 3999, 4499, 4999];
 
     const lessons = totalLessons ?? 0;
     const hours = durationHours ?? 0;
