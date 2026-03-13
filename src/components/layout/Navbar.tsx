@@ -187,14 +187,31 @@ export function Navbar() {
           )}
         </div>
 
-        {/* Mobile Menu Button */}
-        <button
-          className="md:hidden p-3 -mr-2 rounded-lg hover:bg-muted transition-colors touch-target min-w-[48px] min-h-[48px] flex items-center justify-center"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-        >
-          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        {/* Mobile Right Actions */}
+        <div className="md:hidden flex items-center gap-1.5">
+          {!loading && !user && (
+            <Link to="/auth?mode=signup">
+              <Button size="sm" className="gap-1 bg-accent text-accent-foreground hover:bg-accent/90 text-xs px-3 h-8">
+                Get Started
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </Link>
+          )}
+          {!loading && user && (
+            <Link to="/dashboard">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
+                <User className="h-4 w-4" />
+              </Button>
+            </Link>
+          )}
+          <button
+            className="p-2.5 rounded-lg hover:bg-muted transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </nav>
 
       {/* Mobile Menu */}
