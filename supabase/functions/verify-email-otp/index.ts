@@ -21,7 +21,7 @@ async function findAuthUserIdByEmail(supabaseAdmin: any, email: string) {
 
     if (error) break;
 
-    const user = data?.users?.find((u) => (u.email || '').toLowerCase() === normalized);
+    const user = data?.users?.find((u: { email?: string | null; id?: string }) => (u.email || '').toLowerCase() === normalized);
     if (user?.id) return user.id;
 
     if (!data?.users?.length || data.users.length < 200) break;
