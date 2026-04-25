@@ -66,6 +66,11 @@ import CaseStudies from "./pages/CaseStudies";
 import LearningMap from "./pages/LearningMap";
 import Explore from "./pages/Explore";
 import StudioRooms from "./pages/StudioRooms";
+import MarketplaceHome from "./pages/marketplace/MarketplaceHome";
+import BrowseJobs from "./pages/marketplace/BrowseJobs";
+import PostJob from "./pages/marketplace/PostJob";
+import JobDetail from "./pages/marketplace/JobDetail";
+import BecomeWorker from "./pages/marketplace/BecomeWorker";
 import { queryClient, prefetchCriticalData } from "@/lib/queryClient";
 
 // Warm cache on app load
@@ -332,6 +337,12 @@ function AnimatedRoutes() {
           <Route path="/explore" element={<Explore />} />
           <Route path="/learning-map" element={<LearningMap />} />
           <Route path="/studio-rooms" element={<ProtectedRoute><StudioRooms /></ProtectedRoute>} />
+          {/* Marketplace */}
+          <Route path="/marketplace" element={<MarketplaceHome />} />
+          <Route path="/marketplace/jobs" element={<BrowseJobs />} />
+          <Route path="/marketplace/jobs/:id" element={<JobDetail />} />
+          <Route path="/marketplace/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
+          <Route path="/marketplace/become-worker" element={<ProtectedRoute><BecomeWorker /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </motion.div>

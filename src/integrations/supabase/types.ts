@@ -1765,6 +1765,53 @@ export type Database = {
         }
         Relationships: []
       }
+      job_proposals: {
+        Row: {
+          attachments: string[]
+          bid_amount: number
+          cover_message: string
+          created_at: string
+          delivery_days: number
+          id: string
+          job_id: string
+          status: string
+          updated_at: string
+          worker_id: string
+        }
+        Insert: {
+          attachments?: string[]
+          bid_amount: number
+          cover_message: string
+          created_at?: string
+          delivery_days: number
+          id?: string
+          job_id: string
+          status?: string
+          updated_at?: string
+          worker_id: string
+        }
+        Update: {
+          attachments?: string[]
+          bid_amount?: number
+          cover_message?: string
+          created_at?: string
+          delivery_days?: number
+          id?: string
+          job_id?: string
+          status?: string
+          updated_at?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_proposals_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_queue: {
         Row: {
           attempts: number | null
@@ -2312,6 +2359,288 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "login_gift_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_contracts: {
+        Row: {
+          agreed_amount: number
+          cancelled_at: string | null
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          currency: string
+          delivered_at: string | null
+          delivery_days: number
+          due_date: string | null
+          id: string
+          job_id: string
+          payment_reference: string | null
+          payment_status: string
+          platform_fee_amount: number
+          platform_fee_percent: number
+          proposal_id: string
+          status: string
+          updated_at: string
+          worker_id: string
+          worker_payout: number
+        }
+        Insert: {
+          agreed_amount: number
+          cancelled_at?: string | null
+          client_id: string
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          delivered_at?: string | null
+          delivery_days: number
+          due_date?: string | null
+          id?: string
+          job_id: string
+          payment_reference?: string | null
+          payment_status?: string
+          platform_fee_amount: number
+          platform_fee_percent?: number
+          proposal_id: string
+          status?: string
+          updated_at?: string
+          worker_id: string
+          worker_payout: number
+        }
+        Update: {
+          agreed_amount?: number
+          cancelled_at?: string | null
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          delivered_at?: string | null
+          delivery_days?: number
+          due_date?: string | null
+          id?: string
+          job_id?: string
+          payment_reference?: string | null
+          payment_status?: string
+          platform_fee_amount?: number
+          platform_fee_percent?: number
+          proposal_id?: string
+          status?: string
+          updated_at?: string
+          worker_id?: string
+          worker_payout?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_contracts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_contracts_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "job_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_disputes: {
+        Row: {
+          contract_id: string
+          created_at: string
+          description: string | null
+          evidence_urls: string[]
+          id: string
+          opened_by: string
+          reason: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          contract_id: string
+          created_at?: string
+          description?: string | null
+          evidence_urls?: string[]
+          id?: string
+          opened_by: string
+          reason: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          contract_id?: string
+          created_at?: string
+          description?: string | null
+          evidence_urls?: string[]
+          id?: string
+          opened_by?: string
+          reason?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_disputes_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_jobs: {
+        Row: {
+          attachments: string[]
+          awarded_proposal_id: string | null
+          budget_max: number | null
+          budget_min: number | null
+          budget_type: string
+          category: string
+          client_id: string
+          created_at: string
+          currency: string
+          deadline: string | null
+          description: string
+          id: string
+          proposals_count: number
+          skills_required: string[]
+          status: string
+          title: string
+          updated_at: string
+          views_count: number
+          visibility: string
+        }
+        Insert: {
+          attachments?: string[]
+          awarded_proposal_id?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          budget_type?: string
+          category: string
+          client_id: string
+          created_at?: string
+          currency?: string
+          deadline?: string | null
+          description: string
+          id?: string
+          proposals_count?: number
+          skills_required?: string[]
+          status?: string
+          title: string
+          updated_at?: string
+          views_count?: number
+          visibility?: string
+        }
+        Update: {
+          attachments?: string[]
+          awarded_proposal_id?: string | null
+          budget_max?: number | null
+          budget_min?: number | null
+          budget_type?: string
+          category?: string
+          client_id?: string
+          created_at?: string
+          currency?: string
+          deadline?: string | null
+          description?: string
+          id?: string
+          proposals_count?: number
+          skills_required?: string[]
+          status?: string
+          title?: string
+          updated_at?: string
+          views_count?: number
+          visibility?: string
+        }
+        Relationships: []
+      }
+      marketplace_messages: {
+        Row: {
+          attachments: string[]
+          body: string
+          contract_id: string
+          created_at: string
+          id: string
+          read_at: string | null
+          sender_id: string
+        }
+        Insert: {
+          attachments?: string[]
+          body: string
+          contract_id: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender_id: string
+        }
+        Update: {
+          attachments?: string[]
+          body?: string
+          contract_id?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_messages_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_reviews: {
+        Row: {
+          comment: string | null
+          contract_id: string
+          created_at: string
+          direction: string
+          id: string
+          rating: number
+          reviewee_id: string
+          reviewer_id: string
+        }
+        Insert: {
+          comment?: string | null
+          contract_id: string
+          created_at?: string
+          direction: string
+          id?: string
+          rating: number
+          reviewee_id: string
+          reviewer_id: string
+        }
+        Update: {
+          comment?: string | null
+          contract_id?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          rating?: number
+          reviewee_id?: string
+          reviewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_reviews_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_contracts"
             referencedColumns: ["id"]
           },
         ]
@@ -4659,6 +4988,128 @@ export type Database = {
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
+        }
+        Relationships: []
+      }
+      worker_portfolio_items: {
+        Row: {
+          category: string | null
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          display_order: number
+          external_link: string | null
+          file_urls: string[]
+          id: string
+          skills: string[]
+          title: string
+          updated_at: string
+          worker_id: string
+        }
+        Insert: {
+          category?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          external_link?: string | null
+          file_urls?: string[]
+          id?: string
+          skills?: string[]
+          title: string
+          updated_at?: string
+          worker_id: string
+        }
+        Update: {
+          category?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          external_link?: string | null
+          file_urls?: string[]
+          id?: string
+          skills?: string[]
+          title?: string
+          updated_at?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worker_portfolio_items_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "worker_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      worker_profiles: {
+        Row: {
+          availability: string | null
+          avatar_url: string | null
+          average_rating: number
+          bio: string | null
+          cover_url: string | null
+          created_at: string
+          display_name: string | null
+          experience_level: string
+          headline: string | null
+          hourly_rate: number | null
+          id: string
+          is_active: boolean
+          languages: string[] | null
+          location: string | null
+          skills: string[]
+          total_earnings: number
+          total_jobs_completed: number
+          total_reviews: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          availability?: string | null
+          avatar_url?: string | null
+          average_rating?: number
+          bio?: string | null
+          cover_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          experience_level?: string
+          headline?: string | null
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean
+          languages?: string[] | null
+          location?: string | null
+          skills?: string[]
+          total_earnings?: number
+          total_jobs_completed?: number
+          total_reviews?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          availability?: string | null
+          avatar_url?: string | null
+          average_rating?: number
+          bio?: string | null
+          cover_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          experience_level?: string
+          headline?: string | null
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean
+          languages?: string[] | null
+          location?: string | null
+          skills?: string[]
+          total_earnings?: number
+          total_jobs_completed?: number
+          total_reviews?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

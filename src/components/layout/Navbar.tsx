@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Library, ChevronDown } from 'lucide-react';
+import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Library, ChevronDown, Briefcase } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import logoMark from '@/assets/logo-mark.png';
 import { useState, useEffect } from 'react';
@@ -49,6 +49,7 @@ export function Navbar() {
 
   const navLinks = [
     { to: '/courses', label: 'Courses' },
+    { to: '/marketplace', label: 'Marketplace', icon: Briefcase },
     { to: '/explore', label: 'Explore' },
     { to: '/roadmaps', label: 'Paths' },
     { to: '/ebooks', label: 'eBooks', icon: Library },
@@ -72,6 +73,7 @@ export function Navbar() {
 
   const mobileLinks = [
     { to: '/courses', label: 'Courses' },
+    { to: '/marketplace', label: 'Marketplace' },
     { to: '/explore', label: 'Explore' },
     { to: '/roadmaps', label: 'Learning Paths' },
     { to: '/learning-map', label: 'Learning Map' },
