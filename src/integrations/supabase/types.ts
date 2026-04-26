@@ -2365,8 +2365,12 @@ export type Database = {
       }
       marketplace_contracts: {
         Row: {
+          admin_approved_at: string | null
+          admin_approved_by: string | null
+          admin_notes: string | null
           agreed_amount: number
           cancelled_at: string | null
+          client_files: string[]
           client_id: string
           completed_at: string | null
           created_at: string
@@ -2378,17 +2382,26 @@ export type Database = {
           job_id: string
           payment_reference: string | null
           payment_status: string
+          payout_reference: string | null
+          payout_released_at: string | null
           platform_fee_amount: number
           platform_fee_percent: number
           proposal_id: string
+          released_to_client_at: string | null
           status: string
+          submitted_at: string | null
           updated_at: string
           worker_id: string
           worker_payout: number
+          worker_submission: Json | null
         }
         Insert: {
+          admin_approved_at?: string | null
+          admin_approved_by?: string | null
+          admin_notes?: string | null
           agreed_amount: number
           cancelled_at?: string | null
+          client_files?: string[]
           client_id: string
           completed_at?: string | null
           created_at?: string
@@ -2400,17 +2413,26 @@ export type Database = {
           job_id: string
           payment_reference?: string | null
           payment_status?: string
+          payout_reference?: string | null
+          payout_released_at?: string | null
           platform_fee_amount: number
           platform_fee_percent?: number
           proposal_id: string
+          released_to_client_at?: string | null
           status?: string
+          submitted_at?: string | null
           updated_at?: string
           worker_id: string
           worker_payout: number
+          worker_submission?: Json | null
         }
         Update: {
+          admin_approved_at?: string | null
+          admin_approved_by?: string | null
+          admin_notes?: string | null
           agreed_amount?: number
           cancelled_at?: string | null
+          client_files?: string[]
           client_id?: string
           completed_at?: string | null
           created_at?: string
@@ -2422,13 +2444,18 @@ export type Database = {
           job_id?: string
           payment_reference?: string | null
           payment_status?: string
+          payout_reference?: string | null
+          payout_released_at?: string | null
           platform_fee_amount?: number
           platform_fee_percent?: number
           proposal_id?: string
+          released_to_client_at?: string | null
           status?: string
+          submitted_at?: string | null
           updated_at?: string
           worker_id?: string
           worker_payout?: number
+          worker_submission?: Json | null
         }
         Relationships: [
           {
@@ -3777,6 +3804,127 @@ export type Database = {
           value?: string | null
         }
         Relationships: []
+      }
+      studio_hub_deliverables: {
+        Row: {
+          admin_notes: string | null
+          client_id: string
+          contract_id: string
+          created_at: string
+          description: string | null
+          file_urls: string[]
+          id: string
+          released_at: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          title: string
+          updated_at: string
+          version: number
+          worker_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          client_id: string
+          contract_id: string
+          created_at?: string
+          description?: string | null
+          file_urls?: string[]
+          id?: string
+          released_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          version?: number
+          worker_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          client_id?: string
+          contract_id?: string
+          created_at?: string
+          description?: string | null
+          file_urls?: string[]
+          id?: string
+          released_at?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          version?: number
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_hub_deliverables_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_hub_payouts: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          fee_amount: number
+          id: string
+          method: string
+          paid_at: string | null
+          reference: string | null
+          status: string
+          updated_at: string
+          worker_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          fee_amount?: number
+          id?: string
+          method?: string
+          paid_at?: string | null
+          reference?: string | null
+          status?: string
+          updated_at?: string
+          worker_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          fee_amount?: number
+          id?: string
+          method?: string
+          paid_at?: string | null
+          reference?: string | null
+          status?: string
+          updated_at?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_hub_payouts_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       studio_project_comments: {
         Row: {
