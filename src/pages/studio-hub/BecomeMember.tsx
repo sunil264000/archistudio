@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { Loader2, X, Plus, CheckCircle2, Camera } from 'lucide-react';
 import { compressAvatar } from '@/lib/imageCompression';
 import { Link } from 'react-router-dom';
+import { PortfolioWorks } from '@/components/studio-hub/PortfolioWorks';
 
 const profileSchema = z.object({
   display_name: z.string().trim().min(2).max(80),
