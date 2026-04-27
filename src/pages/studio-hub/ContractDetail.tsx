@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ArrowLeft, ShieldCheck, Loader2, Upload, FileText, CheckCircle2, Clock, Wallet } from 'lucide-react';
+import { ReviewForm } from '@/components/studio-hub/ReviewForm';
 
 export default function ContractDetail() {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +40,17 @@ export default function ContractDetail() {
     }).eq('id', contract.id);
     setMarking(false);
     toast.success('Payment marked as held in escrow.');
+    refetch();
+  };
+
+  const markCompleted = async () => {
+    if (!isClient) return;
+    setMarking(true);
+    await (supabase as any).from('marketplace_contracts').update({
+      status: 'completed', completed_at: new Date().toISOString(),
+    }).eq('id', contract.id);
+    setMarking(false);
+    toast.success('Contract marked as completed.');
     refetch();
   };
 
