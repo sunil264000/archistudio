@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,7 +10,6 @@ import { CartProvider } from "@/contexts/CartContext";
 import { PurchaseNotification } from "@/components/social-proof/PurchaseNotification";
 import { FestivalDecorations } from "@/components/festival/FestivalDecorations";
 import { SaleBanner } from "@/components/sales/SaleBanner";
-import { AmbientAudio } from "@/components/audio/AmbientAudio";
 import { LoginGiftModal } from "@/components/gift/LoginGiftModal";
 import { WelcomePromotionModal } from "@/components/welcome/WelcomePromotionModal";
 import { WelcomePopup } from "@/components/welcome/WelcomePopup";
@@ -25,63 +24,62 @@ import { useVisitorTracking } from "@/hooks/useVisitorTracking";
 import { initializeGA4 } from "@/hooks/useGoogleAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { AnimatePresence, motion } from "framer-motion";
+import { queryClient, prefetchCriticalData } from "@/lib/queryClient";
+
+// ─── Critical pages (eagerly loaded — first-paint routes) ───
+import Splash from "./pages/Splash";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Courses from "./pages/Courses";
-import CourseDetail from "./pages/CourseDetail";
-import CoursePlayer from "./pages/CoursePlayer";
-import Dashboard from "./pages/Dashboard";
-import Admin from "./pages/Admin";
-import Blog from "./pages/Blog";
-import BlogPost from "./pages/BlogPost";
-import PaymentSuccess from "./pages/PaymentSuccess";
-import PaymentFailed from "./pages/PaymentFailed";
-import EbookPaymentSuccess from "./pages/EbookPaymentSuccess";
-import EbookPaymentFailed from "./pages/EbookPaymentFailed";
-import ResetPassword from "./pages/ResetPassword";
-import UpdatePassword from "./pages/UpdatePassword";
-import Contact from "./pages/Contact";
-import Terms from "./pages/Terms";
-import EbookBundle from "./pages/EbookBundle";
 import NotFound from "./pages/NotFound";
-import VerifyCertificate from "./pages/VerifyCertificate";
-import Sitemap from "./pages/Sitemap";
-import Studio from "./pages/Studio";
-import SheetReviews from "./pages/SheetReviews";
-import SheetDetail from "./pages/SheetDetail";
-import Forum from "./pages/Forum";
-import ForumTopic from "./pages/ForumTopic";
-import PortfolioBuilder from "./pages/PortfolioBuilder";
-import PortfolioView from "./pages/PortfolioView";
-import Internships from "./pages/Internships";
-import Competitions from "./pages/Competitions";
-import Roadmaps from "./pages/Roadmaps";
-import StudentProfile from "./pages/StudentProfile";
-import ResourceLibrary from "./pages/ResourceLibrary";
-import Leaderboard from "./pages/Leaderboard";
-import DailyChallenges from "./pages/DailyChallenges";
-import PublicProfile from "./pages/PublicProfile";
-import PortfolioDiscovery from "./pages/PortfolioDiscovery";
-import CaseStudies from "./pages/CaseStudies";
-import LearningMap from "./pages/LearningMap";
-import Explore from "./pages/Explore";
-import StudioRooms from "./pages/StudioRooms";
-import MarketplaceHome from "./pages/marketplace/MarketplaceHome";
-import BrowseJobs from "./pages/marketplace/BrowseJobs";
-import PostJob from "./pages/marketplace/PostJob";
-import JobDetail from "./pages/marketplace/JobDetail";
-import BecomeWorker from "./pages/marketplace/BecomeWorker";
-import Splash from "./pages/Splash";
-import StudioHubHome from "./pages/studio-hub/StudioHubHome";
-import StudioHubBrowseProjects from "./pages/studio-hub/BrowseProjects";
-import StudioHubProjectDetail from "./pages/studio-hub/ProjectDetail";
-import StudioHubPostProject from "./pages/studio-hub/PostProject";
-import StudioHubBecomeMember from "./pages/studio-hub/BecomeMember";
-import StudioHubMembers from "./pages/studio-hub/MembersDirectory";
-import StudioHubMemberProfile from "./pages/studio-hub/MemberProfile";
-import StudioHubMyStudio from "./pages/studio-hub/MyStudio";
-import StudioHubContractDetail from "./pages/studio-hub/ContractDetail";
-import { queryClient, prefetchCriticalData } from "@/lib/queryClient";
+
+// ─── Lazy-loaded pages (code-split for faster initial load) ───
+const CourseDetail = lazy(() => import("./pages/CourseDetail"));
+const CoursePlayer = lazy(() => import("./pages/CoursePlayer"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Admin = lazy(() => import("./pages/Admin"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const PaymentFailed = lazy(() => import("./pages/PaymentFailed"));
+const EbookPaymentSuccess = lazy(() => import("./pages/EbookPaymentSuccess"));
+const EbookPaymentFailed = lazy(() => import("./pages/EbookPaymentFailed"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const UpdatePassword = lazy(() => import("./pages/UpdatePassword"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Terms = lazy(() => import("./pages/Terms"));
+const EbookBundle = lazy(() => import("./pages/EbookBundle"));
+const VerifyCertificate = lazy(() => import("./pages/VerifyCertificate"));
+const Sitemap = lazy(() => import("./pages/Sitemap"));
+const Studio = lazy(() => import("./pages/Studio"));
+const SheetReviews = lazy(() => import("./pages/SheetReviews"));
+const SheetDetail = lazy(() => import("./pages/SheetDetail"));
+const Forum = lazy(() => import("./pages/Forum"));
+const ForumTopic = lazy(() => import("./pages/ForumTopic"));
+const PortfolioBuilder = lazy(() => import("./pages/PortfolioBuilder"));
+const PortfolioView = lazy(() => import("./pages/PortfolioView"));
+const Internships = lazy(() => import("./pages/Internships"));
+const Competitions = lazy(() => import("./pages/Competitions"));
+const Roadmaps = lazy(() => import("./pages/Roadmaps"));
+const StudentProfile = lazy(() => import("./pages/StudentProfile"));
+const ResourceLibrary = lazy(() => import("./pages/ResourceLibrary"));
+const Leaderboard = lazy(() => import("./pages/Leaderboard"));
+const DailyChallenges = lazy(() => import("./pages/DailyChallenges"));
+const PublicProfile = lazy(() => import("./pages/PublicProfile"));
+const PortfolioDiscovery = lazy(() => import("./pages/PortfolioDiscovery"));
+const CaseStudies = lazy(() => import("./pages/CaseStudies"));
+const LearningMap = lazy(() => import("./pages/LearningMap"));
+const Explore = lazy(() => import("./pages/Explore"));
+const StudioRooms = lazy(() => import("./pages/StudioRooms"));
+const StudioHubHome = lazy(() => import("./pages/studio-hub/StudioHubHome"));
+const StudioHubBrowseProjects = lazy(() => import("./pages/studio-hub/BrowseProjects"));
+const StudioHubProjectDetail = lazy(() => import("./pages/studio-hub/ProjectDetail"));
+const StudioHubPostProject = lazy(() => import("./pages/studio-hub/PostProject"));
+const StudioHubBecomeMember = lazy(() => import("./pages/studio-hub/BecomeMember"));
+const StudioHubMembers = lazy(() => import("./pages/studio-hub/MembersDirectory"));
+const StudioHubMemberProfile = lazy(() => import("./pages/studio-hub/MemberProfile"));
+const StudioHubMyStudio = lazy(() => import("./pages/studio-hub/MyStudio"));
+const StudioHubContractDetail = lazy(() => import("./pages/studio-hub/ContractDetail"));
 
 // Warm cache on app load
 prefetchCriticalData().catch(() => {});
@@ -100,6 +98,21 @@ const initAnalytics = async () => {
 
 // Call on app load
 initAnalytics();
+
+// ─── Premium page-level loading spinner ───
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4">
+        <div className="relative h-10 w-10">
+          <div className="absolute inset-0 rounded-full border-2 border-accent/20" />
+          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-accent animate-spin" />
+        </div>
+        <p className="text-xs text-muted-foreground tracking-widest uppercase animate-pulse">Loading</p>
+      </div>
+    </div>
+  );
+}
 
 const AppContent = () => {
   useContentProtection();
@@ -295,77 +308,98 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait">
       <motion.div
         key={location.pathname}
-        initial={{ opacity: 0, y: 12, filter: 'blur(6px)' }}
+        initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
         animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-        exit={{ opacity: 0, y: -8, filter: 'blur(4px)' }}
+        exit={{ opacity: 0, y: -6, filter: 'blur(3px)' }}
         transition={{
-          duration: 0.35,
-          ease: [0.16, 1, 0.3, 1],
+          duration: 0.3,
+          ease: [0.22, 1, 0.36, 1],
         }}
       >
-        <Routes location={location}>
-          <Route path="/" element={<Splash />} />
-          <Route path="/learn" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/courses" element={<Courses />} />
-          <Route path="/sitemap" element={<Sitemap />} />
-          <Route path="/course/:slug" element={<CourseDetail />} />
-          <Route path="/courses/:slug" element={<CourseDetail />} />
-          <Route path="/learn/:slug" element={<ProtectedRoute><CoursePlayer /></ProtectedRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/blog/:slug" element={<BlogPost />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/payment-failed" element={<PaymentFailed />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/update-password" element={<UpdatePassword />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/privacy" element={<Navigate to="/terms" replace />} />
-          <Route path="/about" element={<Navigate to="/contact" replace />} />
-          <Route path="/ebooks" element={<EbookBundle />} />
-          <Route path="/ebook-payment-success" element={<EbookPaymentSuccess />} />
-          <Route path="/ebook-payment-failed" element={<EbookPaymentFailed />} />
-          <Route path="/studio" element={<ProtectedRoute><Studio /></ProtectedRoute>} />
-          <Route path="/sheets" element={<SheetReviews />} />
-          <Route path="/sheets/:id" element={<SheetDetail />} />
-          <Route path="/forum" element={<Forum />} />
-          <Route path="/forum/:id" element={<ForumTopic />} />
-          <Route path="/portfolio/build" element={<ProtectedRoute><PortfolioBuilder /></ProtectedRoute>} />
-          <Route path="/portfolio/:slug" element={<PortfolioView />} />
-          <Route path="/internships" element={<Internships />} />
-          <Route path="/competitions" element={<Competitions />} />
-          <Route path="/roadmaps" element={<Roadmaps />} />
-          <Route path="/profile/:userId" element={<StudentProfile />} />
-          <Route path="/resources" element={<ResourceLibrary />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/challenges" element={<DailyChallenges />} />
-          <Route path="/verify/:certNumber" element={<VerifyCertificate />} />
-          <Route path="/u/:username" element={<PublicProfile />} />
-          <Route path="/portfolios" element={<PortfolioDiscovery />} />
-          <Route path="/case-studies" element={<CaseStudies />} />
-          <Route path="/explore" element={<Explore />} />
-          <Route path="/learning-map" element={<LearningMap />} />
-          <Route path="/studio-rooms" element={<ProtectedRoute><StudioRooms /></ProtectedRoute>} />
-          {/* Studio Hub (freelance) */}
-          <Route path="/studio-hub" element={<StudioHubHome />} />
-          <Route path="/studio-hub/projects" element={<StudioHubBrowseProjects />} />
-          <Route path="/studio-hub/projects/:id" element={<StudioHubProjectDetail />} />
-          <Route path="/studio-hub/post" element={<ProtectedRoute><StudioHubPostProject /></ProtectedRoute>} />
-          <Route path="/studio-hub/become-member" element={<ProtectedRoute><StudioHubBecomeMember /></ProtectedRoute>} />
-          <Route path="/studio-hub/members" element={<StudioHubMembers />} />
-          <Route path="/studio-hub/members/:userId" element={<StudioHubMemberProfile />} />
-          <Route path="/studio-hub/me" element={<ProtectedRoute><StudioHubMyStudio /></ProtectedRoute>} />
-          <Route path="/studio-hub/contracts/:id" element={<ProtectedRoute><StudioHubContractDetail /></ProtectedRoute>} />
-          {/* Legacy marketplace redirects */}
-          <Route path="/marketplace" element={<Navigate to="/studio-hub" replace />} />
-          <Route path="/marketplace/jobs" element={<Navigate to="/studio-hub/projects" replace />} />
-          <Route path="/marketplace/jobs/:id" element={<Navigate to="/studio-hub/projects" replace />} />
-          <Route path="/marketplace/post-job" element={<Navigate to="/studio-hub/post" replace />} />
-          <Route path="/marketplace/become-worker" element={<Navigate to="/studio-hub/become-member" replace />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes location={location}>
+            {/* ─── Core public routes ─── */}
+            <Route path="/" element={<Splash />} />
+            <Route path="/learn" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/courses" element={<Courses />} />
+
+            {/* ─── Course routes ─── */}
+            <Route path="/course/:slug" element={<CourseDetail />} />
+            <Route path="/courses/:slug" element={<CourseDetail />} />
+            <Route path="/learn/:slug" element={<ProtectedRoute><CoursePlayer /></ProtectedRoute>} />
+
+            {/* ─── Protected user routes ─── */}
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
+            <Route path="/studio" element={<ProtectedRoute><Studio /></ProtectedRoute>} />
+            <Route path="/studio-rooms" element={<ProtectedRoute><StudioRooms /></ProtectedRoute>} />
+            <Route path="/portfolio/build" element={<ProtectedRoute><PortfolioBuilder /></ProtectedRoute>} />
+
+            {/* ─── Content pages ─── */}
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+            <Route path="/explore" element={<Explore />} />
+            <Route path="/ebooks" element={<EbookBundle />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/sitemap" element={<Sitemap />} />
+
+            {/* ─── Community pages ─── */}
+            <Route path="/forum" element={<Forum />} />
+            <Route path="/forum/:id" element={<ForumTopic />} />
+            <Route path="/sheets" element={<SheetReviews />} />
+            <Route path="/sheets/:id" element={<SheetDetail />} />
+            <Route path="/competitions" element={<Competitions />} />
+            <Route path="/challenges" element={<DailyChallenges />} />
+            <Route path="/internships" element={<Internships />} />
+            <Route path="/roadmaps" element={<Roadmaps />} />
+            <Route path="/resources" element={<ResourceLibrary />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/learning-map" element={<LearningMap />} />
+            <Route path="/case-studies" element={<CaseStudies />} />
+
+            {/* ─── Portfolio & Profile ─── */}
+            <Route path="/portfolio/:slug" element={<PortfolioView />} />
+            <Route path="/portfolios" element={<PortfolioDiscovery />} />
+            <Route path="/profile/:userId" element={<StudentProfile />} />
+            <Route path="/u/:username" element={<PublicProfile />} />
+            <Route path="/verify/:certNumber" element={<VerifyCertificate />} />
+
+            {/* ─── Payment flows ─── */}
+            <Route path="/payment-success" element={<PaymentSuccess />} />
+            <Route path="/payment-failed" element={<PaymentFailed />} />
+            <Route path="/ebook-payment-success" element={<EbookPaymentSuccess />} />
+            <Route path="/ebook-payment-failed" element={<EbookPaymentFailed />} />
+
+            {/* ─── Auth flows ─── */}
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/update-password" element={<UpdatePassword />} />
+
+            {/* ─── Studio Hub (freelance marketplace) ─── */}
+            <Route path="/studio-hub" element={<StudioHubHome />} />
+            <Route path="/studio-hub/projects" element={<StudioHubBrowseProjects />} />
+            <Route path="/studio-hub/projects/:id" element={<StudioHubProjectDetail />} />
+            <Route path="/studio-hub/post" element={<ProtectedRoute><StudioHubPostProject /></ProtectedRoute>} />
+            <Route path="/studio-hub/become-member" element={<ProtectedRoute><StudioHubBecomeMember /></ProtectedRoute>} />
+            <Route path="/studio-hub/members" element={<StudioHubMembers />} />
+            <Route path="/studio-hub/members/:userId" element={<StudioHubMemberProfile />} />
+            <Route path="/studio-hub/me" element={<ProtectedRoute><StudioHubMyStudio /></ProtectedRoute>} />
+            <Route path="/studio-hub/contracts/:id" element={<ProtectedRoute><StudioHubContractDetail /></ProtectedRoute>} />
+
+            {/* ─── Redirects ─── */}
+            <Route path="/privacy" element={<Navigate to="/terms" replace />} />
+            <Route path="/about" element={<Navigate to="/contact" replace />} />
+            <Route path="/marketplace" element={<Navigate to="/studio-hub" replace />} />
+            <Route path="/marketplace/jobs" element={<Navigate to="/studio-hub/projects" replace />} />
+            <Route path="/marketplace/jobs/:id" element={<Navigate to="/studio-hub/projects" replace />} />
+            <Route path="/marketplace/post-job" element={<Navigate to="/studio-hub/post" replace />} />
+            <Route path="/marketplace/become-worker" element={<Navigate to="/studio-hub/become-member" replace />} />
+
+            {/* ─── 404 ─── */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </motion.div>
     </AnimatePresence>
   );
@@ -387,7 +421,6 @@ const App = () => (
               <PurchaseNotification />
               <SaleBanner />
               <AnimatedRoutes />
-              <AmbientAudio />
               <FloatingAIMentor />
               <AchievementUnlockToast />
             </ErrorBoundary>

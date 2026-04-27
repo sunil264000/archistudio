@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Instagram, Facebook, Twitter, Youtube, Linkedin, ArrowUpRight } from 'lucide-react';
+import { Instagram, Facebook, Twitter, Youtube, Linkedin, ArrowUpRight, Shield, Lock, Zap, ArrowRight } from 'lucide-react';
 import logoMark from '@/assets/logo-mark.png';
+import { Button } from '@/components/ui/button';
 
 interface SocialLinks {
   instagram_url: string;
@@ -43,16 +44,44 @@ export function Footer() {
 
   const activeSocials = socialIcons.filter(s => socialLinks[s.key as keyof SocialLinks]);
 
+  const trustBadges = [
+    { icon: Shield, label: 'Secure Payments' },
+    { icon: Lock, label: 'SSL Encrypted' },
+    { icon: Zap, label: 'Instant Access' },
+  ];
+
   return (
     <footer className="relative border-t border-border/15">
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-accent/15 to-transparent" />
+      {/* Gradient top border */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-accent/20 to-transparent" />
       
-      <div className="container-wide py-16 sm:py-20">
+      {/* Newsletter CTA */}
+      <div className="border-b border-border/15">
+        <div className="container-wide py-14 sm:py-16">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 max-w-4xl mx-auto">
+            <div>
+              <h3 className="font-display text-xl md:text-2xl font-semibold tracking-tight mb-2">
+                Stay in the loop
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Get architecture insights, new course drops, and Studio Hub updates.
+              </p>
+            </div>
+            <Link to="/auth?mode=signup">
+              <Button className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full px-6 gap-2 shadow-[0_0_20px_hsl(var(--accent)/0.15)]">
+                Join Free <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="container-wide py-14 sm:py-16">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10 md:gap-8 mb-14">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1 space-y-5">
-            <Link to="/" className="flex items-center gap-2.5">
-              <img src={logoMark} alt="Archistudio" className="h-7 w-7 rounded-md object-cover" />
+            <Link to="/" className="flex items-center gap-2.5 group">
+              <img src={logoMark} alt="Archistudio" className="h-7 w-7 rounded-md object-cover transition-transform duration-300 group-hover:scale-110" />
               <span className="font-display font-bold text-base text-foreground">Archistudio</span>
             </Link>
             <p className="text-body-sm text-muted-foreground leading-relaxed max-w-xs">
@@ -67,7 +96,7 @@ export function Footer() {
                     href={socialLinks[social.key as keyof SocialLinks]}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2.5 rounded-lg bg-secondary/50 hover:bg-accent hover:text-accent-foreground transition-all duration-300 border border-border/20 hover:border-accent/30 touch-target min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    className="p-2.5 rounded-xl bg-secondary/50 hover:bg-accent hover:text-accent-foreground transition-all duration-300 border border-border/20 hover:border-accent/30 hover:scale-110 touch-target min-w-[44px] min-h-[44px] flex items-center justify-center"
                     aria-label={social.label}
                   >
                     <social.icon className="h-4 w-4" />
@@ -97,6 +126,7 @@ export function Footer() {
               { label: 'Leaderboard', to: '/leaderboard' },
             ]},
             { title: 'Discover', links: [
+              { label: 'Studio Hub', to: '/studio-hub' },
               { label: 'Case Studies', to: '/case-studies' },
               { label: 'Blog', to: '/blog' },
               { label: 'Sitemap', to: '/sitemap' },
@@ -126,7 +156,17 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="divider-metallic mb-8" />
+        {/* Trust badges */}
+        <div className="flex flex-wrap items-center justify-center gap-4 mb-10">
+          {trustBadges.map((badge) => (
+            <div key={badge.label} className="trust-badge">
+              <badge.icon className="h-3.5 w-3.5 text-accent" />
+              <span>{badge.label}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="section-divider mb-8" />
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-safe">
           <div className="text-caption text-muted-foreground">

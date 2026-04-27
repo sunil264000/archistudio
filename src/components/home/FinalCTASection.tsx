@@ -13,14 +13,25 @@ export function FinalCTASection() {
 
   return (
     <section className="section-padding relative overflow-hidden">
-      {/* Dark background */}
+      {/* Dark background with gradient */}
       <div className="absolute inset-0 bg-foreground" />
       
-      {/* Subtle accent glow */}
-      <div 
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle, hsl(var(--accent) / 0.06) 0%, transparent 70%)' }}
+      {/* Animated accent glow orbs */}
+      <motion.div
+        animate={{ scale: [1, 1.15, 1], opacity: [0.06, 0.1, 0.06] }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, hsl(var(--accent) / 0.08) 0%, transparent 65%)' }}
       />
+      <motion.div
+        animate={{ scale: [1, 1.1, 1] }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+        className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full pointer-events-none"
+        style={{ background: 'radial-gradient(circle, hsl(var(--blueprint) / 0.04) 0%, transparent 65%)' }}
+      />
+      
+      {/* Dot grid overlay */}
+      <div className="absolute inset-0 dot-grid opacity-[0.04] pointer-events-none" />
 
       <div className="container-wide relative">
         <motion.div 
@@ -52,7 +63,7 @@ export function FinalCTASection() {
             <Link to={user ? "/courses" : "/auth?mode=signup"}>
               <Button 
                 size="xl" 
-                className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2.5 group shadow-[0_4px_24px_hsl(var(--accent)/0.25)] text-base px-10"
+                className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2.5 group shadow-[0_4px_32px_hsl(var(--accent)/0.3)] hover:shadow-[0_8px_40px_hsl(var(--accent)/0.4)] text-base px-10 rounded-full transition-all duration-300"
               >
                 {user ? "Explore Courses" : "Start Learning Free"}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />

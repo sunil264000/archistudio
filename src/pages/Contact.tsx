@@ -91,11 +91,12 @@ export default function Contact() {
       {/* Animated Background */}
       <AnimatedBackground intensity="light" />
       
-      <main className="pt-24 pb-16">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+      <main className="pt-24 pb-16 relative">
+        <div className="absolute inset-0 dot-grid opacity-10 pointer-events-none" />
+        <div className="container mx-auto px-4 relative">
+          <div className="text-center mb-14">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">Contact <span class="text-hero-gradient">Us</span></h1>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
               Have questions about our courses? We're here to help. Reach out to us and we'll respond within 24 hours.
             </p>
           </div>
@@ -103,7 +104,7 @@ export default function Contact() {
           <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {/* Contact Info */}
             <div className="space-y-6">
-              <Card>
+              <Card className="card-premium">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
                     <div className="p-3 bg-accent/10 rounded-lg">
@@ -118,7 +119,7 @@ export default function Contact() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="card-premium">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
                     <div className="p-3 bg-accent/10 rounded-lg">
@@ -133,7 +134,7 @@ export default function Contact() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="card-premium">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
                     <div className="p-3 bg-accent/10 rounded-lg">
@@ -151,7 +152,7 @@ export default function Contact() {
             </div>
 
             {/* Contact Form */}
-            <Card className="lg:col-span-2">
+            <Card className="lg:col-span-2 card-premium">
               <CardHeader>
                 <CardTitle>Send us a Message</CardTitle>
                 <CardDescription>Fill out the form below and we'll get back to you soon.</CardDescription>
@@ -208,7 +209,7 @@ export default function Contact() {
                       required
                     />
                   </div>
-                  <Button type="submit" disabled={loading} className="w-full sm:w-auto">
+                  <Button type="submit" disabled={loading} className="w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/90 rounded-full px-8 gap-2 shadow-[0_0_20px_hsl(var(--accent)/0.15)]">
                     {loading ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />

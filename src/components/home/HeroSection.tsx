@@ -1,10 +1,8 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Play } from 'lucide-react';
+import { ArrowRight, Play, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -28,7 +26,7 @@ function MarqueeStrip() {
     <div className="absolute bottom-0 left-0 right-0 overflow-hidden border-t border-border/10">
       <div className="flex animate-marquee whitespace-nowrap py-3.5">
         {[...words, ...words].map((word, i) => (
-          <span key={i} className="mx-6 sm:mx-10 font-mono text-[10px] tracking-[0.25em] text-muted-foreground/30 font-medium">
+          <span key={i} className="mx-6 sm:mx-10 font-mono text-[10px] tracking-[0.25em] text-muted-foreground/25 font-medium hover:text-accent/40 transition-colors duration-300 cursor-default">
             {word}
           </span>
         ))}
@@ -37,6 +35,8 @@ function MarqueeStrip() {
   );
 }
 
+const trustItems = ['Free course previews', 'No credit card required', 'Cancel anytime'];
+
 export function HeroSection() {
   const { user } = useAuth();
   
@@ -44,7 +44,22 @@ export function HeroSection() {
     <section className="relative min-h-[92vh] flex items-center overflow-hidden">
       {/* Ambient background */}
       <div className="absolute inset-0 bg-gradient-to-b from-muted/30 via-background to-background" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,hsl(var(--accent)/0.04),transparent)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,hsl(var(--accent)/0.05),transparent)]" />
+      
+      {/* Animated orbs */}
+      <motion.div
+        animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
+        transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute top-20 right-[15%] h-[350px] w-[350px] rounded-full bg-[radial-gradient(circle,hsl(var(--accent)/0.06),transparent_65%)] blur-3xl pointer-events-none"
+      />
+      <motion.div
+        animate={{ x: [0, -25, 0], y: [0, 15, 0] }}
+        transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute bottom-20 left-[10%] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,hsl(var(--blueprint)/0.05),transparent_65%)] blur-3xl pointer-events-none"
+      />
+      
+      {/* Dot grid */}
+      <div className="absolute inset-0 dot-grid opacity-20 pointer-events-none" />
       
       <div className="relative section-padding w-full z-10">
         <div className="container-wide">
@@ -52,7 +67,7 @@ export function HeroSection() {
             {/* Label */}
             <motion.div 
               custom={0} variants={fadeUp} initial="hidden" animate="visible"
-              className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-border/40 bg-card/30 mb-8"
+              className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-border/40 bg-card/30 backdrop-blur-sm mb-8"
             >
               <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
               <span className="font-display text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
@@ -67,7 +82,7 @@ export function HeroSection() {
                 <br />
                 <span className="text-muted-foreground/70">the Way It's Actually</span>
                 <br />
-                <span className="text-accent">Practiced.</span>
+                <span className="text-hero-gradient">Practiced.</span>
               </h1>
             </motion.div>
             
@@ -89,7 +104,7 @@ export function HeroSection() {
               className="flex flex-col sm:flex-row items-center gap-3 justify-center mt-9"
             >
               <Link to={user ? "/courses" : "/auth?mode=signup"} className="w-full sm:w-auto">
-                <Button size="xl" className="gap-2.5 group w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_4px_24px_hsl(var(--accent)/0.2)] text-base px-8">
+                <Button size="xl" className="gap-2.5 group w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_4px_24px_hsl(var(--accent)/0.25)] hover:shadow-[0_8px_32px_hsl(var(--accent)/0.35)] text-base px-8 rounded-full transition-all duration-300">
                   {user ? "Explore Courses" : "Start Learning"}
                   <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </Button>
@@ -105,13 +120,14 @@ export function HeroSection() {
             {/* Trust signals */}
             <motion.div 
               custom={4} variants={fadeUp} initial="hidden" animate="visible"
-              className="flex items-center gap-2.5 justify-center mt-8 text-xs text-muted-foreground/50"
+              className="flex flex-wrap items-center gap-4 justify-center mt-9"
             >
-              <span>Free course previews</span>
-              <span className="w-1 h-1 rounded-full bg-muted-foreground/20" />
-              <span>No credit card required</span>
-              <span className="w-1 h-1 rounded-full bg-muted-foreground/20" />
-              <span>Cancel anytime</span>
+              {trustItems.map((item) => (
+                <span key={item} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/60">
+                  <CheckCircle2 className="h-3 w-3 text-accent/50" />
+                  {item}
+                </span>
+              ))}
             </motion.div>
           </div>
         </div>

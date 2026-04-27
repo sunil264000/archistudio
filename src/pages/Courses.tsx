@@ -146,6 +146,7 @@ export default function Courses() {
       {/* Hero — calm editorial style */}
       <section className="pt-8 sm:pt-12 pb-10 sm:pb-14 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.02] via-transparent to-transparent" />
+        <div className="absolute inset-0 dot-grid opacity-10 pointer-events-none" />
         <div className="container mx-auto px-4 text-center relative">
           <Badge variant="outline" className="mb-5 gap-1.5 text-xs font-medium border-border/50">
             <GraduationCap className="h-3 w-3 text-accent" />
@@ -155,7 +156,7 @@ export default function Courses() {
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 tracking-tight">
             Architecture & Design
             <br />
-            <span className="text-muted-foreground font-medium text-[0.85em]">Course Catalog</span>
+            <span className="text-hero-gradient font-medium text-[0.85em]">Course Catalog</span>
           </h1>
 
           <p className="text-muted-foreground text-base md:text-lg max-w-xl mx-auto mb-8 leading-relaxed">
@@ -169,7 +170,7 @@ export default function Courses() {
               placeholder="Search by name, tool, or topic..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-11 h-12 text-sm border-border/40 bg-card/50 focus:bg-card transition-colors duration-300 shadow-[var(--shadow-soft)]"
+              className="pl-11 h-12 text-sm border-border/40 bg-card/50 focus:bg-card transition-colors duration-300 shadow-[var(--shadow-soft)] focus:shadow-[0_0_0_2px_hsl(var(--accent)/0.2)] rounded-xl"
             />
           </div>
         </div>
@@ -414,7 +415,7 @@ function CourseCard({
 
   return (
     <Card
-      className={`group overflow-hidden transition-all duration-500 border-border/30 bg-card/50 hover:bg-card/80 hover:shadow-[var(--shadow-medium)] hover:-translate-y-0.5 ${
+      className={`group overflow-hidden transition-all duration-500 border-border/30 bg-card/50 hover:bg-card/80 hover:shadow-[var(--shadow-elevated)] hover:-translate-y-1 ${
         featured ? 'border-accent/20' : ''
       } ${course.isHighlighted ? 'ring-1 ring-accent/30' : ''}`}
     >

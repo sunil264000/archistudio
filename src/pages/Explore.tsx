@@ -118,7 +118,7 @@ function MasonryCard({ item, index }: { item: ExploreItem; index: number }) {
       transition={{ duration: 0.4, delay: index * 0.03, ease: [0.22, 1, 0.36, 1] }}
     >
       <CardWrapper>
-        <Card className="group overflow-hidden bg-card/60 hover:bg-card/90 border-border/40 hover:border-border/60 transition-all duration-500 hover:shadow-[var(--shadow-medium)]">
+        <Card className="group overflow-hidden bg-card/60 hover:bg-card/90 border-border/40 hover:border-border/60 transition-all duration-500 hover:shadow-[var(--shadow-medium)] hover:-translate-y-1">
           {hasImage && (
             <div className={`${imageHeight} overflow-hidden relative`}>
               <img
@@ -275,19 +275,20 @@ export default function Explore() {
         {/* Hero header */}
         <section className="relative border-b border-border/30 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.03] via-transparent to-transparent" />
-          <div className="container mx-auto px-4 py-16 md:py-20 relative">
+          <div className="absolute inset-0 dot-grid opacity-15 pointer-events-none" />
+          <div className="container mx-auto px-4 py-16 md:py-24 relative">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               className="max-w-2xl mx-auto text-center space-y-5"
             >
-              <Badge variant="outline" className="gap-1.5 text-xs font-medium">
-                <Sparkles className="h-3 w-3" /> Discover & Learn
+              <Badge variant="outline" className="gap-1.5 text-xs font-medium border-accent/20">
+                <Sparkles className="h-3 w-3 text-accent" /> Discover & Learn
               </Badge>
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
                 Architecture{' '}
-                <span className="text-gradient-accent">Explored</span>
+                <span className="text-hero-gradient">Explored</span>
               </h1>
               <p className="text-muted-foreground text-base md:text-lg leading-relaxed max-w-lg mx-auto">
                 Curated courses, global inspiration from ArchDaily & Dezeen, case studies — all in one place.
@@ -361,10 +362,12 @@ export default function Explore() {
                 { label: 'Leaderboard', link: '/leaderboard', icon: TrendingUp },
               ].map(q => (
                 <Link key={q.label} to={q.link}>
-                  <Card className="group bg-card/50 hover:bg-card/80 border-border/30 hover:border-border/50 transition-all duration-300 cursor-pointer">
+                  <Card className="group bg-card/50 hover:bg-card/80 border-border/30 hover:border-accent/20 transition-all duration-300 cursor-pointer hover:-translate-y-0.5 hover:shadow-[var(--shadow-soft)]">
                     <CardContent className="p-4 flex items-center gap-3">
-                      <q.icon className="h-4 w-4 text-muted-foreground group-hover:text-accent transition-colors" />
-                      <span className="text-sm font-medium">{q.label}</span>
+                      <div className="p-1.5 rounded-lg bg-accent/8 text-accent transition-transform group-hover:scale-110">
+                        <q.icon className="h-4 w-4" />
+                      </div>
+                      <span className="text-sm font-medium group-hover:text-foreground transition-colors">{q.label}</span>
                       <ArrowRight className="h-3.5 w-3.5 ml-auto text-muted-foreground/40 group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
                     </CardContent>
                   </Card>
