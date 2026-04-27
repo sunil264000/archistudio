@@ -48,8 +48,9 @@ export function Navbar() {
   }, []);
 
   const navLinks = [
+    { to: '/learn', label: 'Learn' },
     { to: '/courses', label: 'Courses' },
-    { to: '/marketplace', label: 'Marketplace', icon: Briefcase },
+    { to: '/studio-hub', label: 'Studio Hub', icon: Briefcase },
     { to: '/explore', label: 'Explore' },
     { to: '/roadmaps', label: 'Paths' },
     { to: '/ebooks', label: 'eBooks', icon: Library },
@@ -72,8 +73,11 @@ export function Navbar() {
   ];
 
   const mobileLinks = [
+    { to: '/learn', label: 'Learn (school)' },
     { to: '/courses', label: 'Courses' },
-    { to: '/marketplace', label: 'Marketplace' },
+    { to: '/studio-hub', label: 'Studio Hub' },
+    { to: '/studio-hub/projects', label: 'Browse projects' },
+    { to: '/studio-hub/members', label: 'Studio Members' },
     { to: '/explore', label: 'Explore' },
     { to: '/roadmaps', label: 'Learning Paths' },
     { to: '/learning-map', label: 'Learning Map' },
@@ -84,7 +88,7 @@ export function Navbar() {
     { to: '/internships', label: 'Internships' },
     { to: '/portfolios', label: 'Portfolios' },
     { to: '/case-studies', label: 'Case Studies' },
-    ...(user ? [{ to: '/portfolio/build', label: 'My Portfolio' }, { to: '/studio', label: 'Studio' }] : []),
+    ...(user ? [{ to: '/portfolio/build', label: 'My Portfolio' }, { to: '/studio', label: 'Studio' }, { to: '/studio-hub/me', label: 'My Studio Hub' }] : []),
     { to: '/resources', label: 'Resources' },
     { to: '/leaderboard', label: 'Leaderboard' },
     { to: '/blog', label: 'Blog' },

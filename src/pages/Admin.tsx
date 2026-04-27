@@ -51,6 +51,7 @@ import { JobQueuePanel } from '@/components/admin/JobQueuePanel';
 import { FeatureFlagPanel } from '@/components/admin/FeatureFlagPanel';
 import { SystemMonitorPanel } from '@/components/admin/SystemMonitorPanel';
 import { LearningPathPanel } from '@/components/admin/LearningPathPanel';
+import { StudioHubAdminPanel } from '@/components/admin/StudioHubAdminPanel';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import {
@@ -195,6 +196,8 @@ export default function Admin() {
         return <LearningPathPanel />;
       case 'resource-scanner':
         return <ResourceScannerPanel />;
+      case 'studio-hub':
+        return <StudioHubAdminPanel />;
       default:
         return <AdminOverview stats={stats} onNavigate={setActiveTab} />;
     }
