@@ -164,6 +164,36 @@ export default function ContractDetail() {
           )}
         </div>
 
+        {/* Client confirms delivery */}
+        {isClient && contract.status === 'delivered' && (
+          <div className="border border-border/40 rounded-2xl p-6 mb-6 bg-muted/20">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-accent shrink-0 mt-1" />
+              <div className="flex-1">
+                <p className="font-medium mb-1.5">Files released to you</p>
+                <p className="text-sm text-muted-foreground mb-4">If everything is right, mark the contract complete to release the payout to your Studio Member.</p>
+                <Button onClick={markCompleted} disabled={marking} className="rounded-full bg-foreground text-background hover:bg-foreground/90">
+                  {marking && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Mark as completed
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reviews on completed contracts */}
+        {contract.status === 'completed' && (isClient || isMember) && (
+          <div className="mb-8">
+            <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">Leave a review</p>
+            <ReviewForm
+              contractId={contract.id}
+              reviewerId={user.id}
+              revieweeId={isClient ? contract.worker_id : contract.client_id}
+              direction={isClient ? 'client_to_worker' : 'worker_to_client'}
+            />
+          </div>
+        )}
+
         <div className="border border-border/40 rounded-2xl p-5 bg-muted/20 text-xs text-muted-foreground flex items-start gap-2">
           <ShieldCheck className="h-4 w-4 text-accent shrink-0 mt-0.5" />
           <p>Studio-protected escrow: Archistudio reviews every deliverable before releasing files to the client and the payout to the member.</p>
