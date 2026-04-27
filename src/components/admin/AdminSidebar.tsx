@@ -76,6 +76,12 @@ const menuGroups: MenuGroup[] = [
     ],
   },
   {
+    label: 'Studio Hub',
+    items: [
+      { id: 'studio-hub', label: 'Escrow & Payouts', icon: Wallet, color: 'text-emerald-500' },
+    ],
+  },
+  {
     label: 'Marketing',
     items: [
       { id: 'gift-campaigns', label: 'Gift Campaigns', icon: Gift, color: 'text-pink-500' },
