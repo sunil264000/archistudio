@@ -14,6 +14,9 @@ import { useMyMemberProfile, STUDIO_SKILLS } from '@/hooks/useStudioHub';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, X, Plus, CheckCircle2, Camera } from 'lucide-react';
+import { compressAvatar } from '@/lib/imageCompression';
+import { Link } from 'react-router-dom';
+import { PortfolioWorks } from '@/components/studio-hub/PortfolioWorks';
 
 const profileSchema = z.object({
   display_name: z.string().trim().min(2).max(80),
@@ -69,12 +72,13 @@ export default function BecomeMember() {
   const handleAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    if (file.size > 4 * 1024 * 1024) { toast.error('Image must be under 4MB'); return; }
+    if (file.size > 12 * 1024 * 1024) { toast.error('Image must be under 12MB'); return; }
 
     setUploadingAvatar(true);
-    const ext = file.name.split('.').pop();
-    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from('marketplace-uploads').upload(path, file, { upsert: true });
+    let optimized = file;
+    try { optimized = await compressAvatar(file); } catch { /* fallback to original */ }
+    const path = `${user.id}/avatar-${Date.now()}.jpg`;
+    const { error: upErr } = await supabase.storage.from('marketplace-uploads').upload(path, optimized, { upsert: true, contentType: 'image/jpeg' });
     if (upErr) { setUploadingAvatar(false); toast.error(upErr.message); return; }
     const { data: pub } = supabase.storage.from('marketplace-uploads').getPublicUrl(path);
     const url = pub.publicUrl;
@@ -222,6 +226,18 @@ export default function BecomeMember() {
               </Button>
             </div>
           </form>
+        )}
+
+        {/* Portfolio (only after profile is created) */}
+        {profile && user && (
+          <div className="mt-14 pt-10 border-t border-border/40">
+            <PortfolioWorks workerProfileId={profile.id} userId={user.id} editable />
+            <div className="mt-6 text-right">
+              <Link to={`/studio-hub/members/${user.id}`}>
+                <Button variant="outline" size="sm" className="rounded-full">View public profile →</Button>
+              </Link>
+            </div>
+          </div>
         )}
       </div>
     </StudioHubLayout>

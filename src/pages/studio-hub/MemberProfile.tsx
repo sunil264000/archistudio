@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Star, MapPin, Calendar, Pencil, ArrowLeft, Loader2, Briefcase, Award } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { PortfolioWorks } from '@/components/studio-hub/PortfolioWorks';
 
 export default function MemberProfile() {
   const { userId } = useParams<{ userId: string }>();
@@ -142,6 +143,11 @@ export default function MemberProfile() {
             </div>
           </section>
         )}
+
+        {/* Portfolio works */}
+        <section className="mb-6 bg-background border border-border/40 rounded-2xl p-6 md:p-8">
+          <PortfolioWorks workerProfileId={profile.id} userId={profile.user_id} editable={isMe} />
+        </section>
 
         {/* Reviews */}
         <section className="mb-12 bg-background border border-border/40 rounded-2xl p-6 md:p-8">
