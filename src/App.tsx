@@ -71,6 +71,16 @@ import BrowseJobs from "./pages/marketplace/BrowseJobs";
 import PostJob from "./pages/marketplace/PostJob";
 import JobDetail from "./pages/marketplace/JobDetail";
 import BecomeWorker from "./pages/marketplace/BecomeWorker";
+import Splash from "./pages/Splash";
+import StudioHubHome from "./pages/studio-hub/StudioHubHome";
+import StudioHubBrowseProjects from "./pages/studio-hub/BrowseProjects";
+import StudioHubProjectDetail from "./pages/studio-hub/ProjectDetail";
+import StudioHubPostProject from "./pages/studio-hub/PostProject";
+import StudioHubBecomeMember from "./pages/studio-hub/BecomeMember";
+import StudioHubMembers from "./pages/studio-hub/MembersDirectory";
+import StudioHubMemberProfile from "./pages/studio-hub/MemberProfile";
+import StudioHubMyStudio from "./pages/studio-hub/MyStudio";
+import StudioHubContractDetail from "./pages/studio-hub/ContractDetail";
 import { queryClient, prefetchCriticalData } from "@/lib/queryClient";
 
 // Warm cache on app load
@@ -294,7 +304,8 @@ function AnimatedRoutes() {
         }}
       >
         <Routes location={location}>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<Splash />} />
+          <Route path="/learn" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/courses" element={<Courses />} />
           <Route path="/sitemap" element={<Sitemap />} />
@@ -337,12 +348,22 @@ function AnimatedRoutes() {
           <Route path="/explore" element={<Explore />} />
           <Route path="/learning-map" element={<LearningMap />} />
           <Route path="/studio-rooms" element={<ProtectedRoute><StudioRooms /></ProtectedRoute>} />
-          {/* Marketplace */}
-          <Route path="/marketplace" element={<MarketplaceHome />} />
-          <Route path="/marketplace/jobs" element={<BrowseJobs />} />
-          <Route path="/marketplace/jobs/:id" element={<JobDetail />} />
-          <Route path="/marketplace/post-job" element={<ProtectedRoute><PostJob /></ProtectedRoute>} />
-          <Route path="/marketplace/become-worker" element={<ProtectedRoute><BecomeWorker /></ProtectedRoute>} />
+          {/* Studio Hub (freelance) */}
+          <Route path="/studio-hub" element={<StudioHubHome />} />
+          <Route path="/studio-hub/projects" element={<StudioHubBrowseProjects />} />
+          <Route path="/studio-hub/projects/:id" element={<StudioHubProjectDetail />} />
+          <Route path="/studio-hub/post" element={<ProtectedRoute><StudioHubPostProject /></ProtectedRoute>} />
+          <Route path="/studio-hub/become-member" element={<ProtectedRoute><StudioHubBecomeMember /></ProtectedRoute>} />
+          <Route path="/studio-hub/members" element={<StudioHubMembers />} />
+          <Route path="/studio-hub/members/:userId" element={<StudioHubMemberProfile />} />
+          <Route path="/studio-hub/me" element={<ProtectedRoute><StudioHubMyStudio /></ProtectedRoute>} />
+          <Route path="/studio-hub/contracts/:id" element={<ProtectedRoute><StudioHubContractDetail /></ProtectedRoute>} />
+          {/* Legacy marketplace redirects */}
+          <Route path="/marketplace" element={<Navigate to="/studio-hub" replace />} />
+          <Route path="/marketplace/jobs" element={<Navigate to="/studio-hub/projects" replace />} />
+          <Route path="/marketplace/jobs/:id" element={<Navigate to="/studio-hub/projects" replace />} />
+          <Route path="/marketplace/post-job" element={<Navigate to="/studio-hub/post" replace />} />
+          <Route path="/marketplace/become-worker" element={<Navigate to="/studio-hub/become-member" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </motion.div>
