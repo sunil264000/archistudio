@@ -227,6 +227,18 @@ export default function BecomeMember() {
             </div>
           </form>
         )}
+
+        {/* Portfolio (only after profile is created) */}
+        {profile && user && (
+          <div className="mt-14 pt-10 border-t border-border/40">
+            <PortfolioWorks workerProfileId={profile.id} userId={user.id} editable />
+            <div className="mt-6 text-right">
+              <Link to={`/studio-hub/members/${user.id}`}>
+                <Button variant="outline" size="sm" className="rounded-full">View public profile →</Button>
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </StudioHubLayout>
   );
