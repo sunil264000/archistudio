@@ -1,6 +1,6 @@
-import { Star, Quote } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { Star, Quote, CheckCircle2 } from 'lucide-react';
+import { motion, useMotionValue, animate } from 'framer-motion';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   staggerContainerFast,
@@ -39,6 +39,18 @@ const fallbackTestimonials: Testimonial[] = [
     role: "Architecture Student, Final Year",
     rating: 5,
   },
+  {
+    quote: "Studio Hub connected me with a real client for the first time. Archistudio's escrow system made it safe to work.",
+    name: "Sneha R.",
+    role: "Freelance Drafter",
+    rating: 5,
+  },
+  {
+    quote: "Better than any YouTube tutorial. The mentorship approach and real-project examples are unmatched.",
+    name: "Arjun T.",
+    role: "Architecture Intern",
+    rating: 5,
+  },
 ];
 
 function useTestimonials() {
@@ -50,7 +62,7 @@ function useTestimonials() {
       .gte('rating', 4)
       .not('review', 'is', null)
       .order('rating', { ascending: false })
-      .limit(4)
+      .limit(6)
       .then(async ({ data }) => {
         if (data && data.length >= 2) {
           const userIds = [...new Set(data.map((r: any) => r.user_id))];
@@ -71,13 +83,93 @@ function useTestimonials() {
   return testimonials;
 }
 
+function InfiniteScrollRow({ testimonials, direction = 1, speed = 25 }: { testimonials: Testimonial[]; direction?: number; speed?: number }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const contentWidth = containerRef.current.scrollWidth / 2;
+    
+    const controls = animate(x, direction > 0 ? -contentWidth : 0, {
+      type: 'tween',
+      ease: 'linear',
+      duration: contentWidth / speed,
+      repeat: Infinity,
+      repeatType: 'loop',
+      ...(direction < 0 && { from: -contentWidth }),
+    });
+
+    return () => controls.stop();
+  }, [testimonials, direction, speed]);
+
+  const items = [...testimonials, ...testimonials];
+
+  return (
+    <div className="overflow-hidden group">
+      <motion.div
+        ref={containerRef}
+        className="flex gap-4 w-max"
+        style={{ x }}
+        onHoverStart={() => x.stop()}
+        onHoverEnd={() => {
+          if (!containerRef.current) return;
+          const contentWidth = containerRef.current.scrollWidth / 2;
+          const current = x.get();
+          const remaining = direction > 0 ? Math.abs(-contentWidth - current) : Math.abs(current);
+          animate(x, direction > 0 ? -contentWidth : 0, {
+            type: 'tween', ease: 'linear', duration: remaining / speed,
+            repeat: Infinity, repeatType: 'loop',
+          });
+        }}
+      >
+        {items.map((testimonial, i) => (
+          <div key={i} className="w-[380px] shrink-0 p-6 rounded-2xl card-premium bg-card border border-border/30">
+            <Quote className="h-6 w-6 text-accent/10 mb-4" />
+            
+            {/* Stars */}
+            <div className="flex gap-0.5 mb-4">
+              {[...Array(testimonial.rating)].map((_, j) => (
+                <Star key={j} className="h-3 w-3 fill-accent text-accent" />
+              ))}
+            </div>
+            
+            <p className="text-sm text-muted-foreground leading-relaxed mb-5 line-clamp-4">
+              "{testimonial.quote}"
+            </p>
+            
+            <footer className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-accent/8 flex items-center justify-center border border-accent/15">
+                <span className="text-[10px] font-bold text-accent">
+                  {testimonial.name.split(' ').map(n => n[0]).join('')}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-display font-semibold text-sm text-foreground truncate">{testimonial.name}</span>
+                  <CheckCircle2 className="h-3.5 w-3.5 text-accent shrink-0" />
+                </div>
+                <div className="text-xs text-muted-foreground truncate">{testimonial.role}</div>
+              </div>
+            </footer>
+          </div>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
 export function TestimonialsSection() {
   const testimonials = useTestimonials();
+  const half = Math.ceil(testimonials.length / 2);
+  const row1 = testimonials.slice(0, half);
+  const row2 = testimonials.slice(half);
+
   return (
     <section className="section-padding relative overflow-hidden">
       <div className="container-wide">
         <motion.div 
-          className="max-w-2xl mx-auto text-center mb-16"
+          className="max-w-2xl mx-auto text-center mb-14"
           initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
@@ -91,49 +183,12 @@ export function TestimonialsSection() {
             Don't take our word for it. Here's what students and architects are saying.
           </p>
         </motion.div>
+      </div>
 
-        <motion.div 
-          className="grid md:grid-cols-2 gap-5 max-w-4xl mx-auto"
-          variants={staggerContainerFast}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-50px" }}
-        >
-          {testimonials.map((testimonial, i) => (
-            <motion.div 
-              key={i}
-              variants={fadeInUp}
-              className="relative p-7 rounded-2xl card-glass"
-            >
-              <Quote className="h-7 w-7 text-accent/10 absolute top-6 right-6" />
-              
-              {/* Stars */}
-              <div className="flex gap-0.5 mb-5">
-                {[...Array(testimonial.rating)].map((_, j) => (
-                  <Star key={j} className="h-3.5 w-3.5 fill-accent text-accent" />
-                ))}
-              </div>
-              
-              <blockquote>
-                <p className="text-body-sm text-muted-foreground leading-relaxed mb-6">
-                  "{testimonial.quote}"
-                </p>
-                
-                <footer className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-full bg-accent/8 flex items-center justify-center border border-accent/15">
-                    <span className="text-[10px] font-bold text-accent">
-                      {testimonial.name.split(' ').map(n => n[0]).join('')}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="font-display font-semibold text-body-sm text-foreground">{testimonial.name}</div>
-                    <div className="text-caption text-muted-foreground">{testimonial.role}</div>
-                  </div>
-                </footer>
-              </blockquote>
-            </motion.div>
-          ))}
-        </motion.div>
+      {/* Auto-scrolling rows */}
+      <div className="space-y-4 max-w-[100vw]">
+        <InfiniteScrollRow testimonials={row1} direction={1} speed={20} />
+        {row2.length > 0 && <InfiniteScrollRow testimonials={row2} direction={-1} speed={18} />}
       </div>
     </section>
   );

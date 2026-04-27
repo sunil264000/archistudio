@@ -41,10 +41,11 @@ export default function MembersDirectory() {
   return (
     <StudioHubLayout>
       <SEOHead title="Studio Members — Future architects" description="Discover Studio Members — verified architecture students offering drafting, 3D, rendering and more." url="https://archistudio.shop/studio-hub/members" />
-      <div className="container-wide py-12 md:py-16">
-        <div className="max-w-2xl mb-10">
+      <div className="container-wide py-12 md:py-16 relative">
+        <div className="absolute inset-0 dot-grid opacity-[0.06] pointer-events-none" />
+        <div className="max-w-2xl mb-10 relative">
           <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">Studio Members</p>
-          <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight mb-3">Future architects, verified.</h1>
+          <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight mb-3">Future architects, <span class="text-hero-gradient">verified.</span></h1>
           <p className="text-sm text-muted-foreground">Discover the people behind Studio Hub.</p>
         </div>
 
@@ -60,17 +61,17 @@ export default function MembersDirectory() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-border/30 rounded-2xl overflow-hidden">
             {filtered.map((m) => (
-              <Link key={m.id} to={`/studio-hub/members/${m.user_id}`} className="bg-background p-6 hover:bg-muted/30 transition-colors">
+              <Link key={m.id} to={`/studio-hub/members/${m.user_id}`} className="bg-background p-6 hover:bg-muted/30 transition-all duration-300 group">
                 <div className="flex items-start gap-4">
                   <div className="h-14 w-14 rounded-full bg-muted/60 overflow-hidden border border-border/40 shrink-0">
                     {m.avatar_url ? (
                       <img src={m.avatar_url} alt={m.display_name || ''} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-lg font-display text-muted-foreground">{(m.display_name || '?').slice(0, 1)}</div>
+                      <div className="w-full h-full flex items-center justify-center text-lg font-display text-accent bg-accent/8">{(m.display_name || '?').slice(0, 1)}</div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{m.display_name || 'Anonymous'}</p>
+                    <p className="font-medium truncate group-hover:text-accent transition-colors">{m.display_name || 'Anonymous'}</p>
                     <p className="text-sm text-muted-foreground line-clamp-1">{m.headline || `${m.experience_level} member`}</p>
                     <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                       {m.average_rating > 0 && (

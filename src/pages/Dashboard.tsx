@@ -139,22 +139,36 @@ export default function Dashboard() {
     <div className="min-h-screen flex flex-col bg-background overflow-hidden">
       <Navbar />
       <AnimatedBackground intensity="light" />
-      <main className="flex-1 py-8">
-        <div className="container mx-auto px-4 space-y-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Welcome, {profile?.full_name || 'Student'}!</h1>
-              <p className="text-muted-foreground">Your learning journey at a glance</p>
+      <main className="flex-1 py-8 relative">
+        <div className="absolute inset-0 dot-grid opacity-[0.06] pointer-events-none" />
+        <div className="container mx-auto px-4 space-y-8 relative">
+          {/* Welcome banner */}
+          <div className="relative overflow-hidden rounded-2xl bg-foreground text-background p-8 md:p-10">
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute top-0 right-0 h-[300px] w-[300px] rounded-full bg-[radial-gradient(circle,hsl(var(--accent)/0.12),transparent_65%)] blur-3xl" />
+              <div className="absolute bottom-0 left-0 h-[200px] w-[200px] rounded-full bg-[radial-gradient(circle,hsl(var(--blueprint)/0.08),transparent_65%)] blur-3xl" />
+              <div className="absolute inset-0 dot-grid opacity-[0.04]" />
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => setSearchOpen(true)} className="gap-2">
-                <Search className="h-4 w-4" /> Search
-              </Button>
-              {isAdmin && (
-                <Link to="/admin">
-                  <Button className="gap-2"><ShieldCheck className="h-4 w-4" /> Admin</Button>
-                </Link>
-              )}
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-5">
+                <div className="h-14 w-14 rounded-2xl bg-accent/20 border border-accent/30 flex items-center justify-center text-xl font-bold text-accent shrink-0">
+                  {(profile?.full_name || 'S').charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-bold">Welcome, {profile?.full_name || 'Student'}!</h1>
+                  <p className="text-background/50 text-sm mt-0.5">Your learning journey at a glance</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" onClick={() => setSearchOpen(true)} className="gap-2 text-background/70 hover:text-background hover:bg-background/10">
+                  <Search className="h-4 w-4" /> Search
+                </Button>
+                {isAdmin && (
+                  <Link to="/admin">
+                    <Button className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"><ShieldCheck className="h-4 w-4" /> Admin</Button>
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
 
@@ -209,7 +223,7 @@ export default function Dashboard() {
                   <StreakTracker />
                   <ProfileCompletion />
                   <UsernameSetup />
-                  <Card>
+                  <Card className="card-premium">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm flex items-center gap-2">
                         <Activity className="h-4 w-4 text-accent" /> Community Activity

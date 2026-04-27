@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef, lazy, Suspense } from "react";
+import { ScrollProgress } from "@/components/layout/ScrollProgress";
+import { BackToTop } from "@/components/layout/BackToTop";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -414,6 +416,7 @@ const App = () => (
         <AuthProvider>
           <CartProvider>
             <ErrorBoundary>
+              <ScrollProgress />
               <ScrollToTop />
               <AppContent />
               <WelcomePopup />
@@ -423,6 +426,7 @@ const App = () => (
               <AnimatedRoutes />
               <FloatingAIMentor />
               <AchievementUnlockToast />
+              <BackToTop />
             </ErrorBoundary>
           </CartProvider>
         </AuthProvider>

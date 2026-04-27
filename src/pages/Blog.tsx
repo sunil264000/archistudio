@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { SEOHead } from '@/components/seo/SEOHead';
-import { Calendar, Clock, Search, ArrowRight } from 'lucide-react';
+import { Calendar, Clock, Search, ArrowRight, Sparkles } from 'lucide-react';
 interface BlogPost {
   id: string;
   title: string;
@@ -80,16 +80,19 @@ export default function Blog() {
       <Navbar />
 
       {/* Hero */}
-      <section className="relative py-20 overflow-hidden">
-        <AnimatedBackground intensity="light" />
-        <div className="absolute inset-0 grid-pattern opacity-30" />
+      <section className="relative py-20 md:py-24 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.03] via-transparent to-transparent" />
+        <div className="absolute inset-0 dot-grid opacity-15 pointer-events-none" />
 
         <div className="relative container-wide text-center space-y-6">
-          <Badge variant="secondary" className="mb-4">Resources</Badge>
+          <Badge variant="outline" className="mb-4 gap-1.5 border-accent/20">
+            <Sparkles className="h-3 w-3 text-accent" />
+            Resources
+          </Badge>
           <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight">
-            Architecture Insights & Tutorials
+            Architecture <span className="text-hero-gradient">Insights</span>
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             Practical tips, industry insights, and tutorials to help you become a better architect.
           </p>
 
@@ -100,7 +103,7 @@ export default function Blog() {
               placeholder="Search articles..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 rounded-xl border-border/40 bg-card/50 focus:shadow-[0_0_0_2px_hsl(var(--accent)/0.2)]"
             />
           </div>
         </div>
@@ -141,7 +144,7 @@ export default function Blog() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPosts.map((post) => (
                 <Link key={post.id} to={`/blog/${post.slug}`}>
-                  <Card className="h-full overflow-hidden group hover:shadow-lg transition-shadow">
+                  <Card className="h-full overflow-hidden group card-premium">
                     {post.featured_image_url ? (
                       <div className="h-48 overflow-hidden">
                         <img
@@ -191,15 +194,15 @@ export default function Blog() {
               <button
                 onClick={() => setPage(p => Math.max(0, p - 1))}
                 disabled={page === 0 || loading}
-                className="px-4 py-2 rounded-lg border border-border text-sm font-medium transition-all hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-5 py-2.5 rounded-full border border-border text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 ← Previous
               </button>
-              <span className="text-sm text-muted-foreground">Page {page + 1} of {totalPages}</span>
+              <span className="text-sm text-muted-foreground font-medium">Page {page + 1} of {totalPages}</span>
               <button
                 onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
                 disabled={page >= totalPages - 1 || loading}
-                className="px-4 py-2 rounded-lg border border-border text-sm font-medium transition-all hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-5 py-2.5 rounded-full border border-border text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground hover:border-accent disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Next →
               </button>

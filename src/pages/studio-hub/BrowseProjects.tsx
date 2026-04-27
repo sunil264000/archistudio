@@ -31,10 +31,11 @@ export default function BrowseProjects() {
   return (
     <StudioHubLayout>
       <SEOHead title="Open architecture projects — Studio Hub" description="Browse open architecture freelance projects from students who need help." url="https://archistudio.shop/studio-hub/projects" />
-      <div className="container-wide py-12 md:py-16">
-        <div className="max-w-2xl mb-10">
+      <div className="container-wide py-12 md:py-16 relative">
+        <div className="absolute inset-0 dot-grid opacity-[0.06] pointer-events-none" />
+        <div className="max-w-2xl mb-10 relative">
           <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">Open projects</p>
-          <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Find your next brief.</h1>
+          <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Find your <span class="text-hero-gradient">next brief.</span></h1>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3 mb-8">
@@ -66,14 +67,14 @@ export default function BrowseProjects() {
         ) : (
           <div className="divide-y divide-border/40 border-y border-border/40">
             {projects.map((p) => (
-              <Link key={p.id} to={`/studio-hub/projects/${p.id}`} className="block py-6 px-3 -mx-3 rounded-xl hover:bg-muted/30 transition-colors">
+              <Link key={p.id} to={`/studio-hub/projects/${p.id}`} className="block py-6 px-4 -mx-3 rounded-xl hover:bg-muted/30 transition-all duration-300 group">
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-2.5">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5">
                       <Badge variant="outline" className="text-[10px] tracking-wider uppercase font-normal border-border/60">{p.category}</Badge>
                       <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}</span>
                     </div>
-                    <h3 className="font-display text-lg font-medium mb-1.5 line-clamp-1">{p.title}</h3>
+                    <h3 className="font-display text-lg font-medium mb-1.5 line-clamp-1 group-hover:text-accent transition-colors">{p.title}</h3>
                     <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{p.description}</p>
                   </div>
                   <div className="text-left md:text-right shrink-0">
@@ -83,10 +84,10 @@ export default function BrowseProjects() {
                 </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3">
                   {p.skills_required.slice(0, 5).map((s) => (
-                    <span key={s} className="text-xs text-muted-foreground">{s}</span>
+                    <span key={s} className="text-xs text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-full">{s}</span>
                   ))}
                   <div className="flex-1" />
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground"><Users className="h-3 w-3" />{p.proposals_count}</span>
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground bg-accent/8 text-accent px-2 py-0.5 rounded-full"><Users className="h-3 w-3" />{p.proposals_count} proposals</span>
                   {p.deadline && <span className="flex items-center gap-1 text-xs text-muted-foreground"><Calendar className="h-3 w-3" />{new Date(p.deadline).toLocaleDateString()}</span>}
                 </div>
               </Link>
