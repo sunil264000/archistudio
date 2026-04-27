@@ -75,41 +75,58 @@ export default function StudioHubHome() {
         </div>
       </section>
 
-      {/* Services — minimal grid */}
+      {/* Services — minimal grid with reveal */}
       <section className="container-wide py-20">
-        <div className="max-w-2xl mb-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] as any }}
+          className="max-w-2xl mb-12"
+        >
           <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">What we do</p>
           <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">From a quick sheet to a full project.</h2>
-        </div>
+        </motion.div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border/40 rounded-2xl overflow-hidden">
-          {services.map((s) => (
-            <div key={s.title} className="bg-background p-7 hover:bg-muted/40 transition-colors">
-              <s.icon className="h-5 w-5 text-accent mb-5" />
+          {services.map((s, i) => (
+            <motion.div
+              key={s.title}
+              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.5, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] as any }}
+              className="bg-background p-7 hover:bg-muted/40 transition-colors group"
+            >
+              <s.icon className="h-5 w-5 text-accent mb-5 transition-transform group-hover:scale-110 group-hover:-rotate-6" />
               <h3 className="font-medium mb-1">{s.title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
-            </div>
+            </motion.div>
           ))}
         </div>
       </section>
 
-      {/* How it works — three calm steps */}
+      {/* How it works */}
       <section className="bg-muted/30 border-y border-border/30 py-20">
         <div className="container-wide">
-          <div className="max-w-2xl mb-14">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }}
+            transition={{ duration: 0.6 }}
+            className="max-w-2xl mb-14"
+          >
             <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">How it works</p>
             <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Built around protection — for both sides.</h2>
-          </div>
+          </motion.div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             {[
               { n: '01', t: 'You brief, we match', d: 'Post your project. Members send proposals with timeline and price.' },
               { n: '02', t: 'Pay the studio', d: 'Funds rest with Archistudio while the work happens — never with the member directly.' },
               { n: '03', t: 'We review & release', d: 'When the deliverable is approved by our team, files reach you and the member is paid.' },
-            ].map((s) => (
-              <div key={s.n}>
+            ].map((s, i) => (
+              <motion.div
+                key={s.n}
+                initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }}
+                transition={{ duration: 0.6, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] as any }}
+              >
                 <div className="text-[11px] tracking-[0.2em] text-accent font-medium mb-4">{s.n}</div>
                 <h3 className="font-display text-xl font-medium mb-2">{s.t}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{s.d}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
