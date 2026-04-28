@@ -7,20 +7,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { useStudioProjects, STUDIO_CATEGORIES, formatBudget } from '@/hooks/useStudioHub';
-import { Search, Calendar, Users } from 'lucide-react';
+import { Search, Calendar, Users, SlidersHorizontal } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+
+type SortKey = 'newest' | 'budget_high' | 'budget_low' | 'most_proposals';
 
 export default function BrowseProjects() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const category = searchParams.get('category') || '';
+  const sort = (searchParams.get('sort') as SortKey) || 'newest';
 
   const filters = useMemo(() => ({
     category: category || undefined,
     search: search || undefined,
   }), [category, search]);
 
-  const { projects, loading } = useStudioProjects(filters);
+  const { projects: rawProjects, loading } = useStudioProjects(filters);
+
+  const projects = useMemo(() => {
+    const arr = [...rawProjects];
+    if (sort === 'budget_high') arr.sort((a, b) => Number(b.budget_max || b.budget_min || 0) - Number(a.budget_max || a.budget_min || 0));
+    if (sort === 'budget_low') arr.sort((a, b) => Number(a.budget_min || a.budget_max || 0) - Number(b.budget_min || b.budget_max || 0));
+    if (sort === 'most_proposals') arr.sort((a, b) => b.proposals_count - a.proposals_count);
+    return arr;
+  }, [rawProjects, sort]);
+
+  const setSort = (v: string) => {
+    if (v === 'newest') searchParams.delete('sort'); else searchParams.set('sort', v);
+    setSearchParams(searchParams);
+  };
 
   const setCategory = (v: string) => {
     if (v === 'all') searchParams.delete('category');
@@ -35,10 +51,10 @@ export default function BrowseProjects() {
         <div className="absolute inset-0 dot-grid opacity-[0.06] pointer-events-none" />
         <div className="max-w-2xl mb-10 relative">
           <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">Open projects</p>
-          <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Find your <span class="text-hero-gradient">next brief.</span></h1>
+          <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Find your <span className="text-hero-gradient">next brief.</span></h1>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_200px_180px] gap-3 mb-4">
           <div className="relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -55,7 +71,17 @@ export default function BrowseProjects() {
               {STUDIO_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={sort} onValueChange={setSort}>
+            <SelectTrigger className="h-11 rounded-xl border-border/60"><SlidersHorizontal className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" /><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest first</SelectItem>
+              <SelectItem value="budget_high">Highest budget</SelectItem>
+              <SelectItem value="budget_low">Lowest budget</SelectItem>
+              <SelectItem value="most_proposals">Most proposals</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+        <p className="text-xs text-muted-foreground mb-6">{loading ? 'Loading projects…' : `${projects.length} open project${projects.length === 1 ? '' : 's'}`}</p>
 
         {loading ? (
           <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-24 rounded-xl bg-muted/40 animate-pulse" />)}</div>

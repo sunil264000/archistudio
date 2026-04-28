@@ -83,7 +83,7 @@ export default function Auth() {
 
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: ease as unknown as number[] }}
+            transition={{ duration: 0.7, ease: ease as unknown as any }}
           >
             <h2 className="font-display text-3xl xl:text-4xl font-semibold tracking-tight leading-tight mb-6">
               Learn architecture
@@ -96,7 +96,7 @@ export default function Auth() {
                 <motion.div
                   key={f.label}
                   initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + i * 0.08, duration: 0.5, ease: ease as unknown as number[] }}
+                  transition={{ delay: 0.3 + i * 0.08, duration: 0.5, ease: ease as unknown as any }}
                   className="flex items-center gap-3"
                 >
                   <div className="p-1.5 rounded-lg bg-accent/15">
@@ -145,7 +145,7 @@ export default function Auth() {
           <div className="absolute inset-0 dot-grid opacity-10 pointer-events-none lg:hidden" />
           <motion.div
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: ease as unknown as number[] }}
+            transition={{ duration: 0.5, ease: ease as unknown as any }}
             className="w-full max-w-md relative"
           >
             <Card className="card-premium border-border shadow-medium">
