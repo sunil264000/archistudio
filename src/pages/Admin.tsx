@@ -52,6 +52,7 @@ import { FeatureFlagPanel } from '@/components/admin/FeatureFlagPanel';
 import { SystemMonitorPanel } from '@/components/admin/SystemMonitorPanel';
 import { LearningPathPanel } from '@/components/admin/LearningPathPanel';
 import { StudioHubAdminPanel } from '@/components/admin/StudioHubAdminPanel';
+import { CashfreeWebhookDashboard } from '@/components/admin/CashfreeWebhookDashboard';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import {
@@ -177,6 +178,8 @@ export default function Admin() {
         return <SystemHealthPanel />;
       case 'moderation':
         return <ModerationPanel />;
+      case 'studio-hub-webhooks':
+        return <CashfreeWebhookDashboard />;
       case 'activity-feed':
         return (
           <div className="max-w-2xl">

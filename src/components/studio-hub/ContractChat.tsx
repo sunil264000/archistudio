@@ -4,9 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Loader2, MessagesSquare } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Send, Loader2, MessagesSquare, CheckCheck } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
+import { useTypingIndicator, useUnreadCount } from '@/hooks/useStudioHubMilestones';
 
 interface Msg {
   id: string;
@@ -23,6 +25,8 @@ export function ContractChat({ contractId }: { contractId: string }) {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const { othersTyping, ping, setTyping } = useTypingIndicator(contractId, user?.id);
+  const { count: unread, markRead } = useUnreadCount(contractId, user?.id);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,12 +59,13 @@ export function ContractChat({ contractId }: { contractId: string }) {
     return () => { void supabase.removeChannel(ch); };
   }, [contractId]);
 
-  // Autoscroll on new messages
+  // Autoscroll on new messages + mark read
   useEffect(() => {
     requestAnimationFrame(() => {
       scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: 'smooth' });
     });
-  }, [messages.length]);
+    if (messages.length > 0) void markRead();
+  }, [messages.length, markRead]);
 
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,14 +77,19 @@ export function ContractChat({ contractId }: { contractId: string }) {
     setSending(false);
     if (error) { toast.error(error.message); return; }
     setBody('');
+    setTyping(false);
+    void markRead();
   };
 
   return (
     <div className="border border-border/40 rounded-2xl bg-background overflow-hidden flex flex-col">
-      <div className="flex items-center gap-2 px-5 py-3.5 border-b border-border/40 bg-muted/20">
+      <div className="flex items-center gap-2 px-4 md:px-5 py-3 md:py-3.5 border-b border-border/40 bg-muted/20">
         <MessagesSquare className="h-4 w-4 text-accent" />
         <p className="text-sm font-medium">Conversation</p>
-        <span className="ml-auto text-[10px] text-muted-foreground tracking-wider uppercase">Realtime</span>
+        {unread > 0 && (
+          <Badge variant="default" className="rounded-full h-5 min-w-5 px-1.5 text-[10px] bg-rose-500 text-white">{unread}</Badge>
+        )}
+        <span className="ml-auto text-[10px] text-muted-foreground tracking-wider uppercase hidden sm:inline">Realtime</span>
       </div>
       <div ref={scrollerRef} className="flex-1 max-h-[420px] overflow-y-auto px-5 py-4 space-y-3 scroll-smooth">
         {loading ? (
@@ -100,14 +110,29 @@ export function ContractChat({ contractId }: { contractId: string }) {
           })
         )}
       </div>
-      <form onSubmit={send} className="border-t border-border/40 p-3 flex items-end gap-2 bg-muted/10">
+      {othersTyping.length > 0 && (
+        <div className="px-5 pb-1.5 text-[11px] text-muted-foreground italic flex items-center gap-1.5">
+          <span className="inline-flex gap-0.5">
+            <span className="h-1 w-1 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="h-1 w-1 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="h-1 w-1 rounded-full bg-muted-foreground/60 animate-bounce" style={{ animationDelay: '300ms' }} />
+          </span>
+          typing…
+        </div>
+      )}
+      {messages.length > 0 && messages[messages.length - 1].sender_id === user?.id && (
+        <div className="px-5 pb-1 text-[10px] text-muted-foreground/60 text-right flex items-center justify-end gap-1">
+          <CheckCheck className="h-3 w-3" /> Sent
+        </div>
+      )}
+      <form onSubmit={send} className="border-t border-border/40 p-2.5 md:p-3 flex items-end gap-2 bg-muted/10">
         <Textarea
           value={body}
-          onChange={(e) => setBody(e.target.value)}
+          onChange={(e) => { setBody(e.target.value); ping(); }}
           placeholder="Type a message…"
           rows={1}
           maxLength={2000}
-          className="resize-none min-h-[40px] max-h-32 rounded-xl border-border/60 bg-background"
+          className="resize-none min-h-[44px] max-h-32 rounded-xl border-border/60 bg-background text-base md:text-sm"
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(e as any); } }}
         />
         <Button type="submit" size="icon" disabled={sending || !body.trim()} className="rounded-xl bg-foreground text-background hover:bg-foreground/90 shrink-0">

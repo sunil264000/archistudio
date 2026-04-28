@@ -408,6 +408,42 @@ export type Database = {
         }
         Relationships: []
       }
+      cashfree_webhook_events: {
+        Row: {
+          contract_id: string | null
+          event_type: string
+          id: string
+          order_id: string | null
+          processed: boolean
+          processing_error: string | null
+          raw_payload: Json
+          received_at: string
+          signature_valid: boolean
+        }
+        Insert: {
+          contract_id?: string | null
+          event_type: string
+          id?: string
+          order_id?: string | null
+          processed?: boolean
+          processing_error?: string | null
+          raw_payload: Json
+          received_at?: string
+          signature_valid?: boolean
+        }
+        Update: {
+          contract_id?: string | null
+          event_type?: string
+          id?: string
+          order_id?: string | null
+          processed?: boolean
+          processing_error?: string | null
+          raw_payload?: Json
+          received_at?: string
+          signature_valid?: boolean
+        }
+        Relationships: []
+      }
       certificate_settings: {
         Row: {
           accent_color: string | null
@@ -2378,6 +2414,8 @@ export type Database = {
           delivered_at: string | null
           delivery_days: number
           due_date: string | null
+          escrow_total_funded: number
+          escrow_total_released: number
           id: string
           job_id: string
           payment_reference: string | null
@@ -2409,6 +2447,8 @@ export type Database = {
           delivered_at?: string | null
           delivery_days: number
           due_date?: string | null
+          escrow_total_funded?: number
+          escrow_total_released?: number
           id?: string
           job_id: string
           payment_reference?: string | null
@@ -2440,6 +2480,8 @@ export type Database = {
           delivered_at?: string | null
           delivery_days?: number
           due_date?: string | null
+          escrow_total_funded?: number
+          escrow_total_released?: number
           id?: string
           job_id?: string
           payment_reference?: string | null
@@ -2470,6 +2512,72 @@ export type Database = {
             columns: ["proposal_id"]
             isOneToOne: false
             referencedRelation: "job_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_deliverables: {
+        Row: {
+          admin_notes: string | null
+          contract_id: string
+          created_at: string
+          file_urls: string[]
+          id: string
+          milestone_id: string | null
+          notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          title: string
+          updated_at: string
+          version: number
+          worker_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          contract_id: string
+          created_at?: string
+          file_urls?: string[]
+          id?: string
+          milestone_id?: string | null
+          notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          version?: number
+          worker_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          contract_id?: string
+          created_at?: string
+          file_urls?: string[]
+          id?: string
+          milestone_id?: string | null
+          notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          version?: number
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_deliverables_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_deliverables_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_milestones"
             referencedColumns: ["id"]
           },
         ]
@@ -2541,6 +2649,7 @@ export type Database = {
           deadline: string | null
           description: string
           id: string
+          is_demo: boolean
           proposals_count: number
           skills_required: string[]
           status: string
@@ -2562,6 +2671,7 @@ export type Database = {
           deadline?: string | null
           description: string
           id?: string
+          is_demo?: boolean
           proposals_count?: number
           skills_required?: string[]
           status?: string
@@ -2583,6 +2693,7 @@ export type Database = {
           deadline?: string | null
           description?: string
           id?: string
+          is_demo?: boolean
           proposals_count?: number
           skills_required?: string[]
           status?: string
@@ -2592,6 +2703,35 @@ export type Database = {
           visibility?: string
         }
         Relationships: []
+      }
+      marketplace_message_reads: {
+        Row: {
+          contract_id: string
+          id: string
+          last_read_at: string
+          user_id: string
+        }
+        Insert: {
+          contract_id: string
+          id?: string
+          last_read_at?: string
+          user_id: string
+        }
+        Update: {
+          contract_id?: string
+          id?: string
+          last_read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_message_reads_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       marketplace_messages: {
         Row: {
@@ -2631,33 +2771,95 @@ export type Database = {
           },
         ]
       }
+      marketplace_milestones: {
+        Row: {
+          amount: number
+          contract_id: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          payout_reference: string | null
+          released_amount: number
+          released_at: string | null
+          released_by: string | null
+          sequence: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          contract_id: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          payout_reference?: string | null
+          released_amount?: number
+          released_at?: string | null
+          released_by?: string | null
+          sequence: number
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          contract_id?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          payout_reference?: string | null
+          released_amount?: number
+          released_at?: string | null
+          released_by?: string | null
+          sequence?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_milestones_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_reviews: {
         Row: {
           comment: string | null
-          contract_id: string
+          contract_id: string | null
           created_at: string
           direction: string
           id: string
+          is_demo: boolean
           rating: number
           reviewee_id: string
           reviewer_id: string
         }
         Insert: {
           comment?: string | null
-          contract_id: string
+          contract_id?: string | null
           created_at?: string
           direction: string
           id?: string
+          is_demo?: boolean
           rating: number
           reviewee_id: string
           reviewer_id: string
         }
         Update: {
           comment?: string | null
-          contract_id?: string
+          contract_id?: string | null
           created_at?: string
           direction?: string
           id?: string
+          is_demo?: boolean
           rating?: number
           reviewee_id?: string
           reviewer_id?: string
@@ -2665,6 +2867,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "marketplace_reviews_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_typing_indicators: {
+        Row: {
+          contract_id: string
+          is_typing: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contract_id: string
+          is_typing?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contract_id?: string
+          is_typing?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_typing_indicators_contract_id_fkey"
             columns: ["contract_id"]
             isOneToOne: false
             referencedRelation: "marketplace_contracts"
@@ -5202,18 +5433,25 @@ export type Database = {
           created_at: string
           display_name: string | null
           experience_level: string
+          featured_titles: string[]
           headline: string | null
           hourly_rate: number | null
           id: string
           is_active: boolean
+          is_demo: boolean
           languages: string[] | null
           location: string | null
+          portfolio_count: number
+          response_hours: number | null
           skills: string[]
+          tagline: string | null
+          tools: string[]
           total_earnings: number
           total_jobs_completed: number
           total_reviews: number
           updated_at: string
           user_id: string
+          years_experience: number | null
         }
         Insert: {
           availability?: string | null
@@ -5224,18 +5462,25 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           experience_level?: string
+          featured_titles?: string[]
           headline?: string | null
           hourly_rate?: number | null
           id?: string
           is_active?: boolean
+          is_demo?: boolean
           languages?: string[] | null
           location?: string | null
+          portfolio_count?: number
+          response_hours?: number | null
           skills?: string[]
+          tagline?: string | null
+          tools?: string[]
           total_earnings?: number
           total_jobs_completed?: number
           total_reviews?: number
           updated_at?: string
           user_id: string
+          years_experience?: number | null
         }
         Update: {
           availability?: string | null
@@ -5246,18 +5491,25 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           experience_level?: string
+          featured_titles?: string[]
           headline?: string | null
           hourly_rate?: number | null
           id?: string
           is_active?: boolean
+          is_demo?: boolean
           languages?: string[] | null
           location?: string | null
+          portfolio_count?: number
+          response_hours?: number | null
           skills?: string[]
+          tagline?: string | null
+          tools?: string[]
           total_earnings?: number
           total_jobs_completed?: number
           total_reviews?: number
           updated_at?: string
           user_id?: string
+          years_experience?: number | null
         }
         Relationships: []
       }

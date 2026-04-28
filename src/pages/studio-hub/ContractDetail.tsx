@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, ShieldCheck, Loader2, Upload, FileText, CheckCircle2, Clock, Wallet, AlertCircle, MessageSquare } from 'lucide-react';
 import { ReviewForm } from '@/components/studio-hub/ReviewForm';
 import { ContractChat } from '@/components/studio-hub/ContractChat';
+import { MilestonesPanel } from '@/components/studio-hub/MilestonesPanel';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Contract status timeline steps
@@ -201,6 +202,18 @@ export default function ContractDetail() {
           <div className="bg-background p-5"><p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Platform fee</p><p className="font-display text-xl font-semibold">₹{Number(contract.platform_fee_amount).toLocaleString()}</p></div>
           <div className="bg-background p-5"><p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Member payout</p><p className="font-display text-xl font-semibold text-accent">₹{Number(contract.worker_payout).toLocaleString()}</p></div>
         </div>
+
+        {/* Milestone-based escrow releases */}
+        {contract.payment_status === 'held_in_escrow' && (
+          <MilestonesPanel
+            contractId={contract.id}
+            agreedAmount={Number(contract.agreed_amount)}
+            isClient={isClient}
+            isAdmin={isAdmin}
+            paymentStatus={contract.payment_status}
+            workerId={contract.worker_id}
+          />
+        )}
 
         {/* Awaiting payment — funded by client via Cashfree */}
         {contract.status === 'awaiting_payment' && isClient && (
