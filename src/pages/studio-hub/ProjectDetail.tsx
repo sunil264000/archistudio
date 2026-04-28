@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { z } from 'zod';
 import { StudioHubLayout } from '@/components/studio-hub/StudioHubLayout';
@@ -35,6 +35,18 @@ export default function ProjectDetail() {
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [hiring, setHiring] = useState<string | null>(null);
+
+  // Track view count — one increment per session per project
+  useEffect(() => {
+    if (!id) return;
+    const key = `sh_viewed_${id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+    (supabase as any).rpc('increment_view_count', { job_id: id }).catch(() => {
+      // fallback: direct update if RPC doesn't exist
+      (supabase as any).from('marketplace_jobs').update({ views_count: (project?.views_count || 0) + 1 }).eq('id', id);
+    });
+  }, [id]);
 
   const isOwner = user?.id === project?.client_id;
   const myProposal = proposals.find((p) => p.worker_id === user?.id);

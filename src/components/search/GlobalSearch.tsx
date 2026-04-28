@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, BookOpen, MessageSquare, FileText, Book, X, Loader2 } from 'lucide-react';
+import { Search, BookOpen, MessageSquare, FileText, Book, X, Loader2, Command, ArrowRight } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface SearchResult {
   result_type: string;
@@ -16,9 +16,9 @@ interface SearchResult {
 
 const TYPE_CONFIG: Record<string, { icon: typeof BookOpen; label: string; color: string; path: (r: SearchResult) => string }> = {
   course: { icon: BookOpen, label: 'Course', color: 'bg-accent/10 text-accent', path: (r) => `/course/${r.slug}` },
-  forum: { icon: MessageSquare, label: 'Forum', color: 'bg-blue-500/10 text-blue-600', path: (r) => `/forum/${r.result_id}` },
-  blog: { icon: FileText, label: 'Blog', color: 'bg-emerald-500/10 text-emerald-600', path: (r) => `/blog/${r.slug}` },
-  ebook: { icon: Book, label: 'E-Book', color: 'bg-purple-500/10 text-purple-600', path: () => '/ebooks' },
+  forum: { icon: MessageSquare, label: 'Forum', color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400', path: (r) => `/forum/${r.result_id}` },
+  blog: { icon: FileText, label: 'Blog', color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', path: (r) => `/blog/${r.slug}` },
+  ebook: { icon: Book, label: 'E-Book', color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400', path: () => '/ebooks' },
 };
 
 export function GlobalSearch() {
@@ -26,18 +26,42 @@ export function GlobalSearch() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const navigate = useNavigate();
-  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
+  // Keyboard shortcut: Ctrl/Cmd + K
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setOpen(true);
+      }
+      if (e.key === 'Escape') {
+        setOpen(false);
+      }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Focus input when overlay opens
+  useEffect(() => {
+    if (open) {
+      // Small delay to let animation start
+      setTimeout(() => inputRef.current?.focus(), 50);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      setQuery('');
+      setResults([]);
+      setSelectedIndex(-1);
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
+  // Debounced search
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (query.trim().length < 2) { setResults([]); return; }
@@ -51,74 +75,196 @@ export function GlobalSearch() {
       if (!error && data) setResults(data as SearchResult[]);
       else setResults([]);
       setLoading(false);
+      setSelectedIndex(-1);
     }, 300);
 
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [query]);
 
-  const handleSelect = (result: SearchResult) => {
+  const handleSelect = useCallback((result: SearchResult) => {
     const config = TYPE_CONFIG[result.result_type];
     if (config) navigate(config.path(result));
     setOpen(false);
-    setQuery('');
+  }, [navigate]);
+
+  // Keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.min(prev + 1, results.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(prev => Math.max(prev - 1, 0));
+    } else if (e.key === 'Enter' && selectedIndex >= 0 && results[selectedIndex]) {
+      e.preventDefault();
+      handleSelect(results[selectedIndex]);
+    }
   };
 
   return (
-    <div ref={ref} className="relative w-full max-w-md">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search courses, forum, blog..."
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-          onFocus={() => query.length >= 2 && setOpen(true)}
-          className="pl-9 pr-8 bg-secondary/50 border-border/50 h-9 text-sm"
-        />
-        {query && (
-          <button onClick={() => { setQuery(''); setResults([]); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
+    <>
+      {/* Compact trigger button */}
+      <button
+        onClick={() => setOpen(true)}
+        className="global-search-trigger group"
+        aria-label="Search"
+      >
+        <Search className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+        <span className="hidden xl:inline text-[13px] text-muted-foreground group-hover:text-foreground transition-colors">
+          Search...
+        </span>
+        <kbd className="hidden xl:inline-flex global-search-kbd">
+          <Command className="h-2.5 w-2.5" />K
+        </kbd>
+      </button>
 
-      {open && (query.length >= 2) && (
-        <div className="absolute top-full mt-2 w-full min-w-[320px] bg-card border border-border rounded-xl shadow-elevated z-50 max-h-80 overflow-y-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : results.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              No results found for "{query}"
-            </div>
-          ) : (
-            <div className="p-2">
-              {results.map((result, i) => {
-                const config = TYPE_CONFIG[result.result_type] || TYPE_CONFIG.course;
-                const Icon = config.icon;
-                return (
+      {/* Search overlay / command palette */}
+      <AnimatePresence>
+        {open && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-background/60 backdrop-blur-sm z-[100]"
+              onClick={() => setOpen(false)}
+            />
+
+            {/* Search panel */}
+            <motion.div
+              initial={{ opacity: 0, y: -20, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.98 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              className="global-search-panel"
+            >
+              {/* Search input */}
+              <div className="global-search-input-wrapper">
+                <Search className="h-5 w-5 text-muted-foreground shrink-0" />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  placeholder="Search courses, forum, blog, ebooks..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="global-search-input"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                {loading && (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
+                )}
+                {query && !loading && (
                   <button
-                    key={`${result.result_type}-${result.result_id}-${i}`}
-                    onClick={() => handleSelect(result)}
-                    className="w-full text-left flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                    onClick={() => { setQuery(''); setResults([]); inputRef.current?.focus(); }}
+                    className="p-1 rounded-md hover:bg-muted transition-colors shrink-0"
                   >
-                    <div className={`shrink-0 p-1.5 rounded-md ${config.color}`}>
-                      <Icon className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      <p className="text-sm font-medium text-foreground truncate">{result.title || 'Untitled'}</p>
-                      {result.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{result.description}</p>
-                      )}
-                    </div>
-                    <Badge variant="outline" className="text-[10px] shrink-0 ml-2">{config.label}</Badge>
+                    <X className="h-3.5 w-3.5 text-muted-foreground" />
                   </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+                )}
+                <button
+                  onClick={() => setOpen(false)}
+                  className="ml-1 shrink-0"
+                >
+                  <kbd className="global-search-kbd text-[10px]">ESC</kbd>
+                </button>
+              </div>
+
+              {/* Results */}
+              <div className="global-search-results">
+                {query.length < 2 ? (
+                  <div className="global-search-empty">
+                    <div className="global-search-empty-icon">
+                      <Search className="h-6 w-6 text-muted-foreground/40" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Type at least 2 characters to search
+                    </p>
+                    <div className="flex items-center gap-3 mt-4">
+                      {[
+                        { label: 'Courses', icon: BookOpen },
+                        { label: 'Forum', icon: MessageSquare },
+                        { label: 'Blog', icon: FileText },
+                        { label: 'E-Books', icon: Book },
+                      ].map((item) => (
+                        <div key={item.label} className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
+                          <item.icon className="h-3 w-3" />
+                          {item.label}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : results.length === 0 && !loading ? (
+                  <div className="global-search-empty">
+                    <div className="global-search-empty-icon">
+                      <Search className="h-6 w-6 text-muted-foreground/40" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      No results found for "<span className="text-foreground font-medium">{query}</span>"
+                    </p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">
+                      Try different keywords or browse categories
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-2">
+                    {results.map((result, i) => {
+                      const config = TYPE_CONFIG[result.result_type] || TYPE_CONFIG.course;
+                      const Icon = config.icon;
+                      const isSelected = i === selectedIndex;
+                      return (
+                        <motion.button
+                          key={`${result.result_type}-${result.result_id}-${i}`}
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.03, duration: 0.2 }}
+                          onClick={() => handleSelect(result)}
+                          onMouseEnter={() => setSelectedIndex(i)}
+                          className={`global-search-result-item ${isSelected ? 'global-search-result-selected' : ''}`}
+                        >
+                          <div className={`shrink-0 p-2 rounded-lg ${config.color} transition-colors`}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 overflow-hidden text-left">
+                            <p className="text-sm font-medium text-foreground truncate">{result.title || 'Untitled'}</p>
+                            {result.description && (
+                              <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{result.description}</p>
+                            )}
+                          </div>
+                          <Badge variant="outline" className="text-[10px] shrink-0 ml-2 opacity-60">{config.label}</Badge>
+                          <ArrowRight className={`h-3.5 w-3.5 text-muted-foreground shrink-0 ml-1 transition-all ${isSelected ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-1'}`} />
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="global-search-footer">
+                <div className="flex items-center gap-3 text-[11px] text-muted-foreground/60">
+                  <span className="flex items-center gap-1">
+                    <kbd className="global-search-kbd-sm">↑</kbd>
+                    <kbd className="global-search-kbd-sm">↓</kbd>
+                    Navigate
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="global-search-kbd-sm">↵</kbd>
+                    Select
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <kbd className="global-search-kbd-sm">ESC</kbd>
+                    Close
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

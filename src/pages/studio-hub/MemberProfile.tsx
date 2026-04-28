@@ -10,25 +10,37 @@ import { supabase } from '@/integrations/supabase/client';
 import { Star, MapPin, Calendar, Pencil, ArrowLeft, Loader2, Briefcase, Award } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { PortfolioWorks } from '@/components/studio-hub/PortfolioWorks';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 export default function MemberProfile() {
   const { userId } = useParams<{ userId: string }>();
   const { user } = useAuth();
   const { profile, loading } = useMemberProfile(userId);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [givenReviews, setGivenReviews] = useState<any[]>([]);
   const isMe = user?.id === userId;
 
   useEffect(() => {
     if (!userId) return;
     (async () => {
-      const { data } = await (supabase as any)
-        .from('marketplace_reviews')
-        .select('*')
-        .eq('reviewee_id', userId)
-        .eq('direction', 'client_to_worker')
-        .order('created_at', { ascending: false })
-        .limit(10);
-      setReviews(data || []);
+      const [received, given] = await Promise.all([
+        (supabase as any)
+          .from('marketplace_reviews')
+          .select('*')
+          .eq('reviewee_id', userId)
+          .eq('direction', 'client_to_worker')
+          .order('created_at', { ascending: false })
+          .limit(10),
+        (supabase as any)
+          .from('marketplace_reviews')
+          .select('*')
+          .eq('reviewer_id', userId)
+          .eq('direction', 'worker_to_client')
+          .order('created_at', { ascending: false })
+          .limit(10),
+      ]);
+      setReviews(received.data || []);
+      setGivenReviews(given.data || []);
     })();
   }, [userId]);
 
@@ -151,24 +163,56 @@ export default function MemberProfile() {
 
         {/* Reviews */}
         <section className="mb-12 bg-background border border-border/40 rounded-2xl p-6 md:p-8">
-          <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-4">Client reviews</p>
-          {reviews.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No reviews yet.</p>
-          ) : (
-            <div className="divide-y divide-border/40 -my-4">
-              {reviews.map((r) => (
-                <div key={r.id} className="py-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className={`h-3.5 w-3.5 ${i < r.rating ? 'fill-amber-400 text-amber-400' : 'text-muted'}`} />
-                    ))}
-                    <span className="text-xs text-muted-foreground ml-2">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</span>
-                  </div>
-                  {r.comment && <p className="text-sm text-foreground/85 leading-relaxed">{r.comment}</p>}
-                </div>
-              ))}
+          <Tabs defaultValue="received">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase">Reviews</p>
+              <TabsList className="rounded-full bg-muted/40 p-0.5 h-auto">
+                <TabsTrigger value="received" className="rounded-full text-xs px-3 py-1">Received ({reviews.length})</TabsTrigger>
+                <TabsTrigger value="given" className="rounded-full text-xs px-3 py-1">Given ({givenReviews.length})</TabsTrigger>
+              </TabsList>
             </div>
-          )}
+
+            <TabsContent value="received">
+              {reviews.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No reviews received yet.</p>
+              ) : (
+                <div className="divide-y divide-border/40 -my-4">
+                  {reviews.map((r) => (
+                    <div key={r.id} className="py-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} className={`h-3.5 w-3.5 ${i < r.rating ? 'fill-amber-400 text-amber-400' : 'text-muted'}`} />
+                        ))}
+                        <span className="text-xs text-muted-foreground ml-2">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</span>
+                      </div>
+                      {r.comment && <p className="text-sm text-foreground/85 leading-relaxed">{r.comment}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="given">
+              {givenReviews.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No reviews given yet.</p>
+              ) : (
+                <div className="divide-y divide-border/40 -my-4">
+                  {givenReviews.map((r) => (
+                    <div key={r.id} className="py-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} className={`h-3.5 w-3.5 ${i < r.rating ? 'fill-amber-400 text-amber-400' : 'text-muted'}`} />
+                        ))}
+                        <Badge variant="outline" className="text-[10px] rounded-full">Given to client</Badge>
+                        <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</span>
+                      </div>
+                      {r.comment && <p className="text-sm text-foreground/85 leading-relaxed">{r.comment}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </section>
       </div>
     </StudioHubLayout>
