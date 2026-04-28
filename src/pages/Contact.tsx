@@ -95,7 +95,7 @@ export default function Contact() {
         <div className="absolute inset-0 dot-grid opacity-10 pointer-events-none" />
         <div className="container mx-auto px-4 relative">
           <div className="text-center mb-14">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">Contact <span class="text-hero-gradient">Us</span></h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">Contact <span className="text-hero-gradient">Us</span></h1>
             <p className="text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
               Have questions about our courses? We're here to help. Reach out to us and we'll respond within 24 hours.
             </p>

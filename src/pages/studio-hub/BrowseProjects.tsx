@@ -35,7 +35,7 @@ export default function BrowseProjects() {
         <div className="absolute inset-0 dot-grid opacity-[0.06] pointer-events-none" />
         <div className="max-w-2xl mb-10 relative">
           <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">Open projects</p>
-          <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Find your <span class="text-hero-gradient">next brief.</span></h1>
+          <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight">Find your <span className="text-hero-gradient">next brief.</span></h1>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-3 mb-8">

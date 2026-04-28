@@ -45,7 +45,7 @@ export default function MembersDirectory() {
         <div className="absolute inset-0 dot-grid opacity-[0.06] pointer-events-none" />
         <div className="max-w-2xl mb-10 relative">
           <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">Studio Members</p>
-          <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight mb-3">Future architects, <span class="text-hero-gradient">verified.</span></h1>
+          <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight mb-3">Future architects, <span className="text-hero-gradient">verified.</span></h1>
           <p className="text-sm text-muted-foreground">Discover the people behind Studio Hub.</p>
         </div>
 
