@@ -1,0 +1,1 @@
+ALTER TABLE public.marketplace_reviews ALTER COLUMN contract_id DROP NOT NULL;

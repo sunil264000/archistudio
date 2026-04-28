@@ -2833,7 +2833,7 @@ export type Database = {
       marketplace_reviews: {
         Row: {
           comment: string | null
-          contract_id: string
+          contract_id: string | null
           created_at: string
           direction: string
           id: string
@@ -2844,7 +2844,7 @@ export type Database = {
         }
         Insert: {
           comment?: string | null
-          contract_id: string
+          contract_id?: string | null
           created_at?: string
           direction: string
           id?: string
@@ -2855,7 +2855,7 @@ export type Database = {
         }
         Update: {
           comment?: string | null
-          contract_id?: string
+          contract_id?: string | null
           created_at?: string
           direction?: string
           id?: string
