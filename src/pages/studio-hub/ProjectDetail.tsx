@@ -421,7 +421,6 @@ export default function ProjectDetail() {
               </div>
             )}
           </motion.div>
-          </motion.div>
 
           {/* ===================== SIDEBAR ===================== */}
           <motion.aside
