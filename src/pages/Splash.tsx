@@ -4,16 +4,24 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { ArrowRight, BookOpen, Compass, Sparkles, Users, GraduationCap, Shield } from 'lucide-react';
 import { SEOHead } from '@/components/seo/SEOHead';
+import { useLiveStats } from '@/hooks/useLiveStats';
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-const stats = [
-  { label: 'Students', value: '1,000+', icon: Users },
-  { label: 'Courses', value: '15+', icon: GraduationCap },
-  { label: 'Protected Escrow', value: '100%', icon: Shield },
-];
+const formatCount = (n: number) => {
+  if (n >= 1000) return `${(Math.floor(n / 100) / 10).toFixed(1).replace(/\.0$/, '')}k+`;
+  if (n >= 100) return `${Math.floor(n / 10) * 10}+`;
+  if (n > 0) return `${n}+`;
+  return '—';
+};
 
 export default function Splash() {
+  const live = useLiveStats();
+  const stats = [
+    { label: 'Students', value: live.loading ? '…' : formatCount(live.students), icon: Users },
+    { label: 'Courses', value: live.loading ? '…' : formatCount(live.courses), icon: GraduationCap },
+    { label: 'Protected Escrow', value: '100%', icon: Shield },
+  ];
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
       <SEOHead

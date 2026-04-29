@@ -1,40 +1,16 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
 import { Users, BookOpen, MessageSquare, Award } from 'lucide-react';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
-
-interface Stats {
-  students: number;
-  courses: number;
-  critiques: number;
-  certificates: number;
-}
+import { useLiveStats } from '@/hooks/useLiveStats';
 
 export function LiveStatsBar() {
-  const [stats, setStats] = useState<Stats>({ students: 0, courses: 0, critiques: 0, certificates: 0 });
-
-  useEffect(() => {
-    Promise.all([
-      supabase.from('profiles').select('user_id', { count: 'exact', head: true }),
-      supabase.from('courses').select('id', { count: 'exact', head: true }).eq('is_published', true),
-      supabase.from('forum_answers').select('id', { count: 'exact', head: true }),
-      supabase.from('certificates').select('id', { count: 'exact', head: true }),
-    ]).then(([studentsRes, coursesRes, critiquesRes, certsRes]) => {
-      setStats({
-        students: studentsRes.count || 0,
-        courses: coursesRes.count || 0,
-        critiques: critiquesRes.count || 0,
-        certificates: certsRes.count || 0,
-      });
-    });
-  }, []);
+  const stats = useLiveStats();
 
   const items = [
-    { icon: Users, value: stats.students || 2000, suffix: '+', label: 'Students' },
-    { icon: BookOpen, value: stats.courses || 70, suffix: '+', label: 'Courses' },
-    { icon: MessageSquare, value: stats.critiques || 5000, suffix: '+', label: 'Critiques' },
-    { icon: Award, value: stats.certificates || 500, suffix: '+', label: 'Certificates' },
+    { icon: Users, value: stats.students, suffix: '+', label: 'Students' },
+    { icon: BookOpen, value: stats.courses, suffix: '+', label: 'Courses' },
+    { icon: MessageSquare, value: stats.critiques, suffix: '+', label: 'Critiques' },
+    { icon: Award, value: stats.certificates, suffix: '+', label: 'Certificates' },
   ];
 
   return (
