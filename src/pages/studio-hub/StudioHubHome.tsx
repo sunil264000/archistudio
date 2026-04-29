@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { StudioHubLayout } from '@/components/studio-hub/StudioHubLayout';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { ArrowRight, ShieldCheck, Sparkles, Compass, Layers, PenTool, Box, Clock, Users, Star } from 'lucide-react';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { useStudioProjects, useTopMembers, formatBudget, STUDIO_CATEGORIES } from '@/hooks/useStudioHub';
