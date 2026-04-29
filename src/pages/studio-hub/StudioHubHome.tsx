@@ -28,6 +28,7 @@ export default function StudioHubHome() {
 
   return (
     <StudioHubLayout>
+      {/* Build Trigger: Growth & Stability Update */}
       <SEOHead
         title="Studio Hub — Architecture freelance, by students"
         description="Hire architecture students for drafting, 3D, rendering and thesis help. Calm, safe, and run by Archistudio with admin-protected escrow."
