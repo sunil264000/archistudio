@@ -5528,6 +5528,7 @@ export type Database = {
         Returns: Json
       }
       cleanup_expired_cache: { Args: never; Returns: undefined }
+      get_project_attachments: { Args: { p_job_id: string }; Returns: string[] }
       get_referral_by_code: {
         Args: { code: string }
         Returns: {
