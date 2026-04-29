@@ -167,9 +167,9 @@ export function HighlightedCourseSection() {
                 </div>
               </div>
             </div>
-          </div>
-        </motion.div>
-      </div>
-    </section>
-  );
+          </motion.div>
+        </div>
+      </section>
+    );
+  }
 }
