@@ -16,6 +16,12 @@ const formatCount = (n: number) => {
 };
 
 export default function Splash() {
+  const live = useLiveStats();
+  const stats = [
+    { label: 'Students', value: live.loading ? '…' : formatCount(live.students), icon: Users },
+    { label: 'Courses', value: live.loading ? '…' : formatCount(live.courses), icon: GraduationCap },
+    { label: 'Protected Escrow', value: '100%', icon: Shield },
+  ];
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
       <SEOHead
