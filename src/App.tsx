@@ -31,6 +31,7 @@ import { queryClient, prefetchCriticalData } from "@/lib/queryClient";
 
 // ─── Critical pages (eagerly loaded — first-paint routes) ───
 import Splash from "./pages/Splash";
+import Gateway from "./pages/Gateway";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Courses from "./pages/Courses";
@@ -339,7 +340,8 @@ function AnimatedRoutes() {
         <Suspense fallback={<PageLoader />}>
           <Routes location={location}>
             {/* ─── Core public routes ─── */}
-            <Route path="/" element={<Splash />} />
+            <Route path="/" element={<Gateway />} />
+            <Route path="/splash" element={<Splash />} />
             <Route path="/learn" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/courses" element={<Courses />} />

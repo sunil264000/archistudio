@@ -11,6 +11,7 @@ interface SearchResult {
   title: string;
   description: string | null;
   slug: string | null;
+  image_url: string | null;
   relevance: number;
 }
 
@@ -225,8 +226,20 @@ export function GlobalSearch() {
                           onMouseEnter={() => setSelectedIndex(i)}
                           className={`global-search-result-item ${isSelected ? 'global-search-result-selected' : ''}`}
                         >
-                          <div className={`shrink-0 p-2 rounded-lg ${config.color} transition-colors`}>
-                            <Icon className="h-4 w-4" />
+                          <div className={`shrink-0 w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center ${!result.image_url ? config.color : 'bg-muted'} transition-all group-hover:scale-105`}>
+                            {result.image_url ? (
+                              <img 
+                                src={result.image_url} 
+                                alt="" 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = '';
+                                  (e.target as HTMLImageElement).parentElement!.classList.add(config.color);
+                                }}
+                              />
+                            ) : (
+                              <Icon className="h-5 w-5" />
+                            )}
                           </div>
                           <div className="flex-1 overflow-hidden text-left">
                             <p className="text-sm font-medium text-foreground truncate">{result.title || 'Untitled'}</p>

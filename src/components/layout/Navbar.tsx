@@ -104,9 +104,14 @@ export function Navbar() {
             <img src={logoMark} alt="Archistudio" className="h-8 w-8 rounded-lg object-cover transition-transform duration-300 group-hover:scale-110" />
             <div className="absolute inset-0 rounded-lg bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
-          <span className="font-display font-bold text-base tracking-tight text-foreground whitespace-nowrap">
-            Archistudio
-          </span>
+          <div className="flex flex-col">
+            <span className="font-display font-bold text-sm tracking-tight text-foreground leading-tight">
+              Archistudio
+            </span>
+            <span className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold">
+              {location.pathname.startsWith('/studio-hub') ? 'Studio Hub' : 'Academy'}
+            </span>
+          </div>
         </Link>
 
         {/* Desktop Navigation */}
@@ -181,6 +186,13 @@ export function Navbar() {
           <Button variant="ghost" size="icon" onClick={toggleDarkMode} className="rounded-lg h-8 w-8">
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
+
+          <Link to="/">
+            <Button variant="outline" size="sm" className="hidden xl:flex gap-2 text-[11px] h-8 rounded-full border-accent/20 hover:border-accent/40 bg-accent/5">
+              <Compass className="h-3 w-3 text-accent" />
+              Switch Path
+            </Button>
+          </Link>
 
           {loading ? (
             <div className="h-8 w-20 animate-pulse rounded-lg bg-muted" />

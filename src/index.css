@@ -1182,14 +1182,15 @@
   padding: 0.625rem 0.75rem;
   border-radius: 0.625rem;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
   border: 1px solid transparent;
 }
 
 .global-search-result-item:hover,
 .global-search-result-selected {
-  background: hsl(var(--muted) / 0.5);
-  border-color: hsl(var(--border) / 0.5);
+  background: hsl(var(--muted) / 0.7);
+  border-color: hsl(var(--border) / 0.8);
+  transform: translateX(4px);
 }
 
 /* Footer */
