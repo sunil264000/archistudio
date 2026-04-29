@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMyMemberProfile, STUDIO_SKILLS } from '@/hooks/useStudioHub';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, X, Plus, CheckCircle2, Camera } from 'lucide-react';
+import { Loader2, X, Plus, CheckCircle2, Camera, Link as LinkIcon, Instagram, Linkedin, FileText, Upload } from 'lucide-react';
 import { compressAvatar } from '@/lib/imageCompression';
 import { Link } from 'react-router-dom';
 import { PortfolioWorks } from '@/components/studio-hub/PortfolioWorks';
@@ -26,6 +26,9 @@ const profileSchema = z.object({
   hourly_rate: z.number().positive().nullable().optional(),
   location: z.string().trim().max(80).optional().nullable(),
   skills: z.array(z.string()).min(1, 'Add at least 1 skill').max(20),
+  google_drive_link: z.string().url().optional().or(z.literal('')),
+  instagram_url: z.string().url().optional().or(z.literal('')),
+  linkedin_url: z.string().url().optional().or(z.literal('')),
 });
 
 export default function BecomeMember() {
@@ -44,6 +47,13 @@ export default function BecomeMember() {
   const [skills, setSkills] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  
+  // New fields
+  const [googleDriveLink, setGoogleDriveLink] = useState('');
+  const [instagramUrl, setInstagramUrl] = useState('');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [portfolioPdfUrl, setPortfolioPdfUrl] = useState<string | null>(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -55,6 +65,10 @@ export default function BecomeMember() {
       setLocation(profile.location || '');
       setSkills(profile.skills || []);
       setAvatarUrl(profile.avatar_url);
+      setGoogleDriveLink((profile as any).google_drive_link || '');
+      setInstagramUrl((profile as any).instagram_url || '');
+      setLinkedinUrl((profile as any).linkedin_url || '');
+      setPortfolioPdfUrl((profile as any).portfolio_pdf_url || null);
     } else if (userProfile?.full_name && !displayName) {
       setDisplayName(userProfile.full_name);
       setAvatarUrl(userProfile.avatar_url);
@@ -90,6 +104,23 @@ export default function BecomeMember() {
     toast.success('Photo updated');
   };
 
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.type !== 'application/pdf') { toast.error('Only PDF files are allowed'); return; }
+    if (file.size > 20 * 1024 * 1024) { toast.error('PDF must be under 20MB'); return; }
+
+    setUploadingPdf(true);
+    const path = `${user.id}/portfolio-${Date.now()}.pdf`;
+    const { error: upErr } = await supabase.storage.from('studio-hub-deliverables').upload(path, file);
+    if (upErr) { setUploadingPdf(false); toast.error(upErr.message); return; }
+    
+    const { data: pub } = supabase.storage.from('studio-hub-deliverables').getPublicUrl(path);
+    setPortfolioPdfUrl(pub.publicUrl);
+    setUploadingPdf(false);
+    toast.success('PDF Portfolio uploaded successfully');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) { navigate('/auth?redirect=/studio-hub/become-member'); return; }
@@ -98,11 +129,19 @@ export default function BecomeMember() {
       experience_level: experience,
       hourly_rate: hourlyRate ? parseFloat(hourlyRate) : null,
       location: location || null, skills,
+      google_drive_link: googleDriveLink || null,
+      instagram_url: instagramUrl || null,
+      linkedin_url: linkedinUrl || null,
     });
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
     setSaving(true);
     const { error } = await (supabase as any).from('worker_profiles').upsert(
-      { user_id: user.id, ...parsed.data, avatar_url: avatarUrl },
+      { 
+        user_id: user.id, 
+        ...parsed.data, 
+        avatar_url: avatarUrl,
+        portfolio_pdf_url: portfolioPdfUrl 
+      },
       { onConflict: 'user_id' }
     );
     setSaving(false);
@@ -215,6 +254,71 @@ export default function BecomeMember() {
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill(skillInput); } }} placeholder="Type or pick…" className="h-11 rounded-xl border-border/60" />
                 <datalist id="member-skill-suggestions">{STUDIO_SKILLS.map((s) => <option key={s} value={s} />)}</datalist>
                 <Button type="button" variant="outline" size="icon" onClick={() => addSkill(skillInput)} className="h-11 w-11 rounded-xl"><Plus className="h-4 w-4" /></Button>
+              </div>
+            </div>
+
+            <div className="border-t border-border/40 pt-6 mt-6">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <LinkIcon className="h-4 w-4 text-accent" /> Socials & Links
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2 mb-2">
+                    <LinkIcon className="h-3 w-3" /> Google Drive Portfolio Link
+                  </Label>
+                  <Input type="url" value={googleDriveLink} onChange={(e) => setGoogleDriveLink(e.target.value)} placeholder="https://drive.google.com/..." className="h-12 rounded-xl border-border/60" />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2 mb-2">
+                      <Instagram className="h-3 w-3" /> Instagram URL
+                    </Label>
+                    <Input type="url" value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} placeholder="https://instagram.com/..." className="h-12 rounded-xl border-border/60" />
+                  </div>
+                  <div>
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2 mb-2">
+                      <Linkedin className="h-3 w-3" /> LinkedIn URL
+                    </Label>
+                    <Input type="url" value={linkedinUrl} onChange={(e) => setLinkedinUrl(e.target.value)} placeholder="https://linkedin.com/in/..." className="h-12 rounded-xl border-border/60" />
+                  </div>
+                </div>
+                
+                <div className="pt-2">
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-2 mb-2">
+                    <FileText className="h-3 w-3" /> Upload PDF Portfolio
+                  </Label>
+                  
+                  {portfolioPdfUrl ? (
+                    <div className="flex items-center justify-between p-4 rounded-xl border border-border/60 bg-muted/20">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-rose-500/10 p-2 rounded-lg">
+                          <FileText className="h-5 w-5 text-rose-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Portfolio Document</p>
+                          <a href={portfolioPdfUrl} target="_blank" rel="noreferrer" className="text-xs text-accent hover:underline">View current PDF</a>
+                        </div>
+                      </div>
+                      <Button type="button" variant="outline" size="sm" onClick={() => setPortfolioPdfUrl(null)}>Remove</Button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-border/60 rounded-xl cursor-pointer hover:bg-muted/10 transition-colors">
+                      {uploadingPdf ? (
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                          <Loader2 className="h-4 w-4 animate-spin" /> Uploading PDF...
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                          <Upload className="h-5 w-5 mb-1 text-accent" />
+                          <span className="text-sm font-medium">Click to upload PDF (Max 20MB)</span>
+                        </div>
+                      )}
+                      <input type="file" accept="application/pdf" className="hidden" onChange={handlePdfUpload} disabled={uploadingPdf} />
+                    </label>
+                  )}
+                </div>
               </div>
             </div>
 

@@ -23,6 +23,19 @@ export function LiveStatsBar() {
     >
       <div className="absolute inset-0 bg-gradient-to-r from-accent/[0.02] via-transparent to-accent/[0.02]" />
       <div className="container-wide relative">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-bold tracking-widest uppercase mb-4">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+            </span>
+            5+ Years of Success
+          </div>
+          <p className="text-muted-foreground text-sm max-w-xl mx-auto">
+            Join the fastest growing architecture community. We've been empowering students and professionals for over half a decade.
+          </p>
+        </div>
+        
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {items.map((item, i) => (
             <motion.div
@@ -37,7 +50,7 @@ export function LiveStatsBar() {
                 <item.icon className="h-5 w-5 text-accent" />
               </div>
               <div className="font-display text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
-                <AnimatedCounter value={item.value} suffix={item.suffix} duration={2.2} />
+                <AnimatedCounter value={item.value} suffix={item.suffix} duration={6} />
               </div>
               <div className="text-xs tracking-wider uppercase text-muted-foreground/60 mt-1.5 font-medium">
                 {item.label}

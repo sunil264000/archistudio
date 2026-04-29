@@ -9,6 +9,7 @@ import { ArrowLeft, ShieldCheck, Zap, Users, BookOpen, Star } from 'lucide-react
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import logoMark from '@/assets/logo-mark.png';
+import { supabase } from '@/integrations/supabase/client';
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -18,13 +19,6 @@ const testimonial = {
   role: "B.Arch Graduate",
 };
 
-const features = [
-  { icon: BookOpen, label: '15+ professional courses' },
-  { icon: Users, label: 'Active community of 1,000+ students' },
-  { icon: Star, label: 'Sheet reviews & daily challenges' },
-  { icon: ShieldCheck, label: 'Studio Hub with protected escrow' },
-];
-
 export default function Auth() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -33,6 +27,35 @@ export default function Auth() {
   const [mode, setMode] = useState<'login' | 'signup'>(
     searchParams.get('mode') === 'signup' ? 'signup' : 'login'
   );
+
+  const [stats, setStats] = useState({ courses: 15, students: 1000 });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [{ count: coursesCount }, { count: studentsCount }] = await Promise.all([
+          supabase.from('courses').select('*', { count: 'exact', head: true }),
+          supabase.from('profiles').select('*', { count: 'exact', head: true })
+        ]);
+        
+        setStats(prev => ({
+          courses: coursesCount ?? prev.courses,
+          students: studentsCount ?? prev.students
+        }));
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+    
+    fetchStats();
+  }, []);
+
+  const features = [
+    { icon: BookOpen, label: `${stats.courses} professional courses` },
+    { icon: Users, label: `Active community of ${stats.students.toLocaleString()} students` },
+    { icon: Star, label: 'Sheet reviews & daily challenges' },
+    { icon: ShieldCheck, label: 'Studio Hub with protected escrow' },
+  ];
 
   // Resolve redirect: ?redirect= param takes priority, then ProtectedRoute state.from, then '/'
   const getRedirect = () =>

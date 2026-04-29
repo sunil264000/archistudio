@@ -22,6 +22,7 @@ export default function Splash() {
     { label: 'Courses', value: live.loading ? '…' : formatCount(live.courses), icon: GraduationCap },
     { label: 'Protected Escrow', value: '100%', icon: Shield },
   ];
+
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
       <SEOHead

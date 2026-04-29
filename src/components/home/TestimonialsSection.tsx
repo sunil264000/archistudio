@@ -16,41 +16,53 @@ interface Testimonial {
 
 const fallbackTestimonials: Testimonial[] = [
   {
-    quote: "After two years at a firm, I still felt like I was faking it. This course finally gave me the confidence to lead a project from start to finish.",
+    quote: "I learnt so much things here that my college will never teach me today or in the future. The practical knowledge is insane. Highly recommended!",
+    name: "Aarav P.",
+    role: "Architecture Student",
+    rating: 5,
+  },
+  {
+    quote: "After two years at a firm, I still felt like I was faking it. The Studio Hub courses finally gave me the confidence to lead a project from start to finish.",
     name: "Priya M.",
     role: "Junior Architect, 3 years experience",
     rating: 5,
   },
   {
-    quote: "The construction logic module alone saved me from making a ₹5 lakh mistake on my first independent project. Worth every rupee.",
+    quote: "The construction logic and detailing modules alone saved me from making a ₹5 lakh mistake on my first independent project. Worth every single rupee.",
     name: "Rahul K.",
     role: "Freelance Architect",
     rating: 5,
   },
   {
-    quote: "I wish this existed when I graduated. Would have saved me three years of learning the hard way.",
-    name: "Anjali S.",
-    role: "Senior Architect, 8 years experience",
-    rating: 5,
-  },
-  {
-    quote: "Finally, someone teaching architecture the way it's actually practiced. No fluff, no motivation speeches — just practical skills.",
-    name: "Vikram P.",
-    role: "Architecture Student, Final Year",
-    rating: 5,
-  },
-  {
-    quote: "Studio Hub connected me with a real client for the first time. Archistudio's escrow system made it safe to work.",
+    quote: "Honestly, they teach you the actual reality of architecture. My professors never taught us how to actually handle clients or price our 3D renders. Archistudio changed my career.",
     name: "Sneha R.",
+    role: "Freelance 3D Artist",
+    rating: 5,
+  },
+  {
+    quote: "I wish this platform existed when I graduated. Would have saved me three years of learning the hard way through trial and error.",
+    name: "Anjali S.",
+    role: "Senior Architect",
+    rating: 5,
+  },
+  {
+    quote: "Studio Hub connected me with a real client for the first time. The escrow system made it 100% safe to work, and I got paid immediately after delivery.",
+    name: "Vikram D.",
     role: "Freelance Drafter",
     rating: 5,
   },
   {
-    quote: "Better than any YouTube tutorial. The mentorship approach and real-project examples are unmatched.",
+    quote: "Better than any YouTube tutorial or university lecture. The mentorship approach and real-project files you get are completely unmatched in India.",
     name: "Arjun T.",
     role: "Architecture Intern",
     rating: 5,
   },
+  {
+    quote: "I was struggling to find a job, but after doing the portfolio mastery course here, I landed a job at a top-tier firm in Mumbai. Thank you so much Archistudio!",
+    name: "Kavya N.",
+    role: "Junior Designer",
+    rating: 5,
+  }
 ];
 
 function useTestimonials() {

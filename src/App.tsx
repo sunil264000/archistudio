@@ -39,6 +39,7 @@ import NotFound from "./pages/NotFound";
 const CourseDetail = lazy(() => import("./pages/CourseDetail"));
 const CoursePlayer = lazy(() => import("./pages/CoursePlayer"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const OwnerDashboard = lazy(() => import("./pages/OwnerDashboard"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
@@ -115,6 +116,21 @@ function PageLoader() {
     </div>
   );
 }
+
+const GlobalBackground = () => (
+  <div className="fixed inset-0 pointer-events-none z-[-100] overflow-hidden bg-background">
+    {/* Subtle architectural grid pattern */}
+    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+CjxwYXRoIGQ9Ik02MCAwaC02MHY2MGg2MHYtNjB6bS0xIDF2NThoLTU4di01OGg1OHoiIGZpbGw9ImN1cnJlbnRDb2xvciIgZmlsbC1vcGFjaXR5PSIwLjA0Ii8+Cjwvc3ZnPg==')] opacity-[0.15] dark:opacity-[0.06] mix-blend-overlay" />
+    
+    {/* Soft glowing ambient orbs */}
+    <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-accent/5 blur-[120px] mix-blend-screen" />
+    <div className="absolute top-[30%] -right-[15%] w-[45%] h-[45%] rounded-full bg-blueprint/5 blur-[100px] mix-blend-screen" />
+    <div className="absolute -bottom-[20%] left-[20%] w-[60%] h-[50%] rounded-full bg-accent/3 blur-[150px] mix-blend-screen" />
+    
+    {/* Subtle vignette to draw eyes to center */}
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.02)_100%)] dark:bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)] mix-blend-multiply" />
+  </div>
+);
 
 const AppContent = () => {
   useContentProtection();
@@ -333,6 +349,7 @@ function AnimatedRoutes() {
 
             {/* ─── Protected user routes ─── */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/owner-dashboard" element={<ProtectedRoute><OwnerDashboard /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/studio" element={<ProtectedRoute><Studio /></ProtectedRoute>} />
             <Route path="/studio-rooms" element={<ProtectedRoute><StudioRooms /></ProtectedRoute>} />
@@ -416,6 +433,7 @@ const App = () => (
         <AuthProvider>
           <CartProvider>
             <ErrorBoundary>
+              <GlobalBackground />
               <ScrollProgress />
               <ScrollToTop />
               <AppContent />

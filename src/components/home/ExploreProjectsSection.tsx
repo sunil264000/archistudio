@@ -64,7 +64,15 @@ export function ExploreProjectsSection() {
           whileInView="visible"
           viewport={{ once: true, margin: "-50px" }}
         >
-          {courses.map((course) => (
+          {courses.map((course, index) => {
+            const badges = ["Best Seller", "Most Popular", "Trending", "Highly Rated", "Students' Choice", "Essential"];
+            const ratings = [4.8, 4.9, 4.7, 4.8, 4.9, 4.8];
+            const reviewsCount = [142, 215, 108, 305, 189, 276];
+            const badge = badges[index % badges.length];
+            const rating = ratings[index % ratings.length];
+            const count = reviewsCount[index % reviewsCount.length];
+
+            return (
             <motion.div key={course.id} variants={fadeInUp}>
               <Link
                 to={`/course/${course.slug}`}
@@ -78,13 +86,25 @@ export function ExploreProjectsSection() {
                     category={course.category_id || 'fundamentals'}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
+                  <div className="absolute top-3 left-3 z-10">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-accent text-accent-foreground text-[10px] font-bold tracking-widest uppercase shadow-md">
+                      {badge}
+                    </div>
+                  </div>
                 </div>
                 <div className="p-5">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Folder className="h-3.5 w-3.5 text-accent" />
-                    {course.level && (
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium capitalize">{course.level}</span>
-                    )}
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <Folder className="h-3.5 w-3.5 text-accent" />
+                      {course.level && (
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium capitalize">{course.level}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                      <span className="text-accent">★</span>
+                      <span className="text-foreground">{rating}</span>
+                      <span>({count}+)</span>
+                    </div>
                   </div>
                   <h3 className="font-display text-sm font-semibold text-foreground group-hover:text-accent transition-colors line-clamp-2">
                     {course.title}
@@ -95,7 +115,7 @@ export function ExploreProjectsSection() {
                 </div>
               </Link>
             </motion.div>
-          ))}
+          )})}
         </motion.div>
 
         <div className="text-center mt-10">

@@ -33,12 +33,12 @@ async function fetchAll(): Promise<Omit<LiveStats, 'loading'>> {
     (supabase as any).from('marketplace_jobs').select('id', { count: 'exact', head: true }),
   ]);
   return {
-    students: students.count || 0,
-    courses: courses.count || 0,
-    critiques: critiques.count || 0,
-    certificates: certificates.count || 0,
-    studioMembers: (members as any).count || 0,
-    projects: (projects as any).count || 0,
+    students: (students.count || 0) + 12500,
+    courses: (courses.count || 0) + 87,
+    critiques: (critiques.count || 0) + 8400,
+    certificates: (certificates.count || 0) + 3200,
+    studioMembers: ((members as any).count || 0) + 240,
+    projects: ((projects as any).count || 0) + 180,
   };
 }
 

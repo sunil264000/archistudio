@@ -7,7 +7,7 @@ import { SEOHead } from '@/components/seo/SEOHead';
 import { useMemberProfile } from '@/hooks/useStudioHub';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Star, MapPin, Calendar, Pencil, ArrowLeft, Loader2, Briefcase, Award } from 'lucide-react';
+import { Star, MapPin, Calendar, Pencil, ArrowLeft, Loader2, Briefcase, Award, Instagram, Linkedin, Link as LinkIcon, FileText } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { PortfolioWorks } from '@/components/studio-hub/PortfolioWorks';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -138,11 +138,65 @@ export default function MemberProfile() {
           </div>
         </div>
 
-        {/* About */}
-        {profile.bio && (
+        {/* About & Socials */}
+        {(profile.bio || (profile as any).instagram_url || (profile as any).linkedin_url || (profile as any).google_drive_link || (profile as any).portfolio_pdf_url) && (
           <section className="mb-6 bg-background border border-border/40 rounded-2xl p-6 md:p-8">
-            <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">About</p>
-            <p className="whitespace-pre-wrap text-foreground/85 leading-relaxed">{profile.bio}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="md:col-span-2">
+                {profile.bio && (
+                  <>
+                    <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">About</p>
+                    <p className="whitespace-pre-wrap text-foreground/85 leading-relaxed">{profile.bio}</p>
+                  </>
+                )}
+              </div>
+              
+              <div className="md:col-span-1 space-y-6">
+                {((profile as any).instagram_url || (profile as any).linkedin_url || (profile as any).google_drive_link) && (
+                  <div>
+                    <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">Links</p>
+                    <div className="space-y-3">
+                      {(profile as any).instagram_url && (
+                        <a href={(profile as any).instagram_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-foreground/80 hover:text-accent transition-colors">
+                          <Instagram className="h-4 w-4" /> Instagram
+                        </a>
+                      )}
+                      {(profile as any).linkedin_url && (
+                        <a href={(profile as any).linkedin_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-foreground/80 hover:text-accent transition-colors">
+                          <Linkedin className="h-4 w-4" /> LinkedIn
+                        </a>
+                      )}
+                      {(profile as any).google_drive_link && (
+                        <a href={(profile as any).google_drive_link} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-foreground/80 hover:text-accent transition-colors">
+                          <LinkIcon className="h-4 w-4" /> Google Drive Portfolio
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* PDF Portfolio Viewer */}
+        {(profile as any).portfolio_pdf_url && (
+          <section className="mb-6 bg-background border border-border/40 rounded-2xl p-6 md:p-8 overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase flex items-center gap-2">
+                <FileText className="h-4 w-4" /> Master Portfolio
+              </p>
+              <Button variant="outline" size="sm" className="rounded-full" onClick={() => window.open((profile as any).portfolio_pdf_url, '_blank')}>
+                Open Fullscreen
+              </Button>
+            </div>
+            <div className="w-full h-[600px] rounded-xl overflow-hidden border border-border/40 bg-muted/20">
+              <iframe 
+                src={`${(profile as any).portfolio_pdf_url}#view=FitH`} 
+                title="PDF Portfolio"
+                className="w-full h-full border-0"
+              />
+            </div>
           </section>
         )}
 

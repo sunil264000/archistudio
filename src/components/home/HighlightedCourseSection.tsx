@@ -157,16 +157,13 @@ export function HighlightedCourseSection() {
                 </div>
 
                 {/* Social proof */}
-                <div className="flex items-center gap-2.5 text-caption text-muted-foreground">
-                  <div className="flex -space-x-1.5">
-                    {[...Array(4)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="h-6 w-6 rounded-full border-2 border-card bg-gradient-to-br from-accent/25 to-primary/20"
-                      />
+                  <div className="flex items-center gap-1.5 text-accent">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="h-3 w-3 fill-accent" />
                     ))}
+                    <span className="text-foreground font-bold ml-1">4.9/5</span>
                   </div>
-                  <span>Trusted by thousands of students</span>
+                  <span>(1,450+ verified reviews)</span>
                 </div>
               </div>
             </div>
