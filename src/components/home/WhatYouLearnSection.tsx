@@ -36,14 +36,14 @@ function generateLearningPoints(modules: any[]): { icon: any; title: string; des
 }
 
 const defaultModules = [
-  { icon: MapPin, title: 'Site Analysis', description: 'Read sites like experienced architects. Context, constraints, opportunities.' },
-  { icon: PenTool, title: 'Working Drawings', description: 'Complete drawing sets that contractors can actually build from.' },
-  { icon: Layers, title: 'Construction Logic', description: 'How buildings go up. Sequences, dependencies, and the "why" behind methods.' },
-  { icon: Building2, title: 'Structural Coordination', description: 'Read and coordinate with structural drawings confidently.' },
-  { icon: Leaf, title: 'Sustainability', description: 'Climate-responsive design, energy efficiency, material consciousness.' },
-  { icon: FileText, title: 'Specifications', description: 'Write specs that protect your design intent and quality standards.' },
-  { icon: Ruler, title: 'Detailing', description: 'Create details that solve real problems. Junctions, transitions, craft.' },
-  { icon: Lightbulb, title: 'Services Integration', description: 'Understand MEP coordination. Your building needs more than walls.' },
+  { icon: MapPin, title: 'Strategic Site Analysis', description: 'Read sites like a lead architect. Master environmental constraints, urban fabric, and hidden opportunities.' },
+  { icon: PenTool, title: 'Executive Drawing Sets', description: 'Produce GFC (Good For Construction) sets that offices and contractors trust. Zero ambiguity.' },
+  { icon: Layers, title: 'Building Systems & Logic', description: 'Understand the anatomy of construction. Sequences, material dependencies, and structural integrity.' },
+  { icon: Building2, title: 'Cross-Disciplinary Coordination', description: 'Speak the language of engineers. Confidently coordinate structural and MEP drawings.' },
+  { icon: Leaf, title: 'High-Performance Design', description: 'Beyond basic sustainability. Implement climate-responsive strategies and advanced material science.' },
+  { icon: FileText, title: 'Technical Specifications', description: 'Write bulletproof specs that protect your design intent and ensure contractor accountability.' },
+  { icon: Ruler, title: 'Precision Detailing', description: 'Craft junctions that work. Master the art of the architectural detail, from concept to execution.' },
+  { icon: Lightbulb, title: 'MEP Integration Strategy', description: 'Integrate complex services without compromising design. Architecture meets engineering.' },
 ];
 
 export function WhatYouLearnSection() {

@@ -658,12 +658,12 @@ export default function CourseDetail() {
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       <SEOHead
-        title={`${course.title} - Archistudio`}
-        description={course.shortDescription}
+        title={`${course.title} | Archistudio Academy`}
+        description={course.shortDescription || `Master ${course.title} with professional-grade training from Archistudio. Real-world workflows, expert guidance, and industry-standard deliverables.`}
         type="product"
         price={course.priceInr}
         url={courseUrl}
-        keywords={`${course.title}, ${category?.name}, architecture course, 3D visualization`}
+        keywords={`${course.title}, architecture course, 3D visualization, BIM training, Archistudio`}
       />
       <script
         type="application/ld+json"

@@ -128,8 +128,8 @@ export default function Courses() {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="All Courses - Archistudio"
-        description="Browse our complete catalog of architecture and 3D visualization courses. Learn 3ds Max, AutoCAD, Revit, SketchUp and more."
+        title="Architecture & Design Courses | Archistudio Academy"
+        description="Elevate your architecture practice with professional-grade courses. Master 3ds Max, Revit, SketchUp, and site execution from industry experts."
         url="https://archistudio.shop/courses"
       />
 

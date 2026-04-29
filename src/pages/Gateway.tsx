@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { BookOpen, Compass, ArrowRight, Sparkles, GraduationCap, Briefcase, Zap, ShieldCheck } from 'lucide-react';
+import { BookOpen, Compass, ArrowRight, GraduationCap, Briefcase, Zap, ShieldCheck } from 'lucide-react';
 import { SEOHead } from '@/components/seo/SEOHead';
 import logoMark from '@/assets/logo-mark.png';
 
@@ -10,8 +10,8 @@ export default function Gateway() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center relative overflow-hidden">
       <SEOHead 
-        title="Archistudio — Choose Your Path" 
-        description="Choose between the Archistudio Academy to learn architecture or the Studio Hub to hire professionals."
+        title="Archistudio — The Professional Architectural Gateway" 
+        description="Bridge the gap between education and practice. Master architectural software at the Academy or hire top-tier talent at Studio Hub."
       />
 
       {/* Dynamic Background */}
@@ -42,11 +42,19 @@ export default function Gateway() {
           className="mb-12 md:mb-20 text-center"
         >
           <div className="relative inline-block mb-6">
-            <img src={logoMark} alt="Archistudio" className="h-20 w-20 mx-auto rounded-[24px] shadow-2xl relative z-10" />
+            <img 
+              src={logoMark} 
+              alt="Archistudio Logo" 
+              className="h-20 w-20 mx-auto rounded-[24px] shadow-2xl relative z-10" 
+              fetchpriority="high"
+              decoding="async"
+            />
             <div className="absolute inset-0 bg-accent blur-2xl opacity-20 scale-150" />
           </div>
-          <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight mb-2">Choose your door.</h1>
-          <p className="text-muted-foreground text-sm md:text-base max-w-xs mx-auto">One account. Two distinct experiences for architects.</p>
+          <h1 className="font-display text-3xl md:text-5xl font-bold tracking-tight mb-2">Architectural Excellence.</h1>
+          <p className="text-muted-foreground text-sm md:text-base max-w-sm mx-auto leading-relaxed">
+            A unified ecosystem for the next generation of architects. Choose your destination.
+          </p>
         </motion.div>
 
         <div className="flex-1 flex flex-col md:flex-row items-stretch gap-6 md:gap-10 max-w-6xl mx-auto w-full">
@@ -61,7 +69,6 @@ export default function Gateway() {
               <div className="absolute inset-0 bg-card border border-border/50 rounded-[48px] transition-all duration-500 group-hover:scale-[1.02] group-hover:border-accent/40 group-hover:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14)] dark:group-hover:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)] overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                 
-                {/* Visual element */}
                 <div className="absolute right-[-10%] top-[-10%] opacity-5 group-hover:opacity-10 transition-opacity">
                   <GraduationCap className="w-64 h-64 rotate-12" />
                 </div>
@@ -77,17 +84,17 @@ export default function Gateway() {
                     <Zap className="h-3 w-3" /> The Academy
                   </div>
                   <h2 className="font-display text-4xl md:text-6xl font-bold leading-[0.95] tracking-tighter">
-                    I want to <br />
-                    <span className="text-muted-foreground/40 group-hover:text-accent transition-colors duration-500 italic">Learn.</span>
+                    Elevate <br />
+                    <span className="text-muted-foreground/40 group-hover:text-accent transition-colors duration-500 italic font-medium">Your Skills.</span>
                   </h2>
                 </div>
 
                 <p className="text-muted-foreground text-base md:text-lg leading-relaxed mb-10 max-w-xs">
-                  Master real-world architectural software and studio workflows with mentor-led programs.
+                  Master industry-standard workflows, BIM modeling, and high-end visualization with professional mentorship.
                 </p>
                 
                 <div className="mt-auto flex items-center gap-3 text-foreground font-bold group-hover:gap-5 transition-all duration-300">
-                  <span className="text-lg">Enter Academy</span>
+                  <span className="text-lg">Start Learning</span>
                   <div className="w-10 h-10 rounded-full bg-foreground text-background flex items-center justify-center transition-transform group-hover:scale-110">
                     <ArrowRight className="h-5 w-5" />
                   </div>
@@ -107,7 +114,6 @@ export default function Gateway() {
               <div className="absolute inset-0 bg-card border border-border/50 rounded-[48px] transition-all duration-500 group-hover:scale-[1.02] group-hover:border-blueprint/40 group-hover:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.14)] dark:group-hover:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.4)] overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-blueprint/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                 
-                {/* Visual element */}
                 <div className="absolute left-[-10%] bottom-[-10%] opacity-5 group-hover:opacity-10 transition-opacity">
                   <Briefcase className="w-64 h-64 -rotate-12" />
                 </div>
@@ -123,13 +129,13 @@ export default function Gateway() {
                     <ShieldCheck className="h-3.5 w-3.5" /> Studio Hub
                   </div>
                   <h2 className="font-display text-4xl md:text-6xl font-bold leading-[0.95] tracking-tighter">
-                    I want to <br />
-                    <span className="text-muted-foreground/40 group-hover:text-blueprint transition-colors duration-500 italic">Work.</span>
+                    Build <br />
+                    <span className="text-muted-foreground/40 group-hover:text-blueprint transition-colors duration-500 italic font-medium">Your Future.</span>
                   </h2>
                 </div>
 
                 <p className="text-muted-foreground text-base md:text-lg leading-relaxed mb-10 max-w-xs">
-                  Hire top-rated architecture talent for your projects with studio-protected escrow.
+                  Connect with elite architecture talent or find high-impact projects with studio-grade tools and escrow.
                 </p>
                 
                 <div className="mt-auto flex items-center gap-3 text-foreground font-bold group-hover:gap-5 transition-all duration-300">

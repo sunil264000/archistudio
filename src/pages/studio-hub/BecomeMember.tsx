@@ -174,7 +174,11 @@ export default function BecomeMember() {
 
   return (
     <StudioHubLayout>
-      <SEOHead title="Become a Studio Member — Archistudio Studio Hub" description="Join Studio Hub as a future architect. Set up your profile and start working on real briefs." url="https://archistudio.shop/studio-hub/become-member" />
+      <SEOHead 
+        title="Join the Elite: Become a Studio Member | Archistudio" 
+        description="The premier marketplace for architectural talent. Build your professional profile, showcase your portfolio, and collaborate on high-end project briefs." 
+        url="https://archistudio.shop/studio-hub/become-member" 
+      />
       <div className="container-narrow py-10 md:py-16 max-w-2xl mx-auto px-4">
         <div className="mb-10">
           <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">{profile ? 'Edit profile' : 'Join the Studio'}</p>

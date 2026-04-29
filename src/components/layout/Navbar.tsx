@@ -101,7 +101,13 @@ export function Navbar() {
         {/* Logo */}
         <Link to="/" className="group flex items-center gap-2.5 shrink-0 mr-4">
           <div className="relative">
-            <img src={logoMark} alt="Archistudio" className="h-8 w-8 rounded-lg object-cover transition-transform duration-300 group-hover:scale-110" />
+            <img 
+              src={logoMark} 
+              alt="Archistudio Academy Logo" 
+              className="h-8 w-8 rounded-lg object-cover transition-transform duration-300 group-hover:scale-110" 
+              fetchpriority="high"
+              decoding="async"
+            />
             <div className="absolute inset-0 rounded-lg bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
           <div className="flex flex-col">

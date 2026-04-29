@@ -46,7 +46,7 @@ function MarqueeStrip({ isSlow }: { isSlow: boolean }) {
   );
 }
 
-const trustItems = ['Free course previews', 'No credit card required', 'Cancel anytime'];
+const trustItems = ['Industry-led mentorship', 'Real project portfolios', 'Lifetime access'];
 
 export function HeroSection() {
   const { user } = useAuth();
@@ -88,18 +88,16 @@ export function HeroSection() {
             >
               <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
               <span className="font-display text-[11px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
-                For Students & Fresh Architects
+                The New Standard for Architecture Students
               </span>
             </motion.div>
             
             {/* Headline */}
             <motion.div custom={1} variants={anims} initial="hidden" animate="visible">
-              <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.08] tracking-tight">
-                Learn Architecture
+              <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-8xl font-bold leading-[1] tracking-tight">
+                Master Architecture.
                 <br />
-                <span className="text-muted-foreground/70">the Way It's Actually</span>
-                <br />
-                <span className="text-hero-gradient">Practiced.</span>
+                <span className="text-muted-foreground/70 italic font-medium">The Real Way.</span>
               </h1>
             </motion.div>
             
@@ -108,28 +106,28 @@ export function HeroSection() {
               custom={2} variants={anims} initial="hidden" animate="visible"
               className="text-body-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed mt-7"
             >
-              Projects, critiques, and real-world workflows used by professional architecture studios.
+              Stop memorizing software. Start learning how buildings actually come together in the world's leading studios. 
               {' '}
               <span className="text-foreground/80 font-medium">
-                Master what college never taught you.
+                Bridge the gap between college and the office.
               </span>
             </motion.p>
             
             {/* CTAs */}
             <motion.div 
               custom={3} variants={anims} initial="hidden" animate="visible"
-              className="flex flex-col sm:flex-row items-center gap-3 justify-center mt-9"
+              className="flex flex-col sm:flex-row items-center gap-3 justify-center mt-10"
             >
               <Link to={user ? "/courses" : "/auth?mode=signup"} className="w-full sm:w-auto">
-                <Button size="xl" className="gap-2.5 group w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_4px_24px_hsl(var(--accent)/0.25)] hover:shadow-[0_8px_32px_hsl(var(--accent)/0.35)] text-base px-8 rounded-full transition-all duration-300">
-                  {user ? "Explore Courses" : "Start Learning"}
+                <Button size="xl" className="gap-2.5 group w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_4px_24px_hsl(var(--accent)/0.25)] hover:shadow-[0_8px_32px_hsl(var(--accent)/0.35)] text-base px-10 rounded-full transition-all duration-300 font-bold">
+                  {user ? "Explore Courses" : "Bridge the Gap"}
                   <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </Button>
               </Link>
               <Link to="/explore" className="w-full sm:w-auto">
-                <Button variant="ghost" size="xl" className="gap-2 w-full sm:w-auto text-muted-foreground hover:text-foreground text-base">
+                <Button variant="ghost" size="xl" className="gap-2 w-full sm:w-auto text-muted-foreground hover:text-foreground text-base px-8">
                   <Play className="h-4 w-4" />
-                  Explore Community
+                  Watch Previews
                 </Button>
               </Link>
             </motion.div>
@@ -137,10 +135,10 @@ export function HeroSection() {
             {/* Trust signals */}
             <motion.div 
               custom={4} variants={anims} initial="hidden" animate="visible"
-              className="flex flex-wrap items-center gap-4 justify-center mt-9"
+              className="flex flex-wrap items-center gap-6 justify-center mt-12"
             >
               {trustItems.map((item) => (
-                <span key={item} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/60">
+                <span key={item} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/60 font-medium">
                   <CheckCircle2 className="h-3 w-3 text-accent/50" />
                   {item}
                 </span>

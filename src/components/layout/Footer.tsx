@@ -81,8 +81,14 @@ export function Footer() {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1 space-y-5">
             <Link to="/" className="flex items-center gap-2.5 group">
-              <img src={logoMark} alt="Archistudio" className="h-7 w-7 rounded-md object-cover transition-transform duration-300 group-hover:scale-110" />
-              <span className="font-display font-bold text-base text-foreground">Archistudio</span>
+              <img 
+                src={logoMark} 
+                alt="Archistudio Footer Logo" 
+                className="h-7 w-7 rounded-md object-cover transition-transform duration-300 group-hover:scale-110" 
+                loading="lazy"
+                decoding="async"
+              />
+              <span className="font-display font-bold text-base text-foreground tracking-tight">Archistudio</span>
             </Link>
             <p className="text-body-sm text-muted-foreground leading-relaxed max-w-xs">
               Practical architecture education for the real world. Built by architects, for architects.
@@ -172,8 +178,8 @@ export function Footer() {
           <div className="text-caption text-muted-foreground">
             © {new Date().getFullYear()} Archistudio. All rights reserved.
           </div>
-          <div className="text-caption text-muted-foreground/50">
-            For architects who want to build, not just design.
+          <div className="text-caption text-muted-foreground/50 italic">
+            For the architects of tomorrow. Designed for excellence.
           </div>
         </div>
       </div>
