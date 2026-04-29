@@ -8,7 +8,7 @@ export function ScrollProgress() {
 
   useEffect(() => {
     const unsubscribe = scrollYProgress.on('change', (v) => {
-      setVisible(v > 0.02 && v < 0.98);
+      setVisible(v > 0.005);
     });
     return unsubscribe;
   }, [scrollYProgress]);
