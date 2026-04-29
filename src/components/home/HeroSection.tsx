@@ -3,25 +3,36 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Play, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNetworkSpeed } from '@/hooks/useNetworkSpeed';
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
+const fadeUp = (isSlow: boolean) => ({
+  hidden: { opacity: 0, y: isSlow ? 0 : 24 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.7, ease: ease as unknown as [number, number, number, number], delay: i * 0.12 }
+    transition: { duration: isSlow ? 0.3 : 0.7, ease: ease as unknown as [number, number, number, number], delay: isSlow ? 0 : i * 0.12 }
   })
-};
+});
 
-function MarqueeStrip() {
+function MarqueeStrip({ isSlow }: { isSlow: boolean }) {
   const words = [
     'WORKING DRAWINGS', 'SITE ANALYSIS', 'CONSTRUCTION LOGIC', 'STRUCTURAL COORDINATION',
     'DETAILING', 'SPECIFICATIONS', 'MEP INTEGRATION', 'BIM MODELING',
     '3DS MAX', 'AUTOCAD', 'REVIT', 'SKETCHUP', 'CORONA RENDERING'
   ];
   
+  if (isSlow) return (
+    <div className="absolute bottom-0 left-0 right-0 overflow-hidden border-t border-border/10 bg-background/50 py-3 flex justify-center gap-10">
+      {words.slice(0, 4).map((word, i) => (
+        <span key={i} className="font-mono text-[9px] tracking-[0.2em] text-muted-foreground/30 font-medium">
+          {word}
+        </span>
+      ))}
+    </div>
+  );
+
   return (
     <div className="absolute bottom-0 left-0 right-0 overflow-hidden border-t border-border/10">
       <div className="flex animate-marquee whitespace-nowrap py-3.5">
@@ -39,6 +50,8 @@ const trustItems = ['Free course previews', 'No credit card required', 'Cancel a
 
 export function HeroSection() {
   const { user } = useAuth();
+  const { isSlow } = useNetworkSpeed();
+  const anims = fadeUp(isSlow);
   
   return (
     <section className="relative min-h-[92vh] flex items-center overflow-hidden">
@@ -46,17 +59,21 @@ export function HeroSection() {
       <div className="absolute inset-0 bg-gradient-to-b from-muted/30 via-background to-background" />
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,hsl(var(--accent)/0.05),transparent)]" />
       
-      {/* Animated orbs */}
-      <motion.div
-        animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
-        transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute top-20 right-[15%] h-[350px] w-[350px] rounded-full bg-[radial-gradient(circle,hsl(var(--accent)/0.06),transparent_65%)] blur-3xl pointer-events-none"
-      />
-      <motion.div
-        animate={{ x: [0, -25, 0], y: [0, 15, 0] }}
-        transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute bottom-20 left-[10%] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,hsl(var(--blueprint)/0.05),transparent_65%)] blur-3xl pointer-events-none"
-      />
+      {/* Animated orbs - hidden on slow connections */}
+      {!isSlow && (
+        <>
+          <motion.div
+            animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
+            transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute top-20 right-[15%] h-[350px] w-[350px] rounded-full bg-[radial-gradient(circle,hsl(var(--accent)/0.06),transparent_65%)] blur-3xl pointer-events-none"
+          />
+          <motion.div
+            animate={{ x: [0, -25, 0], y: [0, 15, 0] }}
+            transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute bottom-20 left-[10%] h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,hsl(var(--blueprint)/0.05),transparent_65%)] blur-3xl pointer-events-none"
+          />
+        </>
+      )}
       
       {/* Dot grid */}
       <div className="absolute inset-0 dot-grid opacity-20 pointer-events-none" />
@@ -66,7 +83,7 @@ export function HeroSection() {
           <div className="max-w-4xl mx-auto text-center">
             {/* Label */}
             <motion.div 
-              custom={0} variants={fadeUp} initial="hidden" animate="visible"
+              custom={0} variants={anims} initial="hidden" animate="visible"
               className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border border-border/40 bg-card/30 backdrop-blur-sm mb-8"
             >
               <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
@@ -76,7 +93,7 @@ export function HeroSection() {
             </motion.div>
             
             {/* Headline */}
-            <motion.div custom={1} variants={fadeUp} initial="hidden" animate="visible">
+            <motion.div custom={1} variants={anims} initial="hidden" animate="visible">
               <h1 className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.08] tracking-tight">
                 Learn Architecture
                 <br />
@@ -88,7 +105,7 @@ export function HeroSection() {
             
             {/* Subheadline */}
             <motion.p 
-              custom={2} variants={fadeUp} initial="hidden" animate="visible"
+              custom={2} variants={anims} initial="hidden" animate="visible"
               className="text-body-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed mt-7"
             >
               Projects, critiques, and real-world workflows used by professional architecture studios.
@@ -100,7 +117,7 @@ export function HeroSection() {
             
             {/* CTAs */}
             <motion.div 
-              custom={3} variants={fadeUp} initial="hidden" animate="visible"
+              custom={3} variants={anims} initial="hidden" animate="visible"
               className="flex flex-col sm:flex-row items-center gap-3 justify-center mt-9"
             >
               <Link to={user ? "/courses" : "/auth?mode=signup"} className="w-full sm:w-auto">
@@ -119,7 +136,7 @@ export function HeroSection() {
             
             {/* Trust signals */}
             <motion.div 
-              custom={4} variants={fadeUp} initial="hidden" animate="visible"
+              custom={4} variants={anims} initial="hidden" animate="visible"
               className="flex flex-wrap items-center gap-4 justify-center mt-9"
             >
               {trustItems.map((item) => (
@@ -133,7 +150,7 @@ export function HeroSection() {
         </div>
       </div>
       
-      <MarqueeStrip />
+      <MarqueeStrip isSlow={isSlow} />
     </section>
   );
 }

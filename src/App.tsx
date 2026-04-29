@@ -25,19 +25,20 @@ import { useContentProtection } from "@/hooks/useContentProtection";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { useVisitorTracking } from "@/hooks/useVisitorTracking";
 import { initializeGA4 } from "@/hooks/useGoogleAnalytics";
+import { useNetworkSpeed } from "@/hooks/useNetworkSpeed";
 import { supabase } from "@/integrations/supabase/client";
 import { AnimatePresence, motion } from "framer-motion";
 import { queryClient, prefetchCriticalData } from "@/lib/queryClient";
 
-// ─── Critical pages (eagerly loaded — first-paint routes) ───
-import Splash from "./pages/Splash";
+// ─── Entry Pages (Eagerly loaded — minimal set for immediate paint) ───
 import Gateway from "./pages/Gateway";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Courses from "./pages/Courses";
-import NotFound from "./pages/NotFound";
 
 // ─── Lazy-loaded pages (code-split for faster initial load) ───
+const Splash = lazy(() => import("./pages/Splash"));
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Courses = lazy(() => import("./pages/Courses"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 const CourseDetail = lazy(() => import("./pages/CourseDetail"));
 const CoursePlayer = lazy(() => import("./pages/CoursePlayer"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -102,35 +103,33 @@ const initAnalytics = async () => {
   }
 };
 
-// Call on app load
 initAnalytics();
 
-// ─── Premium page-level loading spinner ───
 function PageLoader() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="min-h-[70vh] flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <div className="relative h-10 w-10">
           <div className="absolute inset-0 rounded-full border-2 border-accent/20" />
           <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-accent animate-spin" />
         </div>
-        <p className="text-xs text-muted-foreground tracking-widest uppercase animate-pulse">Loading</p>
+        <p className="text-[10px] text-muted-foreground tracking-[0.2em] uppercase animate-pulse">Loading</p>
       </div>
     </div>
   );
 }
 
-const GlobalBackground = () => (
+const GlobalBackground = ({ isSlow }: { isSlow: boolean }) => (
   <div className="fixed inset-0 pointer-events-none z-[-100] overflow-hidden bg-background">
-    {/* Subtle architectural grid pattern */}
     <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+CjxwYXRoIGQ9Ik02MCAwaC02MHY2MGg2MHYtNjB6bS0xIDF2NThoLTU4di01OGg1OHoiIGZpbGw9ImN1cnJlbnRDb2xvciIgZmlsbC1vcGFjaXR5PSIwLjA0Ii8+Cjwvc3ZnPg==')] opacity-[0.15] dark:opacity-[0.06] mix-blend-overlay" />
     
-    {/* Soft glowing ambient orbs */}
-    <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-accent/5 blur-[120px] mix-blend-screen" />
-    <div className="absolute top-[30%] -right-[15%] w-[45%] h-[45%] rounded-full bg-blueprint/5 blur-[100px] mix-blend-screen" />
-    <div className="absolute -bottom-[20%] left-[20%] w-[60%] h-[50%] rounded-full bg-accent/3 blur-[150px] mix-blend-screen" />
+    {!isSlow && (
+      <>
+        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-accent/5 blur-[120px] mix-blend-screen animate-pulse" />
+        <div className="absolute top-[30%] -right-[15%] w-[45%] h-[45%] rounded-full bg-blueprint/5 blur-[100px] mix-blend-screen" />
+      </>
+    )}
     
-    {/* Subtle vignette to draw eyes to center */}
     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.02)_100%)] dark:bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)] mix-blend-multiply" />
   </div>
 );
@@ -147,7 +146,6 @@ const AppContent = () => {
   const [welcomeCampaign, setWelcomeCampaign] = useState<any>(null);
   const giftCheckDone = useRef(false);
 
-  // Check for gift campaigns when user logs in — run only once per user session
   useEffect(() => {
     if (!user) { giftCheckDone.current = false; return; }
     if (giftCheckDone.current) return;
@@ -205,10 +203,7 @@ const AppContent = () => {
             const signupCode = user.user_metadata?.signup_promo_code;
             const campaignCode = campaign.coupon_code || 'WELCOME100';
 
-            if (signupCode?.toUpperCase() !== campaignCode.toUpperCase()) {
-              console.log('User not eligible for welcome promotion: code mismatch');
-              continue;
-            }
+            if (signupCode?.toUpperCase() !== campaignCode.toUpperCase()) continue;
 
             setWelcomeCampaign(campaign);
             setShowWelcomeModal(true);
@@ -323,43 +318,36 @@ const AppContent = () => {
   );
 };
 
-function AnimatedRoutes() {
+function AnimatedRoutes({ isSlow }: { isSlow: boolean }) {
   const location = useLocation();
   return (
     <AnimatePresence mode="wait">
       <motion.div
         key={location.pathname}
-        initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
-        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-        exit={{ opacity: 0, y: -6, filter: 'blur(3px)' }}
+        initial={isSlow ? { opacity: 0 } : { opacity: 0, y: 10, filter: 'blur(4px)' }}
+        animate={isSlow ? { opacity: 1 } : { opacity: 1, y: 0, filter: 'blur(0px)' }}
+        exit={isSlow ? { opacity: 0 } : { opacity: 0, y: -6, filter: 'blur(3px)' }}
         transition={{
-          duration: 0.3,
+          duration: isSlow ? 0.15 : 0.3,
           ease: [0.22, 1, 0.36, 1],
         }}
       >
         <Suspense fallback={<PageLoader />}>
           <Routes location={location}>
-            {/* ─── Core public routes ─── */}
             <Route path="/" element={<Gateway />} />
             <Route path="/splash" element={<Splash />} />
             <Route path="/learn" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/courses" element={<Courses />} />
-
-            {/* ─── Course routes ─── */}
             <Route path="/course/:slug" element={<CourseDetail />} />
             <Route path="/courses/:slug" element={<CourseDetail />} />
             <Route path="/learn/:slug" element={<ProtectedRoute><CoursePlayer /></ProtectedRoute>} />
-
-            {/* ─── Protected user routes ─── */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/owner-dashboard" element={<ProtectedRoute><OwnerDashboard /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             <Route path="/studio" element={<ProtectedRoute><Studio /></ProtectedRoute>} />
             <Route path="/studio-rooms" element={<ProtectedRoute><StudioRooms /></ProtectedRoute>} />
             <Route path="/portfolio/build" element={<ProtectedRoute><PortfolioBuilder /></ProtectedRoute>} />
-
-            {/* ─── Content pages ─── */}
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/explore" element={<Explore />} />
@@ -367,8 +355,6 @@ function AnimatedRoutes() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/sitemap" element={<Sitemap />} />
-
-            {/* ─── Community pages ─── */}
             <Route path="/forum" element={<Forum />} />
             <Route path="/forum/:id" element={<ForumTopic />} />
             <Route path="/sheets" element={<SheetReviews />} />
@@ -381,25 +367,17 @@ function AnimatedRoutes() {
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/learning-map" element={<LearningMap />} />
             <Route path="/case-studies" element={<CaseStudies />} />
-
-            {/* ─── Portfolio & Profile ─── */}
             <Route path="/portfolio/:slug" element={<PortfolioView />} />
             <Route path="/portfolios" element={<PortfolioDiscovery />} />
             <Route path="/profile/:userId" element={<StudentProfile />} />
             <Route path="/u/:username" element={<PublicProfile />} />
             <Route path="/verify/:certNumber" element={<VerifyCertificate />} />
-
-            {/* ─── Payment flows ─── */}
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/payment-failed" element={<PaymentFailed />} />
             <Route path="/ebook-payment-success" element={<EbookPaymentSuccess />} />
             <Route path="/ebook-payment-failed" element={<EbookPaymentFailed />} />
-
-            {/* ─── Auth flows ─── */}
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/update-password" element={<UpdatePassword />} />
-
-            {/* ─── Studio Hub (freelance marketplace) ─── */}
             <Route path="/studio-hub" element={<StudioHubHome />} />
             <Route path="/studio-hub/projects" element={<StudioHubBrowseProjects />} />
             <Route path="/studio-hub/projects/:id" element={<StudioHubProjectDetail />} />
@@ -410,17 +388,9 @@ function AnimatedRoutes() {
             <Route path="/studio-hub/me" element={<ProtectedRoute><StudioHubMyStudio /></ProtectedRoute>} />
             <Route path="/studio-hub/contracts/:id" element={<ProtectedRoute><StudioHubContractDetail /></ProtectedRoute>} />
             <Route path="/studio-hub/pricing" element={<StudioHubPricing />} />
-
-            {/* ─── Redirects ─── */}
             <Route path="/privacy" element={<Navigate to="/terms" replace />} />
             <Route path="/about" element={<Navigate to="/contact" replace />} />
             <Route path="/marketplace" element={<Navigate to="/studio-hub" replace />} />
-            <Route path="/marketplace/jobs" element={<Navigate to="/studio-hub/projects" replace />} />
-            <Route path="/marketplace/jobs/:id" element={<Navigate to="/studio-hub/projects" replace />} />
-            <Route path="/marketplace/post-job" element={<Navigate to="/studio-hub/post" replace />} />
-            <Route path="/marketplace/become-worker" element={<Navigate to="/studio-hub/become-member" replace />} />
-
-            {/* ─── 404 ─── */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
@@ -429,34 +399,44 @@ function AnimatedRoutes() {
   );
 }
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <CartProvider>
-            <ErrorBoundary>
-              <GlobalBackground />
-              <ScrollProgress />
-              <ScrollToTop />
-              <AppContent />
-              <WelcomePopup />
-              <FestivalDecorations />
-              <PurchaseNotification />
-              <SaleBanner />
-              <AnimatedRoutes />
-              <FloatingAIMentor />
-              <AchievementUnlockToast />
-              <LiveActivityPulse />
-              <BackToTop />
-            </ErrorBoundary>
-          </CartProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const { isSlow } = useNetworkSpeed();
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <CartProvider>
+              <ErrorBoundary>
+                <GlobalBackground isSlow={isSlow} />
+                <ScrollProgress />
+                <ScrollToTop />
+                <AppContent />
+                <WelcomePopup />
+                <FestivalDecorations />
+                <PurchaseNotification />
+                <SaleBanner />
+                <AnimatedRoutes isSlow={isSlow} />
+                {!isSlow && (
+                  <>
+                    <FloatingAIMentor />
+                    <AchievementUnlockToast />
+                    <LiveActivityPulse />
+                  </>
+                )}
+                <BackToTop />
+              </ErrorBoundary>
+            </CartProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
+
+export default App;
 
 export default App;
