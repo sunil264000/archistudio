@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { STUDIO_CATEGORIES, STUDIO_SKILLS, formatBudget, calculatePayout } from '@/hooks/useStudioHub';
+import { STUDIO_CATEGORIES, STUDIO_SKILLS, STUDIO_TOOLS, formatBudget, calculatePayout } from '@/hooks/useStudioHub';
 import { toast } from 'sonner';
 import { Loader2, X, Plus, ArrowRight, ArrowLeft, CheckCircle2, FileText, Clock, IndianRupee, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -48,12 +48,21 @@ export default function PostProject() {
   const [deadline, setDeadline] = useState('');
   const [skills, setSkills] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState('');
+  const [tools, setTools] = useState<string[]>([]);
+  const [toolInput, setToolInput] = useState('');
 
   const addSkill = (s: string) => {
     const v = s.trim();
     if (!v || skills.includes(v) || skills.length >= 15) return;
     setSkills([...skills, v]);
     setSkillInput('');
+  };
+
+  const addTool = (t: string) => {
+    const v = t.trim();
+    if (!v || tools.includes(v) || tools.length >= 15) return;
+    setTools([...tools, v]);
+    setToolInput('');
   };
 
   const validateStep = (s: number): string | null => {
@@ -94,7 +103,7 @@ export default function PostProject() {
       budget_min: parseFloat(budgetMin) || 0,
       budget_max: budgetType === 'range' ? parseFloat(budgetMax) || null : null,
       deadline: deadline || null,
-      skills_required: skills,
+      skills_required: [...skills, ...tools],
     });
 
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
@@ -179,24 +188,37 @@ export default function PostProject() {
                   </Select>
                 </div>
 
-                <div>
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Skills needed</Label>
-                  <div className="flex flex-wrap gap-1.5 mt-2 mb-2">
-                    {skills.map((s) => (
-                      <Badge key={s} variant="secondary" className="gap-1 rounded-full">
-                        {s}
-                        <button type="button" onClick={() => setSkills(skills.filter((x) => x !== s))}><X className="h-3 w-3" /></button>
-                      </Badge>
-                    ))}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">Core Skills Needed</Label>
+                      <div className="flex flex-wrap gap-1.5 mt-2 mb-2 min-h-[32px]">
+                        {skills.map((s) => (
+                          <Badge key={s} variant="secondary" className="gap-1 rounded-full">{s}<button type="button" onClick={() => setSkills(skills.filter((x) => x !== s))}><X className="h-3 w-3" /></button></Badge>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Input list="skill-suggestions" value={skillInput} onChange={(e) => setSkillInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill(skillInput); } }} placeholder="e.g. 3D Modelling" className="h-11 rounded-xl border-border/60" />
+                        <datalist id="skill-suggestions">{STUDIO_SKILLS.map((s) => <option key={s} value={s} />)}</datalist>
+                        <Button type="button" variant="outline" size="icon" onClick={() => addSkill(skillInput)} className="h-11 w-11 rounded-xl"><Plus className="h-4 w-4" /></Button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">Software Tools Needed</Label>
+                      <div className="flex flex-wrap gap-1.5 mt-2 mb-2 min-h-[32px]">
+                        {tools.map((t) => (
+                          <Badge key={t} variant="accent" className="gap-1 rounded-full bg-accent/10 text-accent border-accent/20">{t}<button type="button" onClick={() => setTools(tools.filter((x) => x !== t))}><X className="h-3 w-3" /></button></Badge>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Input list="tool-suggestions" value={toolInput} onChange={(e) => setToolInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTool(toolInput); } }} placeholder="e.g. Revit" className="h-11 rounded-xl border-border/60" />
+                        <datalist id="tool-suggestions">{STUDIO_TOOLS.map((t) => <option key={t} value={t} />)}</datalist>
+                        <Button type="button" variant="outline" size="icon" onClick={() => addTool(toolInput)} className="h-11 w-11 rounded-xl"><Plus className="h-4 w-4" /></Button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Input list="skill-suggestions" value={skillInput} onChange={(e) => setSkillInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill(skillInput); } }}
-                      placeholder="Type a skill…" className="h-11 rounded-xl border-border/60" />
-                    <datalist id="skill-suggestions">{STUDIO_SKILLS.map((s) => <option key={s} value={s} />)}</datalist>
-                    <Button type="button" variant="outline" size="icon" onClick={() => addSkill(skillInput)} className="h-11 w-11 rounded-xl"><Plus className="h-4 w-4" /></Button>
-                  </div>
-                </div>
               </div>
             )}
 

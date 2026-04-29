@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMyMemberProfile, STUDIO_SKILLS } from '@/hooks/useStudioHub';
+import { useMyMemberProfile, STUDIO_SKILLS, STUDIO_TOOLS } from '@/hooks/useStudioHub';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, X, Plus, CheckCircle2, Camera, Link as LinkIcon, Instagram, Linkedin, FileText, Upload } from 'lucide-react';
@@ -25,7 +25,8 @@ const profileSchema = z.object({
   experience_level: z.enum(['beginner', 'intermediate', 'advanced']),
   hourly_rate: z.number().positive().nullable().optional(),
   location: z.string().trim().max(80).optional().nullable(),
-  skills: z.array(z.string()).min(1, 'Add at least 1 skill').max(20),
+  skills: z.array(z.string()).min(1, 'Add at least 1 core skill').max(20),
+  tools: z.array(z.string()).min(1, 'Add at least 1 software tool').max(20),
   google_drive_link: z.string().url().optional().or(z.literal('')),
   instagram_url: z.string().url().optional().or(z.literal('')),
   linkedin_url: z.string().url().optional().or(z.literal('')),
@@ -46,6 +47,8 @@ export default function BecomeMember() {
   const [location, setLocation] = useState('');
   const [skills, setSkills] = useState<string[]>([]);
   const [skillInput, setSkillInput] = useState('');
+  const [tools, setTools] = useState<string[]>([]);
+  const [toolInput, setToolInput] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   
   // New fields
@@ -64,6 +67,7 @@ export default function BecomeMember() {
       setHourlyRate(profile.hourly_rate ? String(profile.hourly_rate) : '');
       setLocation(profile.location || '');
       setSkills(profile.skills || []);
+      setTools(profile.tools || []);
       setAvatarUrl(profile.avatar_url);
       setGoogleDriveLink((profile as any).google_drive_link || '');
       setInstagramUrl((profile as any).instagram_url || '');
@@ -81,6 +85,13 @@ export default function BecomeMember() {
     if (!v || skills.includes(v) || skills.length >= 20) return;
     setSkills([...skills, v]);
     setSkillInput('');
+  };
+
+  const addTool = (s: string) => {
+    const v = s.trim();
+    if (!v || tools.includes(v) || tools.length >= 20) return;
+    setTools([...tools, v]);
+    setToolInput('');
   };
 
   const handleAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -128,7 +139,9 @@ export default function BecomeMember() {
       display_name: displayName, headline, bio,
       experience_level: experience,
       hourly_rate: hourlyRate ? parseFloat(hourlyRate) : null,
-      location: location || null, skills,
+      location: location || null,
+      skills,
+      tools,
       google_drive_link: googleDriveLink || null,
       instagram_url: instagramUrl || null,
       linkedin_url: linkedinUrl || null,
@@ -242,18 +255,35 @@ export default function BecomeMember() {
               </div>
             </div>
 
-            <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Skills</Label>
-              <div className="flex flex-wrap gap-1.5 mt-2 mb-2">
-                {skills.map((s) => (
-                  <Badge key={s} variant="secondary" className="gap-1 rounded-full">{s}<button type="button" onClick={() => setSkills(skills.filter((x) => x !== s))}><X className="h-3 w-3" /></button></Badge>
-                ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Core Skills</Label>
+                <div className="flex flex-wrap gap-1.5 mt-2 mb-2 min-h-[32px]">
+                  {skills.map((s) => (
+                    <Badge key={s} variant="secondary" className="gap-1 rounded-full">{s}<button type="button" onClick={() => setSkills(skills.filter((x) => x !== s))}><X className="h-3 w-3" /></button></Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input list="member-skill-suggestions" value={skillInput} onChange={(e) => setSkillInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill(skillInput); } }} placeholder="e.g. 3D Modelling" className="h-11 rounded-xl border-border/60" />
+                  <datalist id="member-skill-suggestions">{STUDIO_SKILLS.map((s) => <option key={s} value={s} />)}</datalist>
+                  <Button type="button" variant="outline" size="icon" onClick={() => addSkill(skillInput)} className="h-11 w-11 rounded-xl"><Plus className="h-4 w-4" /></Button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Input list="member-skill-suggestions" value={skillInput} onChange={(e) => setSkillInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill(skillInput); } }} placeholder="Type or pick…" className="h-11 rounded-xl border-border/60" />
-                <datalist id="member-skill-suggestions">{STUDIO_SKILLS.map((s) => <option key={s} value={s} />)}</datalist>
-                <Button type="button" variant="outline" size="icon" onClick={() => addSkill(skillInput)} className="h-11 w-11 rounded-xl"><Plus className="h-4 w-4" /></Button>
+
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Software Tools</Label>
+                <div className="flex flex-wrap gap-1.5 mt-2 mb-2 min-h-[32px]">
+                  {tools.map((t) => (
+                    <Badge key={t} variant="accent" className="gap-1 rounded-full bg-accent/10 text-accent border-accent/20 hover:bg-accent/20">{t}<button type="button" onClick={() => setTools(tools.filter((x) => x !== t))}><X className="h-3 w-3" /></button></Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input list="member-tool-suggestions" value={toolInput} onChange={(e) => setToolInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTool(toolInput); } }} placeholder="e.g. Revit" className="h-11 rounded-xl border-border/60" />
+                  <datalist id="member-tool-suggestions">{STUDIO_TOOLS.map((t) => <option key={t} value={t} />)}</datalist>
+                  <Button type="button" variant="outline" size="icon" onClick={() => addTool(toolInput)} className="h-11 w-11 rounded-xl"><Plus className="h-4 w-4" /></Button>
+                </div>
               </div>
             </div>
 

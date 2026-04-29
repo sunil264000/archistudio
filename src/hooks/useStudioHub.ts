@@ -24,11 +24,39 @@ export const STUDIO_CATEGORIES = [
 ] as const;
 
 export const STUDIO_SKILLS = [
-  'AutoCAD', 'Revit', 'SketchUp', 'Lumion', 'V-Ray', 'Corona Renderer',
-  '3ds Max', 'Rhino', 'Grasshopper', 'Photoshop', 'Illustrator', 'InDesign',
-  'Enscape', 'Twinmotion', 'BIM', 'Hand Sketching', 'Concept Design',
-  'Working Drawings', 'Detailing', 'Interior Visualization', 'Exterior Visualization',
-  'Landscape', 'Animation', 'Walk-through', 'Site Planning',
+  'AutoCAD Drafting',
+  '3D Modelling',
+  'Photorealistic Rendering',
+  'Interior Design',
+  'Landscape Design',
+  'Architectural Drawings',
+  'Thesis & Academic Support',
+  'Concept Design',
+  'BIM Coordination',
+  'Site Planning & Analysis',
+  'Furniture Design',
+  'Structural Detailing',
+  '3D Animation',
+] as const;
+
+export const STUDIO_TOOLS = [
+  'AutoCAD',
+  'Revit',
+  'SketchUp',
+  '3ds Max',
+  'Rhino',
+  'Grasshopper',
+  'V-Ray',
+  'Corona Renderer',
+  'Lumion',
+  'Enscape',
+  'Twinmotion',
+  'D5 Render',
+  'Photoshop',
+  'Illustrator',
+  'InDesign',
+  'After Effects',
+  'Blender',
 ] as const;
 
 // ============ Types ============
@@ -47,6 +75,7 @@ export interface MemberProfile {
   headline: string | null;
   bio: string | null;
   skills: string[];
+  tools: string[];
   experience_level: ExperienceLevel;
   hourly_rate: number | null;
   availability: string;

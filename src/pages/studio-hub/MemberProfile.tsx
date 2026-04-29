@@ -7,7 +7,7 @@ import { SEOHead } from '@/components/seo/SEOHead';
 import { useMemberProfile } from '@/hooks/useStudioHub';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Star, MapPin, Calendar, Pencil, ArrowLeft, Loader2, Briefcase, Award, Instagram, Linkedin, Link as LinkIcon, FileText } from 'lucide-react';
+import { Star, MapPin, Calendar, Pencil, ArrowLeft, Loader2, Briefcase, Award, Instagram, Linkedin, Link as LinkIcon, FileText, GraduationCap } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { PortfolioWorks } from '@/components/studio-hub/PortfolioWorks';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -200,12 +200,34 @@ export default function MemberProfile() {
           </section>
         )}
 
-        {/* Skills */}
-        {profile.skills.length > 0 && (
+        {/* Skills & Tools */}
+        {(profile.skills.length > 0 || (profile as any).tools?.length > 0) && (
           <section className="mb-6 bg-background border border-border/40 rounded-2xl p-6 md:p-8">
-            <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">Skills</p>
-            <div className="flex flex-wrap gap-1.5">
-              {profile.skills.map((s) => <Badge key={s} variant="secondary" className="rounded-full font-normal">{s}</Badge>)}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {profile.skills.length > 0 && (
+                <div>
+                  <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">Core Skills</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {profile.skills.map((s) => (
+                      <Badge key={s} variant="secondary" className="rounded-full font-normal px-3 py-1">
+                        {s}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(profile as any).tools?.length > 0 && (
+                <div>
+                  <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">Software Tools</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(profile as any).tools.map((t) => (
+                      <Badge key={t} variant="accent" className="rounded-full font-normal bg-accent/10 text-accent border-accent/20 px-3 py-1">
+                        {t}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </section>
         )}

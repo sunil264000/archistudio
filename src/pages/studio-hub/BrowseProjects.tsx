@@ -10,10 +10,20 @@ import { useStudioProjects, STUDIO_CATEGORIES, formatBudget } from '@/hooks/useS
 import { Search, Calendar, Users, SlidersHorizontal, X, ArrowUpDown, Clock, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow, differenceInDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 
 type SortOption = 'newest' | 'budget_high' | 'budget_low' | 'proposals';
 
 type SortKey = 'newest' | 'budget_high' | 'budget_low' | 'most_proposals';
+
+const PRO_TIPS = [
+  "Including a video walkthrough increases hire chances by 35%.",
+  "Clients in this category prefer Revit for technical drawings.",
+  "Projects with clear deadlines usually have faster escrow releases.",
+  "Adding a breakdown of tasks in your bid helps clients trust you.",
+  "Mention if you can provide source files like .RVT or .DWG.",
+  "Bidding within the first 2 hours increases your visibility by 2×."
+];
 
 export default function BrowseProjects() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -252,22 +262,23 @@ export default function BrowseProjects() {
                     <div className="text-xs text-muted-foreground capitalize">{p.budget_type} price</div>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 mt-3">
+                <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-border/10">
                   {p.skills_required.slice(0, 5).map((s) => (
-                    <span key={s} className="text-xs text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-full">{s}</span>
+                    <span key={s} className="text-[11px] text-muted-foreground bg-muted/40 px-2.5 py-0.5 rounded-full">{s}</span>
                   ))}
                   {p.skills_required.length > 5 && (
                     <span className="text-xs text-muted-foreground">+{p.skills_required.length - 5}</span>
                   )}
                   <div className="flex-1" />
-                  <span className="flex items-center gap-1 text-xs bg-accent/8 text-accent px-2.5 py-0.5 rounded-full">
+                  <span className="flex items-center gap-1.5 text-xs bg-accent/8 text-accent px-3 py-1 rounded-full font-medium">
                     <Users className="h-3 w-3" />{p.proposals_count} proposal{p.proposals_count !== 1 ? 's' : ''}
                   </span>
-                  {p.deadline && (
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />{new Date(p.deadline).toLocaleDateString()}
-                    </span>
-                  )}
+                </div>
+
+                {/* Assistant Tip */}
+                <div className="mt-3 flex items-center gap-2 text-[10px] text-muted-foreground/60 italic bg-accent/5 py-1.5 px-3 rounded-lg border border-accent/10">
+                  <Sparkles className="h-2.5 w-2.5 text-accent" />
+                  Archi Tip: {PRO_TIPS[p.id.length % PRO_TIPS.length]}
                 </div>
               </Link>
             ))}

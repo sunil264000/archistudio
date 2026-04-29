@@ -19,6 +19,7 @@ import { NewUserOnboardingDialog } from "@/components/auth/NewUserOnboardingDial
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FloatingAIMentor } from "@/components/ai/FloatingAIMentor";
 import { AchievementUnlockToast } from "@/components/gamification/AchievementUnlockToast";
+import { LiveActivityPulse } from "@/components/ui/LiveActivityPulse";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
@@ -83,6 +84,7 @@ const StudioHubMembers = lazy(() => import("./pages/studio-hub/MembersDirectory"
 const StudioHubMemberProfile = lazy(() => import("./pages/studio-hub/MemberProfile"));
 const StudioHubMyStudio = lazy(() => import("./pages/studio-hub/MyStudio"));
 const StudioHubContractDetail = lazy(() => import("./pages/studio-hub/ContractDetail"));
+const StudioHubPricing = lazy(() => import("./pages/studio-hub/PricingPage"));
 
 // Warm cache on app load
 prefetchCriticalData().catch(() => {});
@@ -405,6 +407,7 @@ function AnimatedRoutes() {
             <Route path="/studio-hub/members/:userId" element={<StudioHubMemberProfile />} />
             <Route path="/studio-hub/me" element={<ProtectedRoute><StudioHubMyStudio /></ProtectedRoute>} />
             <Route path="/studio-hub/contracts/:id" element={<ProtectedRoute><StudioHubContractDetail /></ProtectedRoute>} />
+            <Route path="/studio-hub/pricing" element={<StudioHubPricing />} />
 
             {/* ─── Redirects ─── */}
             <Route path="/privacy" element={<Navigate to="/terms" replace />} />
@@ -444,6 +447,7 @@ const App = () => (
               <AnimatedRoutes />
               <FloatingAIMentor />
               <AchievementUnlockToast />
+              <LiveActivityPulse />
               <BackToTop />
             </ErrorBoundary>
           </CartProvider>

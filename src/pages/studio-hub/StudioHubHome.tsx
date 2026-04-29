@@ -135,6 +135,55 @@ export default function StudioHubHome() {
         </div>
       </section>
 
+      {/* Subscription CTA */}
+      <section className="container-wide py-16">
+        <div className="relative rounded-[40px] overflow-hidden bg-foreground text-background p-8 md:p-16">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,hsl(var(--accent)/0.2),transparent_60%)]" />
+          <div className="absolute inset-0 opacity-10 dot-grid" />
+          
+          <div className="relative z-10 max-w-2xl">
+            <Badge className="bg-accent text-accent-foreground border-none mb-6 rounded-full px-4 py-1 text-[10px] uppercase tracking-widest font-bold animate-pulse">
+              Upgrade to Studio Pro
+            </Badge>
+            <h2 className="font-display text-3xl md:text-5xl font-semibold tracking-tight mb-6 leading-[1.1]">
+              Get the <span className="text-accent italic">Pro Advantage.</span>
+            </h2>
+            <p className="text-background/70 text-base md:text-lg mb-8 leading-relaxed">
+              Unlock 0% platform fees, priority bid placement, and a verified Pro badge. 
+              Start your 7-day trial for just <span className="text-accent font-bold">₹49</span> today.
+            </p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+              {[
+                '0% Fees on all projects',
+                'Priority bid pinning',
+                'Exclusive "Pro" jobs',
+                'Unlimited portfolio templates'
+              ].map((benefit) => (
+                <div key={benefit} className="flex items-center gap-3">
+                  <div className="h-5 w-5 rounded-full bg-accent/20 flex items-center justify-center">
+                    <Star className="h-3 w-3 text-accent fill-accent" />
+                  </div>
+                  <span className="text-sm font-medium">{benefit}</span>
+                </div>
+              ))}
+            </div>
+
+            <Link to="/studio-hub/pricing">
+              <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full px-10 h-14 font-bold text-lg shadow-xl shadow-accent/20">
+                See all plans & pricing
+              </Button>
+            </Link>
+          </div>
+
+          {/* Abstract geometric shape */}
+          <div className="absolute right-[-5%] top-1/2 -translate-y-1/2 w-[40%] h-[120%] hidden lg:block opacity-20">
+            <div className="w-full h-full border-[60px] border-accent rounded-full blur-[40px]" />
+          </div>
+        </div>
+      </section>
+
+
       {/* Live projects */}
       <section className="container-wide py-20">
         <div className="flex items-end justify-between mb-10">

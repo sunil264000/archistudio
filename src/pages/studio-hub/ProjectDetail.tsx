@@ -374,6 +374,53 @@ export default function ProjectDetail() {
                 )}
               </Section>
             )}
+
+            {/* ============ Community Proposals (Public FOMO) ============ */}
+            {!isOwner && (
+              <div className="relative mt-8">
+                <Section title="Community Proposals" icon={Users} meta={<Badge variant="secondary" className="rounded-full">{proposals.length} bidding</Badge>}>
+                  <div className={!user ? "blur-md pointer-events-none select-none opacity-50" : ""}>
+                    {proposals.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Be the first one to send a proposal for this project!</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {(user ? proposals : proposals.slice(0, 2)).map((p, i) => (
+                          <div key={i} className="flex items-start gap-4 p-4 rounded-xl border border-border/30 bg-muted/10">
+                            <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center font-display font-bold text-accent text-xs">
+                              {i + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+                                <div className="text-xs font-semibold">₹{user ? p.bid_amount.toLocaleString() : 'X,XXX'}</div>
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2 italic">
+                                "{user ? p.cover_message : 'This proposal content is hidden to protect member privacy...'}"
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                        {!user && proposals.length > 2 && (
+                          <p className="text-center text-[10px] text-muted-foreground mt-2">+{proposals.length - 2} more proposals hidden</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {!user && (
+                    <div className="absolute inset-0 flex items-center justify-center pt-8">
+                      <div className="text-center p-6 rounded-2xl bg-card/60 backdrop-blur-md border border-border/40 shadow-xl max-w-xs">
+                        <p className="text-sm font-semibold mb-3">Login to see bids & messages</p>
+                        <Link to={`/auth?redirect=/studio-hub/projects/${id}`}>
+                          <Button size="sm" className="rounded-full w-full">Sign in</Button>
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </Section>
+              </div>
+            )}
+          </motion.div>
           </motion.div>
 
           {/* ===================== SIDEBAR ===================== */}
@@ -462,6 +509,24 @@ export default function ProjectDetail() {
                 <ShieldCheck className="h-4 w-4 text-accent shrink-0 mt-0.5" />
                 <p>Payments are held by Archistudio escrow and only released after our team reviews the deliverable.</p>
               </div>
+            </div>
+
+            {/* Become a Member CTA */}
+            <div className="rounded-2xl border border-accent/20 bg-accent/5 p-6 space-y-4">
+              <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                <GraduationCap className="h-5 w-5 text-accent" />
+              </div>
+              <div>
+                <h4 className="font-display font-semibold text-sm mb-1">Want to work on this?</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Join our elite circle of future architects. Get access to real projects, build your portfolio, and earn while you learn.
+                </p>
+              </div>
+              <Link to="/studio-hub/become-member" className="block">
+                <Button variant="outline" className="w-full rounded-full border-accent/30 hover:bg-accent/10 text-accent text-xs h-9">
+                  Become a Member
+                </Button>
+              </Link>
             </div>
           </motion.aside>
         </div>
