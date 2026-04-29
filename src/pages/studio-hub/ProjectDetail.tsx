@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { z } from 'zod';
+import { motion } from 'framer-motion';
 import { StudioHubLayout } from '@/components/studio-hub/StudioHubLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +14,10 @@ import { useStudioProject, useProjectProposals, formatBudget, calculatePayout } 
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { ArrowLeft, Calendar, Users, Loader2, Eye, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import {
+  ArrowLeft, Calendar, Users, Loader2, Eye, ShieldCheck, CheckCircle2,
+  Lock, Download, Image as ImageIcon, FileText, Sparkles, Clock, Wallet,
+} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 const proposalSchema = z.object({
@@ -21,6 +25,28 @@ const proposalSchema = z.object({
   delivery_days: z.number().int().positive('Delivery must be at least 1 day').max(365),
   cover_message: z.string().trim().min(30, 'Cover note must be at least 30 characters').max(2000),
 });
+
+const ease = [0.22, 1, 0.36, 1] as const;
+
+// Split the long enriched description into structured sections by the
+// "— SECTION —" markers we wrote in the migration.
+function splitDescription(raw: string) {
+  const parts = raw.split(/\n\n— ([A-Z' \/&]+) —\n/);
+  // parts: [intro, heading1, body1, heading2, body2, ...]
+  const intro = parts.shift()?.trim() || '';
+  const sections: { heading: string; body: string }[] = [];
+  for (let i = 0; i < parts.length; i += 2) {
+    if (parts[i] && parts[i + 1]) {
+      sections.push({ heading: parts[i].trim(), body: parts[i + 1].trim() });
+    }
+  }
+  return { intro, sections };
+}
+
+const isImage = (url: string) => /\.(png|jpe?g|webp|gif|avif)(\?|$)/i.test(url) || /unsplash\.com|images\./i.test(url);
+const fileName = (url: string) => {
+  try { return decodeURIComponent(new URL(url).pathname.split('/').pop() || 'file'); } catch { return 'file'; }
+};
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -36,21 +62,33 @@ export default function ProjectDetail() {
   const [submitting, setSubmitting] = useState(false);
   const [hiring, setHiring] = useState<string | null>(null);
 
+  // Privileged attachments fetched via RPC (only visible to client/awarded worker/admin)
+  const [unlockedFiles, setUnlockedFiles] = useState<string[] | null>(null);
+  const [filesLoading, setFilesLoading] = useState(false);
+
   // Track view count — one increment per session per project
   useEffect(() => {
     if (!id) return;
     const key = `sh_viewed_${id}`;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, '1');
-    (supabase as any).rpc('increment_view_count', { job_id: id }).catch(() => {
-      // fallback: direct update if RPC doesn't exist
-      (supabase as any).from('marketplace_jobs').update({ views_count: (project?.views_count || 0) + 1 }).eq('id', id);
-    });
+    (supabase as any).rpc('increment_view_count', { job_id: id }).catch(() => {});
   }, [id]);
+
+  useEffect(() => {
+    if (!id || !user) { setUnlockedFiles(null); return; }
+    setFilesLoading(true);
+    (supabase as any).rpc('get_project_attachments', { p_job_id: id })
+      .then(({ data }: any) => setUnlockedFiles(Array.isArray(data) ? data : []))
+      .catch(() => setUnlockedFiles([]))
+      .finally(() => setFilesLoading(false));
+  }, [id, user]);
 
   const isOwner = user?.id === project?.client_id;
   const myProposal = proposals.find((p) => p.worker_id === user?.id);
   const payout = bid ? calculatePayout(parseFloat(bid) || 0) : null;
+  const hasFiles = (project?.attachments?.length || 0) > 0;
+  const filesUnlocked = (unlockedFiles?.length || 0) > 0;
 
   const submitProposal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,7 +143,7 @@ export default function ProjectDetail() {
     }
     setHiring(null);
     if (error) { toast.error(error.message); return; }
-    toast.success('Contract created! Complete the payment to start.');
+    toast.success('Contract created! Project files unlocked for the awarded member.');
     navigate(`/studio-hub/contracts/${data.id}`);
   };
 
@@ -130,49 +168,148 @@ export default function ProjectDetail() {
     );
   }
 
+  const { intro, sections } = splitDescription(project.description || '');
+
   return (
     <StudioHubLayout>
-      <SEOHead title={`${project.title} — Studio Hub`} description={project.description.slice(0, 160)} />
-      <div className="container-wide py-10 md:py-14 max-w-5xl mx-auto px-4">
-        <Link to="/studio-hub/projects" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6">
+      <SEOHead title={`${project.title} — Studio Hub`} description={(project.description || '').slice(0, 160)} />
+
+      {/* Ambient background — replaces the very flat solid */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-40 left-1/4 h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle,hsl(var(--accent)/0.08),transparent_70%)] blur-3xl" />
+        <div className="absolute top-1/3 -right-40 h-[480px] w-[480px] rounded-full bg-[radial-gradient(circle,hsl(var(--blueprint)/0.06),transparent_70%)] blur-3xl" />
+        <div className="absolute inset-0 dot-grid opacity-[0.18]" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
+      </div>
+
+      <div className="relative container-wide py-10 md:py-14 max-w-6xl mx-auto px-4">
+        <Link to="/studio-hub/projects" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
           <ArrowLeft className="h-3.5 w-3.5" /> All projects
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
-          <div>
-            <Badge variant="outline" className="mb-3 text-[10px] uppercase tracking-wider font-normal border-border/60">{project.category}</Badge>
-            <h1 className="font-display text-3xl md:text-4xl font-semibold tracking-tight mb-3">{project.title}</h1>
-            <p className="text-xs text-muted-foreground mb-8">Posted {formatDistanceToNow(new Date(project.created_at), { addSuffix: true })}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 lg:gap-10">
+          {/* ===================== MAIN ===================== */}
+          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }}>
+            {/* Header card */}
+            <div className="rounded-3xl border border-border/40 bg-gradient-to-br from-card/60 via-card/30 to-transparent backdrop-blur-sm p-6 md:p-8 mb-8">
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <Badge variant="outline" className="text-[10px] uppercase tracking-wider font-normal border-border/60">{project.category}</Badge>
+                {project.status === 'open' ? (
+                  <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/15 text-[10px] uppercase tracking-wider font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
+                    Accepting proposals
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="capitalize text-[10px]">{project.status.replace('_', ' ')}</Badge>
+                )}
+              </div>
 
-            <div className="prose prose-sm max-w-none dark:prose-invert mb-10">
-              <p className="whitespace-pre-wrap text-foreground/85 leading-relaxed">{project.description}</p>
+              <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-semibold tracking-tight mb-3 leading-[1.1]">
+                {project.title}
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                Posted {formatDistanceToNow(new Date(project.created_at), { addSuffix: true })}
+                {project.deadline && <> · Due {new Date(project.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</>}
+              </p>
+
+              {/* Quick meta row */}
+              <div className="grid grid-cols-3 gap-3 mt-6 pt-6 border-t border-border/40">
+                <Metric icon={Wallet} label="Budget" value={formatBudget(project)} />
+                <Metric icon={Users} label="Proposals" value={String(project.proposals_count)} />
+                <Metric icon={Eye} label="Views" value={String(project.views_count)} />
+              </div>
             </div>
 
-            {project.skills_required.length > 0 && (
-              <div className="mb-10">
-                <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">Skills</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {project.skills_required.map((s) => (
-                    <Badge key={s} variant="secondary" className="rounded-full font-normal">{s}</Badge>
-                  ))}
-                </div>
-              </div>
+            {/* Intro / brief */}
+            {intro && (
+              <Section title="Project brief" icon={Sparkles}>
+                <p className="whitespace-pre-wrap text-foreground/85 leading-relaxed">{intro}</p>
+              </Section>
             )}
 
-            {/* Proposals (visible to owner) */}
+            {/* Structured sections from enriched description */}
+            {sections.map((s, i) => (
+              <Section key={i} title={s.heading} icon={
+                s.heading.includes('SCOPE') ? Sparkles
+                : s.heading.includes('DELIVERABLES') ? CheckCircle2
+                : s.heading.includes('SHARE') ? FileText
+                : s.heading.includes('EXPECT') ? Clock
+                : Sparkles
+              }>
+                <div className="whitespace-pre-wrap text-foreground/85 leading-relaxed text-sm">{s.body}</div>
+              </Section>
+            ))}
+
+            {/* Skills */}
+            {project.skills_required.length > 0 && (
+              <Section title="Skills required">
+                <div className="flex flex-wrap gap-1.5">
+                  {project.skills_required.map((s) => (
+                    <Badge key={s} variant="secondary" className="rounded-full font-normal text-xs">{s}</Badge>
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            {/* ============== Project files ============== */}
+            {hasFiles && (
+              <Section title="Project files" icon={ImageIcon}
+                meta={
+                  filesUnlocked
+                    ? <span className="text-[10px] uppercase tracking-wider text-emerald-500 font-medium">Unlocked</span>
+                    : <span className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium">Locked</span>
+                }
+              >
+                {filesLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking access…
+                  </div>
+                ) : filesUnlocked ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {(unlockedFiles || []).map((url, i) => (
+                      <a
+                        key={i} href={url} target="_blank" rel="noreferrer"
+                        className="group relative block rounded-xl overflow-hidden border border-border/40 bg-muted/30 aspect-[4/3] hover:border-accent/60 transition-all"
+                      >
+                        {isImage(url) ? (
+                          <img src={url} alt={`Reference ${i + 1}`} loading="lazy"
+                            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center"><FileText className="h-8 w-8 text-muted-foreground" /></div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                          <span className="truncate">{fileName(url)}</span>
+                          <Download className="h-3 w-3 shrink-0 ml-1.5" />
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-6 text-center">
+                    <Lock className="h-6 w-6 text-muted-foreground/60 mx-auto mb-3" />
+                    <p className="text-sm font-medium mb-1">{project.attachments.length} reference file{project.attachments.length === 1 ? '' : 's'} attached</p>
+                    <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
+                      Project files (drawings, photos, references) unlock automatically once the client accepts your proposal and the contract begins.
+                    </p>
+                  </div>
+                )}
+              </Section>
+            )}
+
+            {/* ============ Proposals (owner only) ============ */}
             {isOwner && (
-              <div className="border-t border-border/40 pt-8">
-                <h2 className="font-display text-xl font-semibold mb-5">Proposals ({proposals.length})</h2>
+              <Section title={`Proposals (${proposals.length})`} icon={Users}>
                 {proposals.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No proposals yet — they'll appear here as Studio Members respond.</p>
                 ) : (
                   <div className="space-y-3">
                     {proposals.map((p) => (
-                      <div key={p.id} className="border border-border/40 rounded-xl p-5 bg-background hover:bg-muted/30 transition-colors">
+                      <div key={p.id} className="border border-border/40 rounded-xl p-5 bg-card/40 hover:bg-card/60 transition-colors">
                         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                           <Link to={`/studio-hub/members/${p.worker_id}`} className="text-sm font-medium hover:underline underline-offset-4">View member →</Link>
                           <div className="flex items-center gap-3">
-                            <span className="text-sm"><span className="font-display font-semibold">₹{Number(p.bid_amount).toLocaleString()}</span> · {p.delivery_days}d</span>
+                            <span className="text-sm"><span className="font-display font-semibold">₹{Number(p.bid_amount).toLocaleString('en-IN')}</span> · {p.delivery_days}d</span>
                             <Badge variant="outline" className="capitalize text-xs">{p.status}</Badge>
                           </div>
                         </div>
@@ -189,13 +326,16 @@ export default function ProjectDetail() {
                     ))}
                   </div>
                 )}
-              </div>
+              </Section>
             )}
-          </div>
+          </motion.div>
 
-          {/* Sidebar */}
-          <div className="space-y-4">
-            <div className="border border-border/40 rounded-2xl p-6 bg-background sticky top-32">
+          {/* ===================== SIDEBAR ===================== */}
+          <motion.aside
+            initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1, ease }}
+            className="space-y-4"
+          >
+            <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-card/70 via-card/40 to-card/20 backdrop-blur-md p-6 sticky top-32 shadow-[0_20px_60px_-30px_hsl(var(--accent)/0.25)]">
               <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-2">Budget</p>
               <p className="font-display text-3xl font-semibold mb-1">{formatBudget(project)}</p>
               <p className="text-xs text-muted-foreground capitalize mb-5">{project.budget_type} price</p>
@@ -212,7 +352,14 @@ export default function ProjectDetail() {
                 {project.deadline && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Calendar className="h-3.5 w-3.5" />
-                    Due {new Date(project.deadline).toLocaleDateString()}
+                    Due {new Date(project.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </div>
+                )}
+                {hasFiles && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    {filesUnlocked ? <Download className="h-3.5 w-3.5 text-emerald-500" /> : <Lock className="h-3.5 w-3.5" />}
+                    {project.attachments.length} project file{project.attachments.length === 1 ? '' : 's'}
+                    {filesUnlocked && <span className="text-emerald-500 text-[10px] uppercase tracking-wider ml-1">unlocked</span>}
                   </div>
                 )}
               </div>
@@ -224,14 +371,14 @@ export default function ProjectDetail() {
               ) : myProposal ? (
                 <div className="text-center">
                   <Badge variant="secondary" className="mb-2 rounded-full">Proposal sent</Badge>
-                  <p className="text-xs text-muted-foreground">₹{Number(myProposal.bid_amount).toLocaleString()} · {myProposal.delivery_days}d</p>
+                  <p className="text-xs text-muted-foreground">₹{Number(myProposal.bid_amount).toLocaleString('en-IN')} · {myProposal.delivery_days}d</p>
                 </div>
               ) : project.status !== 'open' ? (
                 <p className="text-xs text-muted-foreground text-center">No longer accepting proposals.</p>
               ) : (
                 <Dialog open={proposalOpen} onOpenChange={setProposalOpen}>
                   <DialogTrigger asChild>
-                    <Button className="w-full rounded-full bg-foreground text-background hover:bg-foreground/90">
+                    <Button className="w-full rounded-full bg-foreground text-background hover:bg-foreground/90 h-11 font-medium">
                       Send a proposal
                     </Button>
                   </DialogTrigger>
@@ -242,7 +389,7 @@ export default function ProjectDetail() {
                         <Label htmlFor="bid">Your bid (₹)</Label>
                         <Input id="bid" type="number" min="1" step="any" value={bid} onChange={(e) => setBid(e.target.value)} placeholder="3000" className="mt-1.5 rounded-xl" />
                         {payout && payout.fee > 0 && (
-                          <p className="text-xs text-muted-foreground mt-1.5">You receive ₹{payout.payout.toLocaleString()} after the {payout.feePercent}% platform fee.</p>
+                          <p className="text-xs text-muted-foreground mt-1.5">You receive ₹{payout.payout.toLocaleString('en-IN')} after the {payout.feePercent}% platform fee.</p>
                         )}
                       </div>
                       <div>
@@ -267,12 +414,45 @@ export default function ProjectDetail() {
 
               <div className="border-t border-border/40 mt-5 pt-4 flex items-start gap-2 text-xs text-muted-foreground">
                 <ShieldCheck className="h-4 w-4 text-accent shrink-0 mt-0.5" />
-                <p>Payments are held by Archistudio and only released after our team reviews the deliverable.</p>
+                <p>Payments are held by Archistudio escrow and only released after our team reviews the deliverable.</p>
               </div>
             </div>
-          </div>
+          </motion.aside>
         </div>
       </div>
     </StudioHubLayout>
+  );
+}
+
+// ====================== Subcomponents ======================
+function Metric({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/70 mb-1">
+        <Icon className="h-3 w-3" /> {label}
+      </div>
+      <div className="font-display text-sm md:text-base font-semibold truncate">{value}</div>
+    </div>
+  );
+}
+
+function Section({
+  title, icon: Icon, meta, children,
+}: { title: string; icon?: any; meta?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-30px' }}
+      transition={{ duration: 0.5, ease }}
+      className="mb-8 rounded-2xl border border-border/40 bg-card/30 backdrop-blur-sm p-6 md:p-7"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          {Icon && <Icon className="h-4 w-4 text-accent" />}
+          <h2 className="font-display text-base md:text-lg font-semibold tracking-tight">{title}</h2>
+        </div>
+        {meta}
+      </div>
+      {children}
+    </motion.section>
   );
 }
