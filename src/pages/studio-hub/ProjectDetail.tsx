@@ -220,36 +220,82 @@ export default function ProjectDetail() {
               </div>
             </div>
 
-            {/* Intro / brief */}
-            {intro && (
-              <Section title="Project brief" icon={Sparkles}>
-                <p className="whitespace-pre-wrap text-foreground/85 leading-relaxed">{intro}</p>
-              </Section>
-            )}
+            {/* Description block — blurred for non-authenticated viewers */}
+            <div className="relative">
+              <div
+                aria-hidden={!user}
+                className={
+                  !user
+                    ? 'pointer-events-none select-none blur-md saturate-50 opacity-70 transition-all duration-500'
+                    : 'transition-all duration-500'
+                }
+              >
+                {/* Intro / brief */}
+                {intro && (
+                  <Section title="Project brief" icon={Sparkles}>
+                    <p className="whitespace-pre-wrap text-foreground/85 leading-relaxed">{intro}</p>
+                  </Section>
+                )}
 
-            {/* Structured sections from enriched description */}
-            {sections.map((s, i) => (
-              <Section key={i} title={s.heading} icon={
-                s.heading.includes('SCOPE') ? Sparkles
-                : s.heading.includes('DELIVERABLES') ? CheckCircle2
-                : s.heading.includes('SHARE') ? FileText
-                : s.heading.includes('EXPECT') ? Clock
-                : Sparkles
-              }>
-                <div className="whitespace-pre-wrap text-foreground/85 leading-relaxed text-sm">{s.body}</div>
-              </Section>
-            ))}
+                {/* Structured sections from enriched description */}
+                {sections.map((s, i) => (
+                  <Section key={i} title={s.heading} icon={
+                    s.heading.includes('SCOPE') ? Sparkles
+                    : s.heading.includes('DELIVERABLES') ? CheckCircle2
+                    : s.heading.includes('SHARE') ? FileText
+                    : s.heading.includes('EXPECT') ? Clock
+                    : Sparkles
+                  }>
+                    <div className="whitespace-pre-wrap text-foreground/85 leading-relaxed text-sm">{s.body}</div>
+                  </Section>
+                ))}
 
-            {/* Skills */}
-            {project.skills_required.length > 0 && (
-              <Section title="Skills required">
-                <div className="flex flex-wrap gap-1.5">
-                  {project.skills_required.map((s) => (
-                    <Badge key={s} variant="secondary" className="rounded-full font-normal text-xs">{s}</Badge>
-                  ))}
-                </div>
-              </Section>
-            )}
+                {/* Skills */}
+                {project.skills_required.length > 0 && (
+                  <Section title="Skills required">
+                    <div className="flex flex-wrap gap-1.5">
+                      {project.skills_required.map((s) => (
+                        <Badge key={s} variant="secondary" className="rounded-full font-normal text-xs">{s}</Badge>
+                      ))}
+                    </div>
+                  </Section>
+                )}
+              </div>
+
+              {/* Sign-in gate overlay */}
+              {!user && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }}
+                  className="absolute inset-0 flex items-center justify-center"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background/90 pointer-events-none" />
+                  <div className="relative max-w-sm w-[90%] mx-auto rounded-2xl border border-border/60 bg-card/80 backdrop-blur-xl p-6 md:p-7 text-center shadow-[0_30px_80px_-30px_hsl(var(--accent)/0.4)]">
+                    <div className="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-accent/10 mb-4">
+                      <Lock className="h-5 w-5 text-accent" />
+                    </div>
+                    <h3 className="font-display text-lg md:text-xl font-semibold tracking-tight mb-1.5">
+                      Sign in to view full project
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed mb-5">
+                      The complete brief, deliverables, scope and references are visible to verified Studio Members only.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Link to={`/auth?redirect=/studio-hub/projects/${id}`} className="flex-1">
+                        <Button className="w-full rounded-full bg-foreground text-background hover:bg-foreground/90 h-10 font-medium">
+                          Sign in
+                        </Button>
+                      </Link>
+                      <Link to={`/auth?mode=signup&redirect=/studio-hub/projects/${id}`} className="flex-1">
+                        <Button variant="outline" className="w-full rounded-full h-10 font-medium border-border/60">
+                          Create account
+                        </Button>
+                      </Link>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground/70 mt-4">Free · 30 seconds</p>
+                  </div>
+                </motion.div>
+              )}
+            </div>
 
             {/* ============== Project files ============== */}
             {hasFiles && (
