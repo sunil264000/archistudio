@@ -19,7 +19,7 @@ export const GLOBAL_SEARCH_COLUMNS = [
 ] as const;
 
 type SearchClient = {
-  rpc: (fn: 'global_search', args: { search_query: string; result_limit: number }) => Promise<{ data: unknown; error: unknown }>;
+  rpc: (fn: 'global_search', args: { search_query: string; result_limit: number }) => PromiseLike<{ data: unknown; error: unknown }>;
 };
 
 export const hasGlobalSearchColumns = (value: unknown): value is SearchResult => {
