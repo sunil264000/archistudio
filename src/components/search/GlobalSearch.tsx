@@ -168,7 +168,7 @@ export function GlobalSearch() {
                 <input
                   ref={inputRef}
                   type="text"
-                  placeholder="Search courses, forum, blog, ebooks..."
+                  placeholder="Search courses, projects, forum, blog, ebooks..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -206,12 +206,12 @@ export function GlobalSearch() {
                       Start typing to search
                     </p>
                     <div className="flex items-center gap-3 mt-4">
-                      {[
-                        { label: 'Courses', icon: BookOpen },
-                        { label: 'Forum', icon: MessageSquare },
-                        { label: 'Blog', icon: FileText },
-                        { label: 'E-Books', icon: Book },
-                      ].map((item) => (
+                        {[
+                          { label: 'Courses', icon: BookOpen },
+                          { label: 'Projects', icon: BriefcaseBusiness },
+                          { label: 'Forum', icon: MessageSquare },
+                          { label: 'E-Books', icon: Book },
+                        ].map((item) => (
                         <div key={item.label} className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
                           <item.icon className="h-3 w-3" />
                           {item.label}
@@ -233,6 +233,21 @@ export function GlobalSearch() {
                   </div>
                 ) : (
                   <div className="p-2">
+                    {suggestions.length > 0 && (
+                      <div className="global-search-suggestions">
+                        {suggestions.map((term) => (
+                          <button
+                            key={term}
+                            type="button"
+                            onClick={() => { setQuery(term); inputRef.current?.focus(); }}
+                            className="global-search-suggestion"
+                          >
+                            <Search className="h-3 w-3" />
+                            {term}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {results.map((result, i) => {
                       const config = TYPE_CONFIG[result.result_type] || TYPE_CONFIG.course;
                       const Icon = config.icon;
