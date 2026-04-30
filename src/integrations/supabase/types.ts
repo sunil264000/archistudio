@@ -5541,6 +5541,7 @@ export type Database = {
         Args: { result_limit?: number; search_query: string }
         Returns: {
           description: string
+          image_url: string
           relevance: number
           result_id: string
           result_type: string
