@@ -1,19 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchGlobalSearch, getAutocompleteTerms, type SearchResult } from '@/lib/globalSearch';
 import { Badge } from '@/components/ui/badge';
 import { Search, BookOpen, MessageSquare, FileText, Book, X, Loader2, Command, ArrowRight, BriefcaseBusiness } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-
-interface SearchResult {
-  result_type: string;
-  result_id: string;
-  title: string;
-  description: string | null;
-  slug: string | null;
-  image_url: string | null;
-  relevance: number;
-}
 
 const TYPE_CONFIG: Record<string, { icon: typeof BookOpen; label: string; color: string; path: (r: SearchResult) => string }> = {
   course: { icon: BookOpen, label: 'Course', color: 'bg-accent/10 text-accent', path: (r) => `/course/${r.slug}` },
@@ -21,24 +12,6 @@ const TYPE_CONFIG: Record<string, { icon: typeof BookOpen; label: string; color:
   forum: { icon: MessageSquare, label: 'Forum', color: 'bg-secondary text-secondary-foreground', path: (r) => `/forum/${r.result_id}` },
   blog: { icon: FileText, label: 'Blog', color: 'bg-muted text-muted-foreground', path: (r) => `/blog/${r.slug}` },
   ebook: { icon: Book, label: 'E-Book', color: 'bg-card text-card-foreground', path: () => '/ebooks' },
-};
-
-export const getAutocompleteTerms = (query: string, results: SearchResult[], limit = 5) => {
-  const normalizedQuery = query.trim().toLowerCase();
-  if (!normalizedQuery) return [];
-
-  const terms = new Map<string, string>();
-  results
-    .filter((result) => result.result_type === 'course' || result.result_type === 'project')
-    .flatMap((result) => [result.title, result.description ?? ''])
-    .join(' ')
-    .match(/[A-Za-z][A-Za-z0-9+#.-]{1,}/g)
-    ?.forEach((term) => {
-      const key = term.toLowerCase();
-      if (key.startsWith(normalizedQuery) && !terms.has(key)) terms.set(key, term);
-    });
-
-  return Array.from(terms.values()).slice(0, limit);
 };
 
 export function GlobalSearch() {
