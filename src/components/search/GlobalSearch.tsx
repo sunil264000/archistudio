@@ -62,10 +62,11 @@ export function GlobalSearch() {
     return () => { document.body.style.overflow = ''; };
   }, [open]);
 
-  // Debounced search
+  // Debounced search — prefix-aware (server uses tsquery :* + ILIKE),
+  // so we trigger from the very first character for an instant feel.
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (query.trim().length < 2) { setResults([]); return; }
+    if (query.trim().length < 1) { setResults([]); return; }
 
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
@@ -77,7 +78,7 @@ export function GlobalSearch() {
       else setResults([]);
       setLoading(false);
       setSelectedIndex(-1);
-    }, 300);
+    }, 150);
 
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [query]);
