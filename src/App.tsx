@@ -91,6 +91,20 @@ const StudioHubPricing = lazy(() => import("./pages/studio-hub/PricingPage"));
 // Warm cache on app load
 prefetchCriticalData().catch(() => {});
 
+// Idle-time prefetch for the most-clicked top-nav destinations so navigation
+// feels instant. Runs after first paint, never blocks initial render.
+if (typeof window !== 'undefined') {
+  const warmChunks = () => {
+    import('./pages/studio-hub/StudioHubHome');
+    import('./pages/studio-hub/BrowseProjects');
+    import('./pages/Courses');
+    import('./pages/Explore');
+  };
+  const ric = (window as any).requestIdleCallback as undefined | ((cb: () => void, opts?: any) => number);
+  if (ric) ric(warmChunks, { timeout: 2500 });
+  else setTimeout(warmChunks, 1500);
+}
+
 // Initialize Google Analytics
 const initAnalytics = async () => {
   try {
