@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
-import { Search, BookOpen, MessageSquare, FileText, Book, X, Loader2, Command, ArrowRight } from 'lucide-react';
+import { Search, BookOpen, MessageSquare, FileText, Book, X, Loader2, Command, ArrowRight, BriefcaseBusiness } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 interface SearchResult {
@@ -17,9 +17,28 @@ interface SearchResult {
 
 const TYPE_CONFIG: Record<string, { icon: typeof BookOpen; label: string; color: string; path: (r: SearchResult) => string }> = {
   course: { icon: BookOpen, label: 'Course', color: 'bg-accent/10 text-accent', path: (r) => `/course/${r.slug}` },
-  forum: { icon: MessageSquare, label: 'Forum', color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400', path: (r) => `/forum/${r.result_id}` },
-  blog: { icon: FileText, label: 'Blog', color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', path: (r) => `/blog/${r.slug}` },
-  ebook: { icon: Book, label: 'E-Book', color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400', path: () => '/ebooks' },
+  project: { icon: BriefcaseBusiness, label: 'Project', color: 'bg-primary/10 text-primary', path: (r) => `/studio-hub/projects/${r.result_id}` },
+  forum: { icon: MessageSquare, label: 'Forum', color: 'bg-secondary text-secondary-foreground', path: (r) => `/forum/${r.result_id}` },
+  blog: { icon: FileText, label: 'Blog', color: 'bg-muted text-muted-foreground', path: (r) => `/blog/${r.slug}` },
+  ebook: { icon: Book, label: 'E-Book', color: 'bg-card text-card-foreground', path: () => '/ebooks' },
+};
+
+export const getAutocompleteTerms = (query: string, results: SearchResult[], limit = 5) => {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) return [];
+
+  const terms = new Map<string, string>();
+  results
+    .filter((result) => result.result_type === 'course' || result.result_type === 'project')
+    .flatMap((result) => [result.title, result.description ?? ''])
+    .join(' ')
+    .match(/[A-Za-z][A-Za-z0-9+#.-]{1,}/g)
+    ?.forEach((term) => {
+      const key = term.toLowerCase();
+      if (key.startsWith(normalizedQuery) && !terms.has(key)) terms.set(key, term);
+    });
+
+  return Array.from(terms.values()).slice(0, limit);
 };
 
 export function GlobalSearch() {
@@ -31,6 +50,7 @@ export function GlobalSearch() {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const suggestions = getAutocompleteTerms(query, results);
 
   // Keyboard shortcut: Ctrl/Cmd + K
   useEffect(() => {
