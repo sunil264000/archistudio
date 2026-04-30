@@ -106,14 +106,42 @@ const initAnalytics = async () => {
 initAnalytics();
 
 function PageLoader() {
+  // Lightweight, on-brand skeleton — no spinner, no "LOADING" text.
+  // Mimics the studio layout (top nav strip + hero + cards) so the transition
+  // feels like the page is materialising rather than blocking.
   return (
-    <div className="min-h-[70vh] flex items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative h-10 w-10">
-          <div className="absolute inset-0 rounded-full border-2 border-accent/20" />
-          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-accent animate-spin" />
+    <div className="min-h-screen bg-background">
+      {/* Subtle top progress bar */}
+      <div className="fixed top-0 left-0 right-0 h-[2px] z-[100] overflow-hidden bg-transparent">
+        <div className="h-full w-1/3 bg-gradient-to-r from-transparent via-accent to-transparent animate-[shimmer_1.1s_ease-in-out_infinite]" />
+      </div>
+
+      {/* Faux nav spacer */}
+      <div className="h-14 border-b border-border/30" />
+
+      <div className="container-wide py-12 space-y-10 animate-pulse">
+        {/* Hero block */}
+        <div className="max-w-2xl mx-auto text-center space-y-4">
+          <div className="h-5 w-44 mx-auto rounded-full bg-muted/60" />
+          <div className="h-10 md:h-12 w-full rounded-xl bg-muted/50" />
+          <div className="h-10 md:h-12 w-3/4 mx-auto rounded-xl bg-muted/40" />
+          <div className="h-4 w-2/3 mx-auto rounded bg-muted/30 mt-4" />
+          <div className="flex gap-3 justify-center pt-3">
+            <div className="h-11 w-36 rounded-full bg-muted/55" />
+            <div className="h-11 w-32 rounded-full bg-muted/35" />
+          </div>
         </div>
-        <p className="text-[10px] text-muted-foreground tracking-[0.2em] uppercase animate-pulse">Loading</p>
+
+        {/* Card grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-2xl border border-border/30 p-5 space-y-3 bg-card/40">
+              <div className="h-32 rounded-xl bg-muted/40" />
+              <div className="h-4 w-3/4 rounded bg-muted/40" />
+              <div className="h-3 w-1/2 rounded bg-muted/30" />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
