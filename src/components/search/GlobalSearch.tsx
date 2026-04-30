@@ -1,25 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchGlobalSearch, getAutocompleteTerms, type SearchResult } from '@/lib/globalSearch';
 import { Badge } from '@/components/ui/badge';
-import { Search, BookOpen, MessageSquare, FileText, Book, X, Loader2, Command, ArrowRight } from 'lucide-react';
+import { Search, BookOpen, MessageSquare, FileText, Book, X, Loader2, Command, ArrowRight, BriefcaseBusiness } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-
-interface SearchResult {
-  result_type: string;
-  result_id: string;
-  title: string;
-  description: string | null;
-  slug: string | null;
-  image_url: string | null;
-  relevance: number;
-}
 
 const TYPE_CONFIG: Record<string, { icon: typeof BookOpen; label: string; color: string; path: (r: SearchResult) => string }> = {
   course: { icon: BookOpen, label: 'Course', color: 'bg-accent/10 text-accent', path: (r) => `/course/${r.slug}` },
-  forum: { icon: MessageSquare, label: 'Forum', color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400', path: (r) => `/forum/${r.result_id}` },
-  blog: { icon: FileText, label: 'Blog', color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', path: (r) => `/blog/${r.slug}` },
-  ebook: { icon: Book, label: 'E-Book', color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400', path: () => '/ebooks' },
+  project: { icon: BriefcaseBusiness, label: 'Project', color: 'bg-primary/10 text-primary', path: (r) => `/studio-hub/projects/${r.result_id}` },
+  forum: { icon: MessageSquare, label: 'Forum', color: 'bg-secondary text-secondary-foreground', path: (r) => `/forum/${r.result_id}` },
+  blog: { icon: FileText, label: 'Blog', color: 'bg-muted text-muted-foreground', path: (r) => `/blog/${r.slug}` },
+  ebook: { icon: Book, label: 'E-Book', color: 'bg-card text-card-foreground', path: () => '/ebooks' },
 };
 
 export function GlobalSearch() {
@@ -31,6 +23,7 @@ export function GlobalSearch() {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const suggestions = getAutocompleteTerms(query, results);
 
   // Keyboard shortcut: Ctrl/Cmd + K
   useEffect(() => {
@@ -70,12 +63,8 @@ export function GlobalSearch() {
 
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
-      const { data, error } = await supabase.rpc('global_search', {
-        search_query: query.trim(),
-        result_limit: 15,
-      });
-      if (!error && data) setResults(data as SearchResult[]);
-      else setResults([]);
+      const nextResults = await fetchGlobalSearch(supabase, query, 15);
+      setResults(nextResults);
       setLoading(false);
       setSelectedIndex(-1);
     }, 150);
@@ -148,7 +137,7 @@ export function GlobalSearch() {
                 <input
                   ref={inputRef}
                   type="text"
-                  placeholder="Search courses, forum, blog, ebooks..."
+                  placeholder="Search courses, projects, forum, blog, ebooks..."
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -186,12 +175,12 @@ export function GlobalSearch() {
                       Start typing to search
                     </p>
                     <div className="flex items-center gap-3 mt-4">
-                      {[
-                        { label: 'Courses', icon: BookOpen },
-                        { label: 'Forum', icon: MessageSquare },
-                        { label: 'Blog', icon: FileText },
-                        { label: 'E-Books', icon: Book },
-                      ].map((item) => (
+                        {[
+                          { label: 'Courses', icon: BookOpen },
+                          { label: 'Projects', icon: BriefcaseBusiness },
+                          { label: 'Forum', icon: MessageSquare },
+                          { label: 'E-Books', icon: Book },
+                        ].map((item) => (
                         <div key={item.label} className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60">
                           <item.icon className="h-3 w-3" />
                           {item.label}
@@ -213,6 +202,21 @@ export function GlobalSearch() {
                   </div>
                 ) : (
                   <div className="p-2">
+                    {suggestions.length > 0 && (
+                      <div className="global-search-suggestions">
+                        {suggestions.map((term) => (
+                          <button
+                            key={term}
+                            type="button"
+                            onClick={() => { setQuery(term); inputRef.current?.focus(); }}
+                            className="global-search-suggestion"
+                          >
+                            <Search className="h-3 w-3" />
+                            {term}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {results.map((result, i) => {
                       const config = TYPE_CONFIG[result.result_type] || TYPE_CONFIG.course;
                       const Icon = config.icon;
