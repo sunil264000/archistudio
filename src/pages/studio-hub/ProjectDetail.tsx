@@ -16,7 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Calendar, Users, Loader2, Eye, ShieldCheck, CheckCircle2,
-  Lock, Download, Image as ImageIcon, FileText, Sparkles, Clock, Wallet,
+  Lock, Download, Image as ImageIcon, FileText, Sparkles, Clock, Wallet, GraduationCap,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 

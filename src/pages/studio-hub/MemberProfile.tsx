@@ -221,7 +221,7 @@ export default function MemberProfile() {
                   <p className="text-[11px] tracking-[0.18em] text-muted-foreground/70 uppercase mb-3">Software Tools</p>
                   <div className="flex flex-wrap gap-1.5">
                     {(profile as any).tools.map((t) => (
-                      <Badge key={t} variant="accent" className="rounded-full font-normal bg-accent/10 text-accent border-accent/20 px-3 py-1">
+                      <Badge key={t} variant="outline" className="rounded-full font-normal bg-accent/10 text-accent border-accent/20 px-3 py-1">
                         {t}
                       </Badge>
                     ))}

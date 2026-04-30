@@ -46,7 +46,7 @@ export default function Gateway() {
               src={logoMark} 
               alt="Archistudio Logo" 
               className="h-20 w-20 mx-auto rounded-[24px] shadow-2xl relative z-10" 
-              fetchpriority="high"
+              fetchPriority="high"
               decoding="async"
             />
             <div className="absolute inset-0 bg-accent blur-2xl opacity-20 scale-150" />
