@@ -63,12 +63,8 @@ export function GlobalSearch() {
 
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
-      const { data, error } = await supabase.rpc('global_search', {
-        search_query: query.trim(),
-        result_limit: 15,
-      });
-      if (!error && data) setResults(data as SearchResult[]);
-      else setResults([]);
+      const nextResults = await fetchGlobalSearch(supabase, query, 15);
+      setResults(nextResults);
       setLoading(false);
       setSelectedIndex(-1);
     }, 150);
