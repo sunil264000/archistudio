@@ -105,7 +105,7 @@ export function Navbar() {
               src={logoMark} 
               alt="Archistudio Academy Logo" 
               className="h-8 w-8 rounded-lg object-cover transition-transform duration-300 group-hover:scale-110" 
-              fetchpriority="high"
+              fetchPriority="high"
               decoding="async"
             />
             <div className="absolute inset-0 rounded-lg bg-accent/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

@@ -116,17 +116,26 @@ export function HeroSection() {
             {/* CTAs */}
             <motion.div 
               custom={3} variants={anims} initial="hidden" animate="visible"
-              className="flex flex-col sm:flex-row items-center gap-3 justify-center mt-10"
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 justify-center mt-10 max-w-md sm:max-w-none mx-auto"
             >
               <Link to={user ? "/courses" : "/auth?mode=signup"} className="w-full sm:w-auto">
-                <Button size="xl" className="gap-2.5 group w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/90 shadow-[0_4px_24px_hsl(var(--accent)/0.25)] hover:shadow-[0_8px_32px_hsl(var(--accent)/0.35)] text-base px-10 rounded-full transition-all duration-300 font-bold">
-                  {user ? "Explore Courses" : "Bridge the Gap"}
-                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                <Button
+                  size="lg"
+                  className="relative gap-2.5 group w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/95 shadow-[0_8px_28px_-8px_hsl(var(--accent)/0.55)] hover:shadow-[0_14px_38px_-10px_hsl(var(--accent)/0.65)] hover:-translate-y-0.5 text-[15px] h-12 px-7 rounded-full font-semibold transition-all duration-300 overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,hsl(0_0%_100%/0.18)_0%,transparent_55%)] before:pointer-events-none"
+                >
+                  <span className="relative">{user ? "Explore Courses" : "Bridge the Gap"}</span>
+                  <ArrowRight className="relative h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </Button>
               </Link>
               <Link to="/explore" className="w-full sm:w-auto">
-                <Button variant="ghost" size="xl" className="gap-2 w-full sm:w-auto text-muted-foreground hover:text-foreground text-base px-8">
-                  <Play className="h-4 w-4" />
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="gap-2 group w-full sm:w-auto h-12 px-6 rounded-full text-[15px] font-medium border-border/50 bg-card/30 backdrop-blur-sm text-foreground/85 hover:text-foreground hover:bg-card/60 hover:border-accent/30 transition-all duration-300"
+                >
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-foreground/5 group-hover:bg-accent/15 transition-colors">
+                    <Play className="h-3 w-3 text-foreground/70 group-hover:text-accent transition-colors" />
+                  </span>
                   Watch Previews
                 </Button>
               </Link>

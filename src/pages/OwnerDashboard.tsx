@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, ShieldAlert, Users, Wallet, Briefcase, MessageSquare, Key, ArrowRight } from 'lucide-react';
+import { Loader2, ShieldAlert, Users, Wallet, Briefcase, MessageSquare, Key, ArrowRight, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function OwnerDashboard() {

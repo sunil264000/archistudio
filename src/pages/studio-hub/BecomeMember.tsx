@@ -279,7 +279,7 @@ export default function BecomeMember() {
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground">Software Tools</Label>
                 <div className="flex flex-wrap gap-1.5 mt-2 mb-2 min-h-[32px]">
                   {tools.map((t) => (
-                    <Badge key={t} variant="accent" className="gap-1 rounded-full bg-accent/10 text-accent border-accent/20 hover:bg-accent/20">{t}<button type="button" onClick={() => setTools(tools.filter((x) => x !== t))}><X className="h-3 w-3" /></button></Badge>
+                    <Badge key={t} variant="outline" className="gap-1 rounded-full bg-accent/10 text-accent border-accent/20 hover:bg-accent/20">{t}<button type="button" onClick={() => setTools(tools.filter((x) => x !== t))}><X className="h-3 w-3" /></button></Badge>
                   ))}
                 </div>
                 <div className="flex gap-2">
