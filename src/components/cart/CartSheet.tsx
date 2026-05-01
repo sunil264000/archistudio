@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
 import { useExitDiscount } from '@/hooks/useExitDiscount';
 import { CourseThumbnail } from '@/components/course/CourseThumbnail';
+import { useCoupon } from '@/contexts/CouponContext';
 
 export function CartSheet() {
   const { items, removeFromCart, totalPrice, itemCount, clearCart } = useCart();
@@ -51,8 +52,16 @@ export function CartSheet() {
   // Exit-intent discount (auto-applied)
   const { isActive: exitDiscountActive, timeLeft: exitTimeLeft, discountPercent: exitDiscountPercent, formatTime } = useExitDiscount();
 
+  // MAY2026 / personal coupon timer (auto-applied, free course already enrolled)
+  const { isActive: timerCouponActive, active: timerCoupon, secondsLeft: timerCouponSeconds } = useCoupon();
+  const timerCouponPercent = timerCouponActive ? (timerCoupon?.discountPercent ?? 0) : 0;
+  const freeCourseInCart = timerCouponActive && timerCoupon?.freeCourseId
+    ? items.find(i => i.courseId === timerCoupon.freeCourseId)
+    : null;
+  const freeCourseAmount = freeCourseInCart ? freeCourseInCart.price : 0;
+
   // Coupon discount (applied after bundle)
-  const priceAfterBundle = totalPrice - bundleAmount;
+  const priceAfterBundle = totalPrice - bundleAmount - freeCourseAmount;
   let couponAmount = 0;
   if (appliedCoupon) {
     if (appliedCoupon.discountType === 'percentage') {
@@ -62,11 +71,16 @@ export function CartSheet() {
     }
   }
 
-  // Exit discount (applied after bundle + coupon)
   const priceAfterCoupon = priceAfterBundle - couponAmount;
-  const exitDiscountAmount = exitDiscountActive ? Math.round(priceAfterCoupon * exitDiscountPercent / 100) : 0;
+  const timerCouponAmount = timerCouponPercent > 0 && !appliedCoupon
+    ? Math.round(priceAfterCoupon * timerCouponPercent / 100)
+    : 0;
+  const priceAfterTimerCoupon = priceAfterCoupon - timerCouponAmount;
+  const exitDiscountAmount = exitDiscountActive ? Math.round(priceAfterTimerCoupon * exitDiscountPercent / 100) : 0;
 
-  const finalPrice = priceAfterCoupon - exitDiscountAmount;
+  const finalPrice = Math.max(0, priceAfterTimerCoupon - exitDiscountAmount);
+
+  const fmtTimer = (s: number) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
 
   const applyCoupon = async () => {
     if (!couponCode.trim()) return;
