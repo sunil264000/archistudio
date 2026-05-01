@@ -23,6 +23,7 @@ import { AccessBadge } from '@/components/course/AccessBadge';
 import { SEOHead, generateCourseSchema, generateBreadcrumbSchema } from '@/components/seo/SEOHead';
 import { LiveViewerCounter } from '@/components/social-proof/LiveViewerCounter';
 import { useSaleDiscount } from '@/hooks/useSaleDiscount';
+import { useCoupon } from '@/contexts/CouponContext';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { supabase } from '@/integrations/supabase/client';
 import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
@@ -180,6 +181,7 @@ export default function CourseDetail() {
   const { toast } = useToast();
   const { getThumbnail, getPriceInr } = useDynamicCourseData();
   const { isActive: saleActive, discountPercent, calculateDiscountedPrice } = useSaleDiscount();
+  const { isActive: timerCouponActive, applyDiscountedPrice: applyTimerCouponPrice, secondsLeft: timerCouponSeconds, active: timerCoupon } = useCoupon();
   const { isActive: exitDiscountActive, discountPercent: exitDiscountPercent } = useExitDiscount();
 
   // Fetch real modules from database
@@ -347,7 +349,11 @@ export default function CourseDetail() {
 
   const category = courseCategories.find(c => c.id === course.category);
 
-  const effectivePriceInr = getPriceInr(course.slug, course.priceInr);
+  const rawPriceInr = getPriceInr(course.slug, course.priceInr);
+  // MAY2026 / timer-coupon: free course = 0, others = % off
+  const effectivePriceInr = timerCouponActive
+    ? applyTimerCouponPrice(rawPriceInr, dbCourseId || undefined)
+    : rawPriceInr;
   // Apply exit discount on top of the base price (for Buy Now flow)
   const basePriceAfterExitDiscount = exitDiscountActive && effectivePriceInr > 0
     ? Math.round(effectivePriceInr * (1 - exitDiscountPercent / 100))
