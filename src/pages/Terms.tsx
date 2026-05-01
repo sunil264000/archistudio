@@ -9,7 +9,7 @@ export default function Terms() {
       <main className="pt-24 pb-16">
         <div className="container mx-auto px-4 max-w-4xl">
           <h1 className="text-4xl font-bold mb-8">Terms & Conditions</h1>
-          <p className="text-muted-foreground mb-8">Last updated: January 18, 2026</p>
+          <p className="text-muted-foreground mb-8">Last updated: May 1, 2026</p>
 
           <div className="prose prose-neutral dark:prose-invert max-w-none space-y-8">
             <section>
@@ -52,8 +52,24 @@ export default function Terms() {
             <section>
               <h2 className="text-2xl font-semibold mb-4">5. Pricing & Payments</h2>
               <p className="text-muted-foreground">
-                All prices are displayed in Indian Rupees (INR). Payments are processed securely through Cashfree payment gateway. We reserve the right to modify pricing at any time. Any price changes will not affect existing purchases.
+                All prices are displayed in Indian Rupees (INR) and currently range from ₹499 to ₹4,999 based on course content depth and duration. Payments are processed securely through the Cashfree payment gateway. We reserve the right to modify pricing at any time. Any price changes will not affect existing purchases.
               </p>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold mb-4">6. Promotional Coupons & Time-Bound Discounts</h2>
+              <p className="text-muted-foreground mb-4">
+                We may run promotional offers and coupon codes (e.g. <strong>MAY2026</strong>) that grant complimentary access to a specific course and/or trigger a personal time-bound discount on other courses. The following terms apply to all such offers:
+              </p>
+              <ul className="list-disc pl-6 text-muted-foreground space-y-2">
+                <li>Coupons are valid only for registered, signed-in users and may auto-apply on sign-in or be entered manually at checkout.</li>
+                <li>Each coupon may be redeemed only once per user account.</li>
+                <li>The <strong>MAY2026</strong> coupon grants free, lifetime access to "Master Course: AutoCAD &amp; SketchUp from Beginner to Pro" and a 20% discount on all other courses for 10 minutes from the moment of redemption. Once the timer expires, the discount cannot be reactivated.</li>
+                <li>Coupons cannot be combined with other coupons; in case of overlap the system will apply the most favorable single discount.</li>
+                <li>Coupons have no cash value, are non-transferable, and may be revoked, paused, or modified by Archistudio at any time without prior notice.</li>
+                <li>Any abuse — including creating multiple accounts to redeem the same coupon — will result in immediate revocation of access and may lead to account termination.</li>
+                <li>Free course access granted via a coupon is subject to the same usage rules and intellectual property restrictions as paid enrollments.</li>
+              </ul>
             </section>
 
             <section>
