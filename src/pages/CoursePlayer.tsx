@@ -454,6 +454,7 @@ export default function CoursePlayer() {
                     </div>
                   );
                 })()}
+                </div>
               </div>
 
               {/* Lesson Info Bar - Redesigned */}
