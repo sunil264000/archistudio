@@ -147,35 +147,14 @@ function FeeReduction({ from, to, delay = 0 }: { from: number; to: number; delay
   }, [from, to, delay]);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent p-4 mb-6">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
-          <TrendingDown className="h-5 w-5 text-emerald-400" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-[10px] uppercase tracking-widest text-emerald-400/80 font-bold mb-0.5">
-            Platform Fee
-          </div>
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="text-sm text-muted-foreground line-through">{from}%</span>
-            <span className="text-muted-foreground">→</span>
-            <motion.span
-              className="text-2xl font-display font-bold text-emerald-400"
-            >
-              <motion.span>{rounded}</motion.span>%
-            </motion.span>
-          </div>
-        </div>
-      </div>
-      {/* Animated reducing bar */}
-      <div className="mt-3 h-1.5 bg-muted/30 rounded-full overflow-hidden">
-        <motion.div
-          className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"
-          initial={{ width: `${(from / 15) * 100}%` }}
-          animate={{ width: `${(to / 15) * 100}%` }}
-          transition={{ duration: 1.6, delay, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </div>
+    <div className="flex items-center gap-2 px-2.5 py-1.5 mb-4 rounded-lg bg-emerald-500/8 border border-emerald-500/15 text-xs">
+      <TrendingDown className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+      <span className="text-muted-foreground">Fee</span>
+      <span className="text-muted-foreground line-through">{from}%</span>
+      <span className="text-muted-foreground">→</span>
+      <motion.span className="font-semibold text-emerald-400">
+        <motion.span>{rounded}</motion.span>%
+      </motion.span>
     </div>
   );
 }
