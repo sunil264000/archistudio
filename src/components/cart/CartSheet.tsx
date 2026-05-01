@@ -393,7 +393,7 @@ export function CartSheet() {
                   <div className="flex justify-between text-lg font-semibold">
                     <span>Total</span>
                     <div className="text-right">
-                      {(bundleAmount + couponAmount + exitDiscountAmount) > 0 && (
+                      {(bundleAmount + couponAmount + exitDiscountAmount + timerCouponAmount + freeCourseAmount) > 0 && (
                         <span className="text-sm text-muted-foreground line-through mr-2">₹{totalPrice.toLocaleString()}</span>
                       )}
                       <span>₹{finalPrice.toLocaleString()}</span>
