@@ -95,10 +95,17 @@ prefetchCriticalData().catch(() => {});
 // feels instant. Runs after first paint, never blocks initial render.
 if (typeof window !== 'undefined') {
   const warmChunks = () => {
+    // Top nav destinations
     import('./pages/studio-hub/StudioHubHome');
     import('./pages/studio-hub/BrowseProjects');
+    import('./pages/studio-hub/PricingPage');
+    import('./pages/studio-hub/MembersDirectory');
     import('./pages/Courses');
     import('./pages/Explore');
+    import('./pages/Auth');
+    import('./pages/Dashboard');
+    import('./pages/CourseDetail');
+    import('./pages/Blog');
   };
   const ric = (window as any).requestIdleCallback as undefined | ((cb: () => void, opts?: any) => number);
   if (ric) ric(warmChunks, { timeout: 2500 });
