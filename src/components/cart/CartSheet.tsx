@@ -346,6 +346,28 @@ export function CartSheet() {
                     </div>
                   )}
 
+                  {/* MAY2026 free course in cart */}
+                  {freeCourseInCart && (
+                    <div className="flex items-center justify-between text-sm p-2 rounded-lg bg-accent/10 border border-accent/30">
+                      <span className="flex items-center gap-1.5 text-accent font-medium">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        FREE: {freeCourseInCart.title.length > 24 ? freeCourseInCart.title.slice(0,24) + '…' : freeCourseInCart.title}
+                      </span>
+                      <span className="text-accent font-semibold">-₹{freeCourseAmount.toLocaleString()}</span>
+                    </div>
+                  )}
+
+                  {/* MAY2026 timer-based % off */}
+                  {timerCouponActive && timerCouponAmount > 0 && (
+                    <div className="flex items-center justify-between text-sm p-2 rounded-lg bg-accent/10 border border-accent/30">
+                      <span className="flex items-center gap-1.5 text-accent font-medium">
+                        <Timer className="h-3.5 w-3.5" />
+                        {timerCoupon?.code} ({timerCouponPercent}%) · {fmtTimer(timerCouponSeconds)}
+                      </span>
+                      <span className="text-accent font-semibold">-₹{timerCouponAmount.toLocaleString()}</span>
+                    </div>
+                  )}
+
                   {/* Coupon discount */}
                   {couponAmount > 0 && (
                     <div className="flex items-center justify-between text-sm p-2 rounded-lg bg-success/10 border border-success/20">
