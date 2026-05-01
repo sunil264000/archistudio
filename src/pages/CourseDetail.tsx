@@ -789,16 +789,33 @@ export default function CourseDetail() {
                 <CardContent className="p-6 space-y-4">
                   <div className="flex items-baseline gap-2">
                     {effectivePriceInr === 0 ? (
-                      <span className="text-3xl font-bold text-success">Free</span>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-3xl font-bold text-success">Free</span>
+                          {timerCouponActive && rawPriceInr > 0 && (
+                            <span className="text-lg line-through text-muted-foreground">₹{rawPriceInr.toLocaleString()}</span>
+                          )}
+                        </div>
+                        {timerCouponActive && timerCoupon?.freeCourseId === dbCourseId && (
+                          <span className="inline-block px-2 py-0.5 bg-accent text-accent-foreground text-xs font-bold rounded">
+                            🎁 FREE WITH {timerCoupon.code}
+                          </span>
+                        )}
+                      </div>
                     ) : (
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="text-3xl font-bold text-success">₹{buyNowPrice.toLocaleString()}</span>
-                          {buyNowPrice < effectivePriceInr && (
-                            <span className="text-lg line-through text-muted-foreground">₹{effectivePriceInr.toLocaleString()}</span>
+                          {buyNowPrice < rawPriceInr && (
+                            <span className="text-lg line-through text-muted-foreground">₹{rawPriceInr.toLocaleString()}</span>
                           )}
                         </div>
-                        {saleActive && discountPercent > 0 && !appliedCoupon && (
+                        {timerCouponActive && effectivePriceInr < rawPriceInr && (
+                          <span className="inline-block px-2 py-0.5 bg-accent text-accent-foreground text-xs font-bold rounded animate-pulse">
+                            {timerCoupon?.code} · {timerCoupon?.discountPercent}% OFF · {Math.floor(timerCouponSeconds/60)}:{(timerCouponSeconds%60).toString().padStart(2,'0')} left
+                          </span>
+                        )}
+                        {saleActive && discountPercent > 0 && !appliedCoupon && !timerCouponActive && (
                           <span className="inline-block px-2 py-0.5 bg-destructive text-destructive-foreground text-xs font-bold rounded">{discountPercent}% OFF</span>
                         )}
                         {appliedCoupon && (
