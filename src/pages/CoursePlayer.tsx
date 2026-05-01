@@ -65,6 +65,7 @@ export default function CoursePlayer() {
   const [showFinishButton, setShowFinishButton] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [theaterMode, setTheaterMode] = useState(false);
 
   const accessInfo = useAccessControl(user?.id, course?.id);
   const isEnrolled = accessInfo.hasAccess;
@@ -383,16 +384,19 @@ export default function CoursePlayer() {
 
       <div className="flex flex-col md:flex-row md:h-[calc(100vh-4rem)]">
         {/* Desktop Sidebar */}
-        <aside className="hidden md:flex w-80 border-r border-border/40 bg-card/50 flex-col shrink-0">
-          <SidebarContent />
-        </aside>
+        {!theaterMode && (
+          <aside className="hidden md:flex w-80 border-r border-border/40 bg-card/50 flex-col shrink-0 transition-all duration-500">
+            <SidebarContent />
+          </aside>
+        )}
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col overflow-auto">
+        <main className={`flex-1 flex flex-col overflow-auto transition-all duration-500 ${theaterMode ? 'bg-[#050505]' : ''}`}>
           {currentLesson ? (
             <ScrollArea className="flex-1">
-              {/* Video */}
-              <div className="bg-black">
+              {/* Video Container */}
+              <div className={`transition-all duration-500 ease-in-out ${theaterMode ? 'bg-black w-full' : 'bg-black'}`}>
+                <div className={`${theaterMode ? 'max-w-7xl mx-auto py-2' : ''}`}>
                 {(() => {
                   const allLessonsFlat = modules.flatMap(m => m.lessons);
                   const isFirstLesson = allLessonsFlat.length > 0 && allLessonsFlat[0].id === currentLesson.id;
@@ -427,6 +431,18 @@ export default function CoursePlayer() {
                             allowExternal={true}
                           />
                         </div>
+                        {/* Player Controls Overlay (Theater Mode Toggle) */}
+                        <div className="max-w-5xl mx-auto flex justify-end px-4 py-2 gap-2">
+                           <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setTheaterMode(!theaterMode)}
+                            className="text-white/40 hover:text-white/90 hover:bg-white/10 h-7 text-[10px] gap-1.5"
+                          >
+                            <Layers className="h-3 w-3" />
+                            {theaterMode ? 'Normal View' : 'Theater Mode'}
+                          </Button>
+                        </div>
                       </div>
                     );
                   }
@@ -441,8 +457,8 @@ export default function CoursePlayer() {
               </div>
 
               {/* Lesson Info Bar - Redesigned */}
-              <div className="border-t border-border/40 bg-card">
-                <div className="p-4 md:p-5">
+              <div className={`border-t border-border/40 transition-all duration-500 ${theaterMode ? 'bg-[#0a0a0a] border-white/5' : 'bg-card'}`}>
+                <div className={`p-4 md:p-5 transition-all duration-500 ${theaterMode ? 'max-w-5xl mx-auto' : ''}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -497,7 +513,7 @@ export default function CoursePlayer() {
 
               {/* Resources & Q&A */}
               {course && currentLesson && (
-                <div className="p-4 md:p-5 border-t border-border/30">
+                <div className={`p-4 md:p-5 border-t border-border/30 transition-all duration-500 ${theaterMode ? 'max-w-5xl mx-auto border-white/5' : ''}`}>
                   <LessonResources lessonId={currentLesson.id} isEnrolled={isEnrolled} />
                   <Tabs defaultValue="qa" className="w-full mt-5">
                     <TabsList className="mb-4 bg-muted/30 border border-border/30">

@@ -173,6 +173,98 @@ function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview,
   );
 }
 
+// Course Resources Component
+function CourseResources({ courseId, resourceLink, isEnrolled }: { courseId: string; resourceLink: string | null; isEnrolled: boolean }) {
+  const [requested, setRequested] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [requesting, setRequesting] = useState(false);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (isEnrolled && user && !resourceLink) {
+      supabase
+        .from('course_resource_requests')
+        .select('id')
+        .eq('course_id', courseId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) setRequested(true);
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
+    }
+  }, [courseId, user, isEnrolled, resourceLink]);
+
+  const handleRequest = async () => {
+    if (!user) return;
+    setRequesting(true);
+    try {
+      const { error } = await supabase
+        .from('course_resource_requests')
+        .insert({ course_id: courseId, user_id: user.id });
+      
+      if (error) throw error;
+      setRequested(true);
+      toast.success('Project files requested successfully!');
+    } catch (err: any) {
+      toast.error('Failed to request files');
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  if (!isEnrolled) return null;
+
+  return (
+    <Card className="border-accent/20 bg-accent/5 overflow-hidden">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <FolderSync className="h-4 w-4 text-accent" />
+          Course Resources
+        </CardTitle>
+        <CardDescription className="text-[10px]">
+          Project files, assets, and documentation for this course.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {resourceLink ? (
+          <Button 
+            className="w-full gap-2 shadow-lg shadow-accent/20" 
+            onClick={() => window.open(resourceLink, '_blank')}
+          >
+            <Download className="h-4 w-4" />
+            Download Project Files
+          </Button>
+        ) : loading ? (
+          <div className="flex justify-center py-2">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : requested ? (
+          <div className="text-center p-3 rounded-lg border border-dashed border-accent/30 bg-accent/5">
+            <Clock className="h-5 w-5 text-accent mx-auto mb-1" />
+            <p className="text-xs font-medium text-accent">Request Pending</p>
+            <p className="text-[9px] text-muted-foreground mt-1">
+              The admin will provide the link soon.
+            </p>
+          </div>
+        ) : (
+          <Button 
+            variant="outline" 
+            className="w-full gap-2 border-accent/30 text-accent hover:bg-accent/10"
+            onClick={handleRequest}
+            disabled={requesting}
+          >
+            {requesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            Request Project Files
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -192,6 +284,7 @@ export default function CourseDetail() {
   const [dbCourseMeta, setDbCourseMeta] = useState<{ total_lessons: number | null; duration_hours: number | null } | null>(null);
   // DB-only course fallback (for courses not in local data/courses.ts)
   const [dbOnlyCourse, setDbOnlyCourse] = useState<import('@/data/courses').Course | null>(null);
+  const [relatedCourses, setRelatedCourses] = useState<any[]>([]);
   const [dbCourseLoading, setDbCourseLoading] = useState(true);
 
   // Use access control hook for enrollment/gift/EMI status
@@ -255,7 +348,24 @@ export default function CourseDetail() {
               isFeatured: data.is_featured || false,
               isPublished: data.is_published || false,
               tags: data.tags || [],
-            });
+              resource_link: data.resource_link || null,
+            };
+            
+            setDbOnlyCourse(currentCourse);
+
+            // Fetch related courses
+            supabase
+              .from('courses')
+              .select('id, title, slug, price_inr, thumbnail_url, category_id, is_published')
+              .eq('category_id', cat)
+              .eq('is_published', true)
+              .neq('id', data.id)
+              .limit(3)
+              .then(({ data: relatedData }) => {
+                if (relatedData) {
+                  setRelatedCourses(relatedData);
+                }
+              });
           }
           setDbCourseLoading(false);
         });
@@ -712,6 +822,11 @@ export default function CourseDetail() {
                     expiryDate={accessInfo.giftExpiry || accessInfo.launchFreeExpiry}
                   />
                 )}
+                {dbModules.some(m => m.lessons.some(l => l.is_free_preview)) && (
+                  <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 animate-pulse">
+                    <Play className="h-3 w-3 mr-1 fill-current" /> Free Preview Available
+                  </Badge>
+                )}
               </div>
 
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
@@ -778,11 +893,21 @@ export default function CourseDetail() {
                     <Button
                       size="lg"
                       variant="secondary"
-                      className="gap-2 shadow-xl hover:scale-105 transition-transform"
-                      onClick={() => navigate(`/learn/${course.slug}`)}
+                      className="gap-2 shadow-xl hover:scale-105 transition-transform bg-white text-black hover:bg-white/90"
+                      onClick={() => {
+                        const firstFree = dbModules.flatMap(m => m.lessons).find(l => l.is_free_preview);
+                        const lessonId = firstFree?.id || dbModules[0]?.lessons[0]?.id;
+                        if (lessonId) {
+                          navigate(`/learn/${course.slug}?lesson=${lessonId}`);
+                        } else {
+                          // Fallback if no lessons yet
+                          const element = document.getElementById('curriculum');
+                          element?.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }}
                     >
                       <Play className="h-5 w-5 fill-current" />
-                      Preview Course
+                      Watch Free Preview
                     </Button>
                   </div>
                 </div>
@@ -1110,6 +1235,15 @@ export default function CourseDetail() {
 
             {/* Sidebar - Related Courses */}
             <div className="space-y-6">
+              {/* Course Resources for Enrolled Users */}
+              {course && (
+                <CourseResources 
+                  courseId={course.id} 
+                  resourceLink={(course as any).resource_link} 
+                  isEnrolled={accessInfo.hasAccess} 
+                />
+              )}
+
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Tags</CardTitle>
@@ -1130,11 +1264,11 @@ export default function CourseDetail() {
                   <CardTitle className="text-lg">Related Courses</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {courses
-                    .filter(c => c.category === course.category && c.id !== course.id && c.isPublished)
-                    .slice(0, 3)
-                    .map(relatedCourse => {
-                      const relatedPrice = getPriceInr(relatedCourse.slug, relatedCourse.priceInr);
+                  {relatedCourses.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No related courses found.</p>
+                  ) : (
+                    relatedCourses.map(relatedCourse => {
+                      const relatedPrice = getPriceInr(relatedCourse.slug, relatedCourse.price_inr);
                       return (
                         <Link
                           key={relatedCourse.id}
@@ -1143,7 +1277,7 @@ export default function CourseDetail() {
                         >
                           <div className="flex gap-3">
                             <img
-                              src={getThumbnail(relatedCourse.slug, categoryImages[relatedCourse.category] || '/placeholder.svg')}
+                              src={getThumbnail(relatedCourse.slug, categoryImages[relatedCourse.category_id] || '/placeholder.svg')}
                               alt={relatedCourse.title}
                               loading="lazy"
                               decoding="async"
@@ -1160,7 +1294,8 @@ export default function CourseDetail() {
                           </div>
                         </Link>
                       );
-                    })}
+                    })
+                  )}
                 </CardContent>
               </Card>
             </div>

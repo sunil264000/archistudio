@@ -51,6 +51,7 @@ const menuGroups: MenuGroup[] = [
       { id: 'lessons', label: 'Lessons', icon: Video, color: 'text-green-500' },
       { id: 'ebook-library', label: 'eBook Library', icon: FileText, color: 'text-cyan-500' },
       { id: 'learning-paths', label: 'Learning Paths', icon: KeyRound, color: 'text-indigo-500' },
+      { id: 'course-resource-requests', label: 'Resource Requests', icon: Inbox, color: 'text-rose-500' },
     ],
   },
   {

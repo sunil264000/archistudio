@@ -26,6 +26,8 @@ interface Course {
   is_published: boolean | null;
   is_featured: boolean | null;
   category_id: string | null;
+  tags: string[] | null;
+  resource_link: string | null;
 }
 
 interface CourseEditDialogProps {
@@ -81,6 +83,8 @@ export function CourseEditDialog({ course, open, onOpenChange, onSave }: CourseE
           is_published: currentCourse.is_published,
           is_featured: currentCourse.is_featured,
           category_id: currentCourse.category_id,
+          tags: currentCourse.tags,
+          resource_link: currentCourse.resource_link,
           updated_at: new Date().toISOString(),
         })
         .eq("id", course.id);
@@ -228,6 +232,35 @@ export function CourseEditDialog({ course, open, onOpenChange, onSave }: CourseE
                 onChange={(e) => updateField("price_usd", parseFloat(e.target.value) || 0)}
               />
             </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="tags">Tags (comma-separated)</Label>
+            <Input
+              id="tags"
+              placeholder="vray, modeling, architecture"
+              value={currentCourse.tags?.join(", ") || ""}
+              onChange={(e) => {
+                const tagsArray = e.target.value
+                  .split(",")
+                  .map((tag) => tag.trim())
+                  .filter((tag) => tag !== "");
+                updateField("tags", tagsArray);
+              }}
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="resource_link">Project Files / Resource Link (Zip/Doc)</Label>
+            <Input
+              id="resource_link"
+              placeholder="https://drive.google.com/..."
+              value={currentCourse.resource_link || ""}
+              onChange={(e) => updateField("resource_link", e.target.value)}
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Once provided, this link will be visible to all students who purchased the course.
+            </p>
           </div>
 
           <div className="flex items-center justify-between gap-4">

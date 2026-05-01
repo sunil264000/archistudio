@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { CourseEditDialog } from '@/components/admin/CourseEditDialog';
 import { LessonManagement } from '@/components/admin/LessonManagement';
 import { CourseManagement } from '@/components/admin/CourseManagement';
+import { CourseResourceRequests } from '@/components/admin/CourseResourceRequests';
 import { CourseThumbnail } from '@/components/course/CourseThumbnail';
 import { CouponManagement } from '@/components/admin/CouponManagement';
 import { CertificateTemplateSettings } from '@/components/admin/CertificateTemplateSettings';
@@ -116,6 +117,8 @@ export default function Admin() {
         return <AutoFixLogs />;
       case 'courses':
         return <CourseManagement />;
+      case 'course-resource-requests':
+        return <CourseResourceRequests />;
       case 'bundles':
         return <CourseBundleManagement />;
       case 'lessons':

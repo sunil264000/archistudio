@@ -389,7 +389,7 @@ function AnimatedRoutes({ isSlow }: { isSlow: boolean }) {
             <Route path="/courses" element={<Courses />} />
             <Route path="/course/:slug" element={<CourseDetail />} />
             <Route path="/courses/:slug" element={<CourseDetail />} />
-            <Route path="/learn/:slug" element={<ProtectedRoute><CoursePlayer /></ProtectedRoute>} />
+            <Route path="/learn/:slug" element={<CoursePlayer />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/owner-dashboard" element={<ProtectedRoute><OwnerDashboard /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
