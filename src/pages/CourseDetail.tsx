@@ -23,6 +23,7 @@ import { AccessBadge } from '@/components/course/AccessBadge';
 import { SEOHead, generateCourseSchema, generateBreadcrumbSchema } from '@/components/seo/SEOHead';
 import { LiveViewerCounter } from '@/components/social-proof/LiveViewerCounter';
 import { useSaleDiscount } from '@/hooks/useSaleDiscount';
+import { useCoupon } from '@/contexts/CouponContext';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { supabase } from '@/integrations/supabase/client';
 import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
@@ -180,6 +181,7 @@ export default function CourseDetail() {
   const { toast } = useToast();
   const { getThumbnail, getPriceInr } = useDynamicCourseData();
   const { isActive: saleActive, discountPercent, calculateDiscountedPrice } = useSaleDiscount();
+  const { isActive: timerCouponActive, applyDiscountedPrice: applyTimerCouponPrice, secondsLeft: timerCouponSeconds, active: timerCoupon } = useCoupon();
   const { isActive: exitDiscountActive, discountPercent: exitDiscountPercent } = useExitDiscount();
 
   // Fetch real modules from database
@@ -347,7 +349,11 @@ export default function CourseDetail() {
 
   const category = courseCategories.find(c => c.id === course.category);
 
-  const effectivePriceInr = getPriceInr(course.slug, course.priceInr);
+  const rawPriceInr = getPriceInr(course.slug, course.priceInr);
+  // MAY2026 / timer-coupon: free course = 0, others = % off
+  const effectivePriceInr = timerCouponActive
+    ? applyTimerCouponPrice(rawPriceInr, dbCourseId || undefined)
+    : rawPriceInr;
   // Apply exit discount on top of the base price (for Buy Now flow)
   const basePriceAfterExitDiscount = exitDiscountActive && effectivePriceInr > 0
     ? Math.round(effectivePriceInr * (1 - exitDiscountPercent / 100))
@@ -783,16 +789,33 @@ export default function CourseDetail() {
                 <CardContent className="p-6 space-y-4">
                   <div className="flex items-baseline gap-2">
                     {effectivePriceInr === 0 ? (
-                      <span className="text-3xl font-bold text-success">Free</span>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-3xl font-bold text-success">Free</span>
+                          {timerCouponActive && rawPriceInr > 0 && (
+                            <span className="text-lg line-through text-muted-foreground">₹{rawPriceInr.toLocaleString()}</span>
+                          )}
+                        </div>
+                        {timerCouponActive && timerCoupon?.freeCourseId === dbCourseId && (
+                          <span className="inline-block px-2 py-0.5 bg-accent text-accent-foreground text-xs font-bold rounded">
+                            🎁 FREE WITH {timerCoupon.code}
+                          </span>
+                        )}
+                      </div>
                     ) : (
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="text-3xl font-bold text-success">₹{buyNowPrice.toLocaleString()}</span>
-                          {buyNowPrice < effectivePriceInr && (
-                            <span className="text-lg line-through text-muted-foreground">₹{effectivePriceInr.toLocaleString()}</span>
+                          {buyNowPrice < rawPriceInr && (
+                            <span className="text-lg line-through text-muted-foreground">₹{rawPriceInr.toLocaleString()}</span>
                           )}
                         </div>
-                        {saleActive && discountPercent > 0 && !appliedCoupon && (
+                        {timerCouponActive && effectivePriceInr < rawPriceInr && (
+                          <span className="inline-block px-2 py-0.5 bg-accent text-accent-foreground text-xs font-bold rounded animate-pulse">
+                            {timerCoupon?.code} · {timerCoupon?.discountPercent}% OFF · {Math.floor(timerCouponSeconds/60)}:{(timerCouponSeconds%60).toString().padStart(2,'0')} left
+                          </span>
+                        )}
+                        {saleActive && discountPercent > 0 && !appliedCoupon && !timerCouponActive && (
                           <span className="inline-block px-2 py-0.5 bg-destructive text-destructive-foreground text-xs font-bold rounded">{discountPercent}% OFF</span>
                         )}
                         {appliedCoupon && (

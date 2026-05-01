@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { PhoneNumberDialog } from '@/components/payment/PhoneNumberDialog';
 import { useExitDiscount } from '@/hooks/useExitDiscount';
 import { CourseThumbnail } from '@/components/course/CourseThumbnail';
+import { useCoupon } from '@/contexts/CouponContext';
 
 export function CartSheet() {
   const { items, removeFromCart, totalPrice, itemCount, clearCart } = useCart();
@@ -51,8 +52,16 @@ export function CartSheet() {
   // Exit-intent discount (auto-applied)
   const { isActive: exitDiscountActive, timeLeft: exitTimeLeft, discountPercent: exitDiscountPercent, formatTime } = useExitDiscount();
 
+  // MAY2026 / personal coupon timer (auto-applied, free course already enrolled)
+  const { isActive: timerCouponActive, active: timerCoupon, secondsLeft: timerCouponSeconds } = useCoupon();
+  const timerCouponPercent = timerCouponActive ? (timerCoupon?.discountPercent ?? 0) : 0;
+  const freeCourseInCart = timerCouponActive && timerCoupon?.freeCourseId
+    ? items.find(i => i.courseId === timerCoupon.freeCourseId)
+    : null;
+  const freeCourseAmount = freeCourseInCart ? freeCourseInCart.price : 0;
+
   // Coupon discount (applied after bundle)
-  const priceAfterBundle = totalPrice - bundleAmount;
+  const priceAfterBundle = totalPrice - bundleAmount - freeCourseAmount;
   let couponAmount = 0;
   if (appliedCoupon) {
     if (appliedCoupon.discountType === 'percentage') {
@@ -62,30 +71,52 @@ export function CartSheet() {
     }
   }
 
-  // Exit discount (applied after bundle + coupon)
   const priceAfterCoupon = priceAfterBundle - couponAmount;
-  const exitDiscountAmount = exitDiscountActive ? Math.round(priceAfterCoupon * exitDiscountPercent / 100) : 0;
+  const timerCouponAmount = timerCouponPercent > 0 && !appliedCoupon
+    ? Math.round(priceAfterCoupon * timerCouponPercent / 100)
+    : 0;
+  const priceAfterTimerCoupon = priceAfterCoupon - timerCouponAmount;
+  const exitDiscountAmount = exitDiscountActive ? Math.round(priceAfterTimerCoupon * exitDiscountPercent / 100) : 0;
 
-  const finalPrice = priceAfterCoupon - exitDiscountAmount;
+  const finalPrice = Math.max(0, priceAfterTimerCoupon - exitDiscountAmount);
+
+  const fmtTimer = (s: number) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+
+  const { redeem: redeemTimerCoupon } = useCoupon();
 
   const applyCoupon = async () => {
     if (!couponCode.trim()) return;
     setCouponLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('validate-coupon', {
-        body: { code: couponCode.trim().toUpperCase(), amount: priceAfterBundle },
-      });
+      const code = couponCode.trim().toUpperCase();
+      // First try timer-coupon redemption (MAY2026 etc.)
+      const r = await redeemTimerCoupon(code, { silent: true });
+      if (r.success) {
+        toast({
+          title: r.alreadyRedeemed ? 'Coupon active' : 'Coupon Applied! 🎉',
+          description: r.alreadyRedeemed
+            ? 'Your discount and free course are already active.'
+            : 'Free course unlocked + discount started for 10 minutes.',
+        });
+        setCouponCode('');
+        setCouponLoading(false);
+        return;
+      }
 
+      // Fallback to legacy coupon validation
+      const { data, error } = await supabase.functions.invoke('validate-coupon', {
+        body: { code, amount: priceAfterBundle },
+      });
       if (error || !data?.valid) {
         toast({
           title: 'Invalid Coupon',
-          description: data?.message || 'This coupon code is not valid.',
+          description: data?.message || r.error || 'This coupon code is not valid.',
           variant: 'destructive',
         });
         setAppliedCoupon(null);
       } else {
         setAppliedCoupon({
-          code: couponCode.trim().toUpperCase(),
+          code,
           discountType: data.discount_type || 'percentage',
           discountValue: data.discount_value || 0,
         });
@@ -315,6 +346,28 @@ export function CartSheet() {
                     </div>
                   )}
 
+                  {/* MAY2026 free course in cart */}
+                  {freeCourseInCart && (
+                    <div className="flex items-center justify-between text-sm p-2 rounded-lg bg-accent/10 border border-accent/30">
+                      <span className="flex items-center gap-1.5 text-accent font-medium">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        FREE: {freeCourseInCart.title.length > 24 ? freeCourseInCart.title.slice(0,24) + '…' : freeCourseInCart.title}
+                      </span>
+                      <span className="text-accent font-semibold">-₹{freeCourseAmount.toLocaleString()}</span>
+                    </div>
+                  )}
+
+                  {/* MAY2026 timer-based % off */}
+                  {timerCouponActive && timerCouponAmount > 0 && (
+                    <div className="flex items-center justify-between text-sm p-2 rounded-lg bg-accent/10 border border-accent/30">
+                      <span className="flex items-center gap-1.5 text-accent font-medium">
+                        <Timer className="h-3.5 w-3.5" />
+                        {timerCoupon?.code} ({timerCouponPercent}%) · {fmtTimer(timerCouponSeconds)}
+                      </span>
+                      <span className="text-accent font-semibold">-₹{timerCouponAmount.toLocaleString()}</span>
+                    </div>
+                  )}
+
                   {/* Coupon discount */}
                   {couponAmount > 0 && (
                     <div className="flex items-center justify-between text-sm p-2 rounded-lg bg-success/10 border border-success/20">
@@ -340,7 +393,7 @@ export function CartSheet() {
                   <div className="flex justify-between text-lg font-semibold">
                     <span>Total</span>
                     <div className="text-right">
-                      {(bundleAmount + couponAmount + exitDiscountAmount) > 0 && (
+                      {(bundleAmount + couponAmount + exitDiscountAmount + timerCouponAmount + freeCourseAmount) > 0 && (
                         <span className="text-sm text-muted-foreground line-through mr-2">₹{totalPrice.toLocaleString()}</span>
                       )}
                       <span>₹{finalPrice.toLocaleString()}</span>

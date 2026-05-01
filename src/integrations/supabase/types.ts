@@ -784,6 +784,57 @@ export type Database = {
         }
         Relationships: []
       }
+      coupon_redemptions: {
+        Row: {
+          coupon_code: string
+          coupon_id: string
+          discount_percent: number
+          free_course_id: string | null
+          id: string
+          redeemed_at: string
+          timer_expires_at: string
+          timer_starts_at: string
+          user_id: string
+        }
+        Insert: {
+          coupon_code: string
+          coupon_id: string
+          discount_percent?: number
+          free_course_id?: string | null
+          id?: string
+          redeemed_at?: string
+          timer_expires_at: string
+          timer_starts_at?: string
+          user_id: string
+        }
+        Update: {
+          coupon_code?: string
+          coupon_id?: string
+          discount_percent?: number
+          free_course_id?: string | null
+          id?: string
+          redeemed_at?: string
+          timer_expires_at?: string
+          timer_starts_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_free_course_id_fkey"
+            columns: ["free_course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupons: {
         Row: {
           applicable_course_id: string | null
@@ -792,10 +843,12 @@ export type Database = {
           description: string | null
           discount_type: string | null
           discount_value: number
+          free_course_id: string | null
           id: string
           is_active: boolean | null
           max_uses: number | null
           min_purchase_amount: number | null
+          timer_duration_seconds: number
           used_count: number | null
           valid_from: string | null
           valid_until: string | null
@@ -807,10 +860,12 @@ export type Database = {
           description?: string | null
           discount_type?: string | null
           discount_value: number
+          free_course_id?: string | null
           id?: string
           is_active?: boolean | null
           max_uses?: number | null
           min_purchase_amount?: number | null
+          timer_duration_seconds?: number
           used_count?: number | null
           valid_from?: string | null
           valid_until?: string | null
@@ -822,10 +877,12 @@ export type Database = {
           description?: string | null
           discount_type?: string | null
           discount_value?: number
+          free_course_id?: string | null
           id?: string
           is_active?: boolean | null
           max_uses?: number | null
           min_purchase_amount?: number | null
+          timer_duration_seconds?: number
           used_count?: number | null
           valid_from?: string | null
           valid_until?: string | null
@@ -834,6 +891,13 @@ export type Database = {
           {
             foreignKeyName: "coupons_applicable_course_id_fkey"
             columns: ["applicable_course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupons_free_course_id_fkey"
+            columns: ["free_course_id"]
             isOneToOne: false
             referencedRelation: "courses"
             referencedColumns: ["id"]
@@ -5528,6 +5592,15 @@ export type Database = {
         Returns: Json
       }
       cleanup_expired_cache: { Args: never; Returns: undefined }
+      get_active_coupon_redemption: {
+        Args: never
+        Returns: {
+          coupon_code: string
+          discount_percent: number
+          free_course_id: string
+          timer_expires_at: string
+        }[]
+      }
       get_project_attachments: { Args: { p_job_id: string }; Returns: string[] }
       get_referral_by_code: {
         Args: { code: string }
@@ -5556,6 +5629,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      redeem_coupon: { Args: { p_code: string }; Returns: Json }
       upsert_cache: {
         Args: { p_key: string; p_ttl_seconds?: number; p_value: Json }
         Returns: undefined
