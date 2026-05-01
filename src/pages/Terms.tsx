@@ -73,14 +73,14 @@ export default function Terms() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-4">6. Intellectual Property</h2>
+              <h2 className="text-2xl font-semibold mb-4">7. Intellectual Property</h2>
               <p className="text-muted-foreground">
                 All content, including but not limited to videos, text, graphics, logos, and course materials, is the property of Archistudio and is protected by copyright and intellectual property laws. Unauthorized use may result in legal action.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-4">7. User Conduct</h2>
+              <h2 className="text-2xl font-semibold mb-4">8. User Conduct</h2>
               <p className="text-muted-foreground mb-4">Users agree not to:</p>
               <ul className="list-disc pl-6 text-muted-foreground space-y-2">
                 <li>Violate any applicable laws or regulations</li>
@@ -92,28 +92,28 @@ export default function Terms() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-4">8. Disclaimer of Warranties</h2>
+              <h2 className="text-2xl font-semibold mb-4">9. Disclaimer of Warranties</h2>
               <p className="text-muted-foreground">
                 Our Service is provided "as is" without warranties of any kind. We do not guarantee that our courses will meet your specific requirements or that access will be uninterrupted. Results from our courses may vary based on individual effort and application.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-4">9. Limitation of Liability</h2>
+              <h2 className="text-2xl font-semibold mb-4">10. Limitation of Liability</h2>
               <p className="text-muted-foreground">
                 To the maximum extent permitted by law, Archistudio shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of our Service.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-4">10. Governing Law</h2>
+              <h2 className="text-2xl font-semibold mb-4">11. Governing Law</h2>
               <p className="text-muted-foreground">
                 These Terms shall be governed by and construed in accordance with the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts in Bangalore, Karnataka.
               </p>
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-4">11. Contact Information</h2>
+              <h2 className="text-2xl font-semibold mb-4">12. Contact Information</h2>
               <p className="text-muted-foreground">
                 For questions about these Terms, please contact us at:<br />
                 Email: legal@archistudio.in<br />
