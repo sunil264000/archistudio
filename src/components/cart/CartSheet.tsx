@@ -82,24 +82,41 @@ export function CartSheet() {
 
   const fmtTimer = (s: number) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
 
+  const { redeem: redeemTimerCoupon } = useCoupon();
+
   const applyCoupon = async () => {
     if (!couponCode.trim()) return;
     setCouponLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('validate-coupon', {
-        body: { code: couponCode.trim().toUpperCase(), amount: priceAfterBundle },
-      });
+      const code = couponCode.trim().toUpperCase();
+      // First try timer-coupon redemption (MAY2026 etc.)
+      const r = await redeemTimerCoupon(code, { silent: true });
+      if (r.success) {
+        toast({
+          title: r.alreadyRedeemed ? 'Coupon active' : 'Coupon Applied! 🎉',
+          description: r.alreadyRedeemed
+            ? 'Your discount and free course are already active.'
+            : 'Free course unlocked + discount started for 10 minutes.',
+        });
+        setCouponCode('');
+        setCouponLoading(false);
+        return;
+      }
 
+      // Fallback to legacy coupon validation
+      const { data, error } = await supabase.functions.invoke('validate-coupon', {
+        body: { code, amount: priceAfterBundle },
+      });
       if (error || !data?.valid) {
         toast({
           title: 'Invalid Coupon',
-          description: data?.message || 'This coupon code is not valid.',
+          description: data?.message || r.error || 'This coupon code is not valid.',
           variant: 'destructive',
         });
         setAppliedCoupon(null);
       } else {
         setAppliedCoupon({
-          code: couponCode.trim().toUpperCase(),
+          code,
           discountType: data.discount_type || 'percentage',
           discountValue: data.discount_value || 0,
         });
