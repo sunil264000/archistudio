@@ -44,7 +44,10 @@ export function SecureVideoPlayer({
   const [iframeWatchTime, setIframeWatchTime] = useState(0);
   
   const { user, session, isAdmin } = useAuth();
-  const { isSlow } = useNetworkSpeed();
+  const [volume, setVolume] = useState(() => Number(localStorage.getItem('plyr-volume') || 1));
+  const [playbackSpeed, setPlaybackSpeed] = useState(() => Number(localStorage.getItem('plyr-speed') || 1));
+  const [showVolumeBadge, setShowVolumeBadge] = useState(false);
+  const volumeTimeoutRef = useRef<NodeJS.Timeout>();
 
   const isExternalUrl = useMemo(() => /^https?:\/\//i.test(videoPath || ''), [videoPath]);
   const isGoogleDriveUrl = useMemo(
@@ -56,6 +59,75 @@ export function SecureVideoPlayer({
     [videoPath],
   );
   const isHls = useMemo(() => videoPath?.includes('.m3u8') || false, [videoPath]);
+
+  // Handle Hotkeys
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!playerRef.current || useIframe) return;
+    const player = playerRef.current;
+    
+    // Ignore if typing in an input
+    if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
+
+    switch (e.key.toLowerCase()) {
+      case ' ':
+        e.preventDefault();
+        player.togglePlay();
+        break;
+      case 'f':
+        e.preventDefault();
+        player.fullscreen.toggle();
+        break;
+      case 'm':
+        e.preventDefault();
+        player.muted = !player.muted;
+        break;
+      case 'arrowright':
+        e.preventDefault();
+        player.forward(5);
+        break;
+      case 'arrowleft':
+        e.preventDefault();
+        player.rewind(5);
+        break;
+      case 'arrowup':
+        e.preventDefault();
+        const newVolUp = Math.min(1, player.volume + 0.1);
+        player.volume = newVolUp;
+        setVolume(newVolUp);
+        localStorage.setItem('plyr-volume', newVolUp.toString());
+        setShowVolumeBadge(true);
+        if (volumeTimeoutRef.current) clearTimeout(volumeTimeoutRef.current);
+        volumeTimeoutRef.current = setTimeout(() => setShowVolumeBadge(false), 2000);
+        break;
+      case 'arrowdown':
+        e.preventDefault();
+        const newVolDown = Math.max(0, player.volume - 0.1);
+        player.volume = newVolDown;
+        setVolume(newVolDown);
+        localStorage.setItem('plyr-volume', newVolDown.toString());
+        setShowVolumeBadge(true);
+        if (volumeTimeoutRef.current) clearTimeout(volumeTimeoutRef.current);
+        volumeTimeoutRef.current = setTimeout(() => setShowVolumeBadge(false), 2000);
+        break;
+      case 's':
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault();
+          toast.error('Downloading is disabled for security.');
+        }
+        break;
+    }
+
+    // Number keys 0-9 for seek percentage
+    if (/^[0-9]$/.test(e.key)) {
+      const percentage = parseInt(e.key) * 10;
+      player.currentTime = (percentage / 100) * player.duration;
+    }
+  }, [useIframe]);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   // Fetch Video Logic
   useEffect(() => {
@@ -140,25 +212,32 @@ export function SecureVideoPlayer({
           'captions', 'settings', 'pip', 'airplay', 'fullscreen'
         ],
         settings: ['quality', 'speed', 'loop'],
-        speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+        speed: { selected: playbackSpeed, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
         quality: { default: isSlow ? 480 : 1080, options: [4320, 2160, 1440, 1080, 720, 576, 480, 360, 240] },
         tooltips: { controls: true, seek: true },
-        keyboard: { focused: true, global: true },
+        keyboard: { focused: true, global: false }, // We handle global hotkeys ourselves for better control
         // Custom branding
         i18n: { speed: 'Speed', quality: 'Quality' },
       };
 
       if (isHls && window.Hls && window.Hls.isSupported()) {
-        const hls = new window.Hls();
+        const hls = new window.Hls({
+          capLevelToPlayerSize: true,
+          autoStartLoad: true,
+          startLevel: -1,
+          debug: false,
+        });
         hls.loadSource(videoUrl);
         hls.attachMedia(video);
         hlsRef.current = hls;
 
         hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
           playerRef.current = new window.Plyr(video, plyrOptions);
+          playerRef.current.volume = volume;
         });
       } else {
         playerRef.current = new window.Plyr(video, plyrOptions);
+        playerRef.current.volume = volume;
       }
 
       // Restore position
@@ -186,7 +265,7 @@ export function SecureVideoPlayer({
     };
   }, [videoUrl, useIframe, loading, isHls, isSlow]);
 
-  // Handle events
+  // Handle events & Persistence
   useEffect(() => {
     if (!playerRef.current) return;
     const player = playerRef.current;
@@ -196,6 +275,16 @@ export function SecureVideoPlayer({
       const total = player.duration;
       if (onProgress && total > 0) onProgress((current / total) * 100, current);
       if (onComplete && total > 0 && current / total >= 0.95) onComplete();
+    });
+
+    player.on('volumechange', () => {
+      localStorage.setItem('plyr-volume', player.volume.toString());
+      setVolume(player.volume);
+    });
+
+    player.on('ratechange', () => {
+      localStorage.setItem('plyr-speed', player.speed.toString());
+      setPlaybackSpeed(player.speed);
     });
 
     player.on('ended', () => {
@@ -233,7 +322,7 @@ export function SecureVideoPlayer({
   }
 
   return (
-    <div className="w-full relative group">
+    <div className="w-full relative group select-none" onContextMenu={(e) => e.preventDefault()}>
       {/* Container with premium styling */}
       <div className="aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl ring-1 ring-white/10 relative">
         {useIframe ? (
@@ -270,12 +359,25 @@ export function SecureVideoPlayer({
           />
         )}
 
+        {/* Volume Badge UI */}
+        {showVolumeBadge && (
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 z-50 animate-in fade-in zoom-in duration-200">
+            <div className="bg-black/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full flex items-center gap-3 shadow-2xl">
+              <Volume2 className="h-4 w-4 text-accent" />
+              <div className="w-24 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div className="h-full bg-accent transition-all duration-200" style={{ width: `${volume * 100}%` }} />
+              </div>
+              <span className="text-xs font-bold text-white min-w-[2.5rem]">{Math.round(volume * 100)}%</span>
+            </div>
+          </div>
+        )}
+
         {/* Content Protection Watermark */}
         {user && !isAdmin && (
           <div className="absolute inset-0 pointer-events-none z-[50] overflow-hidden mix-blend-overlay">
-            <div className="absolute inset-0 flex items-center justify-center opacity-[0.05] select-none">
-              <div className="text-white text-3xl font-mono rotate-[-35deg] animate-[watermark_20s_infinite_linear]">
-                {user.email} &bull; {user.id.slice(0, 8)}
+            <div className="absolute inset-0 flex items-center justify-center opacity-[0.08] select-none">
+              <div className="text-white text-2xl font-mono rotate-[-25deg] animate-[watermark_25s_infinite_linear] whitespace-nowrap">
+                {user.email} &bull; SECURE STREAM &bull; {user.id.slice(0, 8)} &bull; {new Date().toLocaleDateString()}
               </div>
             </div>
           </div>
@@ -284,19 +386,22 @@ export function SecureVideoPlayer({
 
       <style>{`
         @keyframes watermark {
-          0% { transform: rotate(-35deg) translate(-20%, -20%); }
-          50% { transform: rotate(-35deg) translate(20%, 20%); }
-          100% { transform: rotate(-35deg) translate(-20%, -20%); }
+          0% { transform: rotate(-25deg) translate(-30%, -30%); }
+          25% { transform: rotate(-25deg) translate(30%, -10%); }
+          50% { transform: rotate(-25deg) translate(10%, 30%); }
+          75% { transform: rotate(-25deg) translate(-10%, 10%); }
+          100% { transform: rotate(-25deg) translate(-30%, -30%); }
         }
         .plyr--full-ui { --plyr-color-main: #c45a32; }
         .plyr__video-wrapper { background: #000; }
         .plyr--video .plyr__controls {
-          background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.7));
+          background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.8));
           padding-top: 40px;
         }
-        .plyr__control--overlaid { background: rgba(196, 90, 50, 0.9); }
+        .plyr__control--overlaid { background: rgba(196, 90, 50, 0.95); }
         .plyr__control:hover { background: rgba(196, 90, 50, 1) !important; }
         .plyr--video.plyr--hide-controls .plyr__controls { transform: translateY(100%); }
+        .plyr__menu__container { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; }
       `}</style>
     </div>
   );

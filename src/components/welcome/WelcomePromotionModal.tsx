@@ -24,16 +24,17 @@ const ARCHITECTURE_QUOTES = [
 ];
 
 export function WelcomePromotionModal({ open, onOpenChange, campaign, userId }: WelcomePromotionModalProps) {
-    const [code, setCode] = useState('');
+    const [code, setCode] = useState(campaign?.coupon_code || 'WELCOME100');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [step, setStep] = useState<'welcome' | 'coupon' | 'success'>('welcome');
     const [quote] = useState(() => ARCHITECTURE_QUOTES[Math.floor(Math.random() * ARCHITECTURE_QUOTES.length)]);
 
     // Floating particles for that "highly decorated" feel
-    const [particles] = useState(() => Array.from({ length: 24 }));
+    const [particles] = useState(() => Array.from({ length: 48 }));
 
     const handleClaim = async () => {
-        if (code.toUpperCase() !== campaign.coupon_code?.toUpperCase()) {
+        const targetCode = campaign.coupon_code || 'WELCOME100';
+        if (code.toUpperCase() !== targetCode.toUpperCase()) {
             toast.error('Invalid coupon code. Please try again.');
             return;
         }
@@ -407,6 +408,7 @@ export function WelcomePromotionModal({ open, onOpenChange, campaign, userId }: 
                                         {[
                                             "Access your premium courses immediately",
                                             "Download your exclusive resource packs",
+                                            "20% site-wide discount applied to your account",
                                             "Connect with the global architect circle"
                                         ].map((li, i) => (
                                             <motion.li

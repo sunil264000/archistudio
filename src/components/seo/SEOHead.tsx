@@ -15,9 +15,9 @@ interface SEOHeadProps {
 }
 
 export function SEOHead({
-  title = 'Archistudio - Professional Architecture Training',
-  description = 'This platform teaches what architecture colleges and CAD institutes don\'t: how real buildings are designed, detailed, and executed in offices. Master 3ds Max, AutoCAD, Revit, SketchUp and more.',
-  keywords = 'architectural visualization, 3ds max tutorial, autocad training, revit course, sketchup lessons, corona rendering, interior design, architecture education, BIM training, 3D modeling, architectural design, office practice, real-world architecture',
+  title = 'Archistudio - Professional Architecture Training India',
+  description = 'Master 3ds Max, Revit, AutoCAD, and Corona Renderer with Archistudio. The only platform teaching real-world architecture office workflows, construction detailing, and high-end visualization in India.',
+  keywords = 'architecture training india, architectural visualization course, 3ds max course delhi, revit training mumbai, autocad course online, sketchup tutorials, corona rendering training, interior design education india, BIM certification, architecture software courses, learn building construction detailing, architectural office practice, 3D architecture renders',
   image = 'https://storage.googleapis.com/gpt-engineer-file-uploads/TjOBPP7jLzOzXbTwAJ9UMeDRW8y1/social-images/social-1769269755328-square-image.jpg',
   url,
   type = 'website',

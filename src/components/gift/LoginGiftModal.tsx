@@ -17,6 +17,7 @@ interface GiftData {
   courses: GiftCourse[];
   expiresAt: string | null;
   ctaText: string;
+  campaignCode?: string;
 }
 
 export interface LoginGiftModalProps {
@@ -75,10 +76,16 @@ const SparkleIcon = ({ delay, x, y }: { delay: number; x: string; y: string }) =
   </motion.div>
 );
 
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
 export function LoginGiftModal({ open, onOpenChange, giftData }: LoginGiftModalProps) {
   const [canDismiss, setCanDismiss] = useState(false);
   const [showContent, setShowContent] = useState(false);
+  const [flashSaleTime, setFlashSaleTime] = useState<number>(600); // 10 minutes in seconds
   const navigate = useNavigate();
+
+  const isMayCampaign = giftData?.campaignCode === 'MAY2026';
 
   useEffect(() => {
     if (open) {
@@ -97,7 +104,39 @@ export function LoginGiftModal({ open, onOpenChange, giftData }: LoginGiftModalP
     }
   }, [open]);
 
-  const handleStartLearning = () => {
+  useEffect(() => {
+    if (open && isMayCampaign) {
+      const timer = setInterval(() => {
+        setFlashSaleTime((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [open, isMayCampaign]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleStartLearning = async () => {
+    if (isMayCampaign) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          // Activate the 10-minute flash sale in the backend
+          const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+          await supabase.from('profiles')
+            .update({ flash_sale_expires_at: expiresAt })
+            .eq('user_id', user.id);
+          
+          toast.success('Flash Sale Activated! 20% OFF for 10 minutes.');
+        }
+      } catch (error) {
+        console.error('Error activating flash sale:', error);
+      }
+    }
+
     if (giftData?.courses && giftData.courses.length > 0) {
       const firstCourse = giftData.courses[0];
       onOpenChange(false);
@@ -290,6 +329,34 @@ export function LoginGiftModal({ open, onOpenChange, giftData }: LoginGiftModalP
                         </motion.div>
                       ))}
                     </motion.div>
+
+                    {/* Flash Sale Countdown (May Campaign only) */}
+                    {isMayCampaign && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.6 }}
+                        className="relative overflow-hidden mb-6 p-4 rounded-2xl bg-gradient-to-r from-red-500/20 via-orange-500/20 to-red-500/20 border border-red-500/30 group"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-red-500/20 text-red-500 animate-pulse">
+                              <Zap className="h-5 w-5 fill-red-500" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-black text-red-500 uppercase tracking-wider">Flash Sale Active!</p>
+                              <p className="text-[10px] text-red-500/80 font-bold">20% EXTRA OFF SITE-WIDE</p>
+                            </div>
+                          </div>
+                          <div className="px-3 py-2 rounded-xl bg-black/40 border border-red-500/20 backdrop-blur-md">
+                            <p className="font-mono text-xl font-black text-red-500 tracking-tighter tabular-nums">
+                              {formatTime(flashSaleTime)}
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
 
                     {/* Expiry notice */}
                     {giftData.expiresAt && (

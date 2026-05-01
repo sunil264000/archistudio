@@ -65,7 +65,11 @@ export default function CoursePlayer() {
   const [showFinishButton, setShowFinishButton] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
-  const [theaterMode, setTheaterMode] = useState(false);
+  const [theaterMode, setTheaterMode] = useState(() => localStorage.getItem('course-theater-mode') === 'true');
+
+  useEffect(() => {
+    localStorage.setItem('course-theater-mode', theaterMode.toString());
+  }, [theaterMode]);
 
   const accessInfo = useAccessControl(user?.id, course?.id);
   const isEnrolled = accessInfo.hasAccess;

@@ -173,40 +173,40 @@ export default function Dashboard() {
           </div>
 
           <Tabs defaultValue="journey" className="space-y-6">
-            <TabsList className="w-full max-w-3xl overflow-x-auto flex no-scrollbar">
-              <TabsTrigger value="journey" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+            <TabsList className="w-full overflow-x-auto flex flex-nowrap justify-start sm:justify-center no-scrollbar bg-secondary/50 rounded-xl p-1.5 gap-1 mb-2">
+              <TabsTrigger value="journey" className="shrink-0 min-w-20 gap-1.5 text-xs sm:text-sm px-3 sm:px-4">
                 <Compass className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Journey</span>
               </TabsTrigger>
-              <TabsTrigger value="courses" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <TabsTrigger value="courses" className="shrink-0 min-w-20 gap-1.5 text-xs sm:text-sm px-3 sm:px-4">
                 <BookOpen className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Courses</span>
               </TabsTrigger>
-              <TabsTrigger value="sheets" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <TabsTrigger value="sheets" className="shrink-0 min-w-20 gap-1.5 text-xs sm:text-sm px-3 sm:px-4">
                 <FileImage className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Sheets</span>
               </TabsTrigger>
-              <TabsTrigger value="ebooks" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <TabsTrigger value="ebooks" className="shrink-0 min-w-20 gap-1.5 text-xs sm:text-sm px-3 sm:px-4">
                 <Library className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">eBooks</span>
               </TabsTrigger>
-              <TabsTrigger value="progress" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <TabsTrigger value="progress" className="shrink-0 min-w-20 gap-1.5 text-xs sm:text-sm px-3 sm:px-4">
                 <BarChart3 className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Progress</span>
               </TabsTrigger>
-              <TabsTrigger value="certificates" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <TabsTrigger value="certificates" className="shrink-0 min-w-20 gap-1.5 text-xs sm:text-sm px-3 sm:px-4">
                 <Award className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Certs</span>
               </TabsTrigger>
-              <TabsTrigger value="referrals" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <TabsTrigger value="referrals" className="shrink-0 min-w-20 gap-1.5 text-xs sm:text-sm px-3 sm:px-4">
                 <Gift className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Refer</span>
               </TabsTrigger>
-              <TabsTrigger value="verify" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <TabsTrigger value="verify" className="shrink-0 min-w-20 gap-1.5 text-xs sm:text-sm px-3 sm:px-4">
                 <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Verify</span>
               </TabsTrigger>
-              <TabsTrigger value="account" className="flex-1 gap-1.5 text-xs sm:text-sm px-2 sm:px-3">
+              <TabsTrigger value="account" className="shrink-0 min-w-20 gap-1.5 text-xs sm:text-sm px-3 sm:px-4">
                 <Lock className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Account</span>
               </TabsTrigger>

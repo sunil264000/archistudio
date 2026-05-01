@@ -254,7 +254,18 @@ const AppContent = () => {
             const signupCode = user.user_metadata?.signup_promo_code;
             const campaignCode = campaign.coupon_code || 'WELCOME100';
 
-            if (signupCode?.toUpperCase() !== campaignCode.toUpperCase()) continue;
+            const { data: profileData } = await supabase
+              .from('profiles').select('created_at').eq('user_id', user.id).maybeSingle();
+            
+            const isNewUser = profileData 
+              ? new Date(profileData.created_at || 0) >= new Date(Date.now() - 24 * 60 * 60 * 1000)
+              : false;
+
+            // Trigger if they explicitly used the code, OR if they are a new user and didn't use a DIFFERENT code
+            const isExplicitMatch = signupCode?.toUpperCase() === campaignCode.toUpperCase();
+            const isAutoMatch = isNewUser && (!signupCode || signupCode.trim() === '');
+
+            if (!isExplicitMatch && !isAutoMatch) continue;
 
             setWelcomeCampaign(campaign);
             setShowWelcomeModal(true);
@@ -307,7 +318,13 @@ const AppContent = () => {
             }).catch(console.error);
           }
 
-          setGiftData({ message: randomMessage, courses: giftCourses, expiresAt, ctaText: campaign.cta_text || 'Start Learning' });
+          setGiftData({ 
+            message: randomMessage, 
+            courses: giftCourses, 
+            expiresAt, 
+            ctaText: campaign.cta_text || 'Start Learning',
+            campaignCode: campaign.coupon_code 
+          });
           setShowGiftModal(true);
           break;
         }
