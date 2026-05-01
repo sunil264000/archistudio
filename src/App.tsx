@@ -95,10 +95,17 @@ prefetchCriticalData().catch(() => {});
 // feels instant. Runs after first paint, never blocks initial render.
 if (typeof window !== 'undefined') {
   const warmChunks = () => {
+    // Top nav destinations
     import('./pages/studio-hub/StudioHubHome');
     import('./pages/studio-hub/BrowseProjects');
+    import('./pages/studio-hub/PricingPage');
+    import('./pages/studio-hub/MembersDirectory');
     import('./pages/Courses');
     import('./pages/Explore');
+    import('./pages/Auth');
+    import('./pages/Dashboard');
+    import('./pages/CourseDetail');
+    import('./pages/Blog');
   };
   const ric = (window as any).requestIdleCallback as undefined | ((cb: () => void, opts?: any) => number);
   if (ric) ric(warmChunks, { timeout: 2500 });
@@ -366,13 +373,10 @@ function AnimatedRoutes({ isSlow }: { isSlow: boolean }) {
     <AnimatePresence mode="wait">
       <motion.div
         key={location.pathname}
-        initial={isSlow ? { opacity: 0 } : { opacity: 0, y: 10, filter: 'blur(4px)' }}
-        animate={isSlow ? { opacity: 1 } : { opacity: 1, y: 0, filter: 'blur(0px)' }}
-        exit={isSlow ? { opacity: 0 } : { opacity: 0, y: -6, filter: 'blur(3px)' }}
-        transition={{
-          duration: isSlow ? 0.15 : 0.3,
-          ease: [0.22, 1, 0.36, 1],
-        }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: isSlow ? 0.08 : 0.15, ease: 'easeOut' }}
       >
         <Suspense fallback={<PageLoader />}>
           <Routes location={location}>
