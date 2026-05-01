@@ -9,6 +9,8 @@ import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-route
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { CartProvider } from "@/contexts/CartContext";
+import { CouponProvider } from "@/contexts/CouponContext";
+import { CouponBanner } from "@/components/coupon/CouponBanner";
 import { PurchaseNotification } from "@/components/social-proof/PurchaseNotification";
 import { FestivalDecorations } from "@/components/festival/FestivalDecorations";
 import { SaleBanner } from "@/components/sales/SaleBanner";
@@ -456,6 +458,7 @@ const App = () => {
         <BrowserRouter>
           <AuthProvider>
             <CartProvider>
+              <CouponProvider>
               <ErrorBoundary>
                 <GlobalBackground isSlow={isSlow} />
                 <ScrollProgress />
@@ -465,6 +468,7 @@ const App = () => {
                 <FestivalDecorations />
                 <PurchaseNotification />
                 <SaleBanner />
+                <CouponBanner />
                 <AnimatedRoutes isSlow={isSlow} />
                 {!isSlow && (
                   <>
@@ -475,6 +479,7 @@ const App = () => {
                 )}
                 <BackToTop />
               </ErrorBoundary>
+              </CouponProvider>
             </CartProvider>
           </AuthProvider>
         </BrowserRouter>
