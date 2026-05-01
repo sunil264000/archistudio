@@ -349,9 +349,7 @@ export default function CourseDetail() {
               isPublished: data.is_published || false,
               tags: data.tags || [],
               resource_link: data.resource_link || null,
-            };
-            
-            setDbOnlyCourse(currentCourse);
+            });
 
             // Fetch related courses
             supabase
