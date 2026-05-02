@@ -16,6 +16,8 @@ interface Profile {
   phone_verified: boolean;
   two_factor_enabled: boolean;
   ai_queries_used_today: number;
+  subscription_tier?: string | null;
+  is_verified_pro?: boolean | null;
 }
 
 interface AuthContextType {
