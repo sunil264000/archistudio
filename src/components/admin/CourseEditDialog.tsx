@@ -26,8 +26,8 @@ interface Course {
   is_published: boolean | null;
   is_featured: boolean | null;
   category_id: string | null;
-  tags: string[] | null;
-  resource_link: string | null;
+  tags?: string[] | null;
+  resource_link?: string | null;
 }
 
 interface CourseEditDialogProps {

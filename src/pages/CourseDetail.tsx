@@ -321,7 +321,7 @@ export default function CourseDetail() {
       setDbCourseLoading(true);
       supabase
         .from('courses')
-        .select('id, title, slug, description, short_description, level, duration_hours, total_lessons, price_inr, price_usd, thumbnail_url, is_featured, is_published, category_id, tags')
+        .select('id, title, slug, description, short_description, level, duration_hours, total_lessons, price_inr, price_usd, thumbnail_url, is_featured, is_published, category_id, tags, resource_link')
         .eq('slug', slug)
         .single()
         .then(({ data }) => {

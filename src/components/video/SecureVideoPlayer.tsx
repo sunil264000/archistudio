@@ -45,6 +45,7 @@ export function SecureVideoPlayer({
   const [iframeWatchTime, setIframeWatchTime] = useState(0);
   
   const { user, session, isAdmin } = useAuth();
+  const { isSlow } = useNetworkSpeed();
   const [volume, setVolume] = useState(() => Number(localStorage.getItem('plyr-volume') || 1));
   const [playbackSpeed, setPlaybackSpeed] = useState(() => Number(localStorage.getItem('plyr-speed') || 1));
   const [showVolumeBadge, setShowVolumeBadge] = useState(false);
