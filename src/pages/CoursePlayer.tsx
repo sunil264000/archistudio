@@ -20,7 +20,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
   ChevronLeft, Play, CheckCircle, Lock, Clock,
   BookOpen, Award, ChevronRight, CheckCircle2, MessageCircle, Download,
-  Menu, X, List, Layers, GraduationCap
+  Menu, X, List, Layers, GraduationCap, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CourseCompletionModal } from '@/components/course/CourseCompletionModal';

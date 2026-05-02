@@ -119,6 +119,7 @@ export interface StudioProposal {
   cover_message: string;
   attachments: string[];
   status: ProposalStatus;
+  is_featured?: boolean;
   created_at: string;
 }
 
