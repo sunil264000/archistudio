@@ -89,6 +89,7 @@ export interface MemberProfile {
   total_reviews: number;
   is_active: boolean;
   created_at: string;
+  subscription_tier?: string | null;
 }
 
 export interface StudioProject {

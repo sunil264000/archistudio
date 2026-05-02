@@ -16,7 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   Plus, Trash2, ChevronUp, ChevronDown, Image as ImageIcon,
   Type, Heading, FileText, ExternalLink, Loader2, Upload, Globe, Copy, Check,
-  Import, Paintbrush, FileImage, Trophy
+  Import, Paintbrush, FileImage, Trophy, Sparkles
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { ShareButtons } from '@/components/social/ShareButtons';

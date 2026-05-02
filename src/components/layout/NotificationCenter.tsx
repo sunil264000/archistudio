@@ -44,12 +44,12 @@ export function NotificationCenter() {
       .limit(20);
     
     setNotifications(data || []);
-    setUnreadCount((data || []).filter(n => !n.is_read).length);
+    setUnreadCount((data || []).filter(n => !n.read).length);
     setLoading(false);
   };
 
   const markAsRead = async (id: string) => {
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id);
+    await supabase.from('notifications').update({ read: true }).eq('id', id);
     fetchNotifications();
   };
 

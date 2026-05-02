@@ -249,7 +249,7 @@ export default function OwnerDashboard() {
             </Card>
           </TabsContent>
         </Tabs>
-
+        </div>
       </main>
     </div>
   );

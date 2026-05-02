@@ -3521,12 +3521,14 @@ export type Database = {
           flash_sale_expires_at: string | null
           full_name: string | null
           id: string
+          is_verified_pro: boolean | null
           phone: string | null
           phone_verified: boolean | null
           reputation_title: string | null
           role: string | null
           skills: string[] | null
           social_links: Json | null
+          subscription_tier: string | null
           two_factor_enabled: boolean | null
           updated_at: string | null
           user_id: string
@@ -3544,12 +3546,14 @@ export type Database = {
           flash_sale_expires_at?: string | null
           full_name?: string | null
           id?: string
+          is_verified_pro?: boolean | null
           phone?: string | null
           phone_verified?: boolean | null
           reputation_title?: string | null
           role?: string | null
           skills?: string[] | null
           social_links?: Json | null
+          subscription_tier?: string | null
           two_factor_enabled?: boolean | null
           updated_at?: string | null
           user_id: string
@@ -3567,12 +3571,14 @@ export type Database = {
           flash_sale_expires_at?: string | null
           full_name?: string | null
           id?: string
+          is_verified_pro?: boolean | null
           phone?: string | null
           phone_verified?: boolean | null
           reputation_title?: string | null
           role?: string | null
           skills?: string[] | null
           social_links?: Json | null
+          subscription_tier?: string | null
           two_factor_enabled?: boolean | null
           updated_at?: string | null
           user_id?: string
