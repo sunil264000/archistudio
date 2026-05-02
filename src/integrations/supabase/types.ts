@@ -1091,6 +1091,41 @@ export type Database = {
           },
         ]
       }
+      course_resource_requests: {
+        Row: {
+          course_id: string
+          created_at: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_resource_requests_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           bundle_id: string | null
@@ -1108,6 +1143,7 @@ export type Database = {
           preview_video_url: string | null
           price_inr: number | null
           price_usd: number | null
+          resource_link: string | null
           short_description: string | null
           slug: string
           subcategory: string | null
@@ -1133,6 +1169,7 @@ export type Database = {
           preview_video_url?: string | null
           price_inr?: number | null
           price_usd?: number | null
+          resource_link?: string | null
           short_description?: string | null
           slug: string
           subcategory?: string | null
@@ -1158,6 +1195,7 @@ export type Database = {
           preview_video_url?: string | null
           price_inr?: number | null
           price_usd?: number | null
+          resource_link?: string | null
           short_description?: string | null
           slug?: string
           subcategory?: string | null
@@ -3480,6 +3518,7 @@ export type Database = {
           created_at: string | null
           email: string | null
           email_verified: boolean | null
+          flash_sale_expires_at: string | null
           full_name: string | null
           id: string
           phone: string | null
@@ -3502,6 +3541,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           email_verified?: boolean | null
+          flash_sale_expires_at?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
@@ -3524,6 +3564,7 @@ export type Database = {
           created_at?: string | null
           email?: string | null
           email_verified?: boolean | null
+          flash_sale_expires_at?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null

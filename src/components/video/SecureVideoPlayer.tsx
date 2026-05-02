@@ -4,6 +4,7 @@ import { Loader2, CheckCircle2, Play, Settings, SkipForward, SkipBack, Maximize,
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useNetworkSpeed } from '@/hooks/useNetworkSpeed';
+import { toast } from 'sonner';
 
 // Declare globals for CDN libraries
 declare global {
@@ -44,6 +45,7 @@ export function SecureVideoPlayer({
   const [iframeWatchTime, setIframeWatchTime] = useState(0);
   
   const { user, session, isAdmin } = useAuth();
+  const { isSlow } = useNetworkSpeed();
   const [volume, setVolume] = useState(() => Number(localStorage.getItem('plyr-volume') || 1));
   const [playbackSpeed, setPlaybackSpeed] = useState(() => Number(localStorage.getItem('plyr-speed') || 1));
   const [showVolumeBadge, setShowVolumeBadge] = useState(false);

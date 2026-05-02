@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Clock, BookOpen, Star, CheckCircle, Play, ArrowLeft, CreditCard, Loader2, Users, Award, FileText, Lock, Eye, ChevronDown, Video, ShoppingCart, Tag, X } from 'lucide-react';
+import { Clock, BookOpen, Star, CheckCircle, Play, ArrowLeft, CreditCard, Loader2, Users, Award, FileText, Lock, Eye, ChevronDown, Video, ShoppingCart, Tag, X, FolderSync, Download, Send } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
@@ -320,7 +321,7 @@ export default function CourseDetail() {
       setDbCourseLoading(true);
       supabase
         .from('courses')
-        .select('id, title, slug, description, short_description, level, duration_hours, total_lessons, price_inr, price_usd, thumbnail_url, is_featured, is_published, category_id, tags')
+        .select('id, title, slug, description, short_description, level, duration_hours, total_lessons, price_inr, price_usd, thumbnail_url, is_featured, is_published, category_id, tags, resource_link')
         .eq('slug', slug)
         .single()
         .then(({ data }) => {
