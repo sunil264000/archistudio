@@ -7,6 +7,7 @@ import { SEOHead } from '@/components/seo/SEOHead';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, Star, MapPin, Loader2 } from 'lucide-react';
 import type { MemberProfile } from '@/hooks/useStudioHub';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 
 export default function MembersDirectory() {
   const [members, setMembers] = useState<MemberProfile[]>([]);
@@ -63,13 +64,12 @@ export default function MembersDirectory() {
             {filtered.map((m) => (
               <Link key={m.id} to={`/studio-hub/members/${m.user_id}`} className="bg-background p-6 hover:bg-muted/30 transition-all duration-300 group">
                 <div className="flex items-start gap-4">
-                  <div className="h-14 w-14 rounded-full bg-muted/60 overflow-hidden border border-border/40 shrink-0">
-                    {m.avatar_url ? (
-                      <img src={m.avatar_url} alt={m.display_name || ''} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-lg font-display text-accent bg-accent/8">{(m.display_name || '?').slice(0, 1)}</div>
-                    )}
-                  </div>
+                  <UserAvatar 
+                    src={m.avatar_url} 
+                    name={m.display_name} 
+                    gender={(m as any).gender} 
+                    size="md" 
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate group-hover:text-accent transition-colors">{m.display_name || 'Anonymous'}</p>
                     <p className="text-sm text-muted-foreground line-clamp-1">{m.headline || `${m.experience_level} member`}</p>

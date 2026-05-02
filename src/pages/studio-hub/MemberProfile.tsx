@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Star, MapPin, Calendar, Pencil, ArrowLeft, Loader2, Briefcase, Award, Instagram, Linkedin, Link as LinkIcon, FileText, GraduationCap } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { UserAvatar } from '@/components/ui/UserAvatar';
 import { PortfolioWorks } from '@/components/studio-hub/PortfolioWorks';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
@@ -81,15 +82,13 @@ export default function MemberProfile() {
         {/* Header card */}
         <div className="-mt-8 relative bg-background border border-border/40 rounded-2xl p-6 md:p-8 mb-6">
           <div className="flex flex-col md:flex-row gap-6 md:items-start">
-            <div className="h-28 w-28 rounded-full bg-muted/60 overflow-hidden border-4 border-background -mt-16 md:mt-0 shadow-md shrink-0">
-              {profile.avatar_url ? (
-                <img src={profile.avatar_url} alt={profile.display_name || ''} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-3xl font-display text-muted-foreground bg-muted">
-                  {(profile.display_name || '?').slice(0, 1)}
-                </div>
-              )}
-            </div>
+            <UserAvatar 
+              src={profile.avatar_url} 
+              name={profile.display_name} 
+              gender={(profile as any).gender} 
+              size="xl" 
+              className="h-28 w-28 -mt-16 md:mt-0 border-4 border-background shadow-md"
+            />
 
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
