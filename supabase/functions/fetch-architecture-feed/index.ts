@@ -10,6 +10,9 @@ const FEEDS = [
   { url: "https://www.archdaily.com/feed", source: "ArchDaily", category: "architecture" },
   { url: "https://www.dezeen.com/feed/", source: "Dezeen", category: "design" },
   { url: "https://www.designboom.com/feed/", source: "Designboom", category: "design" },
+  { url: "https://architizer.com/blog/feed/", source: "Architizer", category: "architecture" },
+  { url: "https://www.architecturalrecord.com/rss/articles", source: "Architectural Record", category: "news" },
+  { url: "https://www.e-architect.com/feed", source: "e-architect", category: "architecture" }
 ];
 
 function extractImageFromContent(content: string): string | null {
@@ -52,22 +55,29 @@ function parseRSSItem(item: string, source: string, category: string) {
 
 async function fetchFeed(feedConfig: typeof FEEDS[0]) {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 second timeout per feed
+
     const response = await fetch(feedConfig.url, {
       headers: { 'User-Agent': 'Archistudio/1.0' },
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
     if (!response.ok) return [];
 
     const xml = await response.text();
     const items = xml.match(/<item[\s>][\s\S]*?<\/item>/gi) || [];
 
-    return items.slice(0, 8).map(item =>
+    return items.slice(0, 5).map(item => // Reduced from 8 to 5 to handle more feeds
       parseRSSItem(item, feedConfig.source, feedConfig.category)
     ).filter(Boolean);
   } catch (err) {
-    console.error(`Failed to fetch ${feedConfig.source}:`, err);
+    console.warn(`Failed to fetch ${feedConfig.source}:`, err instanceof Error ? err.message : err);
     return [];
   }
 }
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
