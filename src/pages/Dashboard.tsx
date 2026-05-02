@@ -5,7 +5,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ShieldCheck, BookOpen, Award, BarChart3, Gift, Library, Search, Lock, Compass, FileImage, Zap, Bell } from 'lucide-react';
+import { ShieldCheck, BookOpen, Award, BarChart3, Gift, Library, Search, Lock, Compass, FileImage, Zap, Bell, GraduationCap } from 'lucide-react';
 import { EnrolledCourses } from '@/components/dashboard/EnrolledCourses';
 import { Certificates } from '@/components/dashboard/Certificates';
 import { ProgressAnalytics } from '@/components/dashboard/ProgressAnalytics';

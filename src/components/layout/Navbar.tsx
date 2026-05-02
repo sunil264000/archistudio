@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Library, ChevronDown, Briefcase, BookOpen, MessageSquare, Trophy, Map, Layers, Palette, Star, Compass, FileText, Users, Award } from 'lucide-react';
+import { ArrowRight, LogOut, User, Menu, X, Moon, Sun, ShieldCheck, Library, ChevronDown, Briefcase, BookOpen, MessageSquare, Trophy, Map, Layers, Palette, Star, Compass, FileText, Users, Award, GraduationCap } from 'lucide-react';
 import logoMark from '@/assets/logo-mark.png';
 import { useState, useEffect, useRef } from 'react';
 import { CartSheet } from '@/components/cart/CartSheet';
