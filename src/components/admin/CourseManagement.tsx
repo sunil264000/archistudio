@@ -74,6 +74,8 @@ interface Course {
   total_lessons: number | null;
   category_id: string | null;
   drive_folder_id?: string | null;
+  tags?: string[] | null;
+  resource_link?: string | null;
 }
 
 interface CourseContent {

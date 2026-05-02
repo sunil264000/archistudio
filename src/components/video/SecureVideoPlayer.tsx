@@ -4,6 +4,7 @@ import { Loader2, CheckCircle2, Play, Settings, SkipForward, SkipBack, Maximize,
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useNetworkSpeed } from '@/hooks/useNetworkSpeed';
+import { toast } from 'sonner';
 
 // Declare globals for CDN libraries
 declare global {

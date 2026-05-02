@@ -43,6 +43,7 @@ export interface Course {
   isFeatured: boolean;
   isPublished: boolean;
   tags: string[];
+  resource_link?: string | null;
 }
 
 export const courseCategories = [
