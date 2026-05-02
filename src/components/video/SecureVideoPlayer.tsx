@@ -161,6 +161,14 @@ export function SecureVideoPlayer({
           return;
         }
 
+        // Other External URLs (not Google/Lulu)
+        if (isExternalUrl && !isGoogleDriveUrl) {
+          setVideoUrl(videoPath);
+          setLoading(false);
+          clearTimeout(timeoutId);
+          return;
+        }
+
         // Google Drive proxy logic
         if (isGoogleDriveUrl) {
           if (user && session?.access_token) {
@@ -241,7 +249,11 @@ export function SecureVideoPlayer({
           autoStartLoad: true,
           startLevel: -1,
           debug: false,
+          xhrSetup: (xhr: XMLHttpRequest) => {
+            xhr.withCredentials = false; // Important for some signed URL providers
+          }
         });
+        
         hls.loadSource(videoUrl);
         hls.attachMedia(video);
         hlsRef.current = hls;
@@ -249,24 +261,60 @@ export function SecureVideoPlayer({
         hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
           playerRef.current = new window.Plyr(video, plyrOptions);
           playerRef.current.volume = volume;
+          if (initialPosition > 0) {
+            video.currentTime = initialPosition;
+          }
+        });
+
+        hls.on(window.Hls.Events.ERROR, (event: any, data: any) => {
+          if (data.fatal) {
+            switch (data.type) {
+              case window.Hls.ErrorTypes.NETWORK_ERROR:
+                console.error('HLS Network Error:', data);
+                setError('Network error while loading video stream.');
+                break;
+              case window.Hls.ErrorTypes.MEDIA_ERROR:
+                console.error('HLS Media Error:', data);
+                hls.recoverMediaError();
+                break;
+              default:
+                console.error('Fatal HLS Error:', data);
+                setError('Playback failed due to a technical error.');
+                hls.destroy();
+                break;
+            }
+          }
         });
       } else {
+        // For non-HLS or native HLS support (Safari)
+        video.src = videoUrl;
         playerRef.current = new window.Plyr(video, plyrOptions);
         playerRef.current.volume = volume;
+        if (initialPosition > 0) {
+          video.currentTime = initialPosition;
+        }
+
+        video.onerror = () => {
+          console.error('Video element error');
+          setError('Failed to play video. The source might be inaccessible.');
+        };
       }
 
-      // Restore position
-      if (initialPosition > 0) {
-        video.currentTime = initialPosition;
-      }
     };
 
     // Check if libraries are loaded (CDN scripts)
-    if (window.Plyr) {
+    const checkLibraries = () => {
+      if (isHls) {
+        return window.Plyr && window.Hls;
+      }
+      return window.Plyr;
+    };
+
+    if (checkLibraries()) {
       setupPlayer();
     } else {
       const interval = setInterval(() => {
-        if (window.Plyr) {
+        if (checkLibraries()) {
           setupPlayer();
           clearInterval(interval);
         }
