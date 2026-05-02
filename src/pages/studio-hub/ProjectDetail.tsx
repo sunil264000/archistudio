@@ -73,16 +73,34 @@ export default function ProjectDetail() {
     const key = `sh_viewed_${id}`;
     if (sessionStorage.getItem(key)) return;
     sessionStorage.setItem(key, '1');
-    (supabase as any).rpc('increment_view_count', { job_id: id }).catch(() => {});
+    
+    const incrementView = async () => {
+      try {
+        await (supabase as any).rpc('increment_view_count', { job_id: id });
+      } catch (e) {
+        console.warn('View count increment failed', e);
+      }
+    };
+    incrementView();
   }, [id]);
 
   useEffect(() => {
     if (!id || !user) { setUnlockedFiles(null); return; }
-    setFilesLoading(true);
-    (supabase as any).rpc('get_project_attachments', { p_job_id: id })
-      .then(({ data }: any) => setUnlockedFiles(Array.isArray(data) ? data : []))
-      .catch(() => setUnlockedFiles([]))
-      .finally(() => setFilesLoading(false));
+    
+    const fetchAttachments = async () => {
+      setFilesLoading(true);
+      try {
+        const { data, error } = await (supabase as any).rpc('get_project_attachments', { p_job_id: id });
+        if (error) throw error;
+        setUnlockedFiles(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.warn('Failed to fetch attachments', err);
+        setUnlockedFiles([]);
+      } finally {
+        setFilesLoading(false);
+      }
+    };
+    fetchAttachments();
   }, [id, user]);
 
   const isOwner = user?.id === project?.client_id;
