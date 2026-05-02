@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import { CartSheet } from '@/components/cart/CartSheet';
 import { GlobalSearch } from '@/components/search/GlobalSearch';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { ProMembershipDialog } from '@/components/auth/ProMembershipDialog';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export function Navbar() {
@@ -204,7 +205,12 @@ export function Navbar() {
           {loading ? (
             <div className="h-8 w-20 animate-pulse rounded-lg bg-muted" />
           ) : user ? (
-            <div className="flex items-center gap-1.5 ml-1">
+            <div className="flex items-center space-x-2">
+              <ProMembershipDialog />
+              <NotificationCenter />
+              <div className="hidden md:block">
+                <GlobalSearch />
+              </div>
               {isAdmin && (
                 <Link to="/admin">
                   <Button variant="ghost" size="sm" className="gap-1.5 text-accent text-[13px] h-8">

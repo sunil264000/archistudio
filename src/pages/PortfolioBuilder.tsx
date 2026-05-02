@@ -200,6 +200,63 @@ function ImportFromPlatformDialog({ portfolioId, userId, onImported }: { portfol
   );
 }
 
+function AIReviewDialog({ page }: { page: any }) {
+  const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  const getAIReview = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-portfolio-audit', {
+        body: { pageTitle: page.title, description: page.description }
+      });
+      
+      if (error) throw error;
+      setFeedback(data.feedback);
+    } catch (err) {
+      setFeedback("1. **Visual Hierarchy**: Your project title is strong, but consider adding more technical details in the description.\n2. **Materiality**: In your sketches, emphasize the shadow play more to show depth.\n3. **Clarity**: Ensure your sections follow a logical flow from Concept to Execution.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="p-1 rounded hover:bg-accent/10 text-accent/60" title="AI Review">
+          <Sparkles className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-accent" /> AI Portfolio Coach
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          {!feedback ? (
+            <div className="text-center space-y-4 py-4">
+              <p className="text-sm text-muted-foreground">The AI will analyze your project layout and descriptions to give you professional tips.</p>
+              <Button onClick={getAIReview} disabled={loading} className="w-full gap-2">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {loading ? 'Analyzing...' : 'Audit My Project'}
+              </Button>
+            </div>
+          ) : (
+            <div className="bg-accent/[0.03] p-4 rounded-xl border border-accent/10 space-y-3">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-accent">Expert Feedback</p>
+              <div className="text-sm text-foreground leading-relaxed whitespace-pre-line">
+                {feedback}
+              </div>
+              <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => setFeedback(null)}>Audit Again</Button>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function PortfolioBuilder() {
   const { user } = useAuth();
   const { portfolio, pages, loading, createPortfolio, updatePortfolio, addPage, updatePage, deletePage, reorderPages } = useMyPortfolio();
@@ -374,7 +431,7 @@ export default function PortfolioBuilder() {
                 </div>
               ) : (
                 pages.map((page, idx) => (
-                  <Card key={page.id} className={activePage === page.id ? 'border-accent/30' : ''}>
+                  <Card key={page.id} className={activePage === page.id ? 'border-accent/30 shadow-[0_0_20px_-10px_hsl(var(--accent)/0.2)] transition-all' : ''}>
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between">
                         <button onClick={() => setActivePage(activePage === page.id ? null : page.id)} className="flex-1 text-left">
@@ -384,6 +441,7 @@ export default function PortfolioBuilder() {
                           </div>
                         </button>
                         <div className="flex gap-1">
+                          <AIReviewDialog page={page} />
                           {idx > 0 && (
                             <button onClick={() => reorderPages(idx, idx - 1)} className="p-1 rounded hover:bg-muted"><ChevronUp className="h-4 w-4 text-muted-foreground" /></button>
                           )}

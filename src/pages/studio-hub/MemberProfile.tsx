@@ -96,7 +96,7 @@ export default function MemberProfile() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h1 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">{profile.display_name || 'Studio Member'}</h1>
-                    <VerifiedBadge size="md" />
+                    <VerifiedBadge size="md" isPro={profile.subscription_tier === 'pro'} />
                   </div>
                   <p className="text-muted-foreground mt-1">{profile.headline}</p>
                 </div>

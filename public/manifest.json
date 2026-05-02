@@ -1,32 +1,21 @@
 {
-  "name": "Archistudio - Architecture Learning Platform",
+  "name": "Archistudio",
   "short_name": "Archistudio",
-  "description": "Learn practical architecture skills the way they're actually practiced in the industry",
+  "description": "Premium Architecture Marketplace & Academy",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a1a1a",
-  "theme_color": "#c45a32",
-  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#000000",
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "64x64",
-      "type": "image/x-icon"
-    },
-    {
-      "src": "/icons/icon-192.png",
+      "src": "/logo-mark.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "/logo-mark.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
-  ],
-  "categories": ["education", "productivity"],
-  "lang": "en",
-  "prefer_related_applications": false
+  ]
 }
