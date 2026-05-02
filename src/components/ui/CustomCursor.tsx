@@ -1,136 +1,75 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useSpring, useMotionValue } from 'framer-motion';
 
 export function CustomCursor() {
-    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-    const [isHovering, setIsHovering] = useState(false);
-    const [isClicking, setIsClicking] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isClicking, setIsClicking] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
-    useEffect(() => {
-        // Only run on non-touch devices
-        if (window.matchMedia('(pointer: coarse)').matches) return;
+  const cursorX = useMotionValue(-100);
+  const cursorY = useMotionValue(-100);
 
-        const updateMousePosition = (e: MouseEvent) => {
-            setMousePosition({ x: e.clientX, y: e.clientY });
-        };
+  const springConfig = { damping: 25, stiffness: 250 };
+  const springX = useSpring(cursorX, springConfig);
+  const springY = useSpring(cursorY, springConfig);
 
-        const handleMouseOver = (e: MouseEvent) => {
-            const target = e.target as HTMLElement;
-            // Check if the target is clickable or inside a clickable element
-            const isClickable = target.closest('a, button, input, select, textarea, [role="button"], .cursor-pointer');
-            setIsHovering(!!isClickable);
-        };
-
-        const handleMouseDown = () => setIsClicking(true);
-        const handleMouseUp = () => setIsClicking(false);
-
-        window.addEventListener('mousemove', updateMousePosition);
-        window.addEventListener('mouseover', handleMouseOver);
-        window.addEventListener('mousedown', handleMouseDown);
-        window.addEventListener('mouseup', handleMouseUp);
-
-        // Hide default cursor on body
-        document.body.style.cursor = 'none';
-
-        // Add CSS to hide cursor on all children except when specifically overridden
-        const style = document.createElement('style');
-        style.innerHTML = `
-      * {
-        cursor: none !important;
-      }
-      @media (pointer: coarse) {
-        * {
-          cursor: auto !important;
-        }
-      }
-    `;
-        document.head.appendChild(style);
-
-        return () => {
-            window.removeEventListener('mousemove', updateMousePosition);
-            window.removeEventListener('mouseover', handleMouseOver);
-            window.removeEventListener('mousedown', handleMouseDown);
-            window.removeEventListener('mouseup', handleMouseUp);
-            document.body.style.cursor = 'auto';
-            document.head.removeChild(style);
-        };
-    }, []);
-
-    // Hide on touch devices entirely
-    if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) {
-        return null;
-    }
-
-    const cursorVariants = {
-        default: {
-            x: mousePosition.x - 16,
-            y: mousePosition.y - 16,
-            scale: 1,
-            opacity: 1,
-            border: '1px solid rgba(255, 255, 255, 0.4)',
-            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        },
-        hover: {
-            x: mousePosition.x - 24,
-            y: mousePosition.y - 24,
-            scale: 1.5,
-            opacity: 1,
-            border: '1px solid rgba(168, 85, 247, 0.5)', // Match accent/highlight
-            backgroundColor: 'rgba(76, 201, 240, 0.1)',
-            mixBlendMode: 'screen' as any,
-        },
-        click: {
-            x: mousePosition.x - 16,
-            y: mousePosition.y - 16,
-            scale: 0.8,
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        }
+  useEffect(() => {
+    const moveCursor = (e: MouseEvent) => {
+      cursorX.set(e.clientX);
+      cursorY.set(e.clientY);
+      if (!isVisible) setIsVisible(true);
     };
 
-    const dotVariants = {
-        default: {
-            x: mousePosition.x - 4,
-            y: mousePosition.y - 4,
-            scale: 1,
-            opacity: 1,
-        },
-        hover: {
-            x: mousePosition.x - 4,
-            y: mousePosition.y - 4,
-            scale: 0,
-            opacity: 0,
-        }
+    const handleMouseOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const isInteractive = target.closest('button, a, input, select, textarea, [role="button"]');
+      setIsHovered(!!isInteractive);
     };
 
-    const activeVariant = isClicking ? 'click' : isHovering ? 'hover' : 'default';
+    const handleMouseDown = () => setIsClicking(true);
+    const handleMouseUp = () => setIsClicking(false);
 
-    return (
-        <>
-            {/* Main Cursor Ring */}
-            <motion.div
-                className="fixed top-0 left-0 w-8 h-8 rounded-full pointer-events-none z-[9999] flex items-center justify-center backdrop-blur-[2px]"
-                variants={cursorVariants}
-                animate={activeVariant}
-                transition={{
-                    type: 'spring',
-                    stiffness: 150,
-                    damping: 15,
-                    mass: 0.5,
-                }}
-            />
+    window.addEventListener('mousemove', moveCursor);
+    window.addEventListener('mouseover', handleMouseOver);
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mouseup', handleMouseUp);
 
-            {/* Center Dot */}
-            <motion.div
-                className="fixed top-0 left-0 w-2 h-2 rounded-full pointer-events-none z-[10000] bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]"
-                variants={dotVariants}
-                animate={activeVariant}
-                transition={{
-                    type: 'spring',
-                    stiffness: 300,
-                    damping: 20,
-                    mass: 0.2,
-                }}
-            />
-        </>
-    );
+    return () => {
+      window.removeEventListener('mousemove', moveCursor);
+      window.removeEventListener('mouseover', handleMouseOver);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isVisible, cursorX, cursorY]);
+
+  if (!isVisible) return null;
+
+  return (
+    <motion.div
+      className="fixed top-0 left-0 w-6 h-6 bg-accent rounded-full pointer-events-none z-[9999] mix-blend-difference hidden md:block"
+      style={{
+        x: springX,
+        y: springY,
+        translateX: '-50%',
+        translateY: '-50%',
+        scale: isHovered ? 2.5 : isClicking ? 0.8 : 1,
+      }}
+      transition={{
+        type: 'spring',
+        damping: 20,
+        stiffness: 300,
+        mass: 0.5
+      }}
+    >
+      {isHovered && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <div className="w-1 h-1 bg-background rounded-full" />
+        </motion.div>
+      )}
+    </motion.div>
+  );
 }

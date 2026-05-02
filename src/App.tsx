@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { ScrollProgress } from "@/components/layout/ScrollProgress";
+import { SmoothScroll } from "@/components/layout/SmoothScroll";
 import { BackToTop } from "@/components/layout/BackToTop";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -22,6 +23,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FloatingAIMentor } from "@/components/ai/FloatingAIMentor";
 import { AchievementUnlockToast } from "@/components/gamification/AchievementUnlockToast";
 import { LiveActivityPulse } from "@/components/ui/LiveActivityPulse";
+import { CustomCursor } from "@/components/ui/CustomCursor";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
@@ -171,7 +173,7 @@ function PageLoader() {
 }
 
 const GlobalBackground = ({ isSlow }: { isSlow: boolean }) => (
-  <div className="fixed inset-0 pointer-events-none z-[-100] overflow-hidden bg-background">
+  <div className="fixed inset-0 pointer-events-none z-[-100] overflow-hidden bg-background noise-overlay">
     <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+CjxwYXRoIGQ9Ik02MCAwaC02MHY2MGg2MHYtNjB6bS0xIDF2NThoLTU4di01OGg1OHoiIGZpbGw9ImN1cnJlbnRDb2xvciIgZmlsbC1vcGFjaXR5PSIwLjA0Ii8+Cjwvc3ZnPg==')] opacity-[0.15] dark:opacity-[0.06] mix-blend-overlay" />
     
     {!isSlow && (
@@ -476,26 +478,29 @@ const App = () => {
           <AuthProvider>
             <CartProvider>
               <CouponProvider>
-              <ErrorBoundary>
-                <GlobalBackground isSlow={isSlow} />
-                <ScrollProgress />
-                <ScrollToTop />
-                <AppContent />
-                <WelcomePopup />
-                <FestivalDecorations />
-                <PurchaseNotification />
-                <SaleBanner />
-                <CouponBanner />
-                <AnimatedRoutes isSlow={isSlow} />
-                {!isSlow && (
-                  <>
-                    <FloatingAIMentor />
-                    <AchievementUnlockToast />
-                    <LiveActivityPulse />
-                  </>
-                )}
-                <BackToTop />
-              </ErrorBoundary>
+                <SmoothScroll>
+                  <CustomCursor />
+                  <ErrorBoundary>
+                    <GlobalBackground isSlow={isSlow} />
+                    <ScrollProgress />
+                    <ScrollToTop />
+                    <AppContent />
+                    <WelcomePopup />
+                    <FestivalDecorations />
+                    <PurchaseNotification />
+                    <SaleBanner />
+                    <CouponBanner />
+                    <AnimatedRoutes isSlow={isSlow} />
+                    {!isSlow && (
+                      <>
+                        <FloatingAIMentor />
+                        <AchievementUnlockToast />
+                        <LiveActivityPulse />
+                      </>
+                    )}
+                    <BackToTop />
+                  </ErrorBoundary>
+                </SmoothScroll>
               </CouponProvider>
             </CartProvider>
           </AuthProvider>

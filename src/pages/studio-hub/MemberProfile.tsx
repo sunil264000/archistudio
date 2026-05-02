@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Star, MapPin, Calendar, Pencil, ArrowLeft, Loader2, Briefcase, Award, Instagram, Linkedin, Link as LinkIcon, FileText, GraduationCap } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
 import { PortfolioWorks } from '@/components/studio-hub/PortfolioWorks';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
@@ -93,7 +94,10 @@ export default function MemberProfile() {
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
                 <div>
-                  <h1 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">{profile.display_name || 'Studio Member'}</h1>
+                  <div className="flex items-center gap-2">
+                    <h1 className="font-display text-2xl md:text-3xl font-semibold tracking-tight">{profile.display_name || 'Studio Member'}</h1>
+                    <VerifiedBadge size="md" />
+                  </div>
                   <p className="text-muted-foreground mt-1">{profile.headline}</p>
                 </div>
                 {isMe ? (

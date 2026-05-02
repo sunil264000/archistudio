@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { STUDIO_CATEGORIES, STUDIO_SKILLS, STUDIO_TOOLS, formatBudget, calculatePayout } from '@/hooks/useStudioHub';
 import { toast } from 'sonner';
+import { useAIProjectAssistant } from '@/hooks/useAIProjectAssistant';
 import { Loader2, X, Plus, ArrowRight, ArrowLeft, CheckCircle2, FileText, Clock, IndianRupee, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -38,6 +39,7 @@ export default function PostProject() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
+  const { optimizeBrief, isOptimizing } = useAIProjectAssistant();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -174,10 +176,42 @@ export default function PostProject() {
                   <p className="text-xs text-muted-foreground mt-1.5">{title.length}/140</p>
                 </div>
 
-                <div>
-                  <Label htmlFor="description" className="text-xs uppercase tracking-wider text-muted-foreground">The brief</Label>
-                  <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What needs to be done, what to deliver, references, software preference, deadline notes…" rows={7} maxLength={5000} className="mt-2 rounded-xl border-border/60" />
-                  <p className="text-xs text-muted-foreground mt-1.5">{description.length}/5000</p>
+                <div className="relative group">
+                  <div className="flex items-center justify-between mb-2">
+                    <Label htmlFor="description" className="text-xs uppercase tracking-wider text-muted-foreground">The brief</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={async () => {
+                        const result = await optimizeBrief(title, description);
+                        if (result) {
+                          setDescription(result.optimizedDescription);
+                          if (result.suggestedSkills?.length) setSkills([...new Set([...skills, ...result.suggestedSkills])]);
+                          if (result.suggestedTools?.length) setTools([...new Set([...tools, ...result.suggestedTools])]);
+                        }
+                      }}
+                      disabled={isOptimizing || !title || description.length < 20}
+                      className="h-8 px-3 text-[10px] uppercase tracking-widest gap-2 bg-accent/5 hover:bg-accent/10 text-accent rounded-full border border-accent/20 transition-all hover:scale-105 active:scale-95"
+                    >
+                      {isOptimizing ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-3 w-3 fill-current" />
+                      )}
+                      {isOptimizing ? 'Optimizing...' : 'Optimize with AI'}
+                    </Button>
+                  </div>
+                  <Textarea 
+                    id="description" 
+                    value={description} 
+                    onChange={(e) => setDescription(e.target.value)} 
+                    placeholder="What needs to be done, what to deliver, references, software preference, deadline notes…" 
+                    rows={7} 
+                    maxLength={5000} 
+                    className="mt-0 rounded-2xl border-border/60 bg-card/50 focus:bg-card transition-all duration-300 focus:shadow-elevated" 
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-2 font-medium">{description.length}/5000 characters</p>
                 </div>
 
                 <div>

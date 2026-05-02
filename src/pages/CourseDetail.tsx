@@ -33,6 +33,7 @@ import { EMIPaymentOptions } from '@/components/course/EMIPaymentOptions';
 import { useExitDiscount } from '@/hooks/useExitDiscount';
 import { WhatYouLearnCard } from '@/components/course/WhatYouLearnCard';
 import { CourseThumbnail } from '@/components/course/CourseThumbnail';
+import { CourseBundleCard } from '@/components/course/CourseBundleCard';
 
 // Add to Cart Button Component
 function AddToCartButton({ course }: { course: any }) {
@@ -1233,12 +1234,19 @@ export default function CourseDetail() {
 
             {/* Sidebar - Related Courses */}
             <div className="space-y-6">
-              {/* Course Resources for Enrolled Users */}
               {course && (
                 <CourseResources 
                   courseId={course.id} 
                   resourceLink={(course as any).resource_link} 
                   isEnrolled={accessInfo.hasAccess} 
+                />
+              )}
+
+              {/* Course Bundle Upsell */}
+              {!accessInfo.hasAccess && course && relatedCourses.length > 0 && (
+                <CourseBundleCard 
+                  mainCourseTitle={course.title} 
+                  relatedCourses={relatedCourses} 
                 />
               )}
 

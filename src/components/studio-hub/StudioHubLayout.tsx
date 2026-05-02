@@ -3,7 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Compass, Briefcase, PlusCircle, UserCog, LayoutGrid } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
+import { ProTrialPopup } from './ProTrialPopup';
 
 const subnav = [
   { to: '/studio-hub', label: 'Overview', icon: Compass, exact: true },
@@ -46,6 +47,7 @@ export function StudioHubLayout({ children }: { children: ReactNode }) {
       </div>
       <main className="flex-1">{children}</main>
       <Footer />
+      <ProTrialPopup />
     </div>
   );
 }

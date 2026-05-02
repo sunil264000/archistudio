@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { LiveActivityTicker } from '@/components/ui/LiveActivityTicker';
 import { Clock, BookOpen, Search, Star, Filter, ShoppingCart, CreditCard, Loader2, Sparkles, GraduationCap, Flame, Play } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
@@ -134,6 +135,7 @@ export default function Courses() {
       />
 
       <Navbar />
+      <LiveActivityTicker />
 
       {/* Bundle Discount Banner */}
       <div className="container mx-auto px-4 pt-20 sm:pt-24">

@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, ShieldCheck, Sparkles, Compass, Layers, PenTool, Box, Clock, Users, Star } from 'lucide-react';
 import { SEOHead } from '@/components/seo/SEOHead';
+import { LiveActivityTicker } from '@/components/ui/LiveActivityTicker';
+import { VerifiedBadge } from '@/components/ui/VerifiedBadge';
+import { StudioPulse } from '@/components/studio-hub/StudioPulse';
+import { Card, CardContent } from '@/components/ui/card';
 import { useStudioProjects, useTopMembers, formatBudget, STUDIO_CATEGORIES } from '@/hooks/useStudioHub';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -29,6 +33,7 @@ export default function StudioHubHome() {
 
   return (
     <StudioHubLayout>
+      <LiveActivityTicker />
       <SEOHead
         title="Studio Hub — Professional Architecture Marketplace"
         description="The safest way to hire architecture talent. Verified members, protected payments, and expert-reviewed deliverables."
@@ -39,48 +44,67 @@ export default function StudioHubHome() {
       <section className="relative overflow-hidden border-b border-border/30">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_0%,hsl(var(--accent)/0.06),transparent_70%)] pointer-events-none" />
         <div className="absolute inset-0 dot-grid opacity-15 pointer-events-none" />
-        <div className="container-wide relative py-20 md:py-28">
-          <div className="max-w-3xl mx-auto text-center">
-            <motion.div initial="hidden" animate="visible" custom={0} variants={fade}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-muted/60 border border-border/40 text-[11px] font-medium tracking-[0.12em] uppercase text-muted-foreground mb-7">
-              <Sparkles className="h-3 w-3 text-accent" />
-              Elite Marketplace · by Archistudio
-            </motion.div>
+        <div className="container-wide relative py-16 md:py-28">
+          <div className="grid lg:grid-cols-12 gap-12 items-center">
+            <div className="lg:col-span-7 text-left">
+              <motion.div initial="hidden" animate="visible" custom={0} variants={fade}
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-muted/60 border border-border/40 text-[11px] font-medium tracking-[0.12em] uppercase text-muted-foreground mb-7">
+                <Sparkles className="h-3 w-3 text-accent" />
+                Elite Marketplace · by Archistudio
+              </motion.div>
 
-            <motion.h1 initial="hidden" animate="visible" custom={1} variants={fade}
-              className="font-display text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-[1] mb-6">
-              Collaborate. Create.
-              <br />
-              <span className="italic text-muted-foreground/70 font-medium">Construct.</span>
-            </motion.h1>
+              <motion.h1 initial="hidden" animate="visible" custom={1} variants={fade}
+                className="font-display text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-[0.95] mb-6">
+                Collaborate.
+                <br />
+                Create. Construct.
+              </motion.h1>
 
-            <motion.p initial="hidden" animate="visible" custom={2} variants={fade}
-              className="text-base md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              The professional ecosystem where quality meets security. Hire vetted architectural talent with a studio-protected workflow.
-            </motion.p>
+              <motion.p initial="hidden" animate="visible" custom={2} variants={fade}
+                className="text-base md:text-xl text-muted-foreground max-w-xl leading-relaxed">
+                The professional ecosystem where quality meets security. Hire vetted architectural talent with a studio-protected workflow.
+              </motion.p>
 
-            <motion.div initial="hidden" animate="visible" custom={3} variants={fade}
-              className="flex flex-col sm:flex-row gap-4 justify-center mt-12">
-              <Link to="/studio-hub/post">
-                <Button size="xl" className="bg-foreground text-background hover:bg-foreground/90 gap-2 rounded-full px-10 shadow-2xl font-bold">
-                  Hire Talent <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link to="/studio-hub/become-member">
-                <Button size="xl" variant="outline" className="rounded-full px-10 text-muted-foreground hover:text-foreground border-border/60 font-medium">
-                  Join as a Member
-                </Button>
-              </Link>
-            </motion.div>
+              <motion.div initial="hidden" animate="visible" custom={3} variants={fade}
+                className="flex flex-col sm:flex-row gap-4 justify-start mt-12">
+                <Link to="/studio-hub/post">
+                  <Button size="xl" className="bg-foreground text-background hover:bg-foreground/90 gap-2 rounded-full px-10 shadow-2xl font-bold">
+                    Hire Talent <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+                <Link to="/studio-hub/become-member">
+                  <Button size="xl" variant="outline" className="rounded-full px-10 text-muted-foreground hover:text-foreground border-border/60 font-medium bg-background/50">
+                    Join as a Member
+                  </Button>
+                </Link>
+              </motion.div>
 
-            <motion.div initial="hidden" animate="visible" custom={4} variants={fade}
-              className="flex flex-wrap items-center justify-center gap-6 mt-10">
-              {['Studio-grade Escrow', 'Expert File Review', 'Secure Deliverables'].map(item => (
-                <span key={item} className="trust-badge text-[11px] font-bold uppercase tracking-wider">
-                  <ShieldCheck className="h-3.5 w-3.5 text-accent" />
-                  {item}
-                </span>
-              ))}
+              <motion.div initial="hidden" animate="visible" custom={4} variants={fade}
+                className="flex flex-wrap items-center justify-start gap-6 mt-12">
+                {['Studio-grade Escrow', 'Expert File Review', 'Secure Deliverables'].map(item => (
+                  <span key={item} className="trust-badge text-[10px] font-bold uppercase tracking-wider">
+                    <ShieldCheck className="h-3.5 w-3.5 text-accent" />
+                    {item}
+                  </span>
+                ))}
+              </motion.div>
+            </div>
+
+            {/* Real-time Pulse Sidebar */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="lg:col-span-5 mt-12 lg:mt-0"
+            >
+              <div className="relative group">
+                <div className="absolute -inset-1 bg-gradient-to-r from-accent/20 to-blueprint/20 rounded-[32px] blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
+                <Card className="relative border-border/40 overflow-hidden bg-background/80 backdrop-blur-xl rounded-[32px] shadow-2xl">
+                  <CardContent className="p-6 md:p-8">
+                    <StudioPulse />
+                  </CardContent>
+                </Card>
+              </div>
             </motion.div>
           </div>
         </div>
@@ -254,7 +278,10 @@ export default function StudioHubHome() {
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <p className="text-[15px] font-bold line-clamp-1 group-hover:text-accent transition-colors tracking-tight">{m.display_name || 'Anonymous'}</p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <p className="text-[15px] font-bold line-clamp-1 group-hover:text-accent transition-colors tracking-tight">{m.display_name || 'Anonymous'}</p>
+                  <VerifiedBadge size="sm" />
+                </div>
                 <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest line-clamp-1 mt-0.5">{m.headline || `${m.experience_level} member`}</p>
               </Link>
             ))}

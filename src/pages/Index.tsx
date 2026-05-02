@@ -8,6 +8,7 @@ import { SEOHead, generateOrganizationSchema, generateWebsiteSchema } from '@/co
 import { SitelinkSchema } from '@/components/seo/SitelinkSchema';
 import { useGoogleAnalytics, analytics, initializeGA4 } from '@/hooks/useGoogleAnalytics';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
+import { LiveActivityTicker } from '@/components/ui/LiveActivityTicker';
 
 // Lazy load below-the-fold sections for faster initial load
 const ProblemSection = lazy(() => import('@/components/home/ProblemSection').then(m => ({ default: m.ProblemSection })));
@@ -55,6 +56,7 @@ export default function Index() {
       
       <AnimatedBackground intensity="light" />
       <Navbar />
+      <LiveActivityTicker />
       
       <main id="main-content">
         {/* Section 1 — Hero */}
