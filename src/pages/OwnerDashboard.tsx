@@ -12,6 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, ShieldAlert, Users, Wallet, Briefcase, MessageSquare, Key, ArrowRight, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { AdminAIHelper } from '@/components/admin/AdminAIHelper';
+import { AdminSubscriptionManager } from '@/components/admin/AdminSubscriptionManager';
 
 export default function OwnerDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -149,11 +150,12 @@ export default function OwnerDashboard() {
                 </CardContent>
               </Card>
             </div>
+            {/* Admin Tools: AI & Memberships */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              <AdminAIHelper />
+              <AdminSubscriptionManager />
+            </div>
           </div>
-          <div className="flex flex-col justify-end">
-            <AdminAIHelper />
-          </div>
-        </div>
 
         <Tabs value={tab} onValueChange={setTab} className="w-full">
           <TabsList className="w-full justify-start border-b border-border rounded-none bg-transparent p-0 h-auto mb-6">
