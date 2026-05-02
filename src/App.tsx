@@ -12,6 +12,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { CartProvider } from "@/contexts/CartContext";
 import { CouponProvider } from "@/contexts/CouponContext";
 import { CouponBanner } from "@/components/coupon/CouponBanner";
+import { CouponCelebrationModal } from "@/components/coupon/CouponCelebrationModal";
 import { PurchaseNotification } from "@/components/social-proof/PurchaseNotification";
 import { FestivalDecorations } from "@/components/festival/FestivalDecorations";
 import { SaleBanner } from "@/components/sales/SaleBanner";
@@ -494,6 +495,7 @@ const App = () => {
                     <PurchaseNotification />
                     <SaleBanner />
                     <CouponBanner />
+                    <CouponCelebrationModal />
                     <AnimatedRoutes isSlow={isSlow} />
                     {!isSlow && (
                       <>
