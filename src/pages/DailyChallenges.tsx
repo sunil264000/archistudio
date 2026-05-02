@@ -22,6 +22,7 @@ interface Challenge {
   difficulty: string;
   active_date: string;
   submission_count: number;
+  is_mock?: boolean;
 }
 
 interface Submission {
@@ -42,6 +43,29 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   hard: 'bg-red-500/10 text-red-500 border-red-500/20',
 };
 
+const MOCK_CHALLENGES: Challenge[] = [
+  {
+    id: 'mock-1',
+    title: 'Minimalist Residential Facade',
+    brief: 'Design a 2-story minimalist facade using only two materials. Focus on window proportions and shadow play.',
+    category: 'Exterior Design',
+    difficulty: 'easy',
+    active_date: 'Today',
+    submission_count: 14,
+    is_mock: true
+  },
+  {
+    id: 'mock-2',
+    title: 'Staircase Detail in Concrete',
+    brief: 'Create a technical detail for a cantilevered concrete staircase. Show reinforcement and finishing.',
+    category: 'Construction Detail',
+    difficulty: 'hard',
+    active_date: 'Yesterday',
+    submission_count: 8,
+    is_mock: true
+  }
+];
+
 export default function DailyChallenges() {
   const { user } = useAuth();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
@@ -57,7 +81,7 @@ export default function DailyChallenges() {
 
   // Realtime vote updates
   useEffect(() => {
-    if (!selectedChallenge) return;
+    if (!selectedChallenge || selectedChallenge.is_mock) return;
     const channel = supabase
       .channel(`challenge-votes-${selectedChallenge.id}`)
       .on('postgres_changes', {
@@ -89,10 +113,16 @@ export default function DailyChallenges() {
       return;
     }
 
-    setChallenges(data || []);
-    if (data && data.length > 0 && !selectedChallenge) {
-      setSelectedChallenge(data[0]);
-      fetchSubmissions(data[0].id);
+    const finalChallenges = (data && data.length > 0) ? data : MOCK_CHALLENGES;
+    setChallenges(finalChallenges);
+    
+    if (finalChallenges.length > 0 && !selectedChallenge) {
+      setSelectedChallenge(finalChallenges[0]);
+      if (!finalChallenges[0].is_mock) {
+        fetchSubmissions(finalChallenges[0].id);
+      } else {
+        setSubmissions([]); // Or mock submissions if needed
+      }
     }
     setLoading(false);
   };

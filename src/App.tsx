@@ -81,6 +81,8 @@ const CaseStudies = lazy(() => import("./pages/CaseStudies"));
 const LearningMap = lazy(() => import("./pages/LearningMap"));
 const Explore = lazy(() => import("./pages/Explore"));
 const StudioRooms = lazy(() => import("./pages/StudioRooms"));
+const QuickReview = lazy(() => import("./pages/QuickReview"));
+const StudentMentorship = lazy(() => import("./pages/StudentMentorship"));
 const StudioHubHome = lazy(() => import("./pages/studio-hub/StudioHubHome"));
 const StudioHubBrowseProjects = lazy(() => import("./pages/studio-hub/BrowseProjects"));
 const StudioHubProjectDetail = lazy(() => import("./pages/studio-hub/ProjectDetail"));
@@ -433,6 +435,8 @@ function AnimatedRoutes({ isSlow }: { isSlow: boolean }) {
             <Route path="/resources" element={<ResourceLibrary />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/learning-map" element={<LearningMap />} />
+            <Route path="/quick-review" element={<QuickReview />} />
+            <Route path="/mentorship" element={<StudentMentorship />} />
             <Route path="/case-studies" element={<CaseStudies />} />
             <Route path="/portfolio/:slug" element={<PortfolioView />} />
             <Route path="/portfolios" element={<PortfolioDiscovery />} />

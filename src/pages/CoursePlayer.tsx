@@ -153,9 +153,18 @@ export default function CoursePlayer() {
       user_id: user.id, lesson_id: currentLesson.id, completed: true,
       completed_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,lesson_id' });
+    
+    // Cinematic Archipoint Reward
+    const pointsAwarded = 50;
+    toast.success(`Lesson completed! +${pointsAwarded} Archipoints gained`, {
+      icon: <Sparkles className="h-4 w-4 text-amber-500" />,
+      className: "border-amber-500/20 bg-amber-500/5",
+      description: "Use points for bid boosts in the Studio Hub."
+    });
+
     setProgress(prev => ({ ...prev, [currentLesson.id]: { ...prev[currentLesson.id], completed: true, lesson_id: currentLesson.id, last_position_seconds: 0 } }));
     setShowFinishButton(false); setWatchProgress(0);
-    toast.success('Lesson completed! 🎉');
+    
     const allLessons = modules.flatMap(m => m.lessons);
     const newCompletedCount = Object.values(progress).filter(p => p.completed).length + 1;
     if (newCompletedCount >= allLessons.length && course?.id) {

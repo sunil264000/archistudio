@@ -59,6 +59,7 @@ export default function ProjectDetail() {
   const [bid, setBid] = useState('');
   const [days, setDays] = useState('');
   const [message, setMessage] = useState('');
+  const [isBoosted, setIsBoosted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [hiring, setHiring] = useState<string | null>(null);
 
@@ -104,7 +105,10 @@ export default function ProjectDetail() {
 
     setSubmitting(true);
     const { error } = await (supabase as any).from('job_proposals').insert({
-      job_id: project.id, worker_id: user.id, ...parsed.data,
+      job_id: project.id, 
+      worker_id: user.id, 
+      is_featured: isBoosted,
+      ...parsed.data,
     });
     setSubmitting(false);
     if (error) {
@@ -112,9 +116,9 @@ export default function ProjectDetail() {
       else toast.error(error.message);
       return;
     }
-    toast.success('Proposal submitted!');
+    toast.success(isBoosted ? 'Proposal boosted & submitted!' : 'Proposal submitted!');
     setProposalOpen(false);
-    setBid(''); setDays(''); setMessage('');
+    setBid(''); setDays(''); setMessage(''); setIsBoosted(false);
     refetchProposals();
   };
 
@@ -350,10 +354,21 @@ export default function ProjectDetail() {
                   <p className="text-sm text-muted-foreground">No proposals yet — they'll appear here as Studio Members respond.</p>
                 ) : (
                   <div className="space-y-3">
-                    {proposals.map((p) => (
-                      <div key={p.id} className="border border-border/40 rounded-xl p-5 bg-card/40 hover:bg-card/60 transition-colors">
+                    {[...proposals].sort((a, b) => (b.is_featured ? 1 : 0) - (a.is_featured ? 1 : 0)).map((p) => (
+                      <div key={p.id} className={`border rounded-xl p-5 transition-all ${
+                        p.is_featured 
+                        ? 'border-accent/40 bg-accent/[0.03] shadow-[0_4px_20px_-10px_hsl(var(--accent)/0.15)] ring-1 ring-accent/20' 
+                        : 'border-border/40 bg-card/40 hover:bg-card/60'
+                      }`}>
                         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-                          <Link to={`/studio-hub/members/${p.worker_id}`} className="text-sm font-medium hover:underline underline-offset-4">View member →</Link>
+                          <div className="flex items-center gap-3">
+                            <Link to={`/studio-hub/members/${p.worker_id}`} className="text-sm font-medium hover:underline underline-offset-4">View member →</Link>
+                            {p.is_featured && (
+                              <Badge className="bg-accent/90 text-accent-foreground border-0 text-[9px] px-1.5 py-0 rounded-full">
+                                <Sparkles className="h-2.5 w-2.5 mr-1" /> Featured
+                              </Badge>
+                            )}
+                          </div>
                           <div className="flex items-center gap-3">
                             <span className="text-sm"><span className="font-display font-semibold">₹{Number(p.bid_amount).toLocaleString('en-IN')}</span> · {p.delivery_days}d</span>
                             <Badge variant="outline" className="capitalize text-xs">{p.status}</Badge>
@@ -493,6 +508,31 @@ export default function ProjectDetail() {
                         <Textarea id="cover" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Why you fit, your approach, similar past work…" rows={5} maxLength={2000} className="mt-1.5 rounded-xl" />
                         <p className="text-xs text-muted-foreground mt-1">{message.length}/2000</p>
                       </div>
+
+                      <div 
+                        onClick={() => setIsBoosted(!isBoosted)}
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-4 ${
+                          isBoosted 
+                          ? 'bg-accent/10 border-accent/40 shadow-[0_0_20px_rgba(var(--accent-rgb),0.1)]' 
+                          : 'bg-muted/30 border-border/40 hover:bg-muted/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-xl ${isBoosted ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'}`}>
+                            <Sparkles className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold">Boost Proposal</p>
+                            <p className="text-[10px] text-muted-foreground">Keep your bid at the top for ₹99</p>
+                          </div>
+                        </div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                          isBoosted ? 'bg-accent border-accent' : 'border-border'
+                        }`}>
+                          {isBoosted && <CheckCircle2 className="h-3 w-3 text-accent-foreground" />}
+                        </div>
+                      </div>
+
                       <DialogFooter>
                         <Button type="button" variant="ghost" onClick={() => setProposalOpen(false)}>Cancel</Button>
                         <Button type="submit" disabled={submitting} className="bg-foreground text-background hover:bg-foreground/90 rounded-full">

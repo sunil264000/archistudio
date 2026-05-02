@@ -83,6 +83,7 @@ export function Navbar() {
     { to: '/portfolios', label: 'Portfolios', icon: Palette, desc: 'Student showcases' },
     { to: '/case-studies', label: 'Case Studies', icon: Compass, desc: 'Real-world projects' },
     ...(user ? [{ to: '/portfolio/build', label: 'My Portfolio', icon: Users, desc: 'Build yours' }] : []),
+    { to: '/mentorship', label: '1:1 Mentorship', icon: GraduationCap, desc: 'Personalized guide' },
     { to: '/blog', label: 'Blog', icon: BookOpen, desc: 'Architecture insights' },
   ];
 
@@ -321,6 +322,7 @@ export function Navbar() {
                   { to: '/case-studies', label: 'Case Studies' },
                   { to: '/leaderboard', label: 'Leaderboard' },
                   { to: '/resources', label: 'Resources' },
+                  { to: '/mentorship', label: '1:1 Mentorship' },
                   { to: '/blog', label: 'Blog' },
                   ...(user ? [
                     { to: '/studio', label: 'Studio' },

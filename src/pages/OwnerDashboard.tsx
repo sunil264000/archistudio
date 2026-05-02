@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, ShieldAlert, Users, Wallet, Briefcase, MessageSquare, Key, ArrowRight, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import { AdminAIHelper } from '@/components/admin/AdminAIHelper';
 
 export default function OwnerDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -118,32 +119,40 @@ export default function OwnerDashboard() {
           <p className="text-muted-foreground">Welcome back, Sunil. Ultimate platform control.</p>
         </div>
 
-        {/* Top level stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card className="border-border/40 bg-card/40">
-            <CardContent className="p-6">
-              <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Platform Income</p>
-              <p className="text-3xl font-bold text-emerald-500">₹{stats.income.toLocaleString()}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-border/40 bg-card/40">
-            <CardContent className="p-6">
-              <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Held in Escrow</p>
-              <p className="text-3xl font-bold text-blue-500">₹{stats.escrow.toLocaleString()}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-border/40 bg-card/40">
-            <CardContent className="p-6">
-              <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Total Payouts</p>
-              <p className="text-3xl font-bold text-purple-500">₹{stats.payouts.toLocaleString()}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-border/40 bg-card/40">
-            <CardContent className="p-6">
-              <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold">Total Users</p>
-              <p className="text-3xl font-bold text-foreground">{stats.users}</p>
-            </CardContent>
-          </Card>
+        {/* Admin AI Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-8 mb-8">
+          <div className="space-y-4">
+            <h2 className="text-xl font-display font-bold">Platform Status</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="border-border/40 bg-card/40">
+                <CardContent className="p-6">
+                  <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold text-[10px]">Income</p>
+                  <p className="text-2xl font-bold text-emerald-500">₹{stats.income.toLocaleString()}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border/40 bg-card/40">
+                <CardContent className="p-6">
+                  <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold text-[10px]">Escrow</p>
+                  <p className="text-2xl font-bold text-blue-500">₹{stats.escrow.toLocaleString()}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border/40 bg-card/40">
+                <CardContent className="p-6">
+                  <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold text-[10px]">Payouts</p>
+                  <p className="text-2xl font-bold text-purple-500">₹{stats.payouts.toLocaleString()}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-border/40 bg-card/40">
+                <CardContent className="p-6">
+                  <p className="text-sm text-muted-foreground mb-1 uppercase tracking-wider font-semibold text-[10px]">Users</p>
+                  <p className="text-2xl font-bold text-foreground">{stats.users}</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+          <div className="flex flex-col justify-end">
+            <AdminAIHelper />
+          </div>
         </div>
 
         <Tabs value={tab} onValueChange={setTab} className="w-full">

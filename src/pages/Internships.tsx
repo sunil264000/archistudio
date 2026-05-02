@@ -23,6 +23,39 @@ interface Internship {
   created_at: string; application_count: number;
 }
 
+const MOCK_INTERNSHIPS: Internship[] = [
+  {
+    id: 'mock-int-1',
+    title: 'Junior Architectural Intern',
+    company_name: 'Studio Arch-Delineate',
+    city: 'Mumbai',
+    role_type: 'Full-time',
+    description: 'Looking for a passionate intern to assist with conceptual design and 3D visualization. Proficient in Revit and 3ds Max.',
+    requirements: 'Revit, 3ds Max, Lumion',
+    stipend: '₹12,000/mo',
+    deadline: new Date(Date.now() + 86400000 * 14).toISOString(),
+    website_url: '#',
+    contact_email: 'jobs@studioarch.com',
+    created_at: new Date().toISOString(),
+    application_count: 5
+  },
+  {
+    id: 'mock-int-2',
+    title: 'Design Research Assistant',
+    company_name: 'Urban Genesis',
+    city: 'Bangalore',
+    role_type: 'Part-time',
+    description: 'Assist in urban planning research and site analysis for upcoming township projects.',
+    requirements: 'GIS, AutoCAD, Research Skills',
+    stipend: '₹8,000/mo',
+    deadline: new Date(Date.now() + 86400000 * 7).toISOString(),
+    website_url: '#',
+    contact_email: 'careers@urbangenesis.in',
+    created_at: new Date().toISOString(),
+    application_count: 3
+  }
+];
+
 export default function Internships() {
   const { user } = useAuth();
   const [internships, setInternships] = useState<Internship[]>([]);
@@ -39,7 +72,9 @@ export default function Internships() {
     setLoading(true);
     const { data } = await (supabase as any).from('internships')
       .select('*').eq('is_approved', true).order('created_at', { ascending: false });
-    setInternships(data || []);
+    
+    const finalInternships = (data && data.length > 0) ? data : MOCK_INTERNSHIPS;
+    setInternships(finalInternships);
     setLoading(false);
   }, []);
 

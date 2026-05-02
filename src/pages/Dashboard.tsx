@@ -198,6 +198,10 @@ export default function Dashboard() {
                 <Award className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Certs</span>
               </TabsTrigger>
+              <TabsTrigger value="mentorship" className="shrink-0 min-w-20 gap-1.5 text-xs sm:text-sm px-3 sm:px-4">
+                <GraduationCap className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Mentorship</span>
+              </TabsTrigger>
               <TabsTrigger value="referrals" className="shrink-0 min-w-20 gap-1.5 text-xs sm:text-sm px-3 sm:px-4">
                 <Gift className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Refer</span>
@@ -246,6 +250,28 @@ export default function Dashboard() {
               </div>
             </TabsContent>
             <TabsContent value="certificates"><Certificates /></TabsContent>
+            <TabsContent value="mentorship">
+              <div className="space-y-6">
+                <Card className="border-accent/20 bg-accent/[0.02]">
+                  <CardContent className="p-8 text-center">
+                    <GraduationCap className="h-12 w-12 text-accent mx-auto mb-4" />
+                    <h3 className="text-xl font-display font-bold mb-2">1:1 Student Mentorship</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto mb-6">
+                      Stuck on a project? Need a thesis guide or AutoCAD help? Our senior architects are here to help you 1:1.
+                    </p>
+                    <Link to="/mentorship">
+                      <Button className="rounded-full bg-accent text-accent-foreground hover:bg-accent/90 px-8">
+                        Request a Session
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+                <div className="p-6 rounded-2xl border border-border/40 bg-card/30">
+                  <h4 className="text-sm font-semibold mb-4">Your Mentorship Requests</h4>
+                  <p className="text-xs text-muted-foreground italic">You haven't requested any 1:1 sessions yet.</p>
+                </div>
+              </div>
+            </TabsContent>
             <TabsContent value="referrals"><ReferralSection /></TabsContent>
             <TabsContent value="verify"><VerifyTab /></TabsContent>
             <TabsContent value="account"><AccountTab /></TabsContent>

@@ -4,6 +4,7 @@ import { Footer } from '@/components/layout/Footer';
 import { HeroSection } from '@/components/home/HeroSection';
 import { HighlightedCourseSection } from '@/components/home/HighlightedCourseSection';
 import { LiveStatsBar } from '@/components/home/LiveStatsBar';
+import { TrustBar } from '@/components/home/TrustBar';
 import { SEOHead, generateOrganizationSchema, generateWebsiteSchema } from '@/components/seo/SEOHead';
 import { SitelinkSchema } from '@/components/seo/SitelinkSchema';
 import { useGoogleAnalytics, analytics, initializeGA4 } from '@/hooks/useGoogleAnalytics';
@@ -61,6 +62,9 @@ export default function Index() {
       <main id="main-content">
         {/* Section 1 — Hero */}
         <HeroSection />
+        
+        {/* Trust Bar (Authority) */}
+        <TrustBar />
         
         {/* Live Stats Bar */}
         <LiveStatsBar />

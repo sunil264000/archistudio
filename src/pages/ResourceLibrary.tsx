@@ -23,6 +23,29 @@ const CATEGORIES = [
   { key: 'presentation-templates', label: 'Templates', icon: FileText },
 ];
 
+const MOCK_RESOURCES = [
+  {
+    id: 'mock-res-1',
+    title: 'Standard Architectural CAD Blocks (2D)',
+    description: 'A curated collection of human figures, furniture, and vegetation for professional 2D drawings.',
+    category: 'cad-blocks',
+    file_type: 'dwg',
+    download_count: 1240,
+    is_published: true,
+    is_mock: true
+  },
+  {
+    id: 'mock-res-2',
+    title: 'High-Res Concrete Texture Pack',
+    description: 'Seamless concrete textures for realistic rendering in 3ds Max and V-Ray.',
+    category: 'rendering-assets',
+    file_type: 'texture',
+    download_count: 850,
+    is_published: true,
+    is_mock: true
+  }
+];
+
 export default function ResourceLibrary() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -44,7 +67,9 @@ export default function ResourceLibrary() {
       .select('*')
       .eq('is_published', true)
       .order('created_at', { ascending: false });
-    setResources(data || []);
+    
+    const finalResources = (data && data.length > 0) ? data : MOCK_RESOURCES;
+    setResources(finalResources);
     setLoading(false);
   };
 

@@ -116,9 +116,24 @@ export function HeroSection() {
             {/* CTAs */}
             <motion.div 
               custom={3} variants={anims} initial="hidden" animate="visible"
-              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 justify-center mt-10 max-w-md sm:max-w-none mx-auto"
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 justify-center mt-10 max-w-md sm:max-w-none mx-auto relative"
             >
-              <Link to={user ? "/courses" : "/auth?mode=signup"} className="w-full sm:w-auto">
+              {/* Live Social Proof Bubble */}
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-md border border-border/40 shadow-sm animate-bounce-slow">
+                <div className="flex -space-x-1.5">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-5 w-5 rounded-full border-2 border-background bg-accent/20 flex items-center justify-center text-[8px] font-bold">
+                      {String.fromCharCode(64 + i)}
+                    </div>
+                  ))}
+                </div>
+                <span className="text-[10px] font-medium text-muted-foreground">
+                  <span className="text-foreground font-bold">14 students</span> learning Revit now
+                </span>
+              </div>
+
+              <Link to={user ? "/courses" : "/auth?mode=signup"} className="w-full sm:w-auto relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-accent/60 to-accent/20 rounded-full blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
                 <Button
                   size="lg"
                   className="relative gap-2.5 group w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/95 shadow-[0_8px_28px_-8px_hsl(var(--accent)/0.55)] hover:shadow-[0_14px_38px_-10px_hsl(var(--accent)/0.65)] hover:-translate-y-0.5 text-[15px] h-12 px-7 rounded-full font-semibold transition-all duration-300 overflow-hidden before:absolute before:inset-0 before:bg-[linear-gradient(135deg,hsl(0_0%_100%/0.18)_0%,transparent_55%)] before:pointer-events-none"
