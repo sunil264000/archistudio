@@ -152,7 +152,7 @@ export function EMIPaymentOptions({
         .from('course_emi_settings')
         .select('*')
         .eq('course_id', courseId)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') throw error;
 

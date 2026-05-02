@@ -134,6 +134,13 @@ export function SecureVideoPlayer({
   // Fetch Video Logic
   useEffect(() => {
     const fetchVideoUrl = async () => {
+      const timeoutId = setTimeout(() => {
+        if (loading) {
+          setError('Video taking too long to load. Please try direct link or refresh.');
+          setLoading(false);
+        }
+      }, 15000); // 15s timeout
+
       try {
         setLoading(true);
         setError(null);
@@ -142,6 +149,7 @@ export function SecureVideoPlayer({
         if (!videoPath) {
           setVideoUrl(null);
           setError('No video available for this lesson.');
+          clearTimeout(timeoutId);
           return;
         }
 
@@ -149,6 +157,7 @@ export function SecureVideoPlayer({
         if (isLuluStreamUrl) {
           setVideoUrl(videoPath);
           setUseIframe(true);
+          clearTimeout(timeoutId);
           return;
         }
 
@@ -164,6 +173,7 @@ export function SecureVideoPlayer({
                 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
                 const streamUrl = `${supabaseUrl}/functions/v1/stream-video?ticket=${encodeURIComponent(data.ticket)}&l=${encodeURIComponent(lessonId)}&p=${encodeURIComponent(videoPath)}`;
                 setVideoUrl(streamUrl);
+                clearTimeout(timeoutId);
                 return;
               }
             } catch (err) {
@@ -172,6 +182,7 @@ export function SecureVideoPlayer({
           }
           setVideoUrl(toGoogleDriveEmbed(videoPath));
           setUseIframe(true);
+          clearTimeout(timeoutId);
           return;
         }
 
@@ -183,6 +194,7 @@ export function SecureVideoPlayer({
           });
           if (fnError) throw fnError;
           setVideoUrl(data?.signedUrl || videoPath);
+          clearTimeout(timeoutId);
           return;
         }
 
@@ -191,6 +203,7 @@ export function SecureVideoPlayer({
         setError(err.message || 'Failed to load video');
       } finally {
         setLoading(false);
+        clearTimeout(timeoutId);
       }
     };
 
@@ -315,9 +328,21 @@ export function SecureVideoPlayer({
           </div>
           <h3 className="text-xl font-semibold text-white">Playback Interrupted</h3>
           <p className="text-sm text-zinc-400 leading-relaxed">{error}</p>
-          <Button variant="outline" onClick={() => window.location.reload()} className="mt-2 border-white/10 hover:bg-white/5">
-            Retry Connection
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-2">
+            <Button variant="outline" onClick={() => window.location.reload()} className="border-white/10 hover:bg-white/5">
+              Retry Connection
+            </Button>
+            {isGoogleDriveUrl && (
+              <Button 
+                variant="secondary" 
+                onClick={() => window.open(videoPath, '_blank')}
+                className="gap-2"
+              >
+                <Globe className="h-4 w-4" />
+                Open on Google Drive
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     );
