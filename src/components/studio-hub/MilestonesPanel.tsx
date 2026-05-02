@@ -57,7 +57,11 @@ export function MilestonesPanel({ contractId, agreedAmount, isClient, isAdmin, p
     }).eq('id', milestoneId);
     if (error) { toast.error(error.message); return; }
     // bump contract escrow_total_released
-    await (supabase as any).rpc('upsert_cache', { p_key: `noop-${milestoneId}`, p_value: {}, p_ttl_seconds: 1 }).catch(() => {});
+    try {
+      await (supabase as any).rpc('upsert_cache', { p_key: `noop-${milestoneId}`, p_value: {}, p_ttl_seconds: 1 });
+    } catch (e) {
+      console.warn('Upsert cache failed (non-critical):', e);
+    }
     toast.success('Milestone released to member');
     void refetch();
   };

@@ -168,7 +168,11 @@ export default function CoursePlayer() {
     const allLessons = modules.flatMap(m => m.lessons);
     const newCompletedCount = Object.values(progress).filter(p => p.completed).length + 1;
     if (newCompletedCount >= allLessons.length && course?.id) {
-      supabase.functions.invoke('check-course-completion', { body: { userId: user.id, courseId: course.id } }).catch(console.error);
+      try {
+        await supabase.functions.invoke('check-course-completion', { body: { userId: user.id, courseId: course.id } });
+      } catch (e) {
+        console.error('Course completion check failed:', e);
+      }
       setTimeout(() => setShowCompletionModal(true), 500);
     }
   }, [currentLesson, user, modules, progress, course]);
