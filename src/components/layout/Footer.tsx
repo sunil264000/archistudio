@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Instagram, Facebook, Twitter, Youtube, Linkedin, ArrowUpRight, Shield, Lock, Zap, ArrowRight } from 'lucide-react';
+import { Instagram, Facebook, Twitter, Youtube, Linkedin, ArrowUpRight, Shield, Lock, Zap, ArrowRight, MessageCircle, Send } from 'lucide-react';
 import logoMark from '@/assets/logo-mark.png';
 import { Button } from '@/components/ui/button';
 
@@ -11,11 +11,14 @@ interface SocialLinks {
   twitter_url: string;
   youtube_url: string;
   linkedin_url: string;
+  whatsapp_channel_url: string;
+  telegram_url: string;
 }
 
 export function Footer() {
   const [socialLinks, setSocialLinks] = useState<SocialLinks>({
     instagram_url: '', facebook_url: '', twitter_url: '', youtube_url: '', linkedin_url: '',
+    whatsapp_channel_url: '', telegram_url: '',
   });
 
   useEffect(() => {
@@ -23,7 +26,7 @@ export function Footer() {
       const { data } = await supabase
         .from('site_settings')
         .select('key, value')
-        .in('key', ['instagram_url', 'facebook_url', 'twitter_url', 'youtube_url', 'linkedin_url']);
+        .in('key', ['instagram_url', 'facebook_url', 'twitter_url', 'youtube_url', 'linkedin_url', 'whatsapp_channel_url', 'telegram_url']);
 
       if (data) {
         const links: Partial<SocialLinks> = {};
@@ -36,9 +39,11 @@ export function Footer() {
 
   const socialIcons = [
     { key: 'instagram_url', icon: Instagram, label: 'Instagram' },
+    { key: 'whatsapp_channel_url', icon: MessageCircle, label: 'WhatsApp Channel' },
+    { key: 'telegram_url', icon: Send, label: 'Telegram' },
+    { key: 'youtube_url', icon: Youtube, label: 'YouTube' },
     { key: 'facebook_url', icon: Facebook, label: 'Facebook' },
     { key: 'twitter_url', icon: Twitter, label: 'Twitter' },
-    { key: 'youtube_url', icon: Youtube, label: 'YouTube' },
     { key: 'linkedin_url', icon: Linkedin, label: 'LinkedIn' },
   ];
 
