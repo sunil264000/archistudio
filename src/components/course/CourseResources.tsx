@@ -424,6 +424,7 @@ export function CourseResources({ courseId, isEnrolled }: CourseResourcesProps) 
           ))}
         </div>
       </ScrollArea>
+      </div>
 
       {!isEnrolled && (
         <div className="text-center p-4 rounded-lg bg-muted/20 border border-border/30">
