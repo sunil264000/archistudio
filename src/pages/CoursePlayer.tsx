@@ -197,6 +197,7 @@ export default function CoursePlayer() {
     setNextLessonTimer(null);
   };
 
+  const startNextLessonTimerRef = useRef<(() => void) | null>(null);
   const startNextLessonTimer = useCallback(() => {
     const allLessons = modules.flatMap(m => m.lessons);
     const idx = allLessons.findIndex(l => l.id === currentLesson?.id);
@@ -208,7 +209,6 @@ export default function CoursePlayer() {
           if (prev === null) return null;
           if (prev <= 1) {
             if (timerRef.current) clearInterval(timerRef.current);
-            // We use handleLessonSelect directly to avoid dependency issues with the ref update
             const nextIdx = idx + 1;
             if (allLessons[nextIdx]) {
               handleLessonSelect(allLessons[nextIdx]);
@@ -220,6 +220,7 @@ export default function CoursePlayer() {
       }, 1000);
     }
   }, [currentLesson, modules]);
+  startNextLessonTimerRef.current = startNextLessonTimer;
   const goToPrevLesson = () => {
     if (!currentLesson) return;
     const allLessons = modules.flatMap(m => m.lessons);
