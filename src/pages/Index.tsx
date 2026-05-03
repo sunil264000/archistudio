@@ -58,6 +58,7 @@ export default function Index() {
       <SitelinkSchema />
       
       <AnimatedBackground intensity="light" />
+      <LaunchWelcomeBanner />
       <Navbar />
       <LiveActivityTicker />
       <PageProgressIndicator />
