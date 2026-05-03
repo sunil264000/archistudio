@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useCoupon } from '@/contexts/CouponContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Gift, GraduationCap, Timer, Sparkles } from 'lucide-react';
+import { Gift, GraduationCap, Timer, Sparkles, MessageCircle, Instagram, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const SHOWN_KEY_PREFIX = 'archi.may2026.celebShown.';
