@@ -22,6 +22,7 @@ export function StudioHubLayout({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { profile } = useMyMemberProfile();
   const [hideAlert, setHideAlert] = useState(false);
+  const { pathname } = useLocation();
   
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(to + '/');
