@@ -11,6 +11,7 @@ import { useGoogleAnalytics, analytics, initializeGA4 } from '@/hooks/useGoogleA
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { LiveActivityTicker } from '@/components/ui/LiveActivityTicker';
 import { PageProgressIndicator } from '@/components/ui/PageProgressIndicator';
+import { LaunchWelcomeBanner } from '@/components/home/LaunchWelcomeBanner';
 
 // Lazy load below-the-fold sections for faster initial load
 const ProblemSection = lazy(() => import('@/components/home/ProblemSection').then(m => ({ default: m.ProblemSection })));
