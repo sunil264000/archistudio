@@ -28,25 +28,32 @@ export function Navbar() {
   const handlePathSwitch = () => {
     setIsPathSwitching(true);
     
-    // Play Cinematic Swoosh
-    const swoosh = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
-    swoosh.volume = 0.5;
-    swoosh.play().catch(() => {});
+    // Stage 1: Deep Engine Warmup (0s)
+    const rumble = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+    rumble.volume = 0.6;
+    rumble.play().catch(() => {});
     
-    // Portal expansion delay
+    // Stage 2: Warp Tunnel Swoosh (1.2s)
     setTimeout(() => {
-      const sparkle = new Audio('https://assets.mixkit.co/active_storage/sfx/2016/2016-preview.mp3');
-      sparkle.volume = 0.3;
-      sparkle.play().catch(() => {});
+      const warp = new Audio('https://assets.mixkit.co/active_storage/sfx/2016/2016-preview.mp3');
+      warp.volume = 0.4;
+      warp.play().catch(() => {});
+    }, 1200);
+
+    // Stage 3: Arrival Chime & Navigation (3.5s)
+    setTimeout(() => {
+      const chime = new Audio('https://assets.mixkit.co/active_storage/sfx/1000/1000-preview.mp3');
+      chime.volume = 0.3;
+      chime.play().catch(() => {});
       
       const target = isStudioHub ? '/learn' : '/studio-hub';
       navigate(target);
       
-      // Keep overlay for a bit to finish transition on new page
+      // Stage 4: Fade out overlay (4.5s)
       setTimeout(() => {
         setIsPathSwitching(false);
       }, 1000);
-    }, 800);
+    }, 3500);
   };
 
   useEffect(() => {
@@ -448,87 +455,9 @@ export function Navbar() {
           </>
         )}
       </AnimatePresence>
-      {/* Cinematic Path Switch Overlay */}
-      <AnimatePresence>
-        {isPathSwitching && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center overflow-hidden"
-          >
-            {/* Background Wash */}
-            <motion.div 
-              initial={{ scale: 0, borderRadius: '100%' }}
-              animate={{ scale: 4, borderRadius: '0%' }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
-              className={`absolute inset-0 ${isStudioHub ? 'bg-background' : 'bg-[#030303]'}`}
-            />
-
-            {/* Universe Elements */}
-            <div className="absolute inset-0 opacity-40">
-              {[...Array(50)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ 
-                    opacity: [0, 1, 0], 
-                    scale: [0, Math.random() * 2, 0],
-                    x: (Math.random() - 0.5) * window.innerWidth,
-                    y: (Math.random() - 0.5) * window.innerHeight
-                  }}
-                  transition={{ 
-                    duration: 1 + Math.random() * 2, 
-                    repeat: Infinity,
-                    delay: Math.random() * 1 
-                  }}
-                  className="absolute w-1 h-1 bg-white rounded-full shadow-[0_0_8px_white]"
-                  style={{ 
-                    left: `${Math.random() * 100}%`, 
-                    top: `${Math.random() * 100}%` 
-                  }}
-                />
-              ))}
-            </div>
-
-            {/* Portal Ring */}
-            <motion.div
-              initial={{ scale: 0.2, opacity: 0 }}
-              animate={{ scale: 4, opacity: [0, 1, 1, 0] }}
-              transition={{ duration: 1.5, times: [0, 0.2, 0.8, 1] }}
-              className="absolute w-96 h-96 border-4 border-accent rounded-full shadow-[0_0_100px_hsl(var(--accent)/0.8)]"
-            />
-
-            {/* Content Transition Text */}
-            <motion.div
-              initial={{ y: 20, opacity: 0, scale: 0.8 }}
-              animate={{ y: 0, opacity: [0, 1, 1, 0], scale: 1.1 }}
-              transition={{ duration: 1.5, times: [0, 0.2, 0.8, 1] }}
-              className="absolute text-center z-10"
-            >
-              <h2 className="text-4xl md:text-7xl font-display font-black tracking-tighter text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]">
-                {isStudioHub ? 'RETURN TO ACADEMY' : 'STUDIO UNIVERSE'}
-              </h2>
-              <div className="flex items-center justify-center gap-3 mt-4">
-                <div className="h-px w-12 bg-accent" />
-                <p className="text-accent font-black tracking-[0.4em] text-xs uppercase">
-                  {isStudioHub ? 'Re-learning Fundamentals' : 'Real-Life Execution Mode'}
-                </p>
-                <div className="h-px w-12 bg-accent" />
-              </div>
-            </motion.div>
-            
-            {/* Motion Blur Filter Effect */}
-            <motion.div 
-              initial={{ backdropFilter: 'blur(0px)' }}
-              animate={{ backdropFilter: 'blur(20px)' }}
-              exit={{ backdropFilter: 'blur(0px)' }}
-              className="absolute inset-0 z-0"
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <UniverseTransition isPathSwitching={isPathSwitching} isStudioHub={isStudioHub} />
     </header>
   );
 }
+
+import { UniverseTransition } from '@/components/studio-hub/UniverseTransition';
