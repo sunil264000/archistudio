@@ -22,6 +22,21 @@ export function CouponCelebrationModal() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [courseSlug, setCourseSlug] = useState<string | null>(null);
+  const [socials, setSocials] = useState<{ whatsapp_channel_url?: string; instagram_url?: string; telegram_url?: string }>({});
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('key, value')
+        .in('key', ['whatsapp_channel_url', 'instagram_url', 'telegram_url']);
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((r: any) => { if (r.value) map[r.key] = r.value; });
+        setSocials(map);
+      }
+    })();
+  }, []);
 
   // Show once per user when an active redemption is detected
   useEffect(() => {
