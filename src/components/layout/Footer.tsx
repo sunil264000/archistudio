@@ -69,14 +69,26 @@ export function Footer() {
                 Stay in the loop
               </h3>
               <p className="text-sm text-muted-foreground">
-                Get architecture insights, new course drops, and Studio Hub updates.
+                Architecture insights, new course drops & Studio Hub updates — straight on WhatsApp.
               </p>
             </div>
-            <Link to="/auth?mode=signup">
-              <Button className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full px-6 gap-2 shadow-[0_0_20px_hsl(var(--accent)/0.15)]">
-                Join Free <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {socialLinks.whatsapp_channel_url && (
+                <a
+                  href={socialLinks.whatsapp_channel_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_20px_hsl(142_70%_45%/0.25)] transition-transform hover:scale-105"
+                >
+                  <MessageCircle className="h-4 w-4" /> Join WhatsApp Channel
+                </a>
+              )}
+              <Link to="/auth?mode=signup">
+                <Button className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full px-6 gap-2 shadow-[0_0_20px_hsl(var(--accent)/0.15)]">
+                  Join Free <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
