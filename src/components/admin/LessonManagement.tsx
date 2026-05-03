@@ -12,7 +12,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import {
-  ArrowUp, ArrowDown, CheckSquare, FileArchive, Link, X, Languages
+  ArrowUp, ArrowDown, CheckSquare, FileArchive, Link, X, Languages,
+  FolderSync, Clock, Loader2, FolderPlus, Save, EyeOff, Trash2,
+  GripVertical, Pencil, Plus, Video, FileText, Upload
 } from 'lucide-react';
 import { GoogleDriveImport } from './GoogleDriveImport';
 import { QuickLessonAdd } from './QuickLessonAdd';
