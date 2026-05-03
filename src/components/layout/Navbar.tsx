@@ -22,6 +22,7 @@ export function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isPathSwitching, setIsPathSwitching] = useState(false);
+  const [isDark, setIsDark] = useState(true);
   const isStudioHub = location.pathname.startsWith('/studio-hub');
 
   const handlePathSwitch = () => {
