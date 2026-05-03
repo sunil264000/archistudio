@@ -61,7 +61,7 @@ const PaymentSuccess = () => {
             .maybeSingle();
 
           if (payment) {
-            const metadata = payment.metadata || {};
+            const metadata: any = payment.metadata || {};
             const dbTitle = (payment as any).courses?.title;
             const dbSlug = (payment as any).courses?.slug;
             
@@ -102,7 +102,7 @@ const PaymentSuccess = () => {
           .maybeSingle();
 
         if (payment?.status === "completed") {
-          const metadata = payment.metadata || {};
+          const metadata: any = payment.metadata || {};
           const dbTitle = (payment as any).courses?.title;
           const dbSlug = (payment as any).courses?.slug;
           

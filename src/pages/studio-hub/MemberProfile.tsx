@@ -98,8 +98,8 @@ export default function MemberProfile() {
                 size="xl" 
                 className="h-32 w-32 md:h-44 md:w-44 rounded-[36px] border-8 border-background shadow-2xl relative z-10"
               />
-              <div className="absolute -bottom-2 -right-2 z-20">
-                <VerifiedBadge size="lg" isPro={profile.subscription_tier === 'pro'} className="shadow-xl" />
+              <div className="absolute -bottom-2 -right-2 z-20 shadow-xl">
+                <VerifiedBadge size="lg" isPro={profile.subscription_tier === 'pro'} />
               </div>
             </div>
 

@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMyContracts, useMyMemberProfile, useMyProjects, statusLabel } from '@/hooks/useStudioHub';
-import { Briefcase, PlusCircle, UserCog, Loader2, ArrowRight, Wallet, FileEdit, AlertCircle, Eye, TrendingUp, Star, Clock } from 'lucide-react';
+import { Briefcase, PlusCircle, UserCog, Loader2, ArrowRight, Wallet, FileEdit, AlertCircle, Eye, TrendingUp, Star, Clock, Sparkles, CheckCircle2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { motion } from 'framer-motion';

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { useStudioProjects, STUDIO_CATEGORIES, formatBudget } from '@/hooks/useStudioHub';
-import { Search, Calendar, Users, SlidersHorizontal, X, ArrowUpDown, Clock, AlertCircle } from 'lucide-react';
+import { Search, Calendar, Users, SlidersHorizontal, X, ArrowUpDown, Clock, AlertCircle, ArrowRight } from 'lucide-react';
 import { formatDistanceToNow, differenceInDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles } from 'lucide-react';

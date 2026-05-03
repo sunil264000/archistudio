@@ -25,7 +25,7 @@ import {
 import { toast } from 'sonner';
 import { CourseCompletionModal } from '@/components/course/CourseCompletionModal';
 import { IssueReportButton } from '@/components/course/IssueReportButton';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Module {
   id: string;
@@ -178,9 +178,9 @@ export default function CoursePlayer() {
       setTimeout(() => setShowCompletionModal(true), 500);
     } else {
       // Not course complete, trigger next lesson auto-play
-      startNextLessonTimer();
+      startNextLessonTimerRef.current?.();
     }
-  }, [currentLesson, user, modules, progress, course, startNextLessonTimer]);
+  }, [currentLesson, user, modules, progress, course]);
 
   const goToNextLesson = useCallback(() => {
     if (!currentLesson) return;
@@ -197,6 +197,7 @@ export default function CoursePlayer() {
     setNextLessonTimer(null);
   };
 
+  const startNextLessonTimerRef = useRef<(() => void) | null>(null);
   const startNextLessonTimer = useCallback(() => {
     const allLessons = modules.flatMap(m => m.lessons);
     const idx = allLessons.findIndex(l => l.id === currentLesson?.id);
@@ -208,7 +209,6 @@ export default function CoursePlayer() {
           if (prev === null) return null;
           if (prev <= 1) {
             if (timerRef.current) clearInterval(timerRef.current);
-            // We use handleLessonSelect directly to avoid dependency issues with the ref update
             const nextIdx = idx + 1;
             if (allLessons[nextIdx]) {
               handleLessonSelect(allLessons[nextIdx]);
@@ -220,6 +220,7 @@ export default function CoursePlayer() {
       }, 1000);
     }
   }, [currentLesson, modules]);
+  startNextLessonTimerRef.current = startNextLessonTimer;
   const goToPrevLesson = () => {
     if (!currentLesson) return;
     const allLessons = modules.flatMap(m => m.lessons);
