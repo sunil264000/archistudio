@@ -25,7 +25,7 @@ import {
 import { toast } from 'sonner';
 import { CourseCompletionModal } from '@/components/course/CourseCompletionModal';
 import { IssueReportButton } from '@/components/course/IssueReportButton';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Module {
   id: string;
