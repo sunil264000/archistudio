@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowRight, Zap, Globe } from 'lucide-react';
+import { Layers, Cpu, Maximize2, Compass } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface UniverseTransitionProps {
@@ -8,13 +8,13 @@ interface UniverseTransitionProps {
 }
 
 export function UniverseTransition({ isPathSwitching, isStudioHub }: UniverseTransitionProps) {
-  const [phase, setPhase] = useState<'idle' | 'warmup' | 'warp' | 'arrival'>('idle');
+  const [phase, setPhase] = useState<'idle' | 'scanning' | 'warping' | 'syncing'>('idle');
 
   useEffect(() => {
     if (isPathSwitching) {
-      setPhase('warmup');
-      const timer1 = setTimeout(() => setPhase('warp'), 1000);
-      const timer2 = setTimeout(() => setPhase('arrival'), 3500);
+      setPhase('scanning');
+      const timer1 = setTimeout(() => setPhase('warping'), 800);
+      const timer2 = setTimeout(() => setPhase('syncing'), 2500);
       return () => {
         clearTimeout(timer1);
         clearTimeout(timer2);
@@ -31,162 +31,155 @@ export function UniverseTransition({ isPathSwitching, isStudioHub }: UniverseTra
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[1000] pointer-events-none flex items-center justify-center overflow-hidden"
+          className="fixed inset-0 z-[1000] pointer-events-none flex items-center justify-center overflow-hidden bg-black"
         >
-          {/* Deep Space Background */}
-          <motion.div 
-            initial={{ scale: 0, borderRadius: '100%' }}
-            animate={{ scale: 4, borderRadius: '0%' }}
-            transition={{ duration: 1.5, ease: [0.76, 0, 0.24, 1] }}
-            className={`absolute inset-0 ${isStudioHub ? 'bg-[#0a0a0c]' : 'bg-[#030305]'}`}
-          >
-             {/* Nebula Gradients */}
+          {/* Blueprint Grid Background */}
+          <div className="absolute inset-0 opacity-20">
+             <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
              <motion.div 
-                animate={{ 
-                  scale: [1, 1.2, 1],
-                  rotate: [0, 90, 0],
-                  opacity: [0.1, 0.3, 0.1]
-                }}
-                transition={{ duration: 10, repeat: Infinity }}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-[radial-gradient(circle,hsl(var(--accent)/0.2)_0%,transparent_70%)] blur-[120px]"
+               animate={{ 
+                 backgroundPosition: ['0px 0px', '0px 400px']
+               }}
+               transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+               className="absolute inset-0 bg-[linear-gradient(to_right,#accent_5_1px,transparent_1px),linear-gradient(to_bottom,#accent_5_1px,transparent_1px)] bg-[size:80px_80px]"
+               style={{ backgroundImage: `linear-gradient(to right, hsl(var(--accent)/0.05) 1px, transparent 1px), linear-gradient(to bottom, hsl(var(--accent)/0.05) 1px, transparent 1px)` }}
              />
-          </motion.div>
+          </div>
 
-          {/* Layered Starfield */}
-          <div className="absolute inset-0">
-            {/* Background Stars (Static) */}
-            <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]" />
-            
-            {/* Warp Stars (Moving) */}
-            {[...Array(120)].map((_, i) => (
+          {/* Technical Data Stream (Sides) */}
+          <div className="absolute inset-y-0 left-8 w-48 flex flex-col justify-center gap-2 opacity-40 hidden md:flex">
+             {[...Array(15)].map((_, i) => (
+               <motion.div 
+                 key={i}
+                 initial={{ x: -20, opacity: 0 }}
+                 animate={{ x: 0, opacity: 1 }}
+                 transition={{ delay: i * 0.05 }}
+                 className="text-[8px] font-mono text-accent uppercase tracking-tighter"
+               >
+                 SYS_LOG::{Math.random().toString(16).substring(2, 10)}
+               </motion.div>
+             ))}
+          </div>
+
+          {/* Wireframe Tunnel */}
+          <div className="absolute inset-0 flex items-center justify-center perspective-[1000px]">
+            {[...Array(8)].map((_, i) => (
               <motion.div
                 key={i}
-                initial={{ 
-                  x: (Math.random() - 0.5) * 100, 
-                  y: (Math.random() - 0.5) * 100, 
-                  z: 0,
-                  opacity: 0 
-                }}
-                animate={phase === 'warp' ? {
-                  x: (Math.random() - 0.5) * 2000,
-                  y: (Math.random() - 0.5) * 2000,
-                  opacity: [0, 1, 0],
-                  scale: [0, 1.5, 0]
-                } : {
-                  opacity: [0, 0.5, 0],
-                  scale: [0, 0.5, 0]
+                initial={{ scale: 0.1, opacity: 0, rotateZ: 0 }}
+                animate={{ 
+                  scale: phase === 'warping' ? [0.1, 8] : 0.1, 
+                  opacity: phase === 'warping' ? [0, 0.4, 0] : 0,
+                  rotateZ: phase === 'warping' ? [0, 45] : 0
                 }}
                 transition={{ 
-                  duration: phase === 'warp' ? 0.8 : 2, 
-                  repeat: Infinity,
-                  delay: Math.random() * 2
+                  duration: 1.5, 
+                  repeat: Infinity, 
+                  delay: i * 0.15,
+                  ease: "circIn" 
                 }}
-                className={`absolute w-[2px] h-[2px] rounded-full ${i % 3 === 0 ? 'bg-accent' : 'bg-white'} shadow-[0_0_8px_currentColor]`}
-                style={{ 
-                  left: `${Math.random() * 100}%`, 
-                  top: `${Math.random() * 100}%` 
-                }}
-              />
+                className="absolute w-96 h-96 border border-accent/20 flex items-center justify-center"
+              >
+                 <div className="w-full h-full border-t border-l border-accent/40 opacity-50" />
+                 <div className="absolute top-0 left-0 p-1 text-[6px] font-mono text-accent">COORD_X::{i*120}</div>
+              </motion.div>
             ))}
           </div>
 
-          {/* Warp Tunnel Rings */}
-          <AnimatePresence>
-            {phase === 'warp' && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                {[...Array(6)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ scale: 0, opacity: 0, borderWeight: '1px' }}
-                    animate={{ scale: 10, opacity: [0, 0.5, 0] }}
-                    transition={{ 
-                      duration: 2, 
-                      repeat: Infinity, 
-                      delay: i * 0.3,
-                      ease: "easeIn" 
-                    }}
-                    className="absolute w-64 h-64 border-[1px] border-accent/30 rounded-full"
-                  />
-                ))}
-              </div>
-            )}
-          </AnimatePresence>
+          {/* Scanning Line */}
+          <motion.div 
+            animate={{ top: ['-10%', '110%'] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent z-50 shadow-[0_0_15px_hsl(var(--accent))]"
+          />
 
-          {/* Central Portal Glow */}
-          <motion.div
-            animate={{ 
-              scale: phase === 'warp' ? [1, 1.5, 1] : 1,
-              opacity: phase === 'arrival' ? 0 : 1
-            }}
-            className="relative z-10"
-          >
-            <div className="absolute inset-0 bg-accent blur-[100px] opacity-20 animate-pulse" />
-            <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="relative flex flex-col items-center"
-            >
-              <div className="mb-8 relative">
+          {/* Central Technical Hub */}
+          <div className="relative z-10 flex flex-col items-center">
+             {/* Rotating Tech HUD */}
+             <div className="relative mb-12">
                 <motion.div 
                   animate={{ rotate: 360 }}
-                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                  className="w-32 h-32 md:w-48 md:h-48 rounded-full border-2 border-dashed border-accent/40"
+                  transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                  className="w-48 h-48 md:w-64 md:h-64 rounded-full border border-accent/20 border-dashed"
+                />
+                <motion.div 
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+                  className="absolute inset-4 rounded-full border-t-2 border-accent"
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Globe className="w-12 h-12 md:w-16 md:h-16 text-accent animate-pulse" />
+                   <div className="relative">
+                      <motion.div 
+                        animate={{ scale: [1, 1.1, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="bg-accent/10 p-6 rounded-2xl backdrop-blur-md border border-accent/30"
+                      >
+                         <Cpu className="w-10 h-10 text-accent" />
+                      </motion.div>
+                      {/* Corner Accents */}
+                      <div className="absolute -top-2 -left-2 w-4 h-4 border-t-2 border-l-2 border-accent" />
+                      <div className="absolute -bottom-2 -right-2 w-4 h-4 border-b-2 border-r-2 border-accent" />
+                   </div>
                 </div>
-              </div>
+             </div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center"
-              >
-                <motion.h2 
-                  animate={phase === 'warp' ? { skewX: [0, 10, -10, 0], filter: ['blur(0px)', 'blur(4px)', 'blur(0px)'] } : {}}
-                  transition={{ duration: 0.2, repeat: Infinity }}
-                  className="text-4xl md:text-8xl font-display font-black tracking-tighter text-white uppercase"
-                >
-                  {isStudioHub ? 'Back to Academy' : 'Studio Universe'}
-                </motion.h2>
+             <motion.div
+               initial={{ opacity: 0, scale: 0.9 }}
+               animate={{ opacity: 1, scale: 1 }}
+               className="text-center"
+             >
+                <div className="flex items-center justify-center gap-2 mb-2">
+                   <span className="h-1 w-1 bg-accent rounded-full animate-ping" />
+                   <span className="text-[10px] font-mono font-bold tracking-[0.3em] text-accent uppercase">
+                      {phase === 'scanning' && 'Initializing Environment...'}
+                      {phase === 'warping' && 'Synthesizing Architecture...'}
+                      {phase === 'syncing' && 'Deployment Ready.'}
+                   </span>
+                </div>
                 
-                <div className="flex items-center justify-center gap-4 mt-6 overflow-hidden">
-                  <motion.div 
-                    initial={{ x: -100 }}
-                    animate={{ x: 0 }}
-                    className="h-[2px] w-16 bg-gradient-to-r from-transparent to-accent" 
-                  />
-                  <p className="text-accent font-black tracking-[0.5em] text-[10px] md:text-xs uppercase whitespace-nowrap">
-                    {phase === 'warmup' && 'Initializing Neural Link...'}
-                    {phase === 'warp' && 'Bending Space-Time Reality...'}
-                    {phase === 'arrival' && 'Syncing Creative Core...'}
-                  </p>
-                  <motion.div 
-                    initial={{ x: 100 }}
-                    animate={{ x: 0 }}
-                    className="h-[2px] w-16 bg-gradient-to-l from-transparent to-accent" 
-                  />
-                </div>
-              </motion.div>
-            </motion.div>
-          </motion.div>
+                <h2 className="text-4xl md:text-7xl font-display font-black tracking-tighter text-white uppercase flex items-center gap-4">
+                   <span className="opacity-40 text-2xl md:text-4xl">01</span>
+                   {isStudioHub ? 'Academy' : 'Studio Hub'}
+                   <span className="text-accent">_</span>
+                </h2>
 
-          {/* Flash Effect on Arrival */}
-          <AnimatePresence>
-            {phase === 'arrival' && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0, 1, 0] }}
-                transition={{ duration: 0.8 }}
-                className="absolute inset-0 bg-white z-[2000]"
-              />
-            )}
-          </AnimatePresence>
+                <div className="mt-8 grid grid-cols-3 gap-6 max-w-sm mx-auto opacity-60">
+                   {[
+                     { icon: Maximize2, label: 'Scaling' },
+                     { icon: Layers, label: 'Rendering' },
+                     { icon: Compass, label: 'Mapping' }
+                   ].map((item, idx) => (
+                     <div key={idx} className="flex flex-col items-center gap-2">
+                        <item.icon className="w-4 h-4 text-accent" />
+                        <span className="text-[8px] font-mono font-bold uppercase tracking-widest">{item.label}</span>
+                        <div className="w-full h-1 bg-muted/30 rounded-full overflow-hidden">
+                           <motion.div 
+                             initial={{ width: 0 }}
+                             animate={{ width: '100%' }}
+                             transition={{ duration: 1.5, delay: idx * 0.2 }}
+                             className="h-full bg-accent"
+                           />
+                        </div>
+                     </div>
+                   ))}
+                </div>
+             </motion.div>
+          </div>
+
+          {/* Digital Distortion Overlays */}
+          <div className="absolute inset-0 pointer-events-none">
+             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
+             <motion.div 
+               animate={{ opacity: [0, 0.1, 0] }}
+               transition={{ duration: 0.1, repeat: Infinity, repeatDelay: 3 }}
+               className="absolute inset-0 bg-accent/5 mix-blend-overlay"
+             />
+          </div>
           
-          {/* Motion Blur Overlay */}
+          {/* Motion Blur & Contrast */}
           <motion.div 
             animate={{ 
-              backdropFilter: phase === 'warp' ? 'blur(12px) contrast(1.2)' : 'blur(0px) contrast(1)'
+              backdropFilter: phase === 'warping' ? 'blur(8px) contrast(1.1)' : 'blur(0px) contrast(1)'
             }}
             className="absolute inset-0 z-0 pointer-events-none"
           />

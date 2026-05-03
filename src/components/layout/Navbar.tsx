@@ -28,32 +28,16 @@ export function Navbar() {
   const handlePathSwitch = () => {
     setIsPathSwitching(true);
     
-    // Stage 1: Deep Engine Warmup (0s)
-    const rumble = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
-    rumble.volume = 0.6;
-    rumble.play().catch(() => {});
-    
-    // Stage 2: Warp Tunnel Swoosh (1.2s)
+    // Stage 1: Technical Sync & Navigation (2s)
     setTimeout(() => {
-      const warp = new Audio('https://assets.mixkit.co/active_storage/sfx/2016/2016-preview.mp3');
-      warp.volume = 0.4;
-      warp.play().catch(() => {});
-    }, 1200);
-
-    // Stage 3: Arrival Chime & Navigation (3.5s)
-    setTimeout(() => {
-      const chime = new Audio('https://assets.mixkit.co/active_storage/sfx/1000/1000-preview.mp3');
-      chime.volume = 0.3;
-      chime.play().catch(() => {});
-      
       const target = isStudioHub ? '/learn' : '/studio-hub';
       navigate(target);
       
-      // Stage 4: Fade out overlay (4.5s)
+      // Stage 2: Fade out overlay (3s total)
       setTimeout(() => {
         setIsPathSwitching(false);
       }, 1000);
-    }, 3500);
+    }, 2000);
   };
 
   useEffect(() => {
