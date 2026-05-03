@@ -178,9 +178,9 @@ export default function CoursePlayer() {
       setTimeout(() => setShowCompletionModal(true), 500);
     } else {
       // Not course complete, trigger next lesson auto-play
-      startNextLessonTimer();
+      startNextLessonTimerRef.current?.();
     }
-  }, [currentLesson, user, modules, progress, course, startNextLessonTimer]);
+  }, [currentLesson, user, modules, progress, course]);
 
   const goToNextLesson = useCallback(() => {
     if (!currentLesson) return;
