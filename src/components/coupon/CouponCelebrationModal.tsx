@@ -134,6 +134,46 @@ export function CouponCelebrationModal() {
             <span className="text-[11px] font-normal opacity-80">Timer is running</span>
           </Button>
         </div>
+
+        {(socials.whatsapp_channel_url || socials.instagram_url || socials.telegram_url) && (
+          <div className="relative z-10 mt-5 rounded-xl border border-border/40 bg-secondary/30 p-3.5">
+            <div className="text-center text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-2.5">
+              Join the community — never miss a drop
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {socials.whatsapp_channel_url && (
+                <a
+                  href={socials.whatsapp_channel_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[#25D366] px-3.5 py-1.5 text-xs font-semibold text-white transition-transform hover:scale-105"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" /> WhatsApp Channel
+                </a>
+              )}
+              {socials.instagram_url && (
+                <a
+                  href={socials.instagram_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-tr from-[#feda75] via-[#d62976] to-[#4f5bd5] px-3.5 py-1.5 text-xs font-semibold text-white transition-transform hover:scale-105"
+                >
+                  <Instagram className="h-3.5 w-3.5" /> Instagram
+                </a>
+              )}
+              {socials.telegram_url && (
+                <a
+                  href={socials.telegram_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-[#229ED9] px-3.5 py-1.5 text-xs font-semibold text-white transition-transform hover:scale-105"
+                >
+                  <Send className="h-3.5 w-3.5" /> Telegram
+                </a>
+              )}
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
