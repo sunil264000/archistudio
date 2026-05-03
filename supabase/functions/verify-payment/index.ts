@@ -72,27 +72,57 @@ serve(async (req) => {
     console.log("Cashfree order status:", cfData.order_status, "for", orderId);
 
     if (cfData.order_status === "PAID") {
-      // Payment confirmed by Cashfree — update records + enroll + send email
+      // Payment confirmed by Cashfree — update records
       await supabaseClient
         .from("payments")
         .update({ status: "completed", updated_at: new Date().toISOString() })
         .eq("gateway_order_id", orderId);
 
-      // Create enrollment if not exists
-      const { data: existingEnrollment } = await supabaseClient
-        .from("enrollments")
-        .select("id")
-        .eq("user_id", payment.user_id)
-        .eq("course_id", payment.course_id)
-        .maybeSingle();
+      const metadata = payment.metadata || {};
+      const isSubscription = metadata.is_subscription === true;
 
-      if (!existingEnrollment) {
-        await supabaseClient.from("enrollments").insert({
-          user_id: payment.user_id,
-          course_id: payment.course_id,
-          payment_id: payment.id,
-          status: "active",
-        });
+      if (isSubscription) {
+        // Automation for Subscriptions
+        const planId = metadata.plan_id;
+        let daysToAdd = 30; // Default monthly
+        if (planId === 'trial') daysToAdd = 7;
+        if (planId === 'quarterly') daysToAdd = 90;
+        if (planId === 'annual') daysToAdd = 365;
+
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + daysToAdd);
+
+        await supabaseClient
+          .from("worker_profiles")
+          .update({
+            subscription_tier: planId,
+            subscription_expires_at: expiresAt.toISOString(),
+            is_active: true
+          })
+          .eq("user_id", payment.user_id);
+      }
+
+      const isBundle = metadata.is_bundle === true;
+      const courseIds = isBundle ? (metadata.course_ids || []) : (payment.course_id ? [payment.course_id] : []);
+
+      // Enroll in all courses (if any)
+      for (const cid of courseIds) {
+        if (!cid) continue;
+        const { data: existingEnrollment } = await supabaseClient
+          .from("enrollments")
+          .select("id")
+          .eq("user_id", payment.user_id)
+          .eq("course_id", cid)
+          .maybeSingle();
+
+        if (!existingEnrollment) {
+          await supabaseClient.from("enrollments").insert({
+            user_id: payment.user_id,
+            course_id: cid,
+            payment_id: payment.id,
+            status: "active",
+          });
+        }
       }
 
       // Send enrollment email (fire & forget)
@@ -102,13 +132,25 @@ serve(async (req) => {
         .eq("user_id", payment.user_id)
         .single();
 
-      const { data: course } = await supabaseClient
-        .from("courses")
-        .select("title, slug")
-        .eq("id", payment.course_id)
-        .single();
+      if (profile?.email) {
+        let courseTitle = "Your Course";
+        let courseSlug = "";
 
-      if (profile?.email && course) {
+        if (isBundle) {
+          courseTitle = `${courseIds.length} Studio Hub Courses`;
+          courseSlug = "dashboard"; // Redirect to dashboard for bundles
+        } else {
+          const { data: course } = await supabaseClient
+            .from("courses")
+            .select("title, slug")
+            .eq("id", payment.course_id)
+            .single();
+          if (course) {
+            courseTitle = course.title;
+            courseSlug = course.slug;
+          }
+        }
+
         const baseUrl = Deno.env.get("SUPABASE_URL") ?? "";
         const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
@@ -121,8 +163,8 @@ serve(async (req) => {
           body: JSON.stringify({
             email: profile.email,
             name: profile.full_name || "",
-            courseName: course.title,
-            courseSlug: course.slug,
+            courseName: courseTitle,
+            courseSlug: courseSlug,
             isFree: false,
             amount: payment.amount,
             orderId: orderId,

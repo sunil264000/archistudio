@@ -17,7 +17,7 @@ import { CourseThumbnail } from '@/components/course/CourseThumbnail';
 import { useCoupon } from '@/contexts/CouponContext';
 
 export function CartSheet() {
-  const { items, removeFromCart, totalPrice, itemCount, clearCart } = useCart();
+  const { items, removeFromCart, totalPrice, itemCount, clearCart, rawPrice, discountAmount: bundleAmount, discountPercent: bundleDiscount } = useCart();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { initiatePayment, isLoading } = useCashfreePayment();
@@ -39,15 +39,6 @@ export function CartSheet() {
     setCouponCode('');
   }, [items.length]);
 
-  // Bundle discount logic
-  const getBundleDiscount = (count: number) => {
-    if (count >= 3) return 20;
-    if (count >= 2) return 10;
-    return 0;
-  };
-
-  const bundleDiscount = getBundleDiscount(itemCount);
-  const bundleAmount = bundleDiscount > 0 ? Math.round(totalPrice * bundleDiscount / 100) : 0;
 
   // Exit-intent discount (auto-applied)
   const { isActive: exitDiscountActive, timeLeft: exitTimeLeft, discountPercent: exitDiscountPercent, formatTime } = useExitDiscount();
@@ -61,7 +52,7 @@ export function CartSheet() {
   const freeCourseAmount = freeCourseInCart ? freeCourseInCart.price : 0;
 
   // Coupon discount (applied after bundle)
-  const priceAfterBundle = totalPrice - bundleAmount - freeCourseAmount;
+  const priceAfterBundle = rawPrice - bundleAmount - freeCourseAmount;
   let couponAmount = 0;
   if (appliedCoupon) {
     if (appliedCoupon.discountType === 'percentage') {
@@ -141,13 +132,21 @@ export function CartSheet() {
     }
     if (items.length === 0) return;
 
+    const customerPhone = phone || profile?.phone?.replace(/[\s-]/g, '');
+    if (!customerPhone || !/^[6-9]\d{9}$/.test(customerPhone.replace(/\s/g, ''))) {
+      setShowPhoneDialog(true);
+      return;
+    }
+
+    const customerName = profile?.full_name || user.email?.split('@')[0] || 'Customer';
+    const customerEmail = user.email || '';
+
     if (items.length === 1) {
       const item = items[0];
-      const customerPhone = phone || profile?.phone?.replace(/[\s-]/g, '');
 
       if (finalPrice === 0) {
         try {
-          // Process free enrollment directly instead of using Cashfree
+          // Process free enrollment directly
           const { supabase } = await import('@/integrations/supabase/client');
 
           let { data: dbCourse } = await supabase
@@ -156,37 +155,15 @@ export function CartSheet() {
             .eq('slug', item.slug)
             .single();
 
-          if (!dbCourse) {
-            toast({ title: "Error", description: "Course not found", variant: "destructive" });
-            return;
-          }
+          if (!dbCourse) throw new Error("Course not found");
 
           const { error: enrollError } = await supabase
             .from('enrollments')
-            .insert({
-              user_id: user.id,
-              course_id: dbCourse.id,
-              status: 'active',
-            });
+            .insert({ user_id: user.id, course_id: dbCourse.id, status: 'active' });
 
           if (enrollError && enrollError.code !== '23505') throw enrollError;
 
-          if (appliedCoupon?.code) {
-            const { data: couponData } = await supabase
-              .from('coupons')
-              .select('used_count')
-              .eq('code', appliedCoupon.code)
-              .single();
-
-            if (couponData) {
-              await supabase
-                .from('coupons')
-                .update({ used_count: (couponData.used_count || 0) + 1 })
-                .eq('code', appliedCoupon.code);
-            }
-          }
-
-          toast({ title: "Success! 🎉", description: "You're now enrolled. Let's start learning!" });
+          toast({ title: "Success! 🎉", description: "You're now enrolled." });
           clearCart();
           navigate(`/learn/${item.slug}`);
           return;
@@ -196,26 +173,48 @@ export function CartSheet() {
         }
       }
 
-      if (!customerPhone || !/^[6-9]\d{9}$/.test(customerPhone.replace(/\s/g, ''))) {
-        setShowPhoneDialog(true);
-        return;
-      }
-
       await initiatePayment({
         courseId: item.slug,
         amount: finalPrice,
-        customerName: profile?.full_name || user.email?.split('@')[0] || 'Customer',
-        customerEmail: user.email || '',
-        customerPhone: customerPhone,
+        customerName,
+        customerEmail,
+        customerPhone,
         courseTitle: item.title,
         couponCode: appliedCoupon?.code,
       });
     } else {
-      toast({
-        title: 'One at a time',
-        description: `Purchasing "${items[0].title}" first. You can check out the rest after.`,
-      });
-      navigate(`/course/${items[0].slug}`);
+      // MULTI-COURSE BUNDLE CHECKOUT
+      setCouponLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('create-bundle-order', {
+          body: {
+            courseIds: items.map(i => i.slug),
+            customerName,
+            customerEmail,
+            customerPhone,
+            couponCode: appliedCoupon?.code
+          }
+        });
+
+        if (error) throw error;
+
+        if (data.isFree) {
+          toast({ title: "Bundle Unlocked! 🎁", description: "Multiple courses added to your account." });
+          clearCart();
+          navigate('/dashboard');
+          return;
+        }
+
+        const cashfree = window.Cashfree({ mode: "production" });
+        await cashfree.checkout({
+          paymentSessionId: data.paymentSessionId,
+          redirectTarget: "_self",
+        });
+      } catch (err: any) {
+        toast({ title: "Checkout Error", description: err.message, variant: "destructive" });
+      } finally {
+        setCouponLoading(false);
+      }
     }
   };
 
@@ -394,7 +393,7 @@ export function CartSheet() {
                     <span>Total</span>
                     <div className="text-right">
                       {(bundleAmount + couponAmount + exitDiscountAmount + timerCouponAmount + freeCourseAmount) > 0 && (
-                        <span className="text-sm text-muted-foreground line-through mr-2">₹{totalPrice.toLocaleString()}</span>
+                        <span className="text-sm text-muted-foreground line-through mr-2">₹{rawPrice.toLocaleString()}</span>
                       )}
                       <span>₹{finalPrice.toLocaleString()}</span>
                     </div>

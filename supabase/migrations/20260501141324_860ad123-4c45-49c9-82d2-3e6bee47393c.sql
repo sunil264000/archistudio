@@ -128,7 +128,7 @@ VALUES (
   'Free Master Course: AutoCAD & SketchUp + 20% off everything else for 10 minutes',
   'percentage',
   20,
-  'ae75d48a-d41d-4f8d-b2b4-eb5732e8f983',
+  (SELECT id FROM public.courses WHERE slug = 'master-autocad-sketchup-beginner-pro' LIMIT 1),
   600,
   true,
   now(),

@@ -62,46 +62,85 @@ const handler = async (req: Request): Promise<Response> => {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verify Your Email</title>
+  <title>Verify Your Email - Archistudio</title>
 </head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <div style="display:none;">Your verification code is ${otp}</div>
-  <table width="100%" cellspacing="0" cellpadding="0" style="background:#f4f4f5;">
-    <tr><td align="center" style="padding:40px 20px;">
-      <table width="600" cellspacing="0" cellpadding="0" style="background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-        <tr><td align="center" style="padding:40px;background:linear-gradient(135deg,#1a1a2e,#0f172a);border-radius:16px 16px 0 0;">
-          <div style="padding:12px 24px;background:rgba(34,197,94,0.15);border-radius:12px;border:1px solid rgba(34,197,94,0.3);display:inline-block;">
-            <span style="font-size:22px;font-weight:700;color:#22c55e;">ARCHISTUDIO</span>
-          </div>
-          <p style="color:#94a3b8;font-size:12px;margin:10px 0 0;letter-spacing:1.5px;text-transform:uppercase;">Email Verification</p>
-        </td></tr>
-        <tr><td style="padding:40px;">
-          <div style="text-align:center;margin-bottom:24px;">
-            <div style="width:72px;height:72px;background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:50%;line-height:72px;font-size:32px;display:inline-block;">&#9989;</div>
-          </div>
-          <h1 style="color:#18181b;font-size:26px;font-weight:700;margin:0 0 16px;text-align:center;">Verify Your Email</h1>
-          <p style="color:#52525b;font-size:16px;line-height:1.7;margin:0 0 32px;text-align:center;">
-            Hi <strong>${userName}</strong>! Enter this 6-digit code to verify your email:
-          </p>
-          <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:32px;">
-            <tr><td align="center">
-              <div style="display:inline-block;background:linear-gradient(135deg,#f8fafc,#f1f5f9);border:2px dashed #6366f1;border-radius:16px;padding:24px 48px;font-size:36px;font-weight:700;letter-spacing:10px;color:#18181b;font-family:'Courier New',monospace;">
-                ${otp}
+<body style="margin:0;padding:0;background-color:#09090b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <div style="display:none;font-size:1px;color:#09090b;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">Your Archistudio verification code is ${otp}. Valid for 10 minutes.</div>
+  
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#09090b;">
+    <tr>
+      <td align="center" style="padding:40px 20px;">
+        <!-- Container -->
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;background-color:#18181b;border-radius:24px;overflow:hidden;border:1px solid #27272a;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+          
+          <!-- Header Image/Gradient -->
+          <tr>
+            <td align="center" style="background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%);padding:60px 40px;position:relative;">
+              <div style="margin-bottom:20px;">
+                <img src="https://archistudio.shop/logo-mark.png" alt="Archistudio" width="64" height="64" style="display:block;border-radius:16px;">
               </div>
-            </td></tr>
-          </table>
-          <table width="100%" cellspacing="0" cellpadding="0" style="background:#fef3c7;border-radius:12px;border:1px solid #fcd34d;margin-bottom:24px;">
-            <tr><td style="padding:16px 20px;">
-              <p style="color:#92400e;font-size:14px;margin:0;">&#9200; This code expires in <strong>10 minutes</strong></p>
-            </td></tr>
-          </table>
-          <p style="color:#71717a;font-size:13px;text-align:center;margin:0;">If you didn't request this, ignore this email.</p>
-        </td></tr>
-        <tr><td style="padding:24px 40px 32px;background:#fafafa;border-radius:0 0 16px 16px;border-top:1px solid #f4f4f5;text-align:center;">
-          <p style="color:#a1a1aa;font-size:12px;margin:0;">&copy; ${currentYear} Archistudio. All rights reserved.</p>
-        </td></tr>
-      </table>
-    </td></tr>
+              <h2 style="margin:0;color:#f8fafc;font-size:24px;font-weight:800;letter-spacing:-0.025em;text-transform:uppercase;">Archistudio</h2>
+              <p style="margin:8px 0 0;color:#94a3b8;font-size:12px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;">Neural Learning Environment</p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding:48px 40px;">
+              <div style="text-align:center;">
+                <h1 style="margin:0 0 16px;color:#ffffff;font-size:32px;font-weight:800;letter-spacing:-0.05em;line-height:1.2;">Verify your identity</h1>
+                <p style="margin:0 0 40px;color:#a1a1aa;font-size:16px;line-height:1.6;">
+                  Hi <strong>${userName}</strong>, welcome to the studio. Use the secure code below to finalize your account setup and unlock your curriculum.
+                </p>
+
+                <!-- OTP Card -->
+                <div style="background-color:#27272a;border-radius:20px;padding:32px;margin-bottom:40px;border:1px solid #3f3f46;">
+                  <p style="margin:0 0 16px;color:#71717a;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;">Verification Code</p>
+                  <div style="font-family:'Courier New', Courier, monospace;font-size:48px;font-weight:800;color:#ffffff;letter-spacing:12px;margin:0;">
+                    ${otp}
+                  </div>
+                </div>
+
+                <!-- Info Box -->
+                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:rgba(196,90,50,0.1);border-radius:16px;border:1px solid rgba(196,90,50,0.2);margin-bottom:32px;">
+                  <tr>
+                    <td style="padding:16px;text-align:center;">
+                      <p style="margin:0;color:#c45a32;font-size:14px;font-weight:600;">
+                        ⏱️ This code will expire in 10 minutes
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin:0;color:#52525b;font-size:13px;">
+                  If you didn't request this code, you can safely ignore this email. Someone may have entered your email address by mistake.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding:32px 40px;background-color:#0f172a;border-top:1px solid #27272a;">
+              <p style="margin:0 0 12px;color:#94a3b8;font-size:12px;font-weight:500;">
+                Master architecture the way it's practiced.
+              </p>
+              <div style="margin-bottom:20px;">
+                <a href="https://archistudio.shop" style="color:#c45a32;text-decoration:none;font-size:12px;font-weight:700;margin:0 10px;">Website</a>
+                <span style="color:#3f3f46;">&bull;</span>
+                <a href="https://archistudio.shop/courses" style="color:#c45a32;text-decoration:none;font-size:12px;font-weight:700;margin:0 10px;">Courses</a>
+                <span style="color:#3f3f46;">&bull;</span>
+                <a href="https://archistudio.shop/studio-hub" style="color:#c45a32;text-decoration:none;font-size:12px;font-weight:700;margin:0 10px;">Studio Hub</a>
+              </div>
+              <p style="margin:0;color:#4b5563;font-size:11px;">
+                &copy; ${currentYear} Archistudio &bull; All Rights Reserved
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
   </table>
 </body>
 </html>`.trim();

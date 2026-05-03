@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Languages, Sparkles } from "lucide-react";
 import { courseCategories } from "@/data/courses";
 import { CourseThumbnail } from "@/components/course/CourseThumbnail";
 
@@ -40,6 +40,38 @@ interface CourseEditDialogProps {
 export function CourseEditDialog({ course, open, onOpenChange, onSave }: CourseEditDialogProps) {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<Partial<Course>>({});
+  const [translating, setTranslating] = useState(false);
+
+  const translateText = async (text: string) => {
+    if (!text || text.length < 3) return text;
+    try {
+      const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(text)}`);
+      const data = await res.json();
+      return data[0].map((item: any) => item[0]).join('');
+    } catch (e) {
+      console.error('Translation failed', e);
+      return text;
+    }
+  };
+
+  const handleEnglishify = async () => {
+    setTranslating(true);
+    toast.info("Translating content to English...");
+    
+    const newTitle = await translateText(currentCourse.title || "");
+    const newShortDesc = await translateText(currentCourse.short_description || "");
+    const newDesc = await translateText(currentCourse.description || "");
+    
+    setFormData(prev => ({
+      ...prev,
+      title: newTitle,
+      short_description: newShortDesc,
+      description: newDesc
+    }));
+    
+    setTranslating(false);
+    toast.success("Content translated! Review and save.");
+  };
 
   // Reset form when course changes
   const currentCourse = course ? { ...course, ...formData } : formData;
@@ -110,8 +142,18 @@ export function CourseEditDialog({ course, open, onOpenChange, onSave }: CourseE
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+        <DialogHeader className="flex-row items-center justify-between pr-8">
           <DialogTitle>Edit Course</DialogTitle>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2 border-accent/20 text-accent hover:bg-accent/5 h-8"
+            onClick={handleEnglishify}
+            disabled={translating}
+          >
+            {translating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Languages className="h-3 w-3" />}
+            Auto-Englishify
+          </Button>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">

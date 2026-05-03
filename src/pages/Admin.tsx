@@ -923,6 +923,7 @@ function SiteSettingsPanel() {
     youtube_url: '',
     linkedin_url: '',
     telegram_url: '',
+    pro_yearly_price: '2,499',
   });
   const [saving, setSaving] = useState(false);
 
@@ -976,6 +977,7 @@ function SiteSettingsPanel() {
     { key: 'twitter_url', label: 'Twitter/X URL', placeholder: 'https://twitter.com/yourusername' },
     { key: 'youtube_url', label: 'YouTube URL', placeholder: 'https://youtube.com/@yourchannel' },
     { key: 'linkedin_url', label: 'LinkedIn URL', placeholder: 'https://linkedin.com/in/yourprofile' },
+    { key: 'pro_yearly_price', label: 'Pro Yearly Price (₹)', placeholder: '2,499', icon: CreditCard },
   ];
 
   return (

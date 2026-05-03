@@ -9,6 +9,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Message {
@@ -33,6 +34,18 @@ export function FloatingAIMentor() {
   const [mode, setMode] = useState('concept-generator');
   const scrollRef = useRef<HTMLDivElement>(null);
   const { session, user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Detect course context from URL
+  const courseContext = (() => {
+    const path = location.pathname;
+    if (path.startsWith('/learn/') || path.startsWith('/course/') || path.startsWith('/courses/')) {
+      const slug = path.split('/').pop();
+      return slug || null;
+    }
+    return null;
+  })();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -63,7 +76,12 @@ export function FloatingAIMentor() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ mode, messages: newMessages }),
+        body: JSON.stringify({ 
+        mode, 
+        messages: newMessages,
+        courseContext,
+        currentPage: location.pathname
+      }),
       });
 
       if (!response.ok) {

@@ -41,66 +41,76 @@ export default function StudioHubHome() {
       />
 
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-border/30">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_60%_at_50%_0%,hsl(var(--accent)/0.06),transparent_70%)] pointer-events-none" />
-        <div className="absolute inset-0 dot-grid opacity-15 pointer-events-none" />
-        <div className="container-wide relative py-16 md:py-28">
+      <section className="relative overflow-hidden border-b border-border/30 bg-background/50">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_70%_at_50%_0%,hsl(var(--accent)/0.08),transparent_80%)] pointer-events-none" />
+        <div className="absolute inset-0 dot-grid opacity-[0.08] pointer-events-none" />
+        <div className="container-wide relative py-20 md:py-32">
           <div className="grid lg:grid-cols-12 gap-12 items-center">
-            <div className="lg:col-span-7 text-left">
+            <div className="lg:col-span-7">
               <motion.div initial="hidden" animate="visible" custom={0} variants={fade}
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-muted/60 border border-border/40 text-[11px] font-medium tracking-[0.12em] uppercase text-muted-foreground mb-7">
-                <Sparkles className="h-3 w-3 text-accent" />
-                Elite Marketplace · by Archistudio
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/20 text-[10px] font-black tracking-[0.2em] uppercase text-accent mb-8">
+                <div className="h-2 w-2 rounded-full bg-accent animate-pulse" />
+                Live Marketplace · 84+ Open Briefs
               </motion.div>
-
+              
               <motion.h1 initial="hidden" animate="visible" custom={1} variants={fade}
-                className="font-display text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight leading-[0.95] mb-6">
-                Collaborate.
-                <br />
-                Create. Construct.
+                className="font-display text-5xl md:text-8xl font-black tracking-tighter leading-[0.85] mb-8">
+                The Future of 
+                <span className="block text-hero-gradient pb-2 mt-2">Architecture.</span>
               </motion.h1>
 
               <motion.p initial="hidden" animate="visible" custom={2} variants={fade}
-                className="text-base md:text-xl text-muted-foreground max-w-xl leading-relaxed">
-                The professional ecosystem where quality meets security. Hire vetted architectural talent with a studio-protected workflow.
+                className="text-lg md:text-2xl text-muted-foreground/80 max-w-2xl leading-relaxed mb-12 font-medium">
+                Connect with vetted studio talent. From thesis mentorship to execution drawings, get office-ready quality with total escrow protection.
               </motion.p>
 
               <motion.div initial="hidden" animate="visible" custom={3} variants={fade}
-                className="flex flex-col sm:flex-row gap-4 justify-start mt-12">
-                <Link to="/studio-hub/post">
-                  <Button size="xl" className="bg-foreground text-background hover:bg-foreground/90 gap-2 rounded-full px-10 shadow-2xl font-bold">
-                    Hire Talent <ArrowRight className="h-4 w-4" />
+                className="flex flex-col sm:flex-row gap-5">
+                <Link to="/studio-hub/projects">
+                  <Button size="xl" className="h-16 rounded-[24px] bg-foreground text-background hover:bg-foreground/90 px-12 text-lg font-black shadow-[0_20px_50px_rgba(0,0,0,0.2)] group">
+                    Explore Briefs
+                    <ArrowRight className="h-5 w-5 ml-2 transition-transform group-hover:translate-x-1" />
                   </Button>
                 </Link>
-                <Link to="/studio-hub/become-member">
-                  <Button size="xl" variant="outline" className="rounded-full px-10 text-muted-foreground hover:text-foreground border-border/60 font-medium bg-background/50">
-                    Join as a Member
+                <Link to="/studio-hub/post">
+                  <Button size="xl" variant="outline" className="h-16 rounded-[24px] px-12 text-lg font-bold border-border/60 backdrop-blur-sm hover:bg-muted/50 transition-all">
+                    Post a Project
                   </Button>
                 </Link>
               </motion.div>
-
+              
               <motion.div initial="hidden" animate="visible" custom={4} variants={fade}
-                className="flex flex-wrap items-center justify-start gap-6 mt-12">
-                {['Studio-grade Escrow', 'Expert File Review', 'Secure Deliverables'].map(item => (
-                  <span key={item} className="trust-badge text-[10px] font-bold uppercase tracking-wider">
-                    <ShieldCheck className="h-3.5 w-3.5 text-accent" />
-                    {item}
-                  </span>
+                className="flex flex-wrap gap-8 mt-16 border-t border-border/20 pt-8">
+                {[
+                  { l: 'Escrow Protected', v: '100% Secure' },
+                  { l: 'File Quality', v: 'Expert Review' },
+                  { l: 'Avg. Turnaround', v: '24 Hours' }
+                ].map(stat => (
+                  <div key={stat.l}>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 mb-1">{stat.l}</p>
+                    <p className="text-sm font-black tracking-tight">{stat.v}</p>
+                  </div>
                 ))}
               </motion.div>
             </div>
 
-            {/* Real-time Pulse Sidebar */}
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="lg:col-span-5 mt-12 lg:mt-0"
+              initial={{ opacity: 0, scale: 0.9, rotate: 2 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+              className="lg:col-span-5 relative"
             >
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-accent/20 to-blueprint/20 rounded-[32px] blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
-                <Card className="relative border-border/40 overflow-hidden bg-background/80 backdrop-blur-xl rounded-[32px] shadow-2xl">
-                  <CardContent className="p-6 md:p-8">
+              <div className="absolute inset-0 bg-accent/20 blur-[120px] rounded-full opacity-30 animate-pulse" />
+              <div className="relative p-1 rounded-[40px] bg-gradient-to-br from-border/40 via-transparent to-border/40">
+                <Card className="rounded-[38px] border-none bg-card/60 backdrop-blur-3xl shadow-2xl overflow-hidden">
+                  <CardContent className="p-8">
+                    <div className="flex items-center justify-between mb-8">
+                      <h3 className="text-xl font-black tracking-tight">Studio Pulse</h3>
+                      <div className="flex gap-1">
+                        <div className="h-1.5 w-4 rounded-full bg-accent" />
+                        <div className="h-1.5 w-1.5 rounded-full bg-muted" />
+                      </div>
+                    </div>
                     <StudioPulse />
                   </CardContent>
                 </Card>
@@ -110,141 +120,103 @@ export default function StudioHubHome() {
         </div>
       </section>
 
-      {/* Services */}
-      <section className="container-wide py-24">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.6 }} className="max-w-2xl mb-16">
-          <p className="text-[11px] tracking-[0.2em] text-muted-foreground font-bold uppercase mb-4">Our Expertise</p>
-          <h2 className="font-display text-4xl md:text-5xl font-bold tracking-tight">High-End Architectural Services.</h2>
-        </motion.div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {services.map((s, i) => (
-            <motion.div key={s.title}
-              initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-50px' }}
-              transition={{ duration: 0.5, delay: i * 0.06 }}
-              className="card-premium p-8 group cursor-default"
-            >
-              <div className={`p-3 rounded-2xl ${s.color} w-fit mb-6 transition-transform group-hover:scale-110 group-hover:-rotate-6`}>
-                <s.icon className="h-6 w-6" />
-              </div>
-              <h3 className="font-display text-lg font-bold mb-2 group-hover:text-accent transition-colors">{s.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* How it works — Timeline */}
-      <section className="bg-muted/30 border-y border-border/30 py-24">
-        <div className="container-wide">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-80px' }}
-            transition={{ duration: 0.6 }} className="max-w-2xl mb-16">
-            <p className="text-[11px] tracking-[0.2em] text-muted-foreground font-bold uppercase mb-4">The Workflow</p>
-            <h2 className="font-display text-4xl md:text-5xl font-bold tracking-tight">Built for Absolute Security.</h2>
+      {/* Bento Services */}
+      <section className="container-wide py-24 md:py-32">
+        <div className="grid lg:grid-cols-3 gap-6">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="lg:col-span-2 card-premium p-12 bg-gradient-to-br from-muted/50 to-background flex flex-col justify-between group overflow-hidden relative"
+          >
+            <div className="absolute top-0 right-0 p-12 opacity-5 scale-150 -rotate-12 transition-transform group-hover:scale-175 group-hover:-rotate-6 duration-1000">
+              <Compass className="h-64 w-64" />
+            </div>
+            <div className="relative z-10 max-w-lg">
+              <Badge className="bg-success/10 text-success border-none mb-6 px-4 py-1.5 rounded-full uppercase tracking-widest font-black text-[10px]">Premium Execution</Badge>
+              <h2 className="text-4xl md:text-6xl font-black tracking-tighter leading-[0.95] mb-8">Office-Grade <span className="text-success">Deliverables.</span></h2>
+              <p className="text-xl text-muted-foreground/80 font-medium leading-relaxed mb-10">We bridge the gap between freelance speed and studio quality. Every file is checked by Archi-leads before delivery.</p>
+              <Button variant="outline" className="rounded-full px-8 h-12 font-bold group-hover:bg-foreground group-hover:text-background transition-all">Learn About Quality Shield</Button>
+            </div>
           </motion.div>
-          <div className="max-w-3xl space-y-12">
-            {steps.map((s, i) => (
-              <motion.div key={s.n}
-                initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: '-50px' }}
-                transition={{ duration: 0.6, delay: i * 0.1 }}
-                className="timeline-step"
+          
+          <div className="space-y-6">
+            {services.slice(0, 2).map((s, i) => (
+              <motion.div key={s.title}
+                initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="card-premium p-8 h-[calc(50%-12px)] flex flex-col justify-between group"
               >
-                <div className="timeline-dot bg-foreground text-background font-bold">{s.n}</div>
-                <h3 className="font-display text-2xl font-bold mb-3">{s.t}</h3>
-                <p className="text-base text-muted-foreground leading-relaxed max-w-xl">{s.d}</p>
+                <div className={`h-12 w-12 rounded-[18px] ${s.color} flex items-center justify-center transition-transform group-hover:scale-110 group-hover:rotate-6`}>
+                  <s.icon className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-2 group-hover:text-accent transition-colors tracking-tight">{s.title}</h3>
+                  <p className="text-sm text-muted-foreground font-medium">{s.desc}</p>
+                </div>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Subscription CTA */}
-      <section className="container-wide py-16">
-        <div className="relative rounded-[48px] overflow-hidden bg-foreground text-background p-10 md:p-20">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,hsl(var(--accent)/0.25),transparent_60%)]" />
-          <div className="absolute inset-0 opacity-10 dot-grid" />
-          
-          <div className="relative z-10 max-w-2xl">
-            <Badge className="bg-accent text-accent-foreground border-none mb-8 rounded-full px-5 py-1.5 text-[11px] uppercase tracking-widest font-black animate-pulse">
-              Upgrade to Studio Pro
-            </Badge>
-            <h2 className="font-display text-4xl md:text-6xl font-bold tracking-tight mb-8 leading-[1.05]">
-              Get the <span className="text-accent italic font-medium">Pro Advantage.</span>
-            </h2>
-            <p className="text-background/70 text-lg md:text-xl mb-10 leading-relaxed font-medium">
-              Maximize your earnings. Unlock 0% platform fees, priority bid placement, and the elite "Verified Pro" badge. 
-            </p>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-12">
-              {[
-                '0% Fees on all projects',
-                'Priority bid pinning',
-                'Exclusive High-Budget jobs',
-                'Unlimited portfolio templates'
-              ].map((benefit) => (
-                <div key={benefit} className="flex items-center gap-3">
-                  <div className="h-6 w-6 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
-                    <Star className="h-3.5 w-3.5 text-accent fill-accent" />
-                  </div>
-                  <span className="text-sm font-bold tracking-tight">{benefit}</span>
-                </div>
-              ))}
+      {/* Live Active Briefs */}
+      <section className="container-wide py-24 md:py-32 border-t border-border/20">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8 mb-16">
+          <div className="max-w-xl">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-2 w-2 rounded-full bg-success animate-ping" />
+              <p className="text-[10px] font-black tracking-[0.2em] text-muted-foreground uppercase">Live Opportunities</p>
             </div>
-
-            <Link to="/studio-hub/pricing">
-              <Button size="xl" className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full px-12 h-16 font-black text-xl shadow-2xl shadow-accent/40 group">
-                Go Pro Today
-                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </Button>
-            </Link>
+            <h2 className="font-display text-4xl md:text-6xl font-black tracking-tighter leading-none mb-6">Recent <span className="italic font-medium text-accent">Briefs.</span></h2>
+            <p className="text-lg text-muted-foreground font-medium">Verified projects from the last 24 hours.</p>
           </div>
-
-          <div className="absolute right-[-5%] top-1/2 -translate-y-1/2 w-[45%] h-[130%] hidden lg:block opacity-15">
-            <div className="w-full h-full border-[80px] border-accent rounded-full blur-[60px]" />
-          </div>
-        </div>
-      </section>
-
-      {/* Live projects */}
-      <section className="container-wide py-24">
-        <div className="flex items-end justify-between mb-12">
-          <div>
-            <p className="text-[11px] tracking-[0.2em] text-muted-foreground font-bold uppercase mb-4">Opportunities</p>
-            <h2 className="font-display text-4xl font-bold tracking-tight">Active Project Briefs.</h2>
-          </div>
-          <Link to="/studio-hub/projects" className="hidden md:inline-flex items-center gap-2 text-sm font-bold text-accent hover:underline underline-offset-8 transition-all">
-            Browse all projects <ArrowRight className="h-4 w-4" />
+          <Link to="/studio-hub/projects">
+            <Button size="lg" variant="ghost" className="rounded-full px-8 gap-2 text-accent font-black hover:bg-accent/10">
+              View All Projects <ArrowRight className="h-4 w-4" />
+            </Button>
           </Link>
         </div>
 
-        {loading ? (
-          <div className="grid gap-4">{[1, 2, 3].map((i) => <div key={i} className="h-28 bg-muted/40 rounded-2xl animate-pulse" />)}</div>
-        ) : projects.length === 0 ? (
-          <div className="text-center py-20 card-premium rounded-3xl">
-            <p className="text-base text-muted-foreground font-medium">No open projects yet. Be the first to <Link to="/studio-hub/post" className="text-accent underline underline-offset-8 font-bold">post a brief</Link>.</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {projects.slice(0, 6).map((p) => (
-              <Link key={p.id} to={`/studio-hub/projects/${p.id}`}
-                className="grid grid-cols-12 gap-6 py-6 px-6 -mx-2 rounded-2xl hover:bg-muted/40 transition-all duration-300 border border-transparent hover:border-border/40 group relative overflow-hidden"
-              >
-                <div className="col-span-12 md:col-span-7">
-                  <h3 className="text-lg font-bold mb-1.5 line-clamp-1 group-hover:text-accent transition-colors tracking-tight">{p.title}</h3>
-                  <p className="text-sm text-muted-foreground line-clamp-1 leading-relaxed">{p.description}</p>
-                </div>
-                <div className="col-span-6 md:col-span-2 self-center">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/60 px-3 py-1.5 rounded-lg">{p.category}</span>
-                </div>
-                <div className="col-span-3 md:col-span-2 text-lg font-black self-center text-accent">{formatBudget(p)}</div>
-                <div className="col-span-3 md:col-span-1 text-[11px] font-bold text-muted-foreground/60 self-center text-right flex items-center gap-1.5 justify-end uppercase tracking-tighter">
-                  <Clock className="h-3 w-3" />
-                  {formatDistanceToNow(new Date(p.created_at), { addSuffix: false })}
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+        <div className="grid gap-4">
+          {loading ? (
+            <div className="space-y-3">{[1, 2, 3].map((i) => <div key={i} className="h-32 bg-muted/40 rounded-[24px] animate-pulse" />)}</div>
+          ) : (
+            <motion.div 
+              initial="hidden" whileInView="visible" viewport={{ once: true }}
+              variants={{ visible: { transition: { staggerChildren: 0.08 } } }}
+              className="space-y-4"
+            >
+              {projects.slice(0, 5).map((p) => (
+                <motion.div key={p.id} variants={fade}>
+                  <Link to={`/studio-hub/projects/${p.id}`}
+                    className="flex flex-col md:flex-row items-center gap-6 p-6 rounded-[28px] bg-card/40 border border-border/40 hover:bg-card/80 hover:border-accent/30 hover:shadow-[0_20px_40px_rgba(0,0,0,0.05)] transition-all duration-500 group overflow-hidden relative"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-accent/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex-1 min-w-0 relative z-10 w-full md:w-auto">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest bg-muted/40 border-none px-3 py-1">{p.category}</Badge>
+                        <span className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-tighter">
+                          Posted {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                      <h3 className="text-xl font-bold mb-1.5 line-clamp-1 group-hover:text-accent transition-colors tracking-tight leading-tight">{p.title}</h3>
+                      <p className="text-sm text-muted-foreground line-clamp-1 font-medium">{p.description}</p>
+                    </div>
+                    
+                    <div className="flex items-center gap-8 relative z-10 shrink-0 w-full md:w-auto justify-between md:justify-end">
+                      <div className="flex flex-col items-end">
+                        <span className="text-2xl font-black text-foreground tracking-tighter">{formatBudget(p)}</span>
+                        <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest">{p.budget_type}</span>
+                      </div>
+                      <div className="h-12 w-12 rounded-full bg-accent/5 flex items-center justify-center group-hover:bg-accent group-hover:text-white transition-all duration-500 -rotate-45 group-hover:rotate-0">
+                        <ArrowRight className="h-6 w-6" />
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </div>
       </section>
 
       {/* Members */}

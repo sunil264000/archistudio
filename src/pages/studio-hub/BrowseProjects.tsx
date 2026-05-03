@@ -227,62 +227,131 @@ export default function BrowseProjects() {
 
         {/* Results */}
         {loading ? (
-          <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-28 rounded-xl bg-muted/40 animate-pulse" />)}</div>
+          <div className="space-y-4">{[1,2,3,4].map(i => <div key={i} className="h-28 rounded-2xl bg-muted/20 animate-pulse" />)}</div>
         ) : sortedProjects.length === 0 ? (
-          <div className="text-center py-20 card-premium rounded-2xl">
-            <Search className="h-8 w-8 mx-auto text-muted-foreground/40 mb-3" />
-            <p className="text-muted-foreground mb-2">No projects match your filters.</p>
+          <div className="text-center py-24 card-premium rounded-3xl bg-muted/5 border-dashed">
+            <Search className="h-10 w-10 mx-auto text-muted-foreground/30 mb-4" />
+            <p className="text-lg font-medium text-muted-foreground mb-2">No projects found for these filters.</p>
             {hasActiveFilters && (
-              <Button variant="outline" size="sm" onClick={clearFilters} className="rounded-full mt-2">Clear filters</Button>
+              <Button variant="link" onClick={clearFilters} className="text-accent font-bold">Clear all filters</Button>
             )}
-            <p className="text-sm text-muted-foreground mt-4">
-              Or <Link to="/studio-hub/post" className="text-accent font-medium hover:underline">post your own project</Link>
-            </p>
           </div>
         ) : (
-          <div className="divide-y divide-border/40 border-y border-border/40">
-            {sortedProjects.map((p) => (
-              <Link key={p.id} to={`/studio-hub/projects/${p.id}`} className="block py-6 px-4 -mx-3 rounded-xl hover:bg-muted/30 transition-all duration-300 group">
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-2.5">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                      <Badge variant="outline" className="text-[10px] tracking-wider uppercase font-normal border-border/60">{p.category}</Badge>
-                      <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}</span>
-                      {p.deadline && isUrgent(p.deadline) && (
-                        <span className="flex items-center gap-1 text-[10px] text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full font-medium">
-                          <AlertCircle className="h-3 w-3" /> Urgent
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="font-display text-lg font-medium mb-1.5 line-clamp-1 group-hover:text-accent transition-colors">{p.title}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{p.description}</p>
-                  </div>
-                  <div className="text-left md:text-right shrink-0">
-                    <div className="font-display font-semibold text-lg">{formatBudget(p)}</div>
-                    <div className="text-xs text-muted-foreground capitalize">{p.budget_type} price</div>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-border/10">
-                  {p.skills_required.slice(0, 5).map((s) => (
-                    <span key={s} className="text-[11px] text-muted-foreground bg-muted/40 px-2.5 py-0.5 rounded-full">{s}</span>
-                  ))}
-                  {p.skills_required.length > 5 && (
-                    <span className="text-xs text-muted-foreground">+{p.skills_required.length - 5}</span>
-                  )}
-                  <div className="flex-1" />
-                  <span className="flex items-center gap-1.5 text-xs bg-accent/8 text-accent px-3 py-1 rounded-full font-medium">
-                    <Users className="h-3 w-3" />{p.proposals_count} proposal{p.proposals_count !== 1 ? 's' : ''}
-                  </span>
-                </div>
+          <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={{
+              visible: { transition: { staggerChildren: 0.05 } }
+            }}
+            className="space-y-4"
+          >
+            {sortedProjects.map((p, i) => {
+              const isNew = differenceInDays(new Date(), new Date(p.created_at)) <= 1;
+              const isHot = p.proposals_count >= 5;
+              const isHighBudget = (p.budget_max || p.budget_min || 0) >= 10000;
 
-                {/* Assistant Tip */}
-                <div className="mt-3 flex items-center gap-2 text-[10px] text-muted-foreground/60 italic bg-accent/5 py-1.5 px-3 rounded-lg border border-accent/10">
-                  <Sparkles className="h-2.5 w-2.5 text-accent" />
-                  Archi Tip: {PRO_TIPS[p.id.length % PRO_TIPS.length]}
-                </div>
-              </Link>
-            ))}
-          </div>
+              return (
+                <motion.div
+                  key={p.id}
+                  variants={{
+                    hidden: { opacity: 0, y: 20, scale: 0.98 },
+                    visible: { opacity: 1, y: 0, scale: 1 }
+                  }}
+                  transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                >
+                  <Link 
+                    to={`/studio-hub/projects/${p.id}`} 
+                    className="block p-5 md:p-7 rounded-[24px] border border-border/40 bg-card/40 backdrop-blur-sm hover:bg-card/80 hover:border-accent/30 hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-500 group relative overflow-hidden"
+                  >
+                    {/* Background Glow on Hover */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-blueprint/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    
+                    <div className="relative z-10 flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-3 flex-wrap">
+                          <Badge variant="secondary" className="text-[10px] tracking-[0.1em] uppercase font-black bg-accent/10 text-accent border-none px-3 py-1">
+                            {p.category}
+                          </Badge>
+                          
+                          {isNew && (
+                            <span className="flex items-center gap-1 text-[10px] text-success bg-success/10 px-2.5 py-1 rounded-full font-black uppercase tracking-tighter animate-pulse">
+                              <Clock className="h-3 w-3" /> New Project
+                            </span>
+                          )}
+                          
+                          {isHot && (
+                            <span className="flex items-center gap-1 text-[10px] text-orange-500 bg-orange-500/10 px-2.5 py-1 rounded-full font-black uppercase tracking-tighter">
+                              <Sparkles className="h-3 w-3" /> Hot
+                            </span>
+                          )}
+
+                          {isHighBudget && (
+                            <span className="flex items-center gap-1 text-[10px] text-blue-500 bg-blue-500/10 px-2.5 py-1 rounded-full font-black uppercase tracking-tighter border border-blue-500/20">
+                              High Budget
+                            </span>
+                          )}
+
+                          <span className="text-[11px] font-medium text-muted-foreground/60 ml-auto md:ml-0">
+                            {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
+                          </span>
+                        </div>
+
+                        <h3 className="font-display text-xl md:text-2xl font-bold mb-2 group-hover:text-accent transition-colors tracking-tight leading-tight">
+                          {p.title}
+                        </h3>
+                        <p className="text-sm md:text-base text-muted-foreground/80 line-clamp-2 leading-relaxed mb-6 font-medium">
+                          {p.description}
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          {p.skills_required.slice(0, 4).map((s) => (
+                            <span key={s} className="text-[11px] font-bold text-muted-foreground/70 bg-muted/30 px-3 py-1.5 rounded-xl border border-border/20 group-hover:border-accent/10 transition-colors">
+                              {s}
+                            </span>
+                          ))}
+                          {p.skills_required.length > 4 && (
+                            <span className="text-[10px] font-bold text-muted-foreground/40">+{p.skills_required.length - 4} more</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col md:items-end justify-between self-stretch shrink-0 pt-2">
+                        <div className="text-left md:text-right">
+                          <div className="font-display font-black text-2xl text-foreground group-hover:text-accent transition-colors tracking-tighter">
+                            {formatBudget(p)}
+                          </div>
+                          <div className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">
+                            {p.budget_type} budget
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 mt-4 md:mt-0">
+                          <div className="flex items-center gap-2 text-xs font-bold bg-muted/40 px-4 py-2 rounded-2xl group-hover:bg-accent/10 group-hover:text-accent transition-all duration-300">
+                            <Users className="h-3.5 w-3.5" />
+                            {p.proposals_count} Proposal{p.proposals_count !== 1 ? 's' : ''}
+                          </div>
+                          
+                          <div className="h-10 w-10 rounded-full bg-accent/5 flex items-center justify-center group-hover:bg-accent group-hover:text-accent-foreground transition-all duration-500 -rotate-45 group-hover:rotate-0">
+                            <ArrowRight className="h-5 w-5" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pro Tip Ticker Overlay */}
+                    <div className="mt-5 flex items-center gap-3 text-[10px] font-bold text-muted-foreground/40 italic bg-accent/[0.02] py-2 px-4 rounded-xl border border-dashed border-border/40 group-hover:border-accent/20 transition-colors overflow-hidden">
+                      <div className="shrink-0 flex items-center gap-1.5 text-accent/50 uppercase tracking-widest text-[9px]">
+                        <AlertCircle className="h-3 w-3" />
+                        Pro Tip
+                      </div>
+                      <div className="h-3 w-px bg-border/40" />
+                      <span className="line-clamp-1">{PRO_TIPS[i % PRO_TIPS.length]}</span>
+                    </div>
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </motion.div>
         )}
       </div>
     </StudioHubLayout>

@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useNetworkSpeed } from '@/hooks/useNetworkSpeed';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Declare globals for CDN libraries
 declare global {
@@ -36,6 +37,7 @@ export function SecureVideoPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<any>(null);
   const hlsRef = useRef<any>(null);
+  const completionTrackedRef = useRef<string | null>(null);
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +45,8 @@ export function SecureVideoPlayer({
   const [useIframe, setUseIframe] = useState(false);
   const [iframeMarkedComplete, setIframeMarkedComplete] = useState(false);
   const [iframeWatchTime, setIframeWatchTime] = useState(0);
+  const [playerReady, setPlayerReady] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
   
   const { user, session, isAdmin } = useAuth();
   const { isSlow } = useNetworkSpeed();
@@ -145,6 +149,7 @@ export function SecureVideoPlayer({
         setLoading(true);
         setError(null);
         setUseIframe(false);
+        setPlayerReady(false);
 
         if (!videoPath) {
           setVideoUrl(null);
@@ -157,6 +162,7 @@ export function SecureVideoPlayer({
         if (isLuluStreamUrl) {
           setVideoUrl(videoPath);
           setUseIframe(true);
+          setPlayerReady(true);
           clearTimeout(timeoutId);
           return;
         }
@@ -190,6 +196,7 @@ export function SecureVideoPlayer({
           }
           setVideoUrl(toGoogleDriveEmbed(videoPath));
           setUseIframe(true);
+          setPlayerReady(true);
           clearTimeout(timeoutId);
           return;
         }
@@ -240,6 +247,7 @@ export function SecureVideoPlayer({
         tooltips: { controls: true, seek: true },
         keyboard: { focused: true, global: false }, // We handle global hotkeys ourselves for better control
         // Custom branding
+        autoplay: true,
         i18n: { speed: 'Speed', quality: 'Quality' },
       };
 
@@ -263,7 +271,12 @@ export function SecureVideoPlayer({
           playerRef.current.volume = volume;
           if (initialPosition > 0) {
             video.currentTime = initialPosition;
+            playerRef.current.currentTime = initialPosition;
           }
+          // Attempt auto-play
+          playerRef.current.play().catch(() => {
+            console.log('Autoplay blocked by browser policy');
+          });
         });
 
         hls.on(window.Hls.Events.ERROR, (event: any, data: any) => {
@@ -292,7 +305,13 @@ export function SecureVideoPlayer({
         playerRef.current.volume = volume;
         if (initialPosition > 0) {
           video.currentTime = initialPosition;
+          playerRef.current.currentTime = initialPosition;
         }
+
+        // Attempt auto-play
+        playerRef.current.play().catch(() => {
+          console.log('Autoplay blocked by browser policy');
+        });
 
         video.onerror = () => {
           console.error('Video element error');
@@ -333,11 +352,19 @@ export function SecureVideoPlayer({
     if (!playerRef.current) return;
     const player = playerRef.current;
 
+    player.on('ready', () => setPlayerReady(true));
+    player.on('waiting', () => setIsBuffering(true));
+    player.on('playing', () => setIsBuffering(false));
+    player.on('pause', () => setIsBuffering(false));
+
     player.on('timeupdate', () => {
       const current = player.currentTime;
       const total = player.duration;
       if (onProgress && total > 0) onProgress((current / total) * 100, current);
-      if (onComplete && total > 0 && current / total >= 0.95) onComplete();
+      if (onComplete && total > 0 && current / total >= 0.95 && completionTrackedRef.current !== lessonId) {
+        completionTrackedRef.current = lessonId;
+        onComplete();
+      }
     });
 
     player.on('volumechange', () => {
@@ -355,9 +382,10 @@ export function SecureVideoPlayer({
     });
   }, [onProgress, onComplete]);
 
-  if (loading) {
+  if (loading || (!playerReady && !useIframe)) {
     return (
-      <div className="aspect-video bg-black/90 rounded-2xl flex flex-col items-center justify-center gap-4 border border-white/5 shadow-2xl">
+      <div className="aspect-video bg-black/90 rounded-2xl flex flex-col items-center justify-center gap-4 border border-white/5 shadow-2xl relative overflow-hidden">
+        <div className="absolute inset-0 dot-grid opacity-10" />
         <div className="relative">
           <Loader2 className="h-10 w-10 animate-spin text-accent" />
           <div className="absolute inset-0 blur-xl bg-accent/20 animate-pulse" />
@@ -426,12 +454,31 @@ export function SecureVideoPlayer({
             )}
           </div>
         ) : (
-          <video
-            ref={videoRef}
-            className="w-full h-full"
-            playsInline
-            crossOrigin="anonymous"
-          />
+          <>
+            <video
+              ref={videoRef}
+              className={`w-full h-full transition-opacity duration-1000 ${playerReady ? 'opacity-100' : 'opacity-0'}`}
+              playsInline
+              crossOrigin="anonymous"
+            />
+            
+            {/* Buffering Overlay */}
+            <AnimatePresence>
+              {isBuffering && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 z-[40] flex items-center justify-center bg-black/40 backdrop-blur-[2px]"
+                >
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                    <span className="text-xs font-medium text-white/80 tracking-widest uppercase">Buffering</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
         )}
 
         {/* Volume Badge UI */}
@@ -470,13 +517,16 @@ export function SecureVideoPlayer({
         .plyr--full-ui { --plyr-color-main: #c45a32; }
         .plyr__video-wrapper { background: #000; }
         .plyr--video .plyr__controls {
-          background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.8));
+          background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.85));
           padding-top: 40px;
+          opacity: ${playerReady ? 1 : 0};
+          transition: opacity 0.5s ease;
         }
-        .plyr__control--overlaid { background: rgba(196, 90, 50, 0.95); }
+        .plyr__control--overlaid { background: rgba(196, 90, 50, 0.95); box-shadow: 0 0 20px rgba(196, 90, 50, 0.3); }
         .plyr__control:hover { background: rgba(196, 90, 50, 1) !important; }
         .plyr--video.plyr--hide-controls .plyr__controls { transform: translateY(100%); }
         .plyr__menu__container { background: rgba(10, 10, 10, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; }
+        .plyr--loading .plyr__poster { opacity: 0 !important; }
       `}</style>
     </div>
   );

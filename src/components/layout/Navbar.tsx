@@ -9,20 +9,57 @@ import { GlobalSearch } from '@/components/search/GlobalSearch';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { ProMembershipDialog } from '@/components/auth/ProMembershipDialog';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 export function Navbar() {
   const { user, profile, signOut, loading, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [communityOpen, setCommunityOpen] = useState(false);
+  const [proPrice, setProPrice] = useState('2,499');
   const communityRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return document.documentElement.classList.contains('dark');
-    }
-    return true;
-  });
+  const navigate = useNavigate();
+  const [isPathSwitching, setIsPathSwitching] = useState(false);
+  const isStudioHub = location.pathname.startsWith('/studio-hub');
+
+  const handlePathSwitch = () => {
+    setIsPathSwitching(true);
+    
+    // Play Cinematic Swoosh
+    const swoosh = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+    swoosh.volume = 0.5;
+    swoosh.play().catch(() => {});
+    
+    // Portal expansion delay
+    setTimeout(() => {
+      const sparkle = new Audio('https://assets.mixkit.co/active_storage/sfx/2016/2016-preview.mp3');
+      sparkle.volume = 0.3;
+      sparkle.play().catch(() => {});
+      
+      const target = isStudioHub ? '/learn' : '/studio-hub';
+      navigate(target);
+      
+      // Keep overlay for a bit to finish transition on new page
+      setTimeout(() => {
+        setIsPathSwitching(false);
+      }, 1000);
+    }, 800);
+  };
+
+  useEffect(() => {
+    const fetchPrice = async () => {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'pro_yearly_price')
+        .maybeSingle();
+      
+      if (data?.value) setProPrice(data.value);
+    };
+    fetchPrice();
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -195,22 +232,29 @@ export function Navbar() {
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
-          <Link to="/">
-            <Button variant="outline" size="sm" className="hidden xl:flex gap-2 text-[11px] h-8 rounded-full border-accent/20 hover:border-accent/40 bg-accent/5">
-              <Compass className="h-3 w-3 text-accent" />
-              Switch Path
-            </Button>
-          </Link>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handlePathSwitch}
+            className={`hidden xl:flex gap-2 text-[11px] h-8 rounded-full border-accent/20 hover:border-accent/40 bg-accent/5 relative overflow-hidden group ${isPathSwitching ? 'pointer-events-none' : ''}`}
+          >
+            <Compass className={`h-3 w-3 text-accent transition-transform duration-500 ${isPathSwitching ? 'rotate-180 scale-150' : 'group-hover:rotate-45'}`} />
+            {isStudioHub ? 'Switch to Academy' : 'Enter Studio Hub'}
+            {/* Subtle glow effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+          </Button>
 
           {loading ? (
             <div className="h-8 w-20 animate-pulse rounded-lg bg-muted" />
           ) : user ? (
             <div className="flex items-center space-x-2">
-              <ProMembershipDialog />
-              <NotificationCenter />
-              <div className="hidden md:block">
-                <GlobalSearch />
-              </div>
+              {/* Only show PRO upgrade in non-academic/marketplace sections */}
+              {!(location.pathname.startsWith('/learn') || 
+                 location.pathname.startsWith('/courses') || 
+                 location.pathname.startsWith('/roadmaps') || 
+                 location.pathname.startsWith('/ebooks')) && (
+                <ProMembershipDialog price={proPrice} />
+              )}
               {isAdmin && (
                 <Link to="/admin">
                   <Button variant="ghost" size="sm" className="gap-1.5 text-accent text-[13px] h-8">
@@ -401,6 +445,87 @@ export function Navbar() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+      {/* Cinematic Path Switch Overlay */}
+      <AnimatePresence>
+        {isPathSwitching && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center overflow-hidden"
+          >
+            {/* Background Wash */}
+            <motion.div 
+              initial={{ scale: 0, borderRadius: '100%' }}
+              animate={{ scale: 4, borderRadius: '0%' }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
+              className={`absolute inset-0 ${isStudioHub ? 'bg-background' : 'bg-[#030303]'}`}
+            />
+
+            {/* Universe Elements */}
+            <div className="absolute inset-0 opacity-40">
+              {[...Array(50)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={{ 
+                    opacity: [0, 1, 0], 
+                    scale: [0, Math.random() * 2, 0],
+                    x: (Math.random() - 0.5) * window.innerWidth,
+                    y: (Math.random() - 0.5) * window.innerHeight
+                  }}
+                  transition={{ 
+                    duration: 1 + Math.random() * 2, 
+                    repeat: Infinity,
+                    delay: Math.random() * 1 
+                  }}
+                  className="absolute w-1 h-1 bg-white rounded-full shadow-[0_0_8px_white]"
+                  style={{ 
+                    left: `${Math.random() * 100}%`, 
+                    top: `${Math.random() * 100}%` 
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Portal Ring */}
+            <motion.div
+              initial={{ scale: 0.2, opacity: 0 }}
+              animate={{ scale: 4, opacity: [0, 1, 1, 0] }}
+              transition={{ duration: 1.5, times: [0, 0.2, 0.8, 1] }}
+              className="absolute w-96 h-96 border-4 border-accent rounded-full shadow-[0_0_100px_hsl(var(--accent)/0.8)]"
+            />
+
+            {/* Content Transition Text */}
+            <motion.div
+              initial={{ y: 20, opacity: 0, scale: 0.8 }}
+              animate={{ y: 0, opacity: [0, 1, 1, 0], scale: 1.1 }}
+              transition={{ duration: 1.5, times: [0, 0.2, 0.8, 1] }}
+              className="absolute text-center z-10"
+            >
+              <h2 className="text-4xl md:text-7xl font-display font-black tracking-tighter text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.5)]">
+                {isStudioHub ? 'RETURN TO ACADEMY' : 'STUDIO UNIVERSE'}
+              </h2>
+              <div className="flex items-center justify-center gap-3 mt-4">
+                <div className="h-px w-12 bg-accent" />
+                <p className="text-accent font-black tracking-[0.4em] text-xs uppercase">
+                  {isStudioHub ? 'Re-learning Fundamentals' : 'Real-Life Execution Mode'}
+                </p>
+                <div className="h-px w-12 bg-accent" />
+              </div>
+            </motion.div>
+            
+            {/* Motion Blur Filter Effect */}
+            <motion.div 
+              initial={{ backdropFilter: 'blur(0px)' }}
+              animate={{ backdropFilter: 'blur(20px)' }}
+              exit={{ backdropFilter: 'blur(0px)' }}
+              className="absolute inset-0 z-0"
+            />
+          </motion.div>
         )}
       </AnimatePresence>
     </header>

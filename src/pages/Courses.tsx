@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { LiveActivityTicker } from '@/components/ui/LiveActivityTicker';
 import { Clock, BookOpen, Search, Star, Filter, ShoppingCart, CreditCard, Loader2, Sparkles, GraduationCap, Flame, Play } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/contexts/CartContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
 import { useToast } from '@/hooks/use-toast';
 import { SEOHead } from '@/components/seo/SEOHead';
@@ -56,7 +57,10 @@ function guessCategory(title: string): string {
   return 'fundamentals';
 }
 
+import { useLiveStats } from '@/hooks/useLiveStats';
+
 export default function Courses() {
+  const stats = useLiveStats();
   const [searchParams] = useSearchParams();
   const initialCategory = searchParams.get('category');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(initialCategory);
@@ -326,10 +330,13 @@ function CourseCard({
 }: CourseCardProps) {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const { addToCart, removeFromCart, isInCart } = useCart();
   const { initiatePayment, isLoading } = useCashfreePayment();
   const { toast } = useToast();
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
   const [pendingPaymentData, setPendingPaymentData] = useState<any>(null);
+
+  const inCart = isInCart(course.id);
 
   const accessInfo = useAccessControlBySlug(user?.id, course.slug);
 
@@ -403,7 +410,33 @@ function CourseCard({
     return { text: `Enroll Now - ₹${discountedPrice.toLocaleString()}`, icon: CreditCard, action: handleBuyNow, disabled: isLoading };
   };
 
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (inCart) {
+      removeFromCart(course.id);
+      toast({ title: 'Removed from cart', description: `"${course.title}" removed from your bundle.` });
+    } else {
+      addToCart({
+        courseId: course.id,
+        slug: course.slug,
+        title: course.title,
+        price: discountedPrice,
+        thumbnail: course.thumbnail
+      });
+      toast({ 
+        title: 'Added to cart!', 
+        description: `"${course.title}" added. Enroll in more to save up to 20%!`,
+        action: <Button variant="outline" size="sm" onClick={() => (document.querySelector('[aria-label="Open cart"]') as any)?.click()}>View Cart</Button>
+      });
+    }
+  };
+
   const ctaContent = getCTAContent();
+  
+  // Robust duration logic
+  const displayHours = course.durationHours > (course.totalLessons / 10) 
+    ? `${course.durationHours}h` 
+    : (course.totalLessons > 0 ? `${Math.ceil(course.totalLessons * 0.4)}h` : 'Self-paced');
 
   const handlePhoneSubmit = async (phone: string) => {
     if (!pendingPaymentData) return;
@@ -460,20 +493,32 @@ function CourseCard({
 
         {/* Hover overlay with CTA */}
         <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-400 pointer-events-none group-hover:pointer-events-auto">
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 p-4 w-full max-w-[160px]">
             <Button
               onClick={ctaContent.action}
               disabled={ctaContent.disabled}
               size="sm"
-              className={`shadow-lg ${accessInfo.hasAccess ? 'bg-success hover:bg-success/90 text-success-foreground' : 'bg-accent hover:bg-accent/90 text-accent-foreground'}`}
+              className={`shadow-lg w-full ${accessInfo.hasAccess ? 'bg-success hover:bg-success/90 text-success-foreground' : 'bg-accent hover:bg-accent/90 text-accent-foreground'}`}
             >
               {ctaContent.disabled && isLoading ? (
                 <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Processing</>
               ) : (
-                <><ctaContent.icon className="h-3.5 w-3.5 mr-1.5" />{ctaContent.text}</>
+                <><ctaContent.icon className="h-3.5 w-3.5 mr-1.5" />{ctaContent.text.split(' - ')[0]}</>
               )}
             </Button>
-            <Button variant="outline" size="sm" className="bg-background/80 text-xs" onClick={() => navigate(`/courses/${course.slug}`)}>
+            
+            {!accessInfo.hasAccess && (
+              <Button 
+                variant={inCart ? "destructive" : "secondary"} 
+                size="sm" 
+                className="w-full shadow-lg"
+                onClick={handleAddToCart}
+              >
+                {inCart ? <><X className="h-3.5 w-3.5 mr-1.5" />Remove</> : <><ShoppingCart className="h-3.5 w-3.5 mr-1.5" />Add to Cart</>}
+              </Button>
+            )}
+
+            <Button variant="outline" size="sm" className="bg-background/80 text-xs w-full" onClick={() => navigate(`/course/${course.slug}`)}>
               View Details
             </Button>
           </div>
@@ -506,7 +551,7 @@ function CourseCard({
         {/* Meta */}
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground/70">
           <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" /> {course.durationHours > 0 ? `${course.durationHours}h` : 'Self-paced'}
+            <Clock className="h-3 w-3" /> {displayHours}
           </span>
           <span className="flex items-center gap-1">
             <BookOpen className="h-3 w-3" /> {course.totalLessons || '–'} lessons

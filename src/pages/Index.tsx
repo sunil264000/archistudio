@@ -10,6 +10,7 @@ import { SitelinkSchema } from '@/components/seo/SitelinkSchema';
 import { useGoogleAnalytics, analytics, initializeGA4 } from '@/hooks/useGoogleAnalytics';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { LiveActivityTicker } from '@/components/ui/LiveActivityTicker';
+import { PageProgressIndicator } from '@/components/ui/PageProgressIndicator';
 
 // Lazy load below-the-fold sections for faster initial load
 const ProblemSection = lazy(() => import('@/components/home/ProblemSection').then(m => ({ default: m.ProblemSection })));
@@ -58,10 +59,13 @@ export default function Index() {
       <AnimatedBackground intensity="light" />
       <Navbar />
       <LiveActivityTicker />
+      <PageProgressIndicator />
       
       <main id="main-content">
         {/* Section 1 — Hero */}
-        <HeroSection />
+        <section id="hero">
+          <HeroSection />
+        </section>
         
         {/* Trust Bar (Authority) */}
         <TrustBar />
@@ -70,7 +74,9 @@ export default function Index() {
         <LiveStatsBar />
         
         {/* Section 2 — Featured Program */}
-        <HighlightedCourseSection />
+        <section id="programs">
+          <HighlightedCourseSection />
+        </section>
         
         {/* Section 3 — The Problem */}
         <Suspense fallback={<SectionLoader />}>
@@ -79,7 +85,9 @@ export default function Index() {
         
         {/* Section 4 — What You Learn (The Solution) */}
         <Suspense fallback={<SectionLoader />}>
-          <WhatYouLearnSection />
+          <section id="curriculum">
+            <WhatYouLearnSection />
+          </section>
         </Suspense>
         
         {/* Section 5 — Skill Growth Path */}
@@ -99,17 +107,23 @@ export default function Index() {
         
         {/* Section 8 — Learning Path Structure */}
         <Suspense fallback={<SectionLoader />}>
-          <CourseStructureSection />
+          <section id="path">
+            <CourseStructureSection />
+          </section>
         </Suspense>
         
         {/* Section 9 — Live Community */}
         <Suspense fallback={<SectionLoader />}>
-          <LiveCommunitySection />
+          <section id="community">
+            <LiveCommunitySection />
+          </section>
         </Suspense>
         
         {/* Section 10 — Testimonials */}
         <Suspense fallback={<SectionLoader />}>
-          <TestimonialsSection />
+          <section id="testimonials">
+            <TestimonialsSection />
+          </section>
         </Suspense>
         
         {/* Section 11 — Final CTA */}

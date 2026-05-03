@@ -134,6 +134,7 @@
 @layer base {
   * {
     @apply border-border;
+    cursor: inherit;
   }
 
   html {
@@ -151,6 +152,11 @@
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
     overflow-x: hidden;
+    cursor: default;
+  }
+
+  button, a, [role="button"], .cursor-pointer {
+    cursor: pointer;
   }
 
   h1, h2, h3, h4, h5, h6 {

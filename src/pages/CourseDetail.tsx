@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Clock, BookOpen, Star, CheckCircle, Play, ArrowLeft, CreditCard, Loader2, Users, Award, FileText, Lock, Eye, ChevronDown, Video, ShoppingCart, Tag, X, FolderSync, Download, Send } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast as sonnerToast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useCashfreePayment } from '@/hooks/useCashfreePayment';
@@ -100,7 +100,7 @@ function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview,
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
-        <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all cursor-pointer border border-transparent hover:border-border/50">
+        <div className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all border border-transparent hover:border-border/50">
           <div className="flex items-center gap-3">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-colors ${hasFreePreview ? 'bg-success/10 text-success' : 'bg-accent/10 text-accent'
               }`}>
@@ -136,7 +136,7 @@ function ExpandableModule({ index, title, lessonCount, duration, hasFreePreview,
                   key={lesson.id}
                   onClick={() => handleLessonClick(lesson)}
                   className={`flex items-center justify-between py-2.5 px-3 rounded-lg text-sm transition-all ${isPreviewLesson
-                    ? 'cursor-pointer hover:bg-success/10 hover:text-success group'
+                    ? 'hover:bg-success/10 hover:text-success group'
                     : 'hover:bg-muted/30 text-muted-foreground'
                     }`}
                 >
@@ -181,6 +181,7 @@ function CourseResources({ courseId, resourceLink, isEnrolled }: { courseId: str
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState(false);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isEnrolled && user && !resourceLink) {
@@ -200,7 +201,14 @@ function CourseResources({ courseId, resourceLink, isEnrolled }: { courseId: str
   }, [courseId, user, isEnrolled, resourceLink]);
 
   const handleRequest = async () => {
-    if (!user) return;
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    if (!isEnrolled) {
+      sonnerToast.error('Please enroll to request project files');
+      return;
+    }
     setRequesting(true);
     try {
       const { error } = await supabase
@@ -209,31 +217,31 @@ function CourseResources({ courseId, resourceLink, isEnrolled }: { courseId: str
       
       if (error) throw error;
       setRequested(true);
-      toast.success('Project files requested successfully!');
+      sonnerToast.success('Project files requested successfully!');
     } catch (err: any) {
-      toast.error('Failed to request files');
+      sonnerToast.error('Failed to request files');
     } finally {
       setRequesting(false);
     }
   };
 
-  if (!isEnrolled) return null;
-
   return (
-    <Card className="border-accent/20 bg-accent/5 overflow-hidden">
+    <Card className="border-accent/20 bg-accent/5 overflow-hidden shadow-lg shadow-accent/5">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <FolderSync className="h-4 w-4 text-accent" />
-          Course Resources
+        <CardTitle className="text-base flex items-center gap-2">
+          <FolderSync className="h-5 w-5 text-accent animate-pulse" />
+          Project Resources & Assets
         </CardTitle>
-        <CardDescription className="text-[10px]">
-          Project files, assets, and documentation for this course.
+        <CardDescription className="text-xs">
+          {isEnrolled 
+            ? "Download official project folders, CAD templates, and source files."
+            : "Enroll now to gain access to all project resources and source files."}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {resourceLink ? (
           <Button 
-            className="w-full gap-2 shadow-lg shadow-accent/20" 
+            className="w-full gap-2 shadow-lg shadow-accent/20 bg-accent hover:bg-accent/90" 
             onClick={() => window.open(resourceLink, '_blank')}
           >
             <Download className="h-4 w-4" />
@@ -244,22 +252,22 @@ function CourseResources({ courseId, resourceLink, isEnrolled }: { courseId: str
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>
         ) : requested ? (
-          <div className="text-center p-3 rounded-lg border border-dashed border-accent/30 bg-accent/5">
-            <Clock className="h-5 w-5 text-accent mx-auto mb-1" />
-            <p className="text-xs font-medium text-accent">Request Pending</p>
-            <p className="text-[9px] text-muted-foreground mt-1">
-              The admin will provide the link soon.
+          <div className="text-center p-4 rounded-xl border border-dashed border-accent/30 bg-accent/5">
+            <Clock className="h-6 w-6 text-accent mx-auto mb-2" />
+            <p className="text-sm font-bold text-accent">Request Pending</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              The admin is preparing your files. You'll be notified soon.
             </p>
           </div>
         ) : (
           <Button 
-            variant="outline" 
-            className="w-full gap-2 border-accent/30 text-accent hover:bg-accent/10"
+            variant={isEnrolled ? "outline" : "secondary"}
+            className={`w-full gap-2 ${isEnrolled ? 'border-accent/30 text-accent hover:bg-accent/10' : ''}`}
             onClick={handleRequest}
             disabled={requesting}
           >
             {requesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Request Project Files
+            {isEnrolled ? "Request Project Files" : "Enroll to Access Resources"}
           </Button>
         )}
       </CardContent>
@@ -271,6 +279,7 @@ export default function CourseDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const { addToCart, removeFromCart, isInCart } = useCart();
   const { initiatePayment, isLoading } = useCashfreePayment();
   const { toast } = useToast();
   const { getThumbnail, getPriceInr } = useDynamicCourseData();
@@ -748,7 +757,9 @@ export default function CourseDetail() {
     : (hasRealContent ? dbTotalLessons : course.totalLessons);
   const displayTotalHours = user
     ? (hasRealContent ? Math.round(totalDuration / 60) : (dbCourseMeta?.duration_hours ?? course.durationHours))
-    : (dbCourseMeta?.duration_hours ?? 0);
+    : (dbCourseMeta?.duration_hours && dbCourseMeta.duration_hours > (displayTotalLessons / 10) 
+        ? dbCourseMeta.duration_hours 
+        : (displayTotalLessons > 0 ? Math.ceil(displayTotalLessons * 0.4) : 0));
 
   // Format duration for display - hide if 0
   const formatDuration = (minutes: number) => {
@@ -772,7 +783,7 @@ export default function CourseDetail() {
   });
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
+    <div className="min-h-screen bg-background overflow-hidden" translate="no">
       <SEOHead
         title={`${course.title} | Archistudio Academy`}
         description={course.shortDescription || `Master ${course.title} with professional-grade training from Archistudio. Real-world workflows, expert guidance, and industry-standard deliverables.`}
@@ -851,7 +862,16 @@ export default function CourseDetail() {
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Users className="h-4 w-4" />
-                  500+ students
+                  {(() => {
+                    // Dynamic student count that grows every 24 hours
+                    const startDate = new Date('2024-01-01T00:00:00Z');
+                    const now = new Date();
+                    const days = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+                    // Seeded random-looking but deterministic count per course
+                    const baseSeed = course.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 100;
+                    const count = 450 + baseSeed + (days * 1.5);
+                    return `${Math.floor(count).toLocaleString()}+ students`;
+                  })()}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Award className="h-4 w-4" />
@@ -1076,7 +1096,35 @@ export default function CourseDetail() {
                       </Button>
 
                       {effectivePriceInr > 0 && (
-                        <AddToCartButton course={{ ...course, priceInr: effectivePriceInr }} />
+                        <Button
+                          variant={isInCart(course.id) ? "destructive" : "outline"}
+                          className="w-full h-11 mt-2 font-medium"
+                          onClick={() => {
+                            if (isInCart(course.id)) {
+                              removeFromCart(course.id);
+                              toast({ title: 'Removed from cart' });
+                            } else {
+                              addToCart({
+                                courseId: course.id,
+                                slug: course.slug,
+                                title: course.title,
+                                price: buyNowPrice,
+                                thumbnail: categoryImages[course.category]
+                              });
+                              toast({ 
+                                title: 'Added to cart! 🎉', 
+                                description: 'Enroll in more to save up to 20%!',
+                                action: <Button variant="outline" size="sm" onClick={() => (document.querySelector('[aria-label="Open cart"]') as any)?.click()}>View Cart</Button>
+                              });
+                            }
+                          }}
+                        >
+                          {isInCart(course.id) ? (
+                            <><X className="h-4 w-4 mr-2" /> Remove from Cart</>
+                          ) : (
+                            <><ShoppingCart className="h-4 w-4 mr-2" /> Add to Cart</>
+                          )}
+                        </Button>
                       )}
                     </>
                   )}

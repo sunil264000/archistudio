@@ -132,14 +132,32 @@ serve(async (req) => {
       window_start: new Date().toISOString(),
     }, { onConflict: "user_id,action_type" });
 
-    const { mode, messages, context } = await req.json();
+    const { mode, messages, courseContext, currentPage } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const systemPrompt = SYSTEM_PROMPTS[mode] || SYSTEM_PROMPTS["concept-generator"];
+    let contextualSystemPrompt = systemPrompt;
+
+    // Add course awareness
+    if (courseContext) {
+      const { data: course } = await adminClient
+        .from("courses")
+        .select("title, level")
+        .eq("slug", courseContext)
+        .single();
+      
+      if (course) {
+        contextualSystemPrompt += `\n\nCONTEXT: The student is currently studying "${course.title}" (${course.level} level). Tailor your architectural advice to be consistent with this course's focus. If they ask "Which course am I viewing?", answer correctly based on this title.`;
+      }
+    }
+
+    if (currentPage) {
+      contextualSystemPrompt += `\n\nPAGE CONTEXT: The student is on the page: ${currentPage}`;
+    }
 
     const fullMessages = [
-      { role: "system", content: systemPrompt + (context ? `\n\nAdditional context: ${context}` : "") },
+      { role: "system", content: contextualSystemPrompt },
       ...messages,
     ];
 

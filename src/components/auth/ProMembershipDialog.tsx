@@ -7,9 +7,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
-export function ProMembershipDialog() {
+export function ProMembershipDialog({ price }: { price?: string }) {
   const { user, profile } = useAuth();
   const [loading, setLoading] = useState(false);
+  const displayPrice = price || '2,499';
 
   const upgradeToPro = async () => {
     if (!user) return;
@@ -75,7 +76,7 @@ export function ProMembershipDialog() {
               <div className="p-4 rounded-2xl bg-accent/5 border border-accent/10 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest text-accent">Yearly Plan</p>
-                  <p className="text-2xl font-bold">₹2,499<span className="text-sm font-normal text-muted-foreground">/yr</span></p>
+                  <p className="text-2xl font-bold">₹{displayPrice}<span className="text-sm font-normal text-muted-foreground">/yr</span></p>
                 </div>
                 <Badge className="bg-accent text-accent-foreground">Best Value</Badge>
               </div>

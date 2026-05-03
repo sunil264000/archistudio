@@ -19,36 +19,17 @@ const testimonial = {
   role: "B.Arch Graduate",
 };
 
+import { useLiveStats } from '@/hooks/useLiveStats';
+
 export default function Auth() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const stats = useLiveStats();
   const [mode, setMode] = useState<'login' | 'signup'>(
     searchParams.get('mode') === 'signup' ? 'signup' : 'login'
   );
-
-  const [stats, setStats] = useState({ courses: 15, students: 1000 });
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [{ count: coursesCount }, { count: studentsCount }] = await Promise.all([
-          supabase.from('courses').select('*', { count: 'exact', head: true }),
-          supabase.from('profiles').select('*', { count: 'exact', head: true })
-        ]);
-        
-        setStats(prev => ({
-          courses: coursesCount ?? prev.courses,
-          students: studentsCount ?? prev.students
-        }));
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      }
-    };
-    
-    fetchStats();
-  }, []);
 
   const features = [
     { icon: BookOpen, label: `${stats.courses} professional courses` },

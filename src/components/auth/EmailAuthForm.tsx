@@ -98,11 +98,11 @@ export function EmailAuthForm({ mode, onSuccess }: EmailAuthFormProps) {
     try {
       // Validate referral code FIRST (before signup) to avoid wasting rate-limited signup calls
       const normalizedPromoCode = referralCode.trim().toUpperCase();
-      const isWelcomeCode = normalizedPromoCode === 'WELCOME100';
+      const isPromoCode = normalizedPromoCode === 'WELCOME100' || normalizedPromoCode === 'MAY2026';
 
       // Validate referral code FIRST (before signup) to avoid wasting rate-limited signup calls
-      // BUT bypass this check if it's the specific WELCOME100 promo code
-      if (referralCode.trim() && !isWelcomeCode) {
+      // BUT bypass this check if it's a known promotional code
+      if (referralCode.trim() && !isPromoCode) {
         const { data: referrerData } = await supabase.rpc('get_referral_by_code', {
           code: normalizedPromoCode,
         });

@@ -4,6 +4,8 @@ import { ArrowRight, Play, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNetworkSpeed } from '@/hooks/useNetworkSpeed';
+import { useLiveStats } from '@/hooks/useLiveStats';
+import { useState, useEffect } from 'react';
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -51,8 +53,22 @@ const trustItems = ['Industry-led mentorship', 'Real project portfolios', 'Lifet
 export function HeroSection() {
   const { user } = useAuth();
   const { isSlow } = useNetworkSpeed();
+  const { students } = useLiveStats();
   const anims = fadeUp(isSlow);
   
+  const [activeCourse, setActiveCourse] = useState('Revit');
+  const [activeStudents, setActiveStudents] = useState(14);
+
+  useEffect(() => {
+    const courses = ['Revit', 'AutoCAD', '3ds Max', 'SketchUp', 'V-Ray', 'Corona', 'Photoshop'];
+    const interval = setInterval(() => {
+      setActiveCourse(courses[Math.floor(Math.random() * courses.length)]);
+      // Dynamic number based on time and total students
+      const base = Math.floor(students / 1000) || 12;
+      setActiveStudents(base + Math.floor(Math.random() * 10));
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [students]);
   return (
     <section className="relative min-h-[92vh] flex items-center overflow-hidden">
       {/* Ambient background */}
@@ -128,7 +144,7 @@ export function HeroSection() {
                   ))}
                 </div>
                 <span className="text-[10px] font-medium text-muted-foreground">
-                  <span className="text-foreground font-bold">14 students</span> learning Revit now
+                  <span className="text-foreground font-bold">{activeStudents} students</span> learning {activeCourse} now
                 </span>
               </div>
 

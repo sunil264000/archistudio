@@ -9,6 +9,7 @@ import {
   Subtitles, FileSpreadsheet, Presentation, Search, Filter
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CourseResource {
   id: string;
@@ -79,10 +80,61 @@ export function CourseResources({ courseId, isEnrolled }: CourseResourcesProps) 
   const [downloading, setDownloading] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FileCategory | 'all'>('all');
+  const [resourceLink, setResourceLink] = useState<string | null>(null);
+  const [requestPending, setRequestPending] = useState(false);
+  const [requesting, setRequesting] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchAllResources();
-  }, [courseId]);
+    fetchCourseResourceStatus();
+  }, [courseId, user, isEnrolled]);
+
+  const fetchCourseResourceStatus = async () => {
+    if (!courseId) return;
+    
+    // Get course resource link
+    const { data: course } = await supabase
+      .from('courses')
+      .select('resource_link')
+      .eq('id', courseId)
+      .single();
+    
+    setResourceLink(course?.resource_link || null);
+
+    // If no link, check if already requested
+    if (isEnrolled && user && !course?.resource_link) {
+      const { data } = await supabase
+        .from('course_resource_requests')
+        .select('id')
+        .eq('course_id', courseId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (data) setRequestPending(true);
+    }
+  };
+
+  const handleRequestProjectFiles = async () => {
+    if (!user || !isEnrolled) {
+      toast.error('Please enroll to request project files');
+      return;
+    }
+    setRequesting(true);
+    try {
+      const { error } = await supabase
+        .from('course_resource_requests')
+        .insert({ course_id: courseId, user_id: user.id });
+      
+      if (error) throw error;
+      setRequestPending(true);
+      toast.success('Project files requested successfully! The admin will provide the link soon.');
+    } catch (err: any) {
+      toast.error('Failed to request files');
+    } finally {
+      setRequesting(false);
+    }
+  };
 
   const fetchAllResources = async () => {
     setLoading(true);
@@ -218,7 +270,57 @@ export function CourseResources({ courseId, isEnrolled }: CourseResourcesProps) 
   const activeCategories = Object.entries(categoryCounts).filter(([k, v]) => k !== 'all' && v > 0);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Course-wide Project Files Section */}
+      {isEnrolled && (
+        <div className="p-4 rounded-xl border border-accent/20 bg-accent/5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-sm font-bold flex items-center gap-2">
+                <FileArchive className="h-4 w-4 text-accent" />
+                Course Project Files
+              </h4>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Full project folders, source files, and primary assets.
+              </p>
+            </div>
+          </div>
+
+          {resourceLink ? (
+            <Button 
+              className="w-full gap-2 shadow-lg shadow-accent/20 bg-accent hover:bg-accent/90" 
+              onClick={() => window.open(resourceLink, '_blank')}
+            >
+              <Download className="h-4 w-4" />
+              Download All Project Files
+            </Button>
+          ) : requestPending ? (
+            <div className="text-center p-3 rounded-lg border border-dashed border-accent/30 bg-accent/5">
+              <Loader2 className="h-5 w-5 text-accent mx-auto mb-1 animate-pulse" />
+              <p className="text-xs font-medium text-accent">Request Pending</p>
+              <p className="text-[9px] text-muted-foreground mt-1">
+                The admin is preparing your files. You'll be notified soon.
+              </p>
+            </div>
+          ) : (
+            <Button 
+              variant="outline" 
+              className="w-full gap-2 border-accent/30 text-accent hover:bg-accent/10"
+              onClick={handleRequestProjectFiles}
+              disabled={requesting}
+            >
+              {requesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Request Access to Project Files
+            </Button>
+          )}
+        </div>
+      )}
+
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-muted-foreground" />
+          <h4 className="text-sm font-semibold">Lesson Attachments</h4>
+        </div>
       {/* Search & Filters */}
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">

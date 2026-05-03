@@ -3,9 +3,12 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Award, Download, Loader2, PartyPopper, Star, Truck, CreditCard } from 'lucide-react';
+import { Award, Download, Loader2, PartyPopper, Star, Truck, CreditCard, Sparkles, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import confetti from 'canvas-confetti';
+import { useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface CourseCompletionModalProps {
   open: boolean;
@@ -25,6 +28,30 @@ export function CourseCompletionModal({
   const [generating, setGenerating] = useState(false);
   const [showPhysical, setShowPhysical] = useState(false);
   const [address, setAddress] = useState({ name: '', line1: '', city: '', state: '', pincode: '', phone: '' });
+
+  useEffect(() => {
+    if (open) {
+      const duration = 3 * 1000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+      const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+      const interval: any = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+      }, 250);
+
+      return () => clearInterval(interval);
+    }
+  }, [open]);
 
   const handleDownloadCertificate = async () => {
     setGenerating(true);
@@ -80,35 +107,110 @@ export function CourseCompletionModal({
 
         <div className="text-center py-4 space-y-6">
           {/* Celebration icon */}
-          <div className="relative mx-auto w-24 h-24">
-            <div className="absolute inset-0 rounded-full bg-accent/20 animate-ping" style={{ animationDuration: '2s' }} />
-            <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center shadow-lg shadow-accent/30">
-              <Award className="h-12 w-12 text-accent-foreground" />
+          <div className="relative mx-auto w-32 h-32">
+            <motion.div 
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", damping: 12 }}
+              className="relative z-10"
+            >
+              <div className="absolute inset-0 rounded-full bg-accent/20 animate-ping" style={{ animationDuration: '3s' }} />
+              <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-accent via-accent/80 to-accent/60 flex items-center justify-center shadow-2xl shadow-accent/40 border-4 border-white/20">
+                <Award className="h-16 w-16 text-accent-foreground" />
+              </div>
+            </motion.div>
+            
+            <motion.div
+              animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="absolute -top-2 -right-2 z-20"
+            >
+              <PartyPopper className="h-10 w-10 text-yellow-500" />
+            </motion.div>
+            
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ repeat: Infinity, duration: 1.5 }}
+              className="absolute -bottom-1 -left-2 z-20"
+            >
+              <Star className="h-8 w-8 text-yellow-400 fill-yellow-400" />
+            </motion.div>
+            
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 flex gap-1">
+              {[1, 2, 3].map(i => (
+                <motion.div
+                  key={i}
+                  animate={{ opacity: [0, 1, 0], y: [-20, -40] }}
+                  transition={{ repeat: Infinity, duration: 1.5, delay: i * 0.4 }}
+                >
+                  <Sparkles className="h-4 w-4 text-accent" />
+                </motion.div>
+              ))}
             </div>
-            <PartyPopper className="absolute -top-2 -right-2 h-8 w-8 text-yellow-500 animate-bounce" />
-            <Star className="absolute -bottom-1 -left-2 h-6 w-6 text-yellow-400 animate-pulse" />
           </div>
 
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-foreground">🎉 Congratulations!</h2>
-            <p className="text-muted-foreground text-sm leading-relaxed max-w-xs mx-auto">
-              You have successfully completed
-            </p>
-            <p className="text-lg font-semibold text-accent">{courseName}</p>
-            <p className="text-muted-foreground text-xs">Your Proof of Completion is ready!</p>
-          </div>
+          <div className="space-y-3 relative z-10">
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <h2 className="text-3xl font-black text-foreground tracking-tight">MISSION ACCOMPLISHED!</h2>
+              <div className="flex items-center justify-center gap-2 mt-1">
+                <div className="h-px w-8 bg-accent/30" />
+                <p className="text-accent font-bold text-xs tracking-[0.2em] uppercase">Graduate Level</p>
+                <div className="h-px w-8 bg-accent/30" />
+              </div>
+            </motion.div>
 
-          {/* Certificate preview */}
-          <div className="mx-auto max-w-xs p-4 rounded-xl border bg-gradient-to-br from-background to-muted/30 shadow-inner">
-            <div className="border border-dashed border-accent/30 rounded-lg p-3 space-y-1">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Proof of Completion</p>
-              <p className="text-sm font-semibold text-foreground">{courseName}</p>
-              <p className="text-[10px] text-muted-foreground">
-                Issued on {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="space-y-1"
+            >
+              <p className="text-muted-foreground text-sm font-medium">You have mastered every lesson in</p>
+              <p className="text-xl font-bold bg-gradient-to-r from-accent to-accent/70 bg-clip-text text-transparent px-4">
+                {courseName}
               </p>
-              <p className="text-[10px] text-muted-foreground italic">Signed by Archistudio Team</p>
-            </div>
+            </motion.div>
           </div>
+
+          {/* Certificate Card Preview */}
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="mx-auto w-full max-w-sm p-5 rounded-2xl border border-white/10 bg-gradient-to-br from-background/80 to-muted/50 shadow-2xl backdrop-blur-sm relative overflow-hidden group"
+          >
+            <div className="absolute inset-0 bg-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="border-2 border-dashed border-accent/20 rounded-xl p-5 space-y-3 relative">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase tracking-[0.3em] text-accent font-bold">Official Credential</p>
+                  <p className="text-base font-bold text-foreground leading-tight">{courseName}</p>
+                </div>
+                <Award className="h-6 w-6 text-accent/40" />
+              </div>
+              
+              <div className="flex items-center gap-3 pt-2">
+                <div className="flex-1">
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Issue Date</p>
+                  <p className="text-xs font-medium text-foreground">
+                    {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                </div>
+                <div className="h-8 w-px bg-border/50" />
+                <div className="flex-1">
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Status</p>
+                  <div className="flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                    <p className="text-xs font-bold text-emerald-500">Verified</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
 
           {!showPhysical ? (
             <div className="flex flex-col gap-3">

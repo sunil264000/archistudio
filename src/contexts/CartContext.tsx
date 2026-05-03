@@ -17,6 +17,9 @@ interface CartContextType {
   isInCart: (courseId: string) => boolean;
   totalPrice: number;
   itemCount: number;
+  discountAmount: number;
+  discountPercent: number;
+  rawPrice: number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -49,11 +52,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const isInCart = (courseId: string) => items.some(i => i.courseId === courseId);
-  const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
+  
+  const rawPrice = items.reduce((sum, item) => sum + item.price, 0);
+  const discountPercent = items.length >= 3 ? 20 : (items.length === 2 ? 10 : 0);
+  const discountAmount = Math.floor(rawPrice * (discountPercent / 100));
+  const totalPrice = rawPrice - discountAmount;
   const itemCount = items.length;
 
   return (
-    <CartContext.Provider value={{ items, addToCart, removeFromCart, clearCart, isInCart, totalPrice, itemCount }}>
+    <CartContext.Provider value={{ 
+      items, 
+      addToCart, 
+      removeFromCart, 
+      clearCart, 
+      isInCart, 
+      totalPrice, 
+      itemCount,
+      discountAmount,
+      discountPercent,
+      rawPrice
+    }}>
       {children}
     </CartContext.Provider>
   );

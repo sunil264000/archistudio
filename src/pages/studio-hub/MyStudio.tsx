@@ -90,25 +90,63 @@ export default function MyStudio() {
           />
         </div>
 
+        {/* Guided Onboarding for Workers */}
+        {profile && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            className="mb-10 bg-gradient-to-br from-accent/5 to-transparent border border-accent/20 rounded-[32px] p-8 md:p-10 relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+              <Sparkles className="h-32 w-32 text-accent" />
+            </div>
+            <div className="relative z-10 max-w-2xl">
+              <h2 className="text-2xl font-black tracking-tight mb-2">Build your Studio Reputation.</h2>
+              <p className="text-muted-foreground font-medium mb-8">Complete these steps to increase your hire rate by up to 300%.</p>
+              
+              <div className="grid sm:grid-cols-2 gap-4">
+                {[
+                  { label: 'Set Professional Headline', done: !!profile.headline },
+                  { label: 'Add Detailed Bio', done: !!profile.bio && profile.bio.length > 50 },
+                  { label: 'Set Competitive Hourly Rate', done: !!profile.hourly_rate },
+                  { label: 'Upload Portfolio Works', done: profile.total_jobs_completed > 0 || (profile as any).portfolio_pdf_url },
+                  { label: 'Verify Identity Badge', done: profile.subscription_tier === 'pro' },
+                  { label: 'Add Software Tools', done: (profile as any).tools?.length > 0 }
+                ].map((step, idx) => (
+                  <div key={idx} className="flex items-center gap-3 p-3 rounded-2xl bg-background/50 border border-border/20">
+                    <div className={`h-6 w-6 rounded-full flex items-center justify-center ${step.done ? 'bg-success text-white' : 'bg-muted text-muted-foreground/30'}`}>
+                      {step.done ? <CheckCircle2 className="h-4 w-4" /> : <div className="h-2 w-2 rounded-full bg-current" />}
+                    </div>
+                    <span className={`text-xs font-bold ${step.done ? 'text-foreground/60' : 'text-foreground'}`}>{step.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Attention banner */}
         {(needsAttentionClient > 0 || needsAttentionWorker > 0) && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="border border-amber-500/30 bg-amber-500/5 rounded-2xl p-5 mb-8 flex items-start gap-3"
+            className="border border-amber-500/30 bg-amber-500/10 backdrop-blur-md rounded-2xl p-5 mb-8 flex items-start gap-3 shadow-lg shadow-amber-500/5"
           >
             <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium text-sm mb-1">Action needed</p>
-              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <p className="font-black text-sm mb-1 uppercase tracking-wider text-amber-600">Action needed</p>
+              <div className="flex flex-wrap gap-2 text-xs font-bold text-amber-700/70">
                 {needsAttentionClient > 0 && (
-                  <span>{needsAttentionClient} contract{needsAttentionClient > 1 ? 's' : ''} need your response as client</span>
+                  <span>{needsAttentionClient} contract{needsAttentionClient > 1 ? 's' : ''} awaiting your review</span>
                 )}
                 {needsAttentionWorker > 0 && (
-                  <span>{needsAttentionWorker} contract{needsAttentionWorker > 1 ? 's' : ''} need your work as member</span>
+                  <span className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
+                    {needsAttentionWorker} job{needsAttentionWorker > 1 ? 's' : ''} currently active in your studio
+                  </span>
                 )}
               </div>
             </div>
+            <ArrowRight className="h-4 w-4 text-amber-500 ml-auto self-center" />
           </motion.div>
         )}
 

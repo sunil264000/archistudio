@@ -66,6 +66,8 @@ export default function CoursePlayer() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [theaterMode, setTheaterMode] = useState(() => localStorage.getItem('course-theater-mode') === 'true');
+  const [nextLessonTimer, setNextLessonTimer] = useState<number | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     localStorage.setItem('course-theater-mode', theaterMode.toString());
@@ -148,7 +150,7 @@ export default function CoursePlayer() {
   }, [currentLesson, user, progress]);
 
   const handleComplete = useCallback(async () => {
-    if (!currentLesson || !user) return;
+    if (!currentLesson || !user || progress[currentLesson.id]?.completed) return;
     await supabase.from('progress').upsert({
       user_id: user.id, lesson_id: currentLesson.id, completed: true,
       completed_at: new Date().toISOString(), updated_at: new Date().toISOString(),
@@ -174,15 +176,50 @@ export default function CoursePlayer() {
         console.error('Course completion check failed:', e);
       }
       setTimeout(() => setShowCompletionModal(true), 500);
+    } else {
+      // Not course complete, trigger next lesson auto-play
+      startNextLessonTimer();
     }
-  }, [currentLesson, user, modules, progress, course]);
+  }, [currentLesson, user, modules, progress, course, startNextLessonTimer]);
 
-  const goToNextLesson = () => {
+  const goToNextLesson = useCallback(() => {
     if (!currentLesson) return;
     const allLessons = modules.flatMap(m => m.lessons);
     const idx = allLessons.findIndex(l => l.id === currentLesson.id);
-    if (idx < allLessons.length - 1) handleLessonSelect(allLessons[idx + 1]);
+    if (idx < allLessons.length - 1) {
+      handleLessonSelect(allLessons[idx + 1]);
+      setNextLessonTimer(null);
+    }
+  }, [currentLesson, modules]);
+
+  const cancelNextLesson = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setNextLessonTimer(null);
   };
+
+  const startNextLessonTimer = useCallback(() => {
+    const allLessons = modules.flatMap(m => m.lessons);
+    const idx = allLessons.findIndex(l => l.id === currentLesson?.id);
+    if (idx >= 0 && idx < allLessons.length - 1) {
+      setNextLessonTimer(5);
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setNextLessonTimer(prev => {
+          if (prev === null) return null;
+          if (prev <= 1) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            // We use handleLessonSelect directly to avoid dependency issues with the ref update
+            const nextIdx = idx + 1;
+            if (allLessons[nextIdx]) {
+              handleLessonSelect(allLessons[nextIdx]);
+            }
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  }, [currentLesson, modules]);
   const goToPrevLesson = () => {
     if (!currentLesson) return;
     const allLessons = modules.flatMap(m => m.lessons);
@@ -367,7 +404,7 @@ export default function CoursePlayer() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" translate="no">
       <Navbar />
 
       {/* Mobile Header */}
@@ -447,6 +484,69 @@ export default function CoursePlayer() {
                             initialPosition={progress[currentLesson.id]?.last_position_seconds || 0}
                             allowExternal={true}
                           />
+
+                          {/* Auto-play Next Overlay */}
+                          <AnimatePresence>
+                            {nextLessonTimer !== null && (
+                              <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md"
+                              >
+                                <div className="text-center space-y-6 max-w-sm px-6">
+                                  <div className="relative inline-block">
+                                    <div className="w-20 h-20 rounded-full border-2 border-white/10 flex items-center justify-center">
+                                      <span className="text-3xl font-bold text-white">{nextLessonTimer}</span>
+                                    </div>
+                                    <svg className="absolute inset-0 w-20 h-20 -rotate-90">
+                                      <circle
+                                        cx="40" cy="40" r="38"
+                                        fill="none" stroke="currentColor"
+                                        strokeWidth="2"
+                                        className="text-accent"
+                                        strokeDasharray={238}
+                                        strokeDashoffset={238 - (238 * (5 - nextLessonTimer) / 5)}
+                                        style={{ transition: 'stroke-dashoffset 1s linear' }}
+                                      />
+                                    </svg>
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <h3 className="text-xl font-bold text-white">Up Next</h3>
+                                    <p className="text-white/60 text-sm line-clamp-2">
+                                      {(() => {
+                                        const all = modules.flatMap(m => m.lessons);
+                                        const i = all.findIndex(l => l.id === currentLesson.id);
+                                        return all[i+1]?.title || 'Next Lesson';
+                                      })()}
+                                    </p>
+                                  </div>
+
+                                  <div className="flex flex-col gap-3">
+                                    <Button 
+                                      onClick={() => {
+                                        const all = modules.flatMap(m => m.lessons);
+                                        const i = all.findIndex(l => l.id === currentLesson.id);
+                                        if (all[i+1]) handleLessonSelect(all[i+1]);
+                                        setNextLessonTimer(null);
+                                      }}
+                                      className="bg-white text-black hover:bg-white/90 font-bold"
+                                    >
+                                      Play Now
+                                    </Button>
+                                    <Button 
+                                      variant="ghost" 
+                                      onClick={cancelNextLesson}
+                                      className="text-white/60 hover:text-white hover:bg-white/5"
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                         {/* Player Controls Overlay (Theater Mode Toggle) */}
                         <div className="max-w-5xl mx-auto flex justify-end px-4 py-2 gap-2">

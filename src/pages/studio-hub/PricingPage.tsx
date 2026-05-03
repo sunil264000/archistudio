@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 type Plan = {
   id: string;
@@ -162,8 +163,58 @@ function FeeReduction({ from, to, delay = 0 }: { from: number; to: number; delay
 export default function PricingPage() {
   const navigate = useNavigate();
 
+  const handleSubscription = async (plan: Plan) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate(`/auth?redirect=/studio-hub/pricing&plan=${plan.id}`);
+        return;
+      }
+
+      // Check if worker profile exists
+      const { data: profile } = await supabase
+        .from('worker_profiles')
+        .select('id, display_name')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!profile) {
+        // Redirect to become-member first if no profile
+        navigate(`/studio-hub/become-member?plan=${plan.id}`);
+        return;
+      }
+
+      // Initiate payment
+      const { data, error } = await supabase.functions.invoke('create-subscription-order', {
+        body: {
+          planId: plan.id,
+          planName: plan.name,
+          amount: plan.price,
+          customerName: profile.display_name || user.email?.split('@')[0] || 'Member',
+          customerEmail: user.email,
+        },
+      });
+
+      if (error || !data?.payment_session_id) {
+        throw new Error(error?.message || 'Failed to initiate payment');
+      }
+
+      // Load Cashfree and checkout
+      const cashfree = await (window as any).Cashfree({ mode: "production" });
+      await cashfree.checkout({
+        paymentSessionId: data.payment_session_id,
+        redirectTarget: "_self",
+      });
+
+    } catch (err: any) {
+      console.error('Subscription error:', err);
+      alert('Failed to start subscription. Please try again.');
+    }
+  };
+
   return (
     <StudioHubLayout>
+      <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
       <SEOHead
         title="Pricing — Studio Pro Membership"
         description="Cut platform fees from 15% to as low as 6%. Priority bidding, unlimited critiques, mentor calls, and more."
@@ -306,7 +357,7 @@ export default function PricingPage() {
                   </div>
 
                   <Button
-                    onClick={() => navigate('/auth?redirect=/studio-hub/pricing')}
+                    onClick={() => handleSubscription(plan)}
                     className={`w-full rounded-2xl h-12 font-semibold transition-all duration-300 ${
                       plan.popular
                         ? 'bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/25'

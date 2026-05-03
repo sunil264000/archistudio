@@ -13,6 +13,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { CouponProvider } from "@/contexts/CouponContext";
 import { CouponBanner } from "@/components/coupon/CouponBanner";
 import { CouponCelebrationModal } from "@/components/coupon/CouponCelebrationModal";
+import { GlobalTimerPill } from "@/components/coupon/GlobalTimerPill";
 import { PurchaseNotification } from "@/components/social-proof/PurchaseNotification";
 import { FestivalDecorations } from "@/components/festival/FestivalDecorations";
 import { SaleBanner } from "@/components/sales/SaleBanner";
@@ -24,7 +25,6 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FloatingAIMentor } from "@/components/ai/FloatingAIMentor";
 import { AchievementUnlockToast } from "@/components/gamification/AchievementUnlockToast";
 import { LiveActivityPulse } from "@/components/ui/LiveActivityPulse";
-import { CustomCursor } from "@/components/ui/CustomCursor";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
@@ -349,6 +349,13 @@ const AppContent = () => {
     }
 
     const checkOnboarding = async () => {
+      // Check if dismissed in this session/browser
+      const isDismissed = localStorage.getItem(`onboarding_dismissed_${user.id}`);
+      if (isDismissed === 'true') {
+        setShowOnboarding(false);
+        return;
+      }
+
       const { data } = await (supabase as any)
         .from('user_onboarding_intake')
         .select('id')
@@ -361,10 +368,17 @@ const AppContent = () => {
     void checkOnboarding();
   }, [user?.id]);
 
+  const handleOnboardingChange = (open: boolean) => {
+    setShowOnboarding(open);
+    if (!open && user?.id) {
+      localStorage.setItem(`onboarding_dismissed_${user.id}`, 'true');
+    }
+  };
+
   return (
     <>
       <LoginGiftModal
-        open={showGiftModal}
+        open={showGiftModal && !showOnboarding}
         onOpenChange={setShowGiftModal}
         giftData={giftData}
       />
@@ -372,7 +386,7 @@ const AppContent = () => {
         <>
           {welcomeCampaign && (
             <WelcomePromotionModal
-              open={showWelcomeModal}
+              open={showWelcomeModal && !showOnboarding}
               onOpenChange={setShowWelcomeModal}
               campaign={welcomeCampaign}
               userId={user.id}
@@ -380,11 +394,21 @@ const AppContent = () => {
           )}
           <NewUserOnboardingDialog
             open={showOnboarding}
-            onOpenChange={setShowOnboarding}
+            onOpenChange={handleOnboardingChange}
             userId={user.id}
             defaultName={profile?.full_name || user.email?.split('@')[0] || ''}
-            onCompleted={() => setShowOnboarding(false)}
+            onCompleted={() => {
+              setShowOnboarding(false);
+              localStorage.setItem(`onboarding_dismissed_${user.id}`, 'true');
+            }}
           />
+          {!showOnboarding && (
+            <>
+              <CouponBanner />
+              <CouponCelebrationModal />
+              <GlobalTimerPill />
+            </>
+          )}
         </>
       )}
     </>
@@ -484,7 +508,6 @@ const App = () => {
             <CartProvider>
               <CouponProvider>
                 <SmoothScroll>
-                  <CustomCursor />
                   <ErrorBoundary>
                     <GlobalBackground isSlow={isSlow} />
                     <ScrollProgress />
@@ -494,8 +517,6 @@ const App = () => {
                     <FestivalDecorations />
                     <PurchaseNotification />
                     <SaleBanner />
-                    <CouponBanner />
-                    <CouponCelebrationModal />
                     <AnimatedRoutes isSlow={isSlow} />
                     {!isSlow && (
                       <>

@@ -13,8 +13,8 @@ import { motion } from "framer-motion";
 import { analytics } from "@/hooks/useGoogleAnalytics";
 import { useCart } from "@/contexts/CartContext";
 
-const MAX_RETRY_COUNT = 20;
 const REDIRECT_DELAY = 8;
+const MAX_VERIFY_RETRIES = 40;
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -35,6 +35,8 @@ const PaymentSuccess = () => {
     customerEmail: string;
   } | null>(null);
   const [redirectCountdown, setRedirectCountdown] = useState(REDIRECT_DELAY);
+  const isBundle = searchParams.get("bundle") === "true";
+  const isSubscription = searchParams.get("subscription") === "true";
   const retryCount = useRef(0);
 
   useEffect(() => {
@@ -46,45 +48,70 @@ const PaymentSuccess = () => {
 
       try {
         // Trigger server-side verification first for faster status resolution
-        const { data: verifyResult } = await supabase.functions.invoke("verify-payment", {
+        const { data: verifyResult, error: verifyError } = await supabase.functions.invoke("verify-payment", {
           body: { orderId },
         });
+
+        if (verifyResult?.status === "completed") {
+          // Success! Fetch details and set status
+          const { data: payment } = await supabase
+            .from("payments")
+            .select("amount, created_at, metadata, courses(title, slug)")
+            .eq("gateway_order_id", orderId)
+            .maybeSingle();
+
+          if (payment) {
+            const metadata = payment.metadata || {};
+            const dbTitle = (payment as any).courses?.title;
+            const dbSlug = (payment as any).courses?.slug;
+            
+            const resolvedSlug = isSubscription ? "studio-hub" : (courseSlugParam || metadata.course_slug || dbSlug || (isBundle ? "dashboard" : ""));
+            const resolvedTitle = isSubscription ? "Studio Pro Membership" : (isBundle ? `${metadata.course_ids?.length || 0} Studio Hub Courses` : (dbTitle || "your course"));
+
+            setStatus("success");
+            setShowConfetti(true);
+            setCourseName(resolvedTitle);
+            setCourseSlug(resolvedSlug);
+            setPaymentDetails({
+              amount: Number(payment.amount) || 0,
+              orderId: orderId,
+              paymentDate: payment.created_at || new Date().toISOString(),
+              customerName: metadata.customer_name || "Customer",
+              customerEmail: metadata.customer_email || "",
+            });
+
+            if (resolvedSlug && resolvedSlug !== "dashboard" && !isSubscription) removeFromCart(resolvedSlug);
+            else if (isBundle) {
+              // Clear entire cart for bundles
+              metadata.course_slugs?.forEach((s: string) => removeFromCart(s));
+            }
+            return;
+          }
+        }
 
         if (verifyResult?.status === "failed") {
           setStatus("failed");
           return;
         }
 
-        // Check payment status in database
+        // Check payment status in database directly as fallback
         const { data: payment, error } = await supabase
           .from("payments")
-          .select("status, course_id, amount, created_at, metadata, courses(title, slug)")
+          .select("status, amount, created_at, metadata, courses(title, slug)")
           .eq("gateway_order_id", orderId)
           .maybeSingle();
 
-        if (error) throw error;
-
-        if (!payment) {
-          retryCount.current += 1;
-          if (retryCount.current >= MAX_RETRY_COUNT) {
-            setStatus("cancelled");
-            return;
-          }
-          setTimeout(verifyPayment, retryCount.current < 5 ? 700 : 1200);
-          return;
-        }
-
-        const dbTitle = (payment as any).courses?.title as string | undefined;
-        const dbSlug = (payment as any).courses?.slug as string | undefined;
-        const slug = courseSlugParam || ((payment as any).metadata?.course_slug as string | undefined) || dbSlug;
-        const localTitle = undefined; // Removed static fallback
-        const metadata = (payment as any).metadata || {};
-
         if (payment?.status === "completed") {
+          const metadata = payment.metadata || {};
+          const dbTitle = (payment as any).courses?.title;
+          const dbSlug = (payment as any).courses?.slug;
+          
+          const resolvedSlug = courseSlugParam || metadata.course_slug || dbSlug || (isBundle ? "dashboard" : "");
+          const resolvedTitle = isBundle ? `${metadata.course_ids?.length || 0} Studio Hub Courses` : (dbTitle || "your course");
+
           setStatus("success");
           setShowConfetti(true);
-          setCourseName(dbTitle || localTitle || "your course");
-          const resolvedSlug = slug || "";
+          setCourseName(resolvedTitle);
           setCourseSlug(resolvedSlug);
           setPaymentDetails({
             amount: Number(payment.amount) || 0,
@@ -94,52 +121,32 @@ const PaymentSuccess = () => {
             customerEmail: metadata.customer_email || "",
           });
 
-          // Remove purchased course from cart
-          if (resolvedSlug) removeFromCart(resolvedSlug);
-
-          analytics.purchase(
-            orderId,
-            resolvedSlug || payment.course_id || '',
-            dbTitle || localTitle || 'Unknown Course',
-            Number(payment.amount) || 0
-          );
-
-          // Notify admin about the purchase
-          supabase.functions.invoke('notify-admin', {
-            body: {
-              type: 'new_purchase',
-              email: metadata.customer_email || '',
-              name: metadata.customer_name || 'Customer',
-              courseName: dbTitle || localTitle || 'Unknown Course',
-              amount: Number(payment.amount) || 0,
-              orderId,
-              courseSlug: resolvedSlug,
-            }
-          }).catch(err => console.error('Admin notify error:', err));
-
+          if (resolvedSlug && resolvedSlug !== "dashboard") removeFromCart(resolvedSlug);
           return;
         } else if (payment?.status === "failed") {
           setStatus("failed");
           return;
         }
 
-        // Payment still pending
+        // Still pending or not found yet
         retryCount.current += 1;
-
-        if (retryCount.current >= MAX_RETRY_COUNT) {
+        if (retryCount.current >= MAX_VERIFY_RETRIES) {
           setStatus("cancelled");
           return;
         }
 
-        setTimeout(verifyPayment, retryCount.current < 5 ? 700 : 1200);
+        setTimeout(verifyPayment, retryCount.current < 10 ? 800 : 1500);
       } catch (error) {
         console.error("Error verifying payment:", error);
-        setStatus("failed");
+        // Don't fail immediately on network error, try again
+        retryCount.current += 1;
+        if (retryCount.current >= MAX_VERIFY_RETRIES) setStatus("failed");
+        else setTimeout(verifyPayment, 2000);
       }
     };
 
     verifyPayment();
-  }, [orderId, courseSlugParam]);
+  }, [orderId, courseSlugParam, isBundle]);
 
   // Auto-redirect countdown for successful payments
   useEffect(() => {
@@ -195,7 +202,7 @@ const PaymentSuccess = () => {
               <p className="text-muted-foreground mb-4">
                 Please wait while we confirm your payment with Cashfree.
               </p>
-              <Progress value={(retryCount.current / MAX_RETRY_COUNT) * 100} className="h-2 max-w-xs mx-auto" />
+              <Progress value={(retryCount.current / MAX_VERIFY_RETRIES) * 100} className="h-2 max-w-xs mx-auto" />
             </motion.div>
           )}
 

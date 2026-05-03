@@ -12,9 +12,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import {
-  Plus, Pencil, Trash2, Upload, Video, FileText,
-  GripVertical, Loader2, ChevronRight, FolderPlus, Save, Clock, FolderSync, EyeOff,
-  ArrowUp, ArrowDown, CheckSquare, FileArchive, Link, X
+  ArrowUp, ArrowDown, CheckSquare, FileArchive, Link, X, Languages
 } from 'lucide-react';
 import { GoogleDriveImport } from './GoogleDriveImport';
 import { QuickLessonAdd } from './QuickLessonAdd';
@@ -63,6 +61,53 @@ export function LessonManagement() {
   const [modules, setModules] = useState<Module[]>([]);
   const [lessons, setLessons] = useState<Record<string, Lesson[]>>({});
   const [loading, setLoading] = useState(false);
+  const [translating, setTranslating] = useState(false);
+
+  const translateText = async (text: string) => {
+    if (!text || text.length < 3) return text;
+    try {
+      const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(text)}`);
+      const data = await res.json();
+      return data[0].map((item: any) => item[0]).join('');
+    } catch (e) {
+      console.error('Translation failed', e);
+      return text;
+    }
+  };
+
+  const handleEnglishifyFullCourse = async () => {
+    if (!selectedCourse) return;
+    setTranslating(true);
+    toast.info("Englishifying all modules and lessons... this may take a moment.");
+    
+    try {
+      // 1. Translate Modules
+      for (const mod of modules) {
+        const newTitle = await translateText(mod.title);
+        const newDesc = await translateText(mod.description || "");
+        if (newTitle !== mod.title || newDesc !== (mod.description || "")) {
+          await supabase.from('modules').update({ title: newTitle, description: newDesc }).eq('id', mod.id);
+        }
+      }
+      
+      // 2. Translate Lessons
+      const allLessons = Object.values(lessons).flat();
+      for (const lesson of allLessons) {
+        const newTitle = await translateText(lesson.title);
+        const newDesc = await translateText(lesson.description || "");
+        if (newTitle !== lesson.title || newDesc !== (lesson.description || "")) {
+          await supabase.from('lessons').update({ title: newTitle, description: newDesc }).eq('id', lesson.id);
+        }
+      }
+      
+      toast.success("Full course translated to English!");
+      fetchModules(selectedCourse);
+    } catch (err: any) {
+      toast.error("Translation failed: " + err.message);
+    } finally {
+      setTranslating(false);
+    }
+  };
 
   // Dialog states
   const [moduleDialogOpen, setModuleDialogOpen] = useState(false);
@@ -505,10 +550,21 @@ export function LessonManagement() {
           </Select>
         </div>
         {selectedCourse && (
-          <Button onClick={handleAddModule} className="mt-6 gap-2">
-            <FolderPlus className="h-4 w-4" />
-            Add Module
-          </Button>
+          <div className="mt-6 flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleEnglishifyFullCourse} 
+              disabled={translating}
+              className="gap-2 border-accent/20 text-accent hover:bg-accent/5"
+            >
+              {translating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
+              Englishify Course Content
+            </Button>
+            <Button onClick={handleAddModule} className="gap-2">
+              <FolderPlus className="h-4 w-4" />
+              Add Module
+            </Button>
+          </div>
         )}
       </div>
 

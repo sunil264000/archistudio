@@ -107,47 +107,73 @@ export function ContractChat({ contractId }: { contractId: string }) {
 
   return (
     <div className="border border-border/40 rounded-2xl bg-background overflow-hidden flex flex-col">
-      <div className="flex items-center gap-2 px-4 md:px-5 py-3 md:py-3.5 border-b border-border/40 bg-muted/20">
-        <MessagesSquare className="h-4 w-4 text-accent" />
-        <p className="text-sm font-medium">Conversation</p>
-        {unread > 0 && (
-          <Badge variant="default" className="rounded-full h-5 min-w-5 px-1.5 text-[10px] bg-rose-500 text-white">{unread}</Badge>
-        )}
-        <span className="ml-auto text-[10px] text-muted-foreground tracking-wider uppercase hidden sm:inline">Realtime</span>
+      <div className="flex items-center gap-2 px-4 md:px-5 py-3 md:py-3.5 border-b border-border/40 bg-muted/20 relative">
+        <div className="flex items-center gap-2">
+          <MessagesSquare className="h-4 w-4 text-accent" />
+          <p className="text-sm font-black uppercase tracking-tight">Project Stream</p>
+          {unread > 0 && (
+            <Badge variant="default" className="rounded-full h-5 min-w-5 px-1.5 text-[10px] bg-rose-500 text-white animate-pulse">{unread}</Badge>
+          )}
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+          <span className="text-[10px] text-muted-foreground font-black tracking-widest uppercase">Live Connection</span>
+        </div>
       </div>
-      <div ref={scrollerRef} className="flex-1 max-h-[420px] overflow-y-auto px-5 py-4 space-y-3 scroll-smooth">
+      <div ref={scrollerRef} className="flex-1 max-h-[500px] overflow-y-auto px-5 py-6 space-y-5 scroll-smooth bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-fixed opacity-95">
         {loading ? (
-          <div className="flex justify-center py-8"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <Loader2 className="h-6 w-6 animate-spin text-accent" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Syncing Messages...</p>
+          </div>
         ) : messages.length === 0 ? (
-          <p className="text-center text-xs text-muted-foreground py-10">No messages yet — say hello and align on the brief.</p>
+          <div className="text-center py-20 border border-dashed border-border/20 rounded-3xl mx-4">
+            <MessagesSquare className="h-8 w-8 mx-auto text-muted-foreground/20 mb-3" />
+            <p className="text-sm font-bold text-muted-foreground">No history yet.</p>
+            <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground/40 mt-1">Start the conversation below</p>
+          </div>
         ) : (
           messages.map((m) => {
             const mine = m.sender_id === user?.id;
             return (
-              <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${mine ? 'bg-foreground text-background rounded-br-md' : 'bg-muted/60 rounded-bl-md'}`}>
-                  {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
-                  
-                  {m.attachments && m.attachments.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                      {m.attachments.map((url, idx) => {
-                        const isImg = url.match(/\.(jpeg|jpg|gif|png)$/i);
-                        return isImg ? (
-                          <a key={idx} href={url} target="_blank" rel="noreferrer" className="block mt-2">
-                            <img src={url} alt="attachment" className="max-w-[200px] max-h-[200px] rounded-lg object-cover border border-border/20" />
-                          </a>
-                        ) : (
-                          <a key={idx} href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs hover:underline mt-1 bg-background/20 p-2 rounded-lg">
-                            <FileText className="h-3 w-3" /> Attachment {idx + 1}
-                          </a>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  <div className={`text-[10px] mt-1 flex items-center gap-1 ${mine ? 'text-background/60' : 'text-muted-foreground'}`}>
+              <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'} group/msg`}>
+                <div className={`max-w-[85%] relative ${mine ? 'items-end' : 'items-start'}`}>
+                  <div className={`rounded-[24px] px-5 py-3 text-sm leading-relaxed shadow-sm border transition-all ${
+                    mine 
+                      ? 'bg-foreground text-background border-foreground rounded-br-none' 
+                      : 'bg-card/80 backdrop-blur-md border-border/40 rounded-bl-none'
+                  }`}>
+                    {m.body && <p className="whitespace-pre-wrap break-words font-medium">{m.body}</p>}
+                    
+                    {m.attachments && m.attachments.length > 0 && (
+                      <div className={`mt-3 grid gap-2 ${m.attachments.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                        {m.attachments.map((url, idx) => {
+                          const isImg = url.match(/\.(jpeg|jpg|gif|png|webp)$/i);
+                          return isImg ? (
+                            <a key={idx} href={url} target="_blank" rel="noreferrer" className="relative group/attach overflow-hidden rounded-xl border border-border/10 bg-muted/20">
+                              <img src={url} alt="attachment" className="w-full aspect-square object-cover transition-transform group-hover/attach:scale-110 duration-500" />
+                              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/attach:opacity-100 transition-opacity flex items-center justify-center">
+                                <Paperclip className="h-5 w-5 text-white" />
+                              </div>
+                            </a>
+                          ) : (
+                            <a key={idx} href={url} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-background/20 border border-border/10 hover:bg-background/40 transition-all">
+                              <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+                                <FileText className="h-5 w-5 text-accent" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-black uppercase tracking-tighter truncate opacity-60">Document</p>
+                                <p className="text-xs font-bold truncate">File_{idx + 1}</p>
+                              </div>
+                            </a>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <div className={`text-[10px] mt-1.5 flex items-center gap-2 font-black uppercase tracking-tighter opacity-0 group-hover/msg:opacity-100 transition-opacity ${mine ? 'flex-row-reverse text-muted-foreground/60' : 'text-muted-foreground/60'}`}>
                     <span>{formatDistanceToNow(new Date(m.created_at), { addSuffix: true })}</span>
-                    {mine && <CheckCheck className={`h-3 w-3 ml-1 ${m.read_at ? 'text-blue-400' : 'opacity-60'}`} />}
+                    {mine && <CheckCheck className={`h-3 w-3 ${m.read_at ? 'text-blue-500' : 'opacity-40'}`} />}
                   </div>
                 </div>
               </div>
