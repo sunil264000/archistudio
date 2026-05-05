@@ -132,7 +132,7 @@ export function HeroSection() {
             {/* CTAs */}
             <motion.div 
               custom={3} variants={anims} initial="hidden" animate="visible"
-              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 justify-center mt-10 max-w-md sm:max-w-none mx-auto relative"
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 justify-center mt-20 max-w-md sm:max-w-none mx-auto relative"
             >
               {/* Live Social Proof Bubble */}
               <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-md border border-border/40 shadow-sm animate-bounce-slow">
