@@ -42,6 +42,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data: settingsData } = await supabase
@@ -66,7 +67,7 @@ serve(async (req) => {
 
     const url = new URL(req.url);
 
-    // Preview mode
+    // Preview mode (public, safe — uses placeholder data)
     if (url.searchParams.get("preview") === "true") {
       const html = generateCertificateHtml(
         settings, "John Doe", "3ds Max Architectural Visualization",
@@ -77,6 +78,30 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "text/html" },
       });
     }
+
+    // ─── AUTH: All non-preview requests require an authenticated user ───
+    const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const authUserId = userData.user.id;
+
+    // Check admin role for cross-user access
+    const { data: isAdminData } = await supabase.rpc("has_role", {
+      _user_id: authUserId,
+      _role: "admin",
+    });
+    const isAdmin = isAdminData === true;
 
     let certificateId: string | undefined;
     let userId: string | undefined;
@@ -105,11 +130,34 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "Certificate not found" }),
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
+      // Only the owner or an admin can view a certificate by ID
+      if (data.user_id !== authUserId && !isAdmin) {
+        return new Response(JSON.stringify({ error: "Forbidden" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
       certificate = data;
     } else if (userId && courseId) {
+      // Users can only generate/view their own certificate; admins may generate for any user
+      if (userId !== authUserId && !isAdmin) {
+        return new Response(JSON.stringify({ error: "Forbidden" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      // Verify enrollment exists for the target user
+      const { data: enrollment } = await supabase
+        .from("enrollments")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("course_id", courseId)
+        .maybeSingle();
+      if (!enrollment) {
+        return new Response(JSON.stringify({ error: "Enrollment required" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
       const { data: existing } = await supabase
         .from("certificates").select("*, courses:course_id (title)")
-        .eq("user_id", userId).eq("course_id", courseId).single();
+        .eq("user_id", userId).eq("course_id", courseId).maybeSingle();
 
       if (existing) {
         certificate = existing;
